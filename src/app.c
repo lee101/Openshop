@@ -145,6 +145,39 @@ static void draw_shape(Canvas *c, Tool tool, int x0, int y0, int x1, int y1, int
     }
 }
 
+static void constrain_end(Tool tool, int x0, int y0, int x1, int y1, int shift, int *out_x, int *out_y) {
+    if (!out_x || !out_y) {
+        return;
+    }
+    *out_x = x1;
+    *out_y = y1;
+    if (!shift) {
+        return;
+    }
+    int dx = x1 - x0;
+    int dy = y1 - y0;
+    int adx = abs(dx);
+    int ady = abs(dy);
+
+    if (tool == TOOL_LINE) {
+        if (adx > ady * 2) {
+            *out_x = x0 + (dx >= 0 ? adx : -adx);
+            *out_y = y0;
+        } else if (ady > adx * 2) {
+            *out_x = x0;
+            *out_y = y0 + (dy >= 0 ? ady : -ady);
+        } else {
+            int len = adx > ady ? adx : ady;
+            *out_x = x0 + (dx >= 0 ? len : -len);
+            *out_y = y0 + (dy >= 0 ? len : -len);
+        }
+    } else if (tool == TOOL_RECT || tool == TOOL_ELLIPSE) {
+        int len = adx > ady ? adx : ady;
+        *out_x = x0 + (dx >= 0 ? len : -len);
+        *out_y = y0 + (dy >= 0 ? len : -len);
+    }
+}
+
 static int load_bmp_into_canvas(Canvas *c, const char *path) {
     if (!path || !c) {
         return 0;
@@ -308,7 +341,12 @@ int app_run(const char *input_path) {
                 if (e.button.button == SDL_BUTTON_LEFT) {
                     drawing = 0;
                     if (shaping) {
-                        draw_shape(&canvas, tool, shape_start_x, shape_start_y, e.button.x, e.button.y, brush_radius, brush_color);
+                        const Uint8 *state = SDL_GetKeyboardState(NULL);
+                        int shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
+                        int end_x = e.button.x;
+                        int end_y = e.button.y;
+                        constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
+                        draw_shape(&canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
                         shaping = 0;
                         preview_active = 0;
                     }
@@ -332,6 +370,11 @@ int app_run(const char *input_path) {
                     if (x < 0 || y < 0 || x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT) {
                         break;
                     }
+                    const Uint8 *state = SDL_GetKeyboardState(NULL);
+                    int shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
+                    int end_x = x;
+                    int end_y = y;
+                    constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
                     if (!preview_pixels) {
                         preview_pixels = (uint32_t *)malloc((size_t)canvas.width * (size_t)canvas.height * sizeof(uint32_t));
                         if (!preview_pixels) {
@@ -342,7 +385,7 @@ int app_run(const char *input_path) {
                         preview_canvas.pixels = preview_pixels;
                     }
                     memcpy(preview_pixels, shape_base.pixels, (size_t)canvas.width * (size_t)canvas.height * sizeof(uint32_t));
-                    draw_shape(&preview_canvas, tool, shape_start_x, shape_start_y, x, y, brush_radius, brush_color);
+                    draw_shape(&preview_canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
                     preview_active = 1;
                 }
                 break;
