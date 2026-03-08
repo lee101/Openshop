@@ -21,7 +21,7 @@ test: $(TEST_BIN)
 	./$(TEST_BIN)
 
 $(TEST_BIN): $(TEST_SRC)
-	$(CC) -std=c11 -O2 -Wall -Wextra $(TEST_SRC) -o $(TEST_BIN)
+	$(CC) -std=c11 -O2 -Wall -Wextra $(TEST_SRC) -o $(TEST_BIN) -lm
 
 clean:
 	rm -f $(OBJ) $(BIN) $(TEST_BIN)
