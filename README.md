@@ -23,6 +23,9 @@ make test
 - `Right Mouse` / `I`: eyedropper (pick color)
 - `B`: brush
 - `E`: eraser
+- `L`: line tool
+- `R`: rectangle tool
+- `O`: ellipse tool
 - `[ / ]`: brush size down/up
 - `1-6`: quick colors (black, red, green, blue, yellow, purple)
 - `F`: flood fill at cursor

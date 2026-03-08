@@ -16,6 +16,8 @@ void canvas_set_pixel(Canvas *c, int x, int y, uint32_t color);
 uint32_t canvas_get_pixel(const Canvas *c, int x, int y);
 void canvas_draw_circle(Canvas *c, int cx, int cy, int radius, uint32_t color);
 void canvas_draw_line(Canvas *c, int x0, int y0, int x1, int y1, int radius, uint32_t color);
+void canvas_draw_rect_outline(Canvas *c, int x0, int y0, int x1, int y1, int radius, uint32_t color);
+void canvas_draw_ellipse_outline(Canvas *c, int cx, int cy, int rx, int ry, int radius, uint32_t color);
 int canvas_flood_fill(Canvas *c, int x, int y, uint32_t new_color);
 
 #endif

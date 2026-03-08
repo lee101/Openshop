@@ -1,4 +1,5 @@
 #include "canvas.h"
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -93,6 +94,36 @@ void canvas_draw_line(Canvas *c, int x0, int y0, int x1, int y1, int radius, uin
             err += dx;
             y0 += sy;
         }
+    }
+}
+
+void canvas_draw_rect_outline(Canvas *c, int x0, int y0, int x1, int y1, int radius, uint32_t color) {
+    if (!c || !c->pixels) {
+        return;
+    }
+    int left = x0 < x1 ? x0 : x1;
+    int right = x0 < x1 ? x1 : x0;
+    int top = y0 < y1 ? y0 : y1;
+    int bottom = y0 < y1 ? y1 : y0;
+
+    canvas_draw_line(c, left, top, right, top, radius, color);
+    canvas_draw_line(c, right, top, right, bottom, radius, color);
+    canvas_draw_line(c, right, bottom, left, bottom, radius, color);
+    canvas_draw_line(c, left, bottom, left, top, radius, color);
+}
+
+void canvas_draw_ellipse_outline(Canvas *c, int cx, int cy, int rx, int ry, int radius, uint32_t color) {
+    if (!c || !c->pixels || rx <= 0 || ry <= 0) {
+        return;
+    }
+    for (int y = -ry; y <= ry; y++) {
+        double norm = 1.0 - ((double)(y * y) / (double)(ry * ry));
+        if (norm < 0.0) {
+            continue;
+        }
+        int x = (int)((double)rx * sqrt(norm) + 0.5);
+        canvas_draw_circle(c, cx + x, cy + y, radius, color);
+        canvas_draw_circle(c, cx - x, cy + y, radius, color);
     }
 }
 

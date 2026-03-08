@@ -20,6 +20,14 @@ static const uint32_t COLOR_BLUE = 0xFF1E88E5;
 static const uint32_t COLOR_YELLOW = 0xFFFDD835;
 static const uint32_t COLOR_PURPLE = 0xFF8E24AA;
 
+typedef enum {
+    TOOL_BRUSH,
+    TOOL_ERASER,
+    TOOL_LINE,
+    TOOL_RECT,
+    TOOL_ELLIPSE
+} Tool;
+
 typedef struct {
     int width;
     int height;
@@ -97,6 +105,44 @@ static void update_window_title(SDL_Window *window, const char *tool, int radius
     char title[128];
     snprintf(title, sizeof(title), "Openshop - %s | size %d | #%08X", tool, radius, color);
     SDL_SetWindowTitle(window, title);
+}
+
+static const char *tool_label(Tool tool) {
+    switch (tool) {
+    case TOOL_BRUSH:
+        return "Brush";
+    case TOOL_ERASER:
+        return "Eraser";
+    case TOOL_LINE:
+        return "Line";
+    case TOOL_RECT:
+        return "Rectangle";
+    case TOOL_ELLIPSE:
+        return "Ellipse";
+    default:
+        return "Brush";
+    }
+}
+
+static void draw_shape(Canvas *c, Tool tool, int x0, int y0, int x1, int y1, int radius, uint32_t color) {
+    switch (tool) {
+    case TOOL_LINE:
+        canvas_draw_line(c, x0, y0, x1, y1, radius, color);
+        break;
+    case TOOL_RECT:
+        canvas_draw_rect_outline(c, x0, y0, x1, y1, radius, color);
+        break;
+    case TOOL_ELLIPSE: {
+        int cx = (x0 + x1) / 2;
+        int cy = (y0 + y1) / 2;
+        int rx = abs(x1 - x0) / 2;
+        int ry = abs(y1 - y0) / 2;
+        canvas_draw_ellipse_outline(c, cx, cy, rx, ry, radius, color);
+        break;
+    }
+    default:
+        break;
+    }
 }
 
 static int load_bmp_into_canvas(Canvas *c, const char *path) {
@@ -208,11 +254,19 @@ int app_run(const char *input_path) {
     int last_y = 0;
     int brush_radius = 6;
     uint32_t brush_color = COLOR_BRUSH;
-    const char *tool_name = "Brush";
+    Tool tool = TOOL_BRUSH;
+    const char *tool_name = tool_label(tool);
     Snapshot undo_stack[MAX_HISTORY];
     Snapshot redo_stack[MAX_HISTORY];
     int undo_count = 0;
     int redo_count = 0;
+    Snapshot shape_base = {0};
+    int shaping = 0;
+    int shape_start_x = 0;
+    int shape_start_y = 0;
+    uint32_t *preview_pixels = NULL;
+    Canvas preview_canvas = {0};
+    int preview_active = 0;
     memset(undo_stack, 0, sizeof(undo_stack));
     memset(redo_stack, 0, sizeof(redo_stack));
     update_window_title(window, tool_name, brush_radius, brush_color);
@@ -227,16 +281,25 @@ int app_run(const char *input_path) {
             case SDL_MOUSEBUTTONDOWN:
                 if (e.button.button == SDL_BUTTON_LEFT) {
                     push_snapshot(&canvas, undo_stack, &undo_count, redo_stack, &redo_count);
-                    drawing = 1;
                     last_x = e.button.x;
                     last_y = e.button.y;
-                    canvas_draw_circle(&canvas, last_x, last_y, brush_radius, brush_color);
+                    if (tool == TOOL_BRUSH || tool == TOOL_ERASER) {
+                        drawing = 1;
+                        canvas_draw_circle(&canvas, last_x, last_y, brush_radius, brush_color);
+                    } else {
+                        shaping = 1;
+                        shape_start_x = last_x;
+                        shape_start_y = last_y;
+                        snapshot_free(&shape_base);
+                        snapshot_from_canvas(&shape_base, &canvas);
+                    }
                 } else if (e.button.button == SDL_BUTTON_RIGHT) {
                     int x = e.button.x;
                     int y = e.button.y;
                     if (x >= 0 && y >= 0 && x < CANVAS_WIDTH && y < CANVAS_HEIGHT) {
                         brush_color = canvas_get_pixel(&canvas, x, y);
-                        tool_name = "Brush";
+                        tool = TOOL_BRUSH;
+                        tool_name = tool_label(tool);
                         update_window_title(window, tool_name, brush_radius, brush_color);
                     }
                 }
@@ -244,6 +307,11 @@ int app_run(const char *input_path) {
             case SDL_MOUSEBUTTONUP:
                 if (e.button.button == SDL_BUTTON_LEFT) {
                     drawing = 0;
+                    if (shaping) {
+                        draw_shape(&canvas, tool, shape_start_x, shape_start_y, e.button.x, e.button.y, brush_radius, brush_color);
+                        shaping = 0;
+                        preview_active = 0;
+                    }
                 }
                 break;
             case SDL_MOUSEMOTION:
@@ -255,6 +323,27 @@ int app_run(const char *input_path) {
                         last_x = x;
                         last_y = y;
                     }
+                } else if (shaping) {
+                    if (!shape_base.pixels) {
+                        break;
+                    }
+                    int x = e.motion.x;
+                    int y = e.motion.y;
+                    if (x < 0 || y < 0 || x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT) {
+                        break;
+                    }
+                    if (!preview_pixels) {
+                        preview_pixels = (uint32_t *)malloc((size_t)canvas.width * (size_t)canvas.height * sizeof(uint32_t));
+                        if (!preview_pixels) {
+                            break;
+                        }
+                        preview_canvas.width = canvas.width;
+                        preview_canvas.height = canvas.height;
+                        preview_canvas.pixels = preview_pixels;
+                    }
+                    memcpy(preview_pixels, shape_base.pixels, (size_t)canvas.width * (size_t)canvas.height * sizeof(uint32_t));
+                    draw_shape(&preview_canvas, tool, shape_start_x, shape_start_y, x, y, brush_radius, brush_color);
+                    preview_active = 1;
                 }
                 break;
             case SDL_KEYDOWN: {
@@ -266,11 +355,25 @@ int app_run(const char *input_path) {
                     running = 0;
                 } else if (key == SDLK_b) {
                     brush_color = COLOR_BRUSH;
-                    tool_name = "Brush";
+                    tool = TOOL_BRUSH;
+                    tool_name = tool_label(tool);
                     update_window_title(window, tool_name, brush_radius, brush_color);
                 } else if (key == SDLK_e) {
                     brush_color = COLOR_ERASE;
-                    tool_name = "Eraser";
+                    tool = TOOL_ERASER;
+                    tool_name = tool_label(tool);
+                    update_window_title(window, tool_name, brush_radius, brush_color);
+                } else if (key == SDLK_l) {
+                    tool = TOOL_LINE;
+                    tool_name = tool_label(tool);
+                    update_window_title(window, tool_name, brush_radius, brush_color);
+                } else if (key == SDLK_r) {
+                    tool = TOOL_RECT;
+                    tool_name = tool_label(tool);
+                    update_window_title(window, tool_name, brush_radius, brush_color);
+                } else if (key == SDLK_o) {
+                    tool = TOOL_ELLIPSE;
+                    tool_name = tool_label(tool);
                     update_window_title(window, tool_name, brush_radius, brush_color);
                 } else if (key == SDLK_LEFTBRACKET) {
                     if (brush_radius > 1) {
@@ -284,27 +387,33 @@ int app_run(const char *input_path) {
                     }
                 } else if (key == SDLK_1) {
                     brush_color = COLOR_BRUSH;
-                    tool_name = "Brush";
+                    tool = TOOL_BRUSH;
+                    tool_name = tool_label(tool);
                     update_window_title(window, tool_name, brush_radius, brush_color);
                 } else if (key == SDLK_2) {
                     brush_color = COLOR_RED;
-                    tool_name = "Brush";
+                    tool = TOOL_BRUSH;
+                    tool_name = tool_label(tool);
                     update_window_title(window, tool_name, brush_radius, brush_color);
                 } else if (key == SDLK_3) {
                     brush_color = COLOR_GREEN;
-                    tool_name = "Brush";
+                    tool = TOOL_BRUSH;
+                    tool_name = tool_label(tool);
                     update_window_title(window, tool_name, brush_radius, brush_color);
                 } else if (key == SDLK_4) {
                     brush_color = COLOR_BLUE;
-                    tool_name = "Brush";
+                    tool = TOOL_BRUSH;
+                    tool_name = tool_label(tool);
                     update_window_title(window, tool_name, brush_radius, brush_color);
                 } else if (key == SDLK_5) {
                     brush_color = COLOR_YELLOW;
-                    tool_name = "Brush";
+                    tool = TOOL_BRUSH;
+                    tool_name = tool_label(tool);
                     update_window_title(window, tool_name, brush_radius, brush_color);
                 } else if (key == SDLK_6) {
                     brush_color = COLOR_PURPLE;
-                    tool_name = "Brush";
+                    tool = TOOL_BRUSH;
+                    tool_name = tool_label(tool);
                     update_window_title(window, tool_name, brush_radius, brush_color);
                 } else if (key == SDLK_c) {
                     push_snapshot(&canvas, undo_stack, &undo_count, redo_stack, &redo_count);
@@ -364,7 +473,8 @@ int app_run(const char *input_path) {
                     SDL_GetMouseState(&mx, &my);
                     if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
                         brush_color = canvas_get_pixel(&canvas, mx, my);
-                        tool_name = "Brush";
+                        tool = TOOL_BRUSH;
+                        tool_name = tool_label(tool);
                         update_window_title(window, tool_name, brush_radius, brush_color);
                     }
                 }
@@ -375,7 +485,11 @@ int app_run(const char *input_path) {
             }
         }
 
-        SDL_UpdateTexture(texture, NULL, canvas.pixels, CANVAS_WIDTH * 4);
+        if (preview_active && preview_pixels) {
+            SDL_UpdateTexture(texture, NULL, preview_pixels, CANVAS_WIDTH * 4);
+        } else {
+            SDL_UpdateTexture(texture, NULL, canvas.pixels, CANVAS_WIDTH * 4);
+        }
         SDL_SetRenderDrawColor(renderer, 30, 30, 34, 255);
         SDL_RenderClear(renderer);
 
@@ -388,6 +502,8 @@ int app_run(const char *input_path) {
     canvas_free(&canvas);
     stack_clear(undo_stack, &undo_count);
     stack_clear(redo_stack, &redo_count);
+    snapshot_free(&shape_base);
+    free(preview_pixels);
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);

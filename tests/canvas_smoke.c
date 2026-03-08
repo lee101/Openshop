@@ -10,6 +10,8 @@ int main(void) {
     canvas_clear(&c, 0xFFFFFFFF);
     canvas_draw_circle(&c, 32, 32, 8, 0xFF000000);
     canvas_draw_line(&c, 0, 0, 63, 63, 2, 0xFF00FF00);
+    canvas_draw_rect_outline(&c, 5, 5, 20, 20, 1, 0xFF0000FF);
+    canvas_draw_ellipse_outline(&c, 32, 32, 12, 6, 1, 0xFFFFFF00);
     if (!canvas_flood_fill(&c, 1, 1, 0xFFFF0000)) {
         fprintf(stderr, "canvas_flood_fill failed\n");
         canvas_free(&c);
