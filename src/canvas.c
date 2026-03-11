@@ -180,6 +180,12 @@ int canvas_flood_fill(Canvas *c, int x, int y, uint32_t new_color) {
     if (!stack) {
         return 0;
     }
+    size_t pixel_count = (size_t)c->width * (size_t)c->height;
+    uint8_t *visited = (uint8_t *)calloc(pixel_count, sizeof(uint8_t));
+    if (!visited) {
+        free(stack);
+        return 0;
+    }
 
     stack[count++] = (FillPoint){x, y};
     while (count > 0) {
@@ -187,6 +193,11 @@ int canvas_flood_fill(Canvas *c, int x, int y, uint32_t new_color) {
         if (p.x < 0 || p.y < 0 || p.x >= c->width || p.y >= c->height) {
             continue;
         }
+        size_t idx = (size_t)p.y * (size_t)c->width + (size_t)p.x;
+        if (visited[idx]) {
+            continue;
+        }
+        visited[idx] = 1;
         if (canvas_get_pixel(c, p.x, p.y) != target) {
             continue;
         }
@@ -196,6 +207,7 @@ int canvas_flood_fill(Canvas *c, int x, int y, uint32_t new_color) {
             size_t new_capacity = capacity * 2;
             FillPoint *next = (FillPoint *)realloc(stack, new_capacity * sizeof(FillPoint));
             if (!next) {
+                free(visited);
                 free(stack);
                 return 0;
             }
@@ -209,6 +221,7 @@ int canvas_flood_fill(Canvas *c, int x, int y, uint32_t new_color) {
         stack[count++] = (FillPoint){p.x, p.y - 1};
     }
 
+    free(visited);
     free(stack);
     return 1;
 }

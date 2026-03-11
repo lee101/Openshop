@@ -65,6 +65,16 @@ int main(void) {
         canvas_free(&c);
         return 1;
     }
+    canvas_clear(&c, 0xFFFFFFFF);
+    if (!canvas_flood_fill(&c, 0, 0, 0x80FFFFFF)) {
+        fprintf(stderr, "flood_fill blended no-op failed\n");
+        canvas_free(&c);
+        return 1;
+    }
+    if (!expect_pixel_eq("flood_fill_blended_noop", canvas_get_pixel(&c, 0, 0), 0xFFFFFFFF)) {
+        canvas_free(&c);
+        return 1;
+    }
     canvas_free(&c);
 
     Canvas transparent;
