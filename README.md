@@ -40,3 +40,8 @@ make test
 ## Notes
 - Canvas size is 800x600; window is 1024x768.
 - Load/save uses BMP via SDL built-ins for now.
+
+## Self-test Images
+`make test` now generates deterministic BMP outputs at `test-artifacts/`:
+- `scene.bmp`
+- `fill_regions.bmp`

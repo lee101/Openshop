@@ -8,6 +8,8 @@ BIN = openshop
 
 TEST_BIN = canvas_smoke
 TEST_SRC = tests/canvas_smoke.c src/canvas.c
+IMAGE_TEST_BIN = image_selftest
+IMAGE_TEST_SRC = tests/image_selftest.c src/canvas.c
 
 all: $(BIN)
 
@@ -17,13 +19,17 @@ $(BIN): $(OBJ)
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-test: $(TEST_BIN)
+test: $(TEST_BIN) $(IMAGE_TEST_BIN)
 	./$(TEST_BIN)
+	./$(IMAGE_TEST_BIN)
 
 $(TEST_BIN): $(TEST_SRC)
 	$(CC) -std=c11 -O2 -Wall -Wextra $(TEST_SRC) -o $(TEST_BIN) -lm
 
+$(IMAGE_TEST_BIN): $(IMAGE_TEST_SRC)
+	$(CC) -std=c11 -O2 -Wall -Wextra $(IMAGE_TEST_SRC) -o $(IMAGE_TEST_BIN) -lm
+
 clean:
-	rm -f $(OBJ) $(BIN) $(TEST_BIN)
+	rm -f $(OBJ) $(BIN) $(TEST_BIN) $(IMAGE_TEST_BIN)
 
 .PHONY: all clean test

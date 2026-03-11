@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - codex/**
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libsdl2-dev
+
+      - name: Build
+        run: make
+
+      - name: Run tests
+        run: make test
+
+      - name: Upload generated self-test images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selftest-images
+          path: test-artifacts/*.bmp
+          if-no-files-found: ignore
