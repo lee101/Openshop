@@ -3,6 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+static uint8_t blend_channel(uint8_t src, uint8_t dst, uint8_t src_alpha) {
+    int inv = 255 - src_alpha;
+    int value = src * src_alpha + dst * inv + 127;
+    return (uint8_t)(value / 255);
+}
+
 int canvas_init(Canvas *c, int width, int height) {
     if (!c || width <= 0 || height <= 0) {
         return 0;
@@ -43,7 +49,31 @@ void canvas_set_pixel(Canvas *c, int x, int y, uint32_t color) {
     if (x < 0 || y < 0 || x >= c->width || y >= c->height) {
         return;
     }
-    c->pixels[y * c->width + x] = color;
+    uint8_t sa = (uint8_t)((color >> 24) & 0xFF);
+    if (sa == 0) {
+        return;
+    }
+    size_t idx = (size_t)y * (size_t)c->width + (size_t)x;
+    if (sa == 255) {
+        c->pixels[idx] = color;
+        return;
+    }
+
+    uint32_t dst = c->pixels[idx];
+    uint8_t sr = (uint8_t)((color >> 16) & 0xFF);
+    uint8_t sg = (uint8_t)((color >> 8) & 0xFF);
+    uint8_t sb = (uint8_t)(color & 0xFF);
+    uint8_t dr = (uint8_t)((dst >> 16) & 0xFF);
+    uint8_t dg = (uint8_t)((dst >> 8) & 0xFF);
+    uint8_t db = (uint8_t)(dst & 0xFF);
+    uint8_t da = (uint8_t)((dst >> 24) & 0xFF);
+
+    uint8_t out_r = blend_channel(sr, dr, sa);
+    uint8_t out_g = blend_channel(sg, dg, sa);
+    uint8_t out_b = blend_channel(sb, db, sa);
+    uint8_t out_a = (uint8_t)(sa + ((da * (255 - sa) + 127) / 255));
+
+    c->pixels[idx] = ((uint32_t)out_a << 24) | ((uint32_t)out_r << 16) | ((uint32_t)out_g << 8) | out_b;
 }
 
 uint32_t canvas_get_pixel(const Canvas *c, int x, int y) {

@@ -28,6 +28,7 @@ make test
 - `O`: ellipse tool
 - `Shift` (with line/rect/ellipse): constrain angle or square/circle
 - `[ / ]`: brush size down/up
+- `- / =`: opacity down/up (1%-100%)
 - `1-6`: quick colors (black, red, green, blue, yellow, purple)
 - `F`: flood fill at cursor
 - `C`: clear canvas
