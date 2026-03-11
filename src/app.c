@@ -101,9 +101,27 @@ static void push_snapshot(Canvas *canvas, Snapshot *stack, int *count, Snapshot 
     }
 }
 
-static void update_window_title(SDL_Window *window, const char *tool, int radius, uint32_t color) {
+static uint32_t compose_brush_color(uint32_t rgb_color, int opacity_percent) {
+    if (opacity_percent < 1) {
+        opacity_percent = 1;
+    } else if (opacity_percent > 100) {
+        opacity_percent = 100;
+    }
+    uint32_t alpha = (uint32_t)((opacity_percent * 255 + 50) / 100);
+    return (alpha << 24) | (rgb_color & 0x00FFFFFF);
+}
+
+static void update_window_title(SDL_Window *window, const char *tool, int radius, uint32_t color, int opacity_percent) {
     char title[128];
-    snprintf(title, sizeof(title), "Openshop - %s | size %d | #%08X", tool, radius, color);
+    snprintf(
+        title,
+        sizeof(title),
+        "Openshop - %s | size %d | opacity %d%% | #%08X",
+        tool,
+        radius,
+        opacity_percent,
+        color
+    );
     SDL_SetWindowTitle(window, title);
 }
 
@@ -286,7 +304,9 @@ int app_run(const char *input_path) {
     int last_x = 0;
     int last_y = 0;
     int brush_radius = 6;
-    uint32_t brush_color = COLOR_BRUSH;
+    int brush_opacity = 100;
+    uint32_t brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
+    uint32_t brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
     Tool tool = TOOL_BRUSH;
     const char *tool_name = tool_label(tool);
     Snapshot undo_stack[MAX_HISTORY];
@@ -302,7 +322,7 @@ int app_run(const char *input_path) {
     int preview_active = 0;
     memset(undo_stack, 0, sizeof(undo_stack));
     memset(redo_stack, 0, sizeof(redo_stack));
-    update_window_title(window, tool_name, brush_radius, brush_color);
+    update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
 
     while (running) {
         SDL_Event e;
@@ -331,9 +351,16 @@ int app_run(const char *input_path) {
                     int y = e.button.y;
                     if (x >= 0 && y >= 0 && x < CANVAS_WIDTH && y < CANVAS_HEIGHT) {
                         brush_color = canvas_get_pixel(&canvas, x, y);
+                        brush_color_rgb = brush_color & 0x00FFFFFF;
+                        int sampled_alpha = (int)((brush_color >> 24) & 0xFF);
+                        brush_opacity = (sampled_alpha * 100 + 127) / 255;
+                        if (brush_opacity < 1) {
+                            brush_opacity = 1;
+                        }
+                        brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
                         tool = TOOL_BRUSH;
                         tool_name = tool_label(tool);
-                        update_window_title(window, tool_name, brush_radius, brush_color);
+                        update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
                     }
                 }
                 break;
@@ -397,67 +424,93 @@ int app_run(const char *input_path) {
                 if (key == SDLK_ESCAPE) {
                     running = 0;
                 } else if (key == SDLK_b) {
-                    brush_color = COLOR_BRUSH;
+                    brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
+                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
                     tool = TOOL_BRUSH;
                     tool_name = tool_label(tool);
-                    update_window_title(window, tool_name, brush_radius, brush_color);
+                    update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
                 } else if (key == SDLK_e) {
-                    brush_color = COLOR_ERASE;
+                    brush_color_rgb = COLOR_ERASE & 0x00FFFFFF;
+                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
                     tool = TOOL_ERASER;
                     tool_name = tool_label(tool);
-                    update_window_title(window, tool_name, brush_radius, brush_color);
+                    update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
                 } else if (key == SDLK_l) {
                     tool = TOOL_LINE;
                     tool_name = tool_label(tool);
-                    update_window_title(window, tool_name, brush_radius, brush_color);
+                    update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
                 } else if (key == SDLK_r) {
                     tool = TOOL_RECT;
                     tool_name = tool_label(tool);
-                    update_window_title(window, tool_name, brush_radius, brush_color);
+                    update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
                 } else if (key == SDLK_o) {
                     tool = TOOL_ELLIPSE;
                     tool_name = tool_label(tool);
-                    update_window_title(window, tool_name, brush_radius, brush_color);
+                    update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
                 } else if (key == SDLK_LEFTBRACKET) {
                     if (brush_radius > 1) {
                         brush_radius -= 1;
-                        update_window_title(window, tool_name, brush_radius, brush_color);
+                        update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
                     }
                 } else if (key == SDLK_RIGHTBRACKET) {
                     if (brush_radius < 64) {
                         brush_radius += 1;
-                        update_window_title(window, tool_name, brush_radius, brush_color);
+                        update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
+                    }
+                } else if (key == SDLK_MINUS || key == SDLK_KP_MINUS) {
+                    if (brush_opacity > 1) {
+                        brush_opacity -= 5;
+                        if (brush_opacity < 1) {
+                            brush_opacity = 1;
+                        }
+                        brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
+                        update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
+                    }
+                } else if (key == SDLK_EQUALS || key == SDLK_KP_PLUS) {
+                    if (brush_opacity < 100) {
+                        brush_opacity += 5;
+                        if (brush_opacity > 100) {
+                            brush_opacity = 100;
+                        }
+                        brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
+                        update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
                     }
                 } else if (key == SDLK_1) {
-                    brush_color = COLOR_BRUSH;
+                    brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
+                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
                     tool = TOOL_BRUSH;
                     tool_name = tool_label(tool);
-                    update_window_title(window, tool_name, brush_radius, brush_color);
+                    update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
                 } else if (key == SDLK_2) {
-                    brush_color = COLOR_RED;
+                    brush_color_rgb = COLOR_RED & 0x00FFFFFF;
+                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
                     tool = TOOL_BRUSH;
                     tool_name = tool_label(tool);
-                    update_window_title(window, tool_name, brush_radius, brush_color);
+                    update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
                 } else if (key == SDLK_3) {
-                    brush_color = COLOR_GREEN;
+                    brush_color_rgb = COLOR_GREEN & 0x00FFFFFF;
+                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
                     tool = TOOL_BRUSH;
                     tool_name = tool_label(tool);
-                    update_window_title(window, tool_name, brush_radius, brush_color);
+                    update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
                 } else if (key == SDLK_4) {
-                    brush_color = COLOR_BLUE;
+                    brush_color_rgb = COLOR_BLUE & 0x00FFFFFF;
+                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
                     tool = TOOL_BRUSH;
                     tool_name = tool_label(tool);
-                    update_window_title(window, tool_name, brush_radius, brush_color);
+                    update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
                 } else if (key == SDLK_5) {
-                    brush_color = COLOR_YELLOW;
+                    brush_color_rgb = COLOR_YELLOW & 0x00FFFFFF;
+                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
                     tool = TOOL_BRUSH;
                     tool_name = tool_label(tool);
-                    update_window_title(window, tool_name, brush_radius, brush_color);
+                    update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
                 } else if (key == SDLK_6) {
-                    brush_color = COLOR_PURPLE;
+                    brush_color_rgb = COLOR_PURPLE & 0x00FFFFFF;
+                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
                     tool = TOOL_BRUSH;
                     tool_name = tool_label(tool);
-                    update_window_title(window, tool_name, brush_radius, brush_color);
+                    update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
                 } else if (key == SDLK_c) {
                     push_snapshot(&canvas, undo_stack, &undo_count, redo_stack, &redo_count);
                     canvas_clear(&canvas, COLOR_BG);
@@ -516,9 +569,16 @@ int app_run(const char *input_path) {
                     SDL_GetMouseState(&mx, &my);
                     if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
                         brush_color = canvas_get_pixel(&canvas, mx, my);
+                        brush_color_rgb = brush_color & 0x00FFFFFF;
+                        int sampled_alpha = (int)((brush_color >> 24) & 0xFF);
+                        brush_opacity = (sampled_alpha * 100 + 127) / 255;
+                        if (brush_opacity < 1) {
+                            brush_opacity = 1;
+                        }
+                        brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
                         tool = TOOL_BRUSH;
                         tool_name = tool_label(tool);
-                        update_window_title(window, tool_name, brush_radius, brush_color);
+                        update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
                     }
                 }
                 break;
