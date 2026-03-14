@@ -157,6 +157,37 @@ void canvas_draw_ellipse_outline(Canvas *c, int cx, int cy, int rx, int ry, int 
     }
 }
 
+void canvas_draw_rect_filled(Canvas *c, int x0, int y0, int x1, int y1, uint32_t color) {
+    if (!c || !c->pixels) {
+        return;
+    }
+    int left   = x0 < x1 ? x0 : x1;
+    int right  = x0 < x1 ? x1 : x0;
+    int top    = y0 < y1 ? y0 : y1;
+    int bottom = y0 < y1 ? y1 : y0;
+    for (int y = top; y <= bottom; y++) {
+        for (int x = left; x <= right; x++) {
+            canvas_set_pixel(c, x, y, color);
+        }
+    }
+}
+
+void canvas_draw_ellipse_filled(Canvas *c, int cx, int cy, int rx, int ry, uint32_t color) {
+    if (!c || !c->pixels || rx <= 0 || ry <= 0) {
+        return;
+    }
+    for (int y = -ry; y <= ry; y++) {
+        double norm = 1.0 - ((double)(y * y) / (double)(ry * ry));
+        if (norm < 0.0) {
+            continue;
+        }
+        int half = (int)((double)rx * sqrt(norm) + 0.5);
+        for (int x = -half; x <= half; x++) {
+            canvas_set_pixel(c, cx + x, cy + y, color);
+        }
+    }
+}
+
 typedef struct {
     int x;
     int y;
