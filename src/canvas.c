@@ -76,6 +76,17 @@ void canvas_set_pixel(Canvas *c, int x, int y, uint32_t color) {
     c->pixels[idx] = ((uint32_t)out_a << 24) | ((uint32_t)out_r << 16) | ((uint32_t)out_g << 8) | out_b;
 }
 
+void canvas_set_pixel_raw(Canvas *c, int x, int y, uint32_t color) {
+    if (!c || !c->pixels) {
+        return;
+    }
+    if (x < 0 || y < 0 || x >= c->width || y >= c->height) {
+        return;
+    }
+    size_t idx = (size_t)y * (size_t)c->width + (size_t)x;
+    c->pixels[idx] = color;
+}
+
 uint32_t canvas_get_pixel(const Canvas *c, int x, int y) {
     if (!c || !c->pixels) {
         return 0;
