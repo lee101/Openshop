@@ -54,6 +54,7 @@ make test-sdl
 - `Ctrl+- / Ctrl+=`: active layer opacity down/up
 - `Ctrl+Shift+V`: toggle active layer visibility
 - `Ctrl+M`: merge active layer down
+- `Ctrl+Shift+M`: flatten visible layers
 - `Ctrl+S`: save the composited image to `output.bmp`
 - `Ctrl+O`: load `input.bmp` into the active layer
 - `Ctrl+Z` / `Ctrl+Y`: undo / redo (layer-aware)

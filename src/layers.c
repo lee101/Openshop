@@ -342,6 +342,42 @@ int layer_stack_merge_down(LayerStack *stack, int index) {
     return 1;
 }
 
+int layer_stack_flatten(LayerStack *stack, uint32_t background_color) {
+    if (!stack || stack->layer_count <= 0) {
+        return 0;
+    }
+
+    Canvas composite = {0};
+    if (!canvas_init(&composite, stack->width, stack->height)) {
+        return 0;
+    }
+    layer_stack_composite(stack, &composite, background_color);
+
+    Layer *base = &stack->layers[0];
+    if (!base->canvas.pixels && !ensure_layer_canvas(base, stack->width, stack->height)) {
+        canvas_free(&composite);
+        return 0;
+    }
+    memcpy(base->canvas.pixels, composite.pixels, (size_t)stack->width * (size_t)stack->height * sizeof(uint32_t));
+    base->visible = 1;
+    base->opacity_percent = 100;
+
+    for (int i = 1; i < stack->layer_count; i++) {
+        canvas_free(&stack->layers[i].canvas);
+        stack->layers[i].canvas.width = stack->width;
+        stack->layers[i].canvas.height = stack->height;
+        stack->layers[i].canvas.pixels = NULL;
+        stack->layers[i].visible = 0;
+        stack->layers[i].opacity_percent = 100;
+        stack->layers[i].name[0] = '\0';
+    }
+
+    stack->layer_count = 1;
+    stack->active_layer = 0;
+    canvas_free(&composite);
+    return 1;
+}
+
 void layer_stack_composite(const LayerStack *stack, Canvas *dest, uint32_t background_color) {
     if (!stack || !dest || !dest->pixels) {
         return;

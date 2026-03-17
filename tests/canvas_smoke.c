@@ -172,6 +172,38 @@ static int test_layers_basic(void) {
         return 0;
     }
 
+    if (layer_stack_add(&stack, "Flatten Top", 0x00000000) != 1) {
+        fprintf(stderr, "add flatten layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    canvas_clear(&stack.layers[0].canvas, 0xFF0000FF);
+    canvas_clear(&stack.layers[1].canvas, 0x8000FF00);
+    if (!layer_stack_set_opacity(&stack, 1, 50)) {
+        fprintf(stderr, "set flatten opacity failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_flatten(&stack, 0xFFFFFFFF)) {
+        fprintf(stderr, "flatten failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layer_count != 1 || stack.active_layer != 0) {
+        fprintf(stderr, "flatten bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("flatten_pixel", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF0040BF)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
     canvas_free(&composite);
     layer_stack_free(&stack);
     return 1;
