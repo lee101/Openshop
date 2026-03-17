@@ -69,6 +69,7 @@ int layer_stack_init(LayerStack *stack, int width, int height, uint32_t backgrou
     stack->height = height;
     stack->layer_count = 0;
     stack->active_layer = 0;
+    stack->solo_index = -1;
     for (int i = 0; i < MAX_LAYERS; i++) {
         stack->layers[i].canvas.width = width;
         stack->layers[i].canvas.height = height;
@@ -100,6 +101,7 @@ void layer_stack_free(LayerStack *stack) {
     stack->height = 0;
     stack->layer_count = 0;
     stack->active_layer = 0;
+    stack->solo_index = -1;
 }
 
 Layer *layer_stack_active(LayerStack *stack) {
@@ -157,6 +159,18 @@ int layer_stack_cycle(LayerStack *stack, int direction) {
     }
     stack->active_layer = idx;
     return idx;
+}
+
+int layer_stack_toggle_solo(LayerStack *stack, int index) {
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    if (stack->solo_index == index) {
+        stack->solo_index = -1;
+    } else {
+        stack->solo_index = index;
+    }
+    return 1;
 }
 
 int layer_stack_visible_count(const LayerStack *stack) {
@@ -233,6 +247,11 @@ int layer_stack_delete(LayerStack *stack, int index) {
     } else if (stack->active_layer > index) {
         stack->active_layer--;
     }
+    if (stack->solo_index == index) {
+        stack->solo_index = -1;
+    } else if (stack->solo_index > index) {
+        stack->solo_index--;
+    }
 
     return 1;
 }
@@ -279,6 +298,9 @@ int layer_stack_duplicate(LayerStack *stack, int index, const char *name) {
 
     stack->layer_count++;
     stack->active_layer = insert_at;
+    if (stack->solo_index >= insert_at) {
+        stack->solo_index++;
+    }
     return insert_at;
 }
 
@@ -296,6 +318,11 @@ int layer_stack_move(LayerStack *stack, int index, int direction) {
     stack->layers[index] = stack->layers[other];
     stack->layers[other] = tmp;
     stack->active_layer = other;
+    if (stack->solo_index == index) {
+        stack->solo_index = other;
+    } else if (stack->solo_index == other) {
+        stack->solo_index = index;
+    }
     return 1;
 }
 
@@ -338,6 +365,11 @@ int layer_stack_merge_down(LayerStack *stack, int index) {
     } else if (stack->active_layer > 0 && stack->active_layer >= index) {
         stack->active_layer--;
     }
+    if (stack->solo_index == index) {
+        stack->solo_index = index - 1;
+    } else if (stack->solo_index > index) {
+        stack->solo_index--;
+    }
 
     return 1;
 }
@@ -374,6 +406,7 @@ int layer_stack_flatten(LayerStack *stack, uint32_t background_color) {
 
     stack->layer_count = 1;
     stack->active_layer = 0;
+    stack->solo_index = -1;
     canvas_free(&composite);
     return 1;
 }
@@ -391,6 +424,9 @@ void layer_stack_composite(const LayerStack *stack, Canvas *dest, uint32_t backg
         uint32_t out = background_color;
         for (int layer_index = 0; layer_index < stack->layer_count; layer_index++) {
             const Layer *layer = &stack->layers[layer_index];
+            if (stack->solo_index >= 0 && stack->solo_index != layer_index) {
+                continue;
+            }
             if (!layer->visible || !layer->canvas.pixels) {
                 continue;
             }

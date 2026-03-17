@@ -74,6 +74,24 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_toggle_solo(&stack, 1)) {
+        fprintf(stderr, "toggle solo failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    layer_stack_composite(&stack, &composite, 0xFFFFFFFF);
+    if (!expect_pixel_eq("solo_active_layer", canvas_get_pixel(&composite, 8, 8), 0xFFBF7F7F)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_solo(&stack, 1) || stack.solo_index != -1) {
+        fprintf(stderr, "toggle solo off failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     canvas_clear(&stack.layers[0].canvas, 0xFF0000FF);
     canvas_clear(&stack.layers[1].canvas, 0x8000FF00);
     if (!layer_stack_set_opacity(&stack, 1, 50)) {
@@ -113,6 +131,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_toggle_solo(&stack, 1)) {
+        fprintf(stderr, "solo duplicated layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (stack.layers[1].opacity_percent != 100) {
         fprintf(stderr, "duplicate opacity reset unexpectedly\n");
         canvas_free(&composite);
@@ -126,6 +150,12 @@ static int test_layers_basic(void) {
     }
     if (!layer_stack_move(&stack, 1, -1) || stack.active_layer != 0) {
         fprintf(stderr, "move layer down failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != 0) {
+        fprintf(stderr, "solo index did not move with layer\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -156,6 +186,12 @@ static int test_layers_basic(void) {
     }
     if (!layer_stack_delete(&stack, 1)) {
         fprintf(stderr, "delete duplicated layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != -1) {
+        fprintf(stderr, "solo index should clear after deleting solo layer\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;

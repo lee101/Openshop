@@ -46,6 +46,7 @@ typedef struct {
     int height;
     int layer_count;
     int active_layer;
+    int solo_index;
     uint8_t visibility[MAX_LAYERS];
     uint8_t opacity_percent[MAX_LAYERS];
     char names[MAX_LAYERS][LAYER_NAME_MAX];
@@ -74,6 +75,7 @@ static int snapshot_from_layers(Snapshot *s, const LayerStack *stack) {
     s->height = stack->height;
     s->layer_count = stack->layer_count;
     s->active_layer = stack->active_layer;
+    s->solo_index = stack->solo_index;
 
     size_t per_layer = (size_t)stack->width * (size_t)stack->height;
     size_t total_pixels = per_layer * (size_t)stack->layer_count;
@@ -141,6 +143,10 @@ static int snapshot_apply(const Snapshot *s, LayerStack *stack) {
     }
     if (stack->active_layer >= stack->layer_count) {
         stack->active_layer = stack->layer_count - 1;
+    }
+    stack->solo_index = s->solo_index;
+    if (stack->solo_index >= stack->layer_count) {
+        stack->solo_index = -1;
     }
     return 1;
 }
@@ -240,7 +246,7 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
     snprintf(
         title,
         sizeof(title),
-        "Openshop - %s (%s) | size %d | brush %d%% | layer %d/%d %s [%s %d%%] | #%08X",
+        "Openshop - %s (%s) | size %d | brush %d%% | layer %d/%d %s [%s %d%%]%s | #%08X",
         tool_label(tool),
         brush_shape_label(brush_shape),
         radius,
@@ -250,6 +256,7 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
         layer_name,
         active && active->visible ? "visible" : "hidden",
         active ? active->opacity_percent : 100,
+        (layers->solo_index == layers->active_layer) ? " [solo]" : "",
         color
     );
     SDL_SetWindowTitle(window, title);
@@ -361,7 +368,7 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     if (key == SDLK_ESCAPE || key == SDLK_LSHIFT || key == SDLK_RSHIFT) {
         return 0;
     }
-    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_v || key == SDLK_m || key == SDLK_d || key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET || key == SDLK_MINUS || key == SDLK_KP_MINUS || key == SDLK_EQUALS || key == SDLK_KP_PLUS)) {
+    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_v || key == SDLK_m || key == SDLK_d || key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET || key == SDLK_MINUS || key == SDLK_KP_MINUS || key == SDLK_EQUALS || key == SDLK_KP_PLUS || key == SDLK_SLASH)) {
         return 1;
     }
     switch (key) {
@@ -835,6 +842,17 @@ int app_run(const char *input_path) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_toggle_visibility(&layers, layers.active_layer)) {
                         fprintf(stderr, "Cannot hide the final visible layer\n");
+                    } else {
+                        needs_composite = 1;
+                    }
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
+                if (ctrl && key == SDLK_SLASH) {
+                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                    if (!layer_stack_toggle_solo(&layers, layers.active_layer)) {
+                        fprintf(stderr, "Could not toggle solo mode\n");
                     } else {
                         needs_composite = 1;
                     }

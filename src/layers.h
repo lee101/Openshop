@@ -19,6 +19,7 @@ typedef struct {
     int height;
     int layer_count;
     int active_layer;
+    int solo_index;
     Layer layers[MAX_LAYERS];
 } LayerStack;
 
@@ -38,5 +39,6 @@ int layer_stack_duplicate(LayerStack *stack, int index, const char *name);
 int layer_stack_move(LayerStack *stack, int index, int direction);
 int layer_stack_merge_down(LayerStack *stack, int index);
 int layer_stack_flatten(LayerStack *stack, uint32_t background_color);
+int layer_stack_toggle_solo(LayerStack *stack, int index);
 
 #endif

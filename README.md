@@ -53,6 +53,7 @@ make test-sdl
 - `Delete` / `Backspace`: delete active layer
 - `Ctrl+]` / `Ctrl+[`: move active layer up/down
 - `Ctrl+- / Ctrl+=`: active layer opacity down/up
+- `Ctrl+/`: solo active layer on/off
 - `Ctrl+Shift+V`: toggle active layer visibility
 - `Ctrl+M`: merge active layer down
 - `Ctrl+Shift+M`: flatten visible layers
