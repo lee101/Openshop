@@ -64,6 +64,7 @@ make test-sdl
 ## Notes
 - Canvas size is 800x600; window is 1024x768.
 - Layer stack starts with a white background layer; new layers are transparent.
+- Transparent regions render over a checkerboard preview in the editor.
 - Load/save uses BMP via SDL built-ins for now.
 
 ## Self-test Images
