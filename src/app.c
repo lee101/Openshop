@@ -239,7 +239,7 @@ static BrushShape cycle_brush_shape(BrushShape shape, int direction) {
     return (BrushShape)idx;
 }
 
-static void update_window_title(SDL_Window *window, const LayerStack *layers, Tool tool, BrushShape brush_shape, int radius, uint32_t color, int opacity_percent) {
+static void update_window_title(SDL_Window *window, const LayerStack *layers, Tool tool, BrushShape brush_shape, int radius, uint32_t color, int opacity_percent, int fill_tolerance) {
     if (!window || !layers) {
         return;
     }
@@ -250,11 +250,12 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
     snprintf(
         title,
         sizeof(title),
-        "Openshop - %s (%s) | size %d | brush %d%% | layer %d/%d %s [%s%s %d%%]%s | visible %d/%d | #%08X",
+        "Openshop - %s (%s) | size %d | brush %d%% | fill-tol %d | layer %d/%d %s [%s%s %d%%]%s | visible %d/%d | #%08X",
         tool_label(tool),
         brush_shape_label(brush_shape),
         radius,
         opacity_percent,
+        fill_tolerance,
         layers->active_layer + 1,
         layers->layer_count,
         layer_name,
@@ -636,12 +637,13 @@ int app_run(const char *input_path) {
     int needs_composite = 0;
     uint32_t *clipboard_pixels = NULL;
     int clipboard_has_data = 0;
+    int fill_tolerance = 32;
     uint32_t *shape_base_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
     uint32_t *preview_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
     Canvas preview_canvas = {CANVAS_WIDTH, CANVAS_HEIGHT, preview_pixels};
     memset(undo_stack, 0, sizeof(undo_stack));
     memset(redo_stack, 0, sizeof(redo_stack));
-    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
 
     while (running) {
         SDL_Event e;
@@ -696,7 +698,7 @@ int app_run(const char *input_path) {
                         }
                         brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
                         tool = TOOL_BRUSH;
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     }
                 }
                 break;
@@ -785,7 +787,7 @@ int app_run(const char *input_path) {
                     } else {
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
@@ -796,7 +798,7 @@ int app_run(const char *input_path) {
                     } else {
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
@@ -807,7 +809,7 @@ int app_run(const char *input_path) {
                     } else {
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
@@ -816,7 +818,7 @@ int app_run(const char *input_path) {
                     if (!layer_stack_toggle_lock(&layers, layers.active_layer)) {
                         fprintf(stderr, "Could not toggle layer lock\n");
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
@@ -827,7 +829,7 @@ int app_run(const char *input_path) {
                     } else {
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
@@ -838,7 +840,7 @@ int app_run(const char *input_path) {
                     } else {
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
@@ -849,7 +851,7 @@ int app_run(const char *input_path) {
                     } else {
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
@@ -860,7 +862,7 @@ int app_run(const char *input_path) {
                     } else {
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
@@ -871,7 +873,7 @@ int app_run(const char *input_path) {
                     } else {
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
@@ -882,7 +884,7 @@ int app_run(const char *input_path) {
                     } else {
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
@@ -893,7 +895,7 @@ int app_run(const char *input_path) {
                         layer_stack_set_opacity(&layers, layers.active_layer, active->opacity_percent - 10);
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
@@ -904,7 +906,7 @@ int app_run(const char *input_path) {
                         layer_stack_set_opacity(&layers, layers.active_layer, active->opacity_percent + 10);
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
@@ -915,7 +917,7 @@ int app_run(const char *input_path) {
                     } else {
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
@@ -926,7 +928,7 @@ int app_run(const char *input_path) {
                     } else {
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
@@ -937,7 +939,7 @@ int app_run(const char *input_path) {
                     } else {
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
@@ -948,7 +950,7 @@ int app_run(const char *input_path) {
                     } else {
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
@@ -982,7 +984,7 @@ int app_run(const char *input_path) {
                     } else {
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
@@ -993,7 +995,7 @@ int app_run(const char *input_path) {
                     } else {
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
@@ -1033,7 +1035,7 @@ int app_run(const char *input_path) {
                         } else {
                             fprintf(stderr, "Could not paste: max layers reached\n");
                         }
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     }
                     break;
                 }
@@ -1053,7 +1055,7 @@ int app_run(const char *input_path) {
                         snapshot_apply(&prev, &layers);
                         snapshot_free(&prev);
                         needs_composite = 1;
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     }
                     break;
                 }
@@ -1073,7 +1075,7 @@ int app_run(const char *input_path) {
                         snapshot_apply(&next, &layers);
                         snapshot_free(&next);
                         needs_composite = 1;
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     }
                     break;
                 }
@@ -1082,7 +1084,7 @@ int app_run(const char *input_path) {
                     int target = (int)(key - SDLK_1);
                     if (target < layers.layer_count) {
                         layers.active_layer = target;
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     }
                     break;
                 }
@@ -1094,7 +1096,7 @@ int app_run(const char *input_path) {
                         layer_stack_set_opacity(&layers, layers.active_layer, 100);
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
@@ -1103,7 +1105,7 @@ int app_run(const char *input_path) {
                     if (layer_stack_show_all(&layers)) {
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
@@ -1112,20 +1114,20 @@ int app_run(const char *input_path) {
                     if (layer_stack_show(&layers, layers.active_layer)) {
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     break;
                 }
 
                 if (key == SDLK_PAGEUP) {
                     if (layer_stack_cycle(&layers, 1) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     }
                     break;
                 }
 
                 if (key == SDLK_PAGEDOWN) {
                     if (layer_stack_cycle(&layers, -1) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                     }
                     break;
                 }
@@ -1167,13 +1169,23 @@ int app_run(const char *input_path) {
                     tool = TOOL_ELLIPSE;
                 } else if (key == SDLK_p) {
                     tool = TOOL_FILLED_ELLIPSE;
-                } else if (key == SDLK_LEFTBRACKET) {
+                } else if (key == SDLK_LEFTBRACKET && !shift) {
                     if (brush_radius > 1) {
                         brush_radius -= 1;
                     }
-                } else if (key == SDLK_RIGHTBRACKET) {
+                } else if (key == SDLK_RIGHTBRACKET && !shift) {
                     if (brush_radius < 64) {
                         brush_radius += 1;
+                    }
+                } else if (key == SDLK_LEFTBRACKET && shift) {
+                    if (fill_tolerance > 0) {
+                        fill_tolerance -= 8;
+                        if (fill_tolerance < 0) { fill_tolerance = 0; }
+                    }
+                } else if (key == SDLK_RIGHTBRACKET && shift) {
+                    if (fill_tolerance < 255) {
+                        fill_tolerance += 8;
+                        if (fill_tolerance > 255) { fill_tolerance = 255; }
                     }
                 } else if (key == SDLK_COMMA) {
                     brush_shape = cycle_brush_shape(brush_shape, -1);
@@ -1299,7 +1311,7 @@ int app_run(const char *input_path) {
                         if (active && !active->locked) {
                             push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                         }
-                        if (!active || active->locked || !canvas_flood_fill_tolerance(&active->canvas, mx, my, brush_color, 32)) {
+                        if (!active || active->locked || !canvas_flood_fill_tolerance(&active->canvas, mx, my, brush_color, fill_tolerance)) {
                             fprintf(stderr, "Tolerance fill failed\n");
                         } else {
                             needs_composite = 1;
@@ -1323,7 +1335,7 @@ int app_run(const char *input_path) {
                     }
                 }
 
-                update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
                 break;
             }
             default:

@@ -40,7 +40,8 @@ make test-sdl
 - `- / =`: opacity down/up (1%-100%)
 - `1-6`: quick colors (black, red, green, blue, yellow, purple)
 - `F`: flood fill on the active layer (exact colour match)
-- `Shift+F`: flood fill with tolerance 32 (fills similar colours)
+- `Shift+F`: flood fill using current fill-tolerance (fills similar colours)
+- `Shift+[` / `Shift+]`: decrease / increase fill-tolerance by 8 (shown in title, range 0–255)
 - `C`: clear the active layer
 - `H`: flip the active layer horizontally
 - `V`: flip the active layer vertically
