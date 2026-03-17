@@ -67,6 +67,25 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_add(&stack, "Third", 0x00000000) != 2 || layer_stack_add(&stack, "Fourth", 0x00000000) != 3) {
+        fprintf(stderr, "setup extended layer cycling failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.active_layer = 3;
+    if (layer_stack_cycle(&stack, 1) != 0 || layer_stack_cycle(&stack, -1) != 3) {
+        fprintf(stderr, "layer cycling wrap failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 3) || !layer_stack_delete(&stack, 2)) {
+        fprintf(stderr, "extended layer cycling cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_insert(&stack, 1, "Inserted", 0x00000000) != 1) {
         fprintf(stderr, "layer insert failed\n");
         canvas_free(&composite);
