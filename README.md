@@ -36,6 +36,7 @@ make test-sdl
 - `P`: filled ellipse tool
 - `Shift` (with line/rect/ellipse, filled variants included): constrain angle or square/circle
 - `[ / ]`: brush size down/up
+- `, / .`: cycle brush shape (round, square, diamond)
 - `- / =`: opacity down/up (1%-100%)
 - `1-6`: quick colors (black, red, green, blue, yellow, purple)
 - `F`: flood fill on the active layer

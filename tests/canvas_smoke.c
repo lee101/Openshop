@@ -1,6 +1,7 @@
 #include "../src/canvas.h"
 #include "../src/layers.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static int expect_pixel_eq(const char *label, uint32_t got, uint32_t want) {
@@ -363,6 +364,39 @@ int main(void) {
         return 1;
     }
     canvas_free(&translated);
+
+    Canvas mask;
+    if (!canvas_init(&mask, 9, 9)) {
+        fprintf(stderr, "mask canvas init failed\n");
+        return 1;
+    }
+    canvas_clear(&mask, 0x00000000);
+    for (int y = -2; y <= 2; y++) {
+        for (int x = -2; x <= 2; x++) {
+            if (abs(x) <= 2 && abs(y) <= 2) {
+                canvas_set_pixel_raw(&mask, 4 + x, 4 + y, 0xFFFFFFFF);
+            }
+        }
+    }
+    if (!expect_pixel_eq("mask_square_corner", canvas_get_pixel(&mask, 2, 2), 0xFFFFFFFF)) {
+        canvas_free(&mask);
+        return 1;
+    }
+    canvas_clear(&mask, 0x00000000);
+    for (int y = -2; y <= 2; y++) {
+        for (int x = -2; x <= 2; x++) {
+            if (abs(x) + abs(y) <= 2) {
+                canvas_set_pixel_raw(&mask, 4 + x, 4 + y, 0xFFFFFFFF);
+            }
+        }
+    }
+    if (!expect_pixel_eq("mask_diamond_center", canvas_get_pixel(&mask, 4, 4), 0xFFFFFFFF) ||
+        !expect_pixel_eq("mask_diamond_corner", canvas_get_pixel(&mask, 2, 2), 0x00000000) ||
+        !expect_pixel_eq("mask_diamond_top", canvas_get_pixel(&mask, 4, 2), 0xFFFFFFFF)) {
+        canvas_free(&mask);
+        return 1;
+    }
+    canvas_free(&mask);
 
     if (!test_layers_basic()) {
         return 1;
