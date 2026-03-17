@@ -1,5 +1,6 @@
 #include "app.h"
 #include "canvas.h"
+#include "image_io.h"
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -130,6 +131,49 @@ static void cancel_shape_preview(Snapshot *shape_base, int *shaping, int *previe
     }
 }
 
+static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
+    if (key == SDLK_ESCAPE) {
+        return 0;
+    }
+    if (key == SDLK_LSHIFT || key == SDLK_RSHIFT) {
+        return 0;
+    }
+    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y)) {
+        return 1;
+    }
+    switch (key) {
+    case SDLK_b:
+    case SDLK_e:
+    case SDLK_l:
+    case SDLK_r:
+    case SDLK_t:
+    case SDLK_o:
+    case SDLK_p:
+    case SDLK_LEFTBRACKET:
+    case SDLK_RIGHTBRACKET:
+    case SDLK_MINUS:
+    case SDLK_KP_MINUS:
+    case SDLK_EQUALS:
+    case SDLK_KP_PLUS:
+    case SDLK_1:
+    case SDLK_2:
+    case SDLK_3:
+    case SDLK_4:
+    case SDLK_5:
+    case SDLK_6:
+    case SDLK_c:
+    case SDLK_h:
+    case SDLK_v:
+    case SDLK_j:
+    case SDLK_x:
+    case SDLK_f:
+    case SDLK_i:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
 static uint32_t compose_brush_color(uint32_t rgb_color, int opacity_percent) {
     if (opacity_percent < 1) {
         opacity_percent = 1;
@@ -240,51 +284,6 @@ static void constrain_end(Tool tool, int x0, int y0, int x1, int y1, int shift, 
     }
 }
 
-static int load_bmp_into_canvas(Canvas *c, const char *path) {
-    if (!path || !c) {
-        return 0;
-    }
-    SDL_Surface *bmp = SDL_LoadBMP(path);
-    if (!bmp) {
-        return 0;
-    }
-    SDL_Surface *converted = SDL_ConvertSurfaceFormat(bmp, SDL_PIXELFORMAT_ARGB8888, 0);
-    SDL_FreeSurface(bmp);
-    if (!converted) {
-        return 0;
-    }
-    int w = converted->w;
-    int h = converted->h;
-    int copy_w = w < c->width ? w : c->width;
-    int copy_h = h < c->height ? h : c->height;
-    for (int y = 0; y < copy_h; y++) {
-        uint8_t *row = (uint8_t *)converted->pixels + y * converted->pitch;
-        memcpy(c->pixels + y * c->width, row, (size_t)copy_w * sizeof(uint32_t));
-    }
-    SDL_FreeSurface(converted);
-    return 1;
-}
-
-static int save_canvas_to_bmp(const Canvas *c, const char *path) {
-    if (!c || !c->pixels || !path) {
-        return 0;
-    }
-    SDL_Surface *surface = SDL_CreateRGBSurfaceWithFormatFrom(
-        (void *)c->pixels,
-        c->width,
-        c->height,
-        32,
-        c->width * 4,
-        SDL_PIXELFORMAT_ARGB8888
-    );
-    if (!surface) {
-        return 0;
-    }
-    int ok = SDL_SaveBMP(surface, path) == 0;
-    SDL_FreeSurface(surface);
-    return ok;
-}
-
 int app_run(const char *input_path) {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
@@ -340,7 +339,7 @@ int app_run(const char *input_path) {
 
     canvas_clear(&canvas, COLOR_BG);
     if (input_path && input_path[0]) {
-        load_bmp_into_canvas(&canvas, input_path);
+        canvas_load_bmp(&canvas, input_path, COLOR_BG);
     }
 
     int running = 1;
@@ -468,6 +467,10 @@ int app_run(const char *input_path) {
                 SDL_Keycode key = e.key.keysym.sym;
                 const Uint8 *state = SDL_GetKeyboardState(NULL);
                 int ctrl = state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL];
+
+                if (shaping && should_cancel_shape_on_key(key, ctrl)) {
+                    cancel_shape_preview(&shape_base, &shaping, &preview_active);
+                }
 
                 if (key == SDLK_ESCAPE) {
                     if (shaping) {
@@ -611,12 +614,12 @@ int app_run(const char *input_path) {
                         canvas_invert_rgb
                     );
                 } else if (ctrl && key == SDLK_s) {
-                    if (!save_canvas_to_bmp(&canvas, "output.bmp")) {
+                    if (!canvas_save_bmp(&canvas, "output.bmp")) {
                         fprintf(stderr, "Failed to save output.bmp\n");
                     }
                 } else if (ctrl && key == SDLK_o) {
                     push_snapshot(&canvas, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!load_bmp_into_canvas(&canvas, "input.bmp")) {
+                    if (!canvas_load_bmp(&canvas, "input.bmp", COLOR_BG)) {
                         fprintf(stderr, "Failed to load input.bmp\n");
                     }
                 } else if (ctrl && key == SDLK_z) {

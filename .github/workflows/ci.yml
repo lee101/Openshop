@@ -24,7 +24,9 @@ jobs:
         run: make
 
       - name: Run tests
-        run: make test
+        run: |
+          make test
+          make test-sdl
 
       - name: Upload generated self-test images
         if: always()

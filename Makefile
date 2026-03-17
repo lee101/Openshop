@@ -9,7 +9,7 @@ CFLAGS += $(shell sdl2-config --cflags)
 LDFLAGS += $(shell sdl2-config --libs)
 endif
 
-SRC = src/main.c src/app.c src/canvas.c
+SRC = src/main.c src/app.c src/canvas.c src/image_io.c
 OBJ = $(SRC:.c=.o)
 BIN = openshop
 
@@ -17,6 +17,8 @@ TEST_BIN = canvas_smoke
 TEST_SRC = tests/canvas_smoke.c src/canvas.c
 IMAGE_TEST_BIN = image_selftest
 IMAGE_TEST_SRC = tests/image_selftest.c src/canvas.c
+SDL_TEST_BIN = image_io_smoke
+SDL_TEST_SRC = tests/image_io_smoke.c src/canvas.c src/image_io.c
 
 all: $(BIN)
 
@@ -40,13 +42,19 @@ test: $(TEST_BIN) $(IMAGE_TEST_BIN)
 	./$(TEST_BIN)
 	./$(IMAGE_TEST_BIN)
 
+test-sdl: check-sdl2 $(SDL_TEST_BIN)
+	./$(SDL_TEST_BIN)
+
 $(TEST_BIN): $(TEST_SRC)
 	$(CC) -std=c11 -O2 -Wall -Wextra $(TEST_SRC) -o $(TEST_BIN) -lm
 
 $(IMAGE_TEST_BIN): $(IMAGE_TEST_SRC)
 	$(CC) -std=c11 -O2 -Wall -Wextra $(IMAGE_TEST_SRC) -o $(IMAGE_TEST_BIN) -lm
 
-clean:
-	rm -f $(OBJ) $(BIN) $(TEST_BIN) $(IMAGE_TEST_BIN)
+$(SDL_TEST_BIN): check-sdl2 $(SDL_TEST_SRC)
+	$(CC) $(CFLAGS) $(SDL_TEST_SRC) -o $(SDL_TEST_BIN) $(LDFLAGS) -lm
 
-.PHONY: all clean test
+clean:
+	rm -f $(OBJ) $(BIN) $(TEST_BIN) $(IMAGE_TEST_BIN) $(SDL_TEST_BIN)
+
+.PHONY: all clean test test-sdl

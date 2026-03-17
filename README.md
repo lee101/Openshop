@@ -13,6 +13,11 @@ make
 make test
 ```
 
+## SDL I/O Smoke Test
+```bash
+make test-sdl
+```
+
 ## Run
 ```bash
 ./openshop [optional_input.bmp]
