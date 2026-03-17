@@ -75,6 +75,7 @@ int layer_stack_init(LayerStack *stack, int width, int height, uint32_t backgrou
         stack->layers[i].canvas.height = height;
         stack->layers[i].canvas.pixels = NULL;
         stack->layers[i].visible = 0;
+        stack->layers[i].locked = 0;
         stack->layers[i].opacity_percent = 100;
         stack->layers[i].name[0] = '\0';
     }
@@ -94,6 +95,7 @@ void layer_stack_free(LayerStack *stack) {
     for (int i = 0; i < MAX_LAYERS; i++) {
         canvas_free(&stack->layers[i].canvas);
         stack->layers[i].visible = 0;
+        stack->layers[i].locked = 0;
         stack->layers[i].opacity_percent = 100;
         stack->layers[i].name[0] = '\0';
     }
@@ -134,6 +136,7 @@ int layer_stack_add(LayerStack *stack, const char *name, uint32_t clear_color) {
 
     canvas_clear(&layer->canvas, clear_color);
     layer->visible = 1;
+    layer->locked = 0;
     layer->opacity_percent = 100;
     if (name && name[0]) {
         strncpy(layer->name, name, LAYER_NAME_MAX - 1);
@@ -186,6 +189,14 @@ int layer_stack_visible_count(const LayerStack *stack) {
     return count;
 }
 
+int layer_stack_toggle_lock(LayerStack *stack, int index) {
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    stack->layers[index].locked = !stack->layers[index].locked;
+    return 1;
+}
+
 int layer_stack_toggle_visibility(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
@@ -205,7 +216,7 @@ int layer_stack_clear_layer(LayerStack *stack, int index, uint32_t color) {
     }
 
     Layer *layer = &stack->layers[index];
-    if (!layer->canvas.pixels && !ensure_layer_canvas(layer, stack->width, stack->height)) {
+    if (layer->locked || (!layer->canvas.pixels && !ensure_layer_canvas(layer, stack->width, stack->height))) {
         return 0;
     }
     canvas_clear(&layer->canvas, color);
@@ -229,6 +240,9 @@ int layer_stack_delete(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count || stack->layer_count == 1) {
         return 0;
     }
+    if (stack->layers[index].locked) {
+        return 0;
+    }
 
     canvas_free(&stack->layers[index].canvas);
     for (int i = index; i < stack->layer_count - 1; i++) {
@@ -240,6 +254,7 @@ int layer_stack_delete(LayerStack *stack, int index) {
     stack->layers[stack->layer_count].canvas.height = stack->height;
     stack->layers[stack->layer_count].canvas.pixels = NULL;
     stack->layers[stack->layer_count].visible = 0;
+    stack->layers[stack->layer_count].locked = 0;
     stack->layers[stack->layer_count].name[0] = '\0';
 
     if (stack->active_layer >= stack->layer_count) {
@@ -276,6 +291,7 @@ int layer_stack_duplicate(LayerStack *stack, int index, const char *name) {
     dup->canvas.height = stack->height;
     dup->canvas.pixels = NULL;
     dup->visible = source->visible;
+    dup->locked = source->locked;
     dup->opacity_percent = source->opacity_percent;
     dup->name[0] = '\0';
 
@@ -333,7 +349,7 @@ int layer_stack_merge_down(LayerStack *stack, int index) {
 
     Layer *lower = &stack->layers[index - 1];
     Layer *upper = &stack->layers[index];
-    if (!lower->canvas.pixels || !upper->canvas.pixels) {
+    if (lower->locked || upper->locked || !lower->canvas.pixels || !upper->canvas.pixels) {
         return 0;
     }
 
@@ -357,6 +373,7 @@ int layer_stack_merge_down(LayerStack *stack, int index) {
     stack->layers[stack->layer_count].canvas.height = stack->height;
     stack->layers[stack->layer_count].canvas.pixels = NULL;
     stack->layers[stack->layer_count].visible = 0;
+    stack->layers[stack->layer_count].locked = 0;
     stack->layers[stack->layer_count].opacity_percent = 100;
     stack->layers[stack->layer_count].name[0] = '\0';
 
@@ -378,6 +395,11 @@ int layer_stack_flatten(LayerStack *stack, uint32_t background_color) {
     if (!stack || stack->layer_count <= 0) {
         return 0;
     }
+    for (int i = 0; i < stack->layer_count; i++) {
+        if (stack->layers[i].locked) {
+            return 0;
+        }
+    }
 
     Canvas composite = {0};
     if (!canvas_init(&composite, stack->width, stack->height)) {
@@ -392,6 +414,7 @@ int layer_stack_flatten(LayerStack *stack, uint32_t background_color) {
     }
     memcpy(base->canvas.pixels, composite.pixels, (size_t)stack->width * (size_t)stack->height * sizeof(uint32_t));
     base->visible = 1;
+    base->locked = 0;
     base->opacity_percent = 100;
 
     for (int i = 1; i < stack->layer_count; i++) {
@@ -400,6 +423,7 @@ int layer_stack_flatten(LayerStack *stack, uint32_t background_color) {
         stack->layers[i].canvas.height = stack->height;
         stack->layers[i].canvas.pixels = NULL;
         stack->layers[i].visible = 0;
+        stack->layers[i].locked = 0;
         stack->layers[i].opacity_percent = 100;
         stack->layers[i].name[0] = '\0';
     }
@@ -423,7 +447,7 @@ int layer_stack_stamp_visible_into(LayerStack *stack, int index, uint32_t backgr
     layer_stack_composite(stack, &composite, background_color);
 
     Layer *target = &stack->layers[index];
-    if (!target->canvas.pixels && !ensure_layer_canvas(target, stack->width, stack->height)) {
+    if (target->locked || (!target->canvas.pixels && !ensure_layer_canvas(target, stack->width, stack->height))) {
         canvas_free(&composite);
         return 0;
     }

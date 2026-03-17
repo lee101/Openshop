@@ -53,6 +53,7 @@ make test-sdl
 - `Delete` / `Backspace`: delete active layer
 - `Ctrl+]` / `Ctrl+[`: move active layer up/down
 - `Ctrl+- / Ctrl+=`: active layer opacity down/up
+- `Ctrl+Shift+L`: toggle active layer lock
 - `Ctrl+/`: solo active layer on/off
 - `Ctrl+Shift+V`: toggle active layer visibility
 - `Ctrl+M`: merge active layer down
@@ -66,6 +67,7 @@ make test-sdl
 ## Notes
 - Canvas size is 800x600; window is 1024x768.
 - Layer stack starts with a white background layer; new layers are transparent.
+- Locked layers stay visible in the stack but reject paint, fill, clear, transform, load, merge, flatten, stamp, and delete operations.
 - Transparent regions render over a checkerboard preview in the editor.
 - Load/save uses BMP via SDL built-ins for now.
 

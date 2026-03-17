@@ -92,6 +92,48 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_toggle_lock(&stack, 1) || !stack.layers[1].locked) {
+        fprintf(stderr, "toggle lock on failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_clear_layer(&stack, 1, 0xFFABCDEF)) {
+        fprintf(stderr, "clear should fail on locked layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_delete(&stack, 1)) {
+        fprintf(stderr, "delete should fail on locked layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_merge_down(&stack, 1)) {
+        fprintf(stderr, "merge should fail on locked layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_stamp_visible_into(&stack, 1, 0xFFFFFFFF)) {
+        fprintf(stderr, "stamp should fail on locked layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_flatten(&stack, 0xFFFFFFFF)) {
+        fprintf(stderr, "flatten should fail when any layer is locked\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_lock(&stack, 1) || stack.layers[1].locked) {
+        fprintf(stderr, "toggle lock off failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     canvas_clear(&stack.layers[0].canvas, 0xFF0000FF);
     canvas_clear(&stack.layers[1].canvas, 0x8000FF00);
     if (!layer_stack_set_opacity(&stack, 1, 50)) {
@@ -137,8 +179,20 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_toggle_lock(&stack, 1)) {
+        fprintf(stderr, "lock duplicated layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (stack.layers[1].opacity_percent != 100) {
         fprintf(stderr, "duplicate opacity reset unexpectedly\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[1].locked) {
+        fprintf(stderr, "lock flag did not persist on duplicated layer\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -172,6 +226,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!stack.layers[1].locked) {
+        fprintf(stderr, "lock flag did not move with layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_move(&stack, 1, 1)) {
         fprintf(stderr, "should not move top layer beyond bounds\n");
         canvas_free(&composite);
@@ -180,6 +240,12 @@ static int test_layers_basic(void) {
     }
     canvas_set_pixel(&stack.layers[1].canvas, 0, 0, 0xFFFF00FF);
     if (!expect_pixel_eq("duplicate_independent", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF0040BF)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_lock(&stack, 1) || stack.layers[1].locked) {
+        fprintf(stderr, "unlock duplicated layer failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
