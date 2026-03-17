@@ -487,6 +487,62 @@ void canvas_sepia(Canvas *c) {
     }
 }
 
+void canvas_rotate_90_cw(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    int side = c->width < c->height ? c->width : c->height;
+    int ox = (c->width - side) / 2;
+    int oy = (c->height - side) / 2;
+
+    uint32_t *tmp = (uint32_t *)malloc((size_t)side * (size_t)side * sizeof(uint32_t));
+    if (!tmp) {
+        return;
+    }
+    for (int y = 0; y < side; y++) {
+        for (int x = 0; x < side; x++) {
+            tmp[(size_t)y * (size_t)side + (size_t)x] =
+                c->pixels[(size_t)(oy + y) * (size_t)c->width + (size_t)(ox + x)];
+        }
+    }
+    /* CW: new[ry][rx] = old[side-1-rx][ry] */
+    for (int ry = 0; ry < side; ry++) {
+        for (int rx = 0; rx < side; rx++) {
+            c->pixels[(size_t)(oy + ry) * (size_t)c->width + (size_t)(ox + rx)] =
+                tmp[(size_t)(side - 1 - rx) * (size_t)side + (size_t)ry];
+        }
+    }
+    free(tmp);
+}
+
+void canvas_rotate_90_ccw(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    int side = c->width < c->height ? c->width : c->height;
+    int ox = (c->width - side) / 2;
+    int oy = (c->height - side) / 2;
+
+    uint32_t *tmp = (uint32_t *)malloc((size_t)side * (size_t)side * sizeof(uint32_t));
+    if (!tmp) {
+        return;
+    }
+    for (int y = 0; y < side; y++) {
+        for (int x = 0; x < side; x++) {
+            tmp[(size_t)y * (size_t)side + (size_t)x] =
+                c->pixels[(size_t)(oy + y) * (size_t)c->width + (size_t)(ox + x)];
+        }
+    }
+    /* CCW: new[ry][rx] = old[rx][side-1-ry] */
+    for (int ry = 0; ry < side; ry++) {
+        for (int rx = 0; rx < side; rx++) {
+            c->pixels[(size_t)(oy + ry) * (size_t)c->width + (size_t)(ox + rx)] =
+                tmp[(size_t)rx * (size_t)side + (size_t)(side - 1 - ry)];
+        }
+    }
+    free(tmp);
+}
+
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;

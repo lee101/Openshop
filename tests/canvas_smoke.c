@@ -907,6 +907,37 @@ int main(void) {
     }
     canvas_free(&tol_fill);
 
+    /* 90-degree rotation on a 2x2 square canvas
+       original:  A=(0,0)=0xFF010203  B=(1,0)=0xFF040506
+                  C=(0,1)=0xFF070809  D=(1,1)=0xFF0A0B0C
+       after CW:  C A
+                  D B  */
+    Canvas rot90;
+    if (!canvas_init(&rot90, 2, 2)) {
+        fprintf(stderr, "rot90 canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&rot90, 0, 0, 0xFF010203);
+    canvas_set_pixel_raw(&rot90, 1, 0, 0xFF040506);
+    canvas_set_pixel_raw(&rot90, 0, 1, 0xFF070809);
+    canvas_set_pixel_raw(&rot90, 1, 1, 0xFF0A0B0C);
+    canvas_rotate_90_cw(&rot90);
+    if (!expect_pixel_eq("rot90_cw_tl", canvas_get_pixel(&rot90, 0, 0), 0xFF070809) ||
+        !expect_pixel_eq("rot90_cw_tr", canvas_get_pixel(&rot90, 1, 0), 0xFF010203) ||
+        !expect_pixel_eq("rot90_cw_bl", canvas_get_pixel(&rot90, 0, 1), 0xFF0A0B0C) ||
+        !expect_pixel_eq("rot90_cw_br", canvas_get_pixel(&rot90, 1, 1), 0xFF040506)) {
+        canvas_free(&rot90);
+        return 1;
+    }
+    /* CW followed by CCW should restore original */
+    canvas_rotate_90_ccw(&rot90);
+    if (!expect_pixel_eq("rot90_roundtrip_tl", canvas_get_pixel(&rot90, 0, 0), 0xFF010203) ||
+        !expect_pixel_eq("rot90_roundtrip_br", canvas_get_pixel(&rot90, 1, 1), 0xFF0A0B0C)) {
+        canvas_free(&rot90);
+        return 1;
+    }
+    canvas_free(&rot90);
+
     Canvas translated;
     if (!canvas_init(&translated, 4, 3)) {
         fprintf(stderr, "translate canvas init failed\n");

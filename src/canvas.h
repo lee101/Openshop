@@ -31,6 +31,8 @@ void canvas_grayscale(Canvas *c);
 void canvas_brightness(Canvas *c, int delta);
 void canvas_posterize(Canvas *c, int levels);
 void canvas_sepia(Canvas *c);
+void canvas_rotate_90_cw(Canvas *c);
+void canvas_rotate_90_ccw(Canvas *c);
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color);
 
 #endif
