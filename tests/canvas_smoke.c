@@ -782,6 +782,32 @@ int main(void) {
     }
     canvas_free(&transform);
 
+    Canvas gray;
+    if (!canvas_init(&gray, 3, 1)) {
+        fprintf(stderr, "gray canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&gray, 0, 0, 0xFFFF0000);
+    canvas_set_pixel_raw(&gray, 1, 0, 0xFF00FF00);
+    canvas_set_pixel_raw(&gray, 2, 0, 0x80FF0000);
+    canvas_grayscale(&gray);
+    /* red: (255*2126+5000)/10000 = 54 = 0x36 */
+    if (!expect_pixel_eq("gray_red", canvas_get_pixel(&gray, 0, 0), 0xFF363636)) {
+        canvas_free(&gray);
+        return 1;
+    }
+    /* green: (255*7152+5000)/10000 = 182 = 0xB6 */
+    if (!expect_pixel_eq("gray_green", canvas_get_pixel(&gray, 1, 0), 0xFFB6B6B6)) {
+        canvas_free(&gray);
+        return 1;
+    }
+    /* alpha preserved, red->gray 0x36 */
+    if (!expect_pixel_eq("gray_alpha", canvas_get_pixel(&gray, 2, 0), 0x80363636)) {
+        canvas_free(&gray);
+        return 1;
+    }
+    canvas_free(&gray);
+
     Canvas translated;
     if (!canvas_init(&translated, 4, 3)) {
         fprintf(stderr, "translate canvas init failed\n");

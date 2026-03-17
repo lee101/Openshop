@@ -375,7 +375,7 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     if (key == SDLK_ESCAPE || key == SDLK_LSHIFT || key == SDLK_RSHIFT) {
         return 0;
     }
-    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_u || key == SDLK_v || key == SDLK_m || key == SDLK_d || key == SDLK_e || key == SDLK_g || key == SDLK_h || key == SDLK_l || key == SDLK_a || key == SDLK_r || key == SDLK_0 || key == SDLK_COMMA || key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET || key == SDLK_MINUS || key == SDLK_KP_MINUS || key == SDLK_EQUALS || key == SDLK_KP_PLUS || key == SDLK_SLASH || key == SDLK_1 || key == SDLK_2 || key == SDLK_3 || key == SDLK_4 || key == SDLK_5 || key == SDLK_6 || key == SDLK_7 || key == SDLK_8)) {
+    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_u || key == SDLK_v || key == SDLK_m || key == SDLK_d || key == SDLK_e || key == SDLK_g || key == SDLK_h || key == SDLK_l || key == SDLK_a || key == SDLK_r || key == SDLK_c || key == SDLK_0 || key == SDLK_COMMA || key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET || key == SDLK_MINUS || key == SDLK_KP_MINUS || key == SDLK_EQUALS || key == SDLK_KP_PLUS || key == SDLK_SLASH || key == SDLK_1 || key == SDLK_2 || key == SDLK_3 || key == SDLK_4 || key == SDLK_5 || key == SDLK_6 || key == SDLK_7 || key == SDLK_8)) {
         return 1;
     }
     switch (key) {
@@ -401,6 +401,7 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     case SDLK_5:
     case SDLK_6:
     case SDLK_c:
+    case SDLK_g:
     case SDLK_h:
     case SDLK_v:
     case SDLK_j:
@@ -633,6 +634,8 @@ int app_run(const char *input_path) {
     int shape_start_y = 0;
     int preview_active = 0;
     int needs_composite = 0;
+    uint32_t *clipboard_pixels = NULL;
+    int clipboard_has_data = 0;
     uint32_t *shape_base_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
     uint32_t *preview_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
     Canvas preview_canvas = {CANVAS_WIDTH, CANVAS_HEIGHT, preview_pixels};
@@ -994,6 +997,40 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (ctrl && !shift && key == SDLK_c) {
+                    const Layer *active = layer_stack_get(&layers, layers.active_layer);
+                    if (active && active->canvas.pixels) {
+                        size_t total = (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT;
+                        if (!clipboard_pixels) {
+                            clipboard_pixels = (uint32_t *)malloc(total * sizeof(uint32_t));
+                        }
+                        if (clipboard_pixels) {
+                            memcpy(clipboard_pixels, active->canvas.pixels, total * sizeof(uint32_t));
+                            clipboard_has_data = 1;
+                        }
+                    }
+                    break;
+                }
+
+                if (ctrl && !shift && key == SDLK_v) {
+                    if (clipboard_has_data && clipboard_pixels) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        int new_idx = layer_stack_insert(&layers, layers.active_layer + 1, "Paste", 0x00000000);
+                        if (new_idx >= 0) {
+                            Layer *pasted = &layers.layers[new_idx];
+                            if (pasted->canvas.pixels) {
+                                size_t total = (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT;
+                                memcpy(pasted->canvas.pixels, clipboard_pixels, total * sizeof(uint32_t));
+                                needs_composite = 1;
+                            }
+                        } else {
+                            fprintf(stderr, "Could not paste: max layers reached\n");
+                        }
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    }
+                    break;
+                }
+
                 if (ctrl && key == SDLK_z) {
                     if (undo_count > 0) {
                         Snapshot current = {0};
@@ -1198,6 +1235,10 @@ int app_run(const char *input_path) {
                     if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_invert_rgb)) {
                         needs_composite = 1;
                     }
+                } else if (key == SDLK_g) {
+                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_grayscale)) {
+                        needs_composite = 1;
+                    }
                 } else if (key == SDLK_f) {
                     int mx = 0;
                     int my = 0;
@@ -1273,6 +1314,7 @@ int app_run(const char *input_path) {
 
     free(shape_base_pixels);
     free(preview_pixels);
+    free(clipboard_pixels);
     canvas_free(&composite);
     layer_stack_free(&layers);
     stack_clear(undo_stack, &undo_count);

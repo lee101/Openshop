@@ -45,6 +45,7 @@ make test-sdl
 - `V`: flip the active layer vertically
 - `J`: rotate the active layer 180 degrees
 - `X`: invert the active layer colors (RGB)
+- `G`: convert the active layer to grayscale (BT.709 luminance)
 - `Arrow Keys`: nudge the active layer by 1 pixel
 - `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels
 - `PageUp / PageDown`: cycle active layer
@@ -63,6 +64,8 @@ make test-sdl
 - `Ctrl+Shift+L`: toggle active layer lock
 - `Ctrl+/`: solo active layer on/off
 - `Ctrl+Shift+V`: toggle active layer visibility
+- `Ctrl+C`: copy active layer pixels to internal clipboard
+- `Ctrl+V`: paste clipboard as a new layer above the active layer
 - `Ctrl+M`: merge active layer down
 - `Ctrl+U`: merge active layer up
 - `Ctrl+Shift+E`: stamp visible image into active layer
