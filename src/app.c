@@ -372,7 +372,7 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     if (key == SDLK_ESCAPE || key == SDLK_LSHIFT || key == SDLK_RSHIFT) {
         return 0;
     }
-    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_u || key == SDLK_v || key == SDLK_m || key == SDLK_d || key == SDLK_e || key == SDLK_g || key == SDLK_l || key == SDLK_COMMA || key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET || key == SDLK_MINUS || key == SDLK_KP_MINUS || key == SDLK_EQUALS || key == SDLK_KP_PLUS || key == SDLK_SLASH)) {
+    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_u || key == SDLK_v || key == SDLK_m || key == SDLK_d || key == SDLK_e || key == SDLK_g || key == SDLK_l || key == SDLK_COMMA || key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET || key == SDLK_MINUS || key == SDLK_KP_MINUS || key == SDLK_EQUALS || key == SDLK_KP_PLUS || key == SDLK_SLASH || key == SDLK_1 || key == SDLK_2 || key == SDLK_3 || key == SDLK_4 || key == SDLK_5 || key == SDLK_6 || key == SDLK_7 || key == SDLK_8)) {
         return 1;
     }
     switch (key) {
@@ -1015,6 +1015,15 @@ int app_run(const char *input_path) {
                         snapshot_apply(&next, &layers);
                         snapshot_free(&next);
                         needs_composite = 1;
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    }
+                    break;
+                }
+
+                if (ctrl && key >= SDLK_1 && key <= SDLK_8) {
+                    int target = (int)(key - SDLK_1);
+                    if (target < layers.layer_count) {
+                        layers.active_layer = target;
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                     break;
