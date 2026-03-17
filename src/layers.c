@@ -558,10 +558,12 @@ void layer_stack_composite(const LayerStack *stack, Canvas *dest, uint32_t backg
         uint32_t out = background_color;
         for (int layer_index = 0; layer_index < stack->layer_count; layer_index++) {
             const Layer *layer = &stack->layers[layer_index];
-            if (stack->solo_index >= 0 && stack->solo_index != layer_index) {
+            int soloing = stack->solo_index >= 0;
+            int solo_match = stack->solo_index == layer_index;
+            if (soloing && !solo_match) {
                 continue;
             }
-            if (!layer->visible || !layer->canvas.pixels) {
+            if ((!layer->visible && !solo_match) || !layer->canvas.pixels) {
                 continue;
             }
             out = blend_pixel(out, apply_layer_opacity(layer->canvas.pixels[i], layer->opacity_percent));
