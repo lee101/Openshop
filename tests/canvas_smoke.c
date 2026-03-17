@@ -121,6 +121,30 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_insert(&stack, 1, "Inserted Below", 0x00000000) != 1) {
+        fprintf(stderr, "layer insert below failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layer_count != 3 || stack.active_layer != 1) {
+        fprintf(stderr, "layer insert below bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || strcmp(stack.layers[1].name, "Inserted Below") != 0 || strcmp(stack.layers[2].name, "Top") != 0) {
+        fprintf(stderr, "layer insert below order failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 1) || stack.layer_count != 2) {
+        fprintf(stderr, "layer insert below cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     if (!layer_stack_toggle_visibility(&stack, 1)) {
         fprintf(stderr, "re-show top layer failed\n");
