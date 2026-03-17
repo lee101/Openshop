@@ -56,6 +56,7 @@ make test-sdl
 - `Delete` / `Backspace`: delete active layer
 - `Ctrl+]` / `Ctrl+[`: move active layer up/down
 - `Ctrl+- / Ctrl+=`: active layer opacity down/up
+- `Ctrl+0`: reset active layer opacity to 100%
 - `Ctrl+Shift+L`: toggle active layer lock
 - `Ctrl+/`: solo active layer on/off
 - `Ctrl+Shift+V`: toggle active layer visibility
