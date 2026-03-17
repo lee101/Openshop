@@ -241,6 +241,33 @@ static int test_layers_basic(void) {
         return 0;
     }
 
+    if (layer_stack_add(&stack, "Stamp Target", 0x00000000) != 1) {
+        fprintf(stderr, "add stamp layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    canvas_clear(&stack.layers[0].canvas, 0xFF123456);
+    canvas_clear(&stack.layers[1].canvas, 0x8000FF00);
+    if (!layer_stack_set_opacity(&stack, 1, 50)) {
+        fprintf(stderr, "set stamp opacity failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_stamp_visible_into(&stack, 1, 0xFFFFFFFF)) {
+        fprintf(stderr, "stamp visible failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("stamp_visible_pixel", canvas_get_pixel(&stack.layers[1].canvas, 0, 0), 0xFF0D6740) ||
+        !expect_pixel_eq("stamp_preserve_source", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF123456)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
     canvas_free(&composite);
     layer_stack_free(&stack);
     return 1;

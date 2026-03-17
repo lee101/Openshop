@@ -411,6 +411,29 @@ int layer_stack_flatten(LayerStack *stack, uint32_t background_color) {
     return 1;
 }
 
+int layer_stack_stamp_visible_into(LayerStack *stack, int index, uint32_t background_color) {
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+
+    Canvas composite = {0};
+    if (!canvas_init(&composite, stack->width, stack->height)) {
+        return 0;
+    }
+    layer_stack_composite(stack, &composite, background_color);
+
+    Layer *target = &stack->layers[index];
+    if (!target->canvas.pixels && !ensure_layer_canvas(target, stack->width, stack->height)) {
+        canvas_free(&composite);
+        return 0;
+    }
+    memcpy(target->canvas.pixels, composite.pixels, (size_t)stack->width * (size_t)stack->height * sizeof(uint32_t));
+    target->visible = 1;
+    target->opacity_percent = 100;
+    canvas_free(&composite);
+    return 1;
+}
+
 void layer_stack_composite(const LayerStack *stack, Canvas *dest, uint32_t background_color) {
     if (!stack || !dest || !dest->pixels) {
         return;
