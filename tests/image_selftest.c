@@ -131,6 +131,8 @@ int main(void) {
     canvas_draw_line(&c, 0, 0, 159, 119, 2, blue);
     canvas_draw_line(&c, 159, 0, 0, 119, 2, red);
     canvas_draw_circle(&c, 80, 60, 18, green);
+    canvas_draw_rect_filled(&c, 14, 18, 40, 44, 0xFF8844FF);
+    canvas_draw_ellipse_filled(&c, 118, 34, 14, 10, 0xFF00C7D9);
     canvas_draw_ellipse_outline(&c, 80, 60, 50, 20, 1, yellow);
     if (!canvas_flood_fill(&c, 80, 60, 0xFF2222CC)) {
         fprintf(stderr, "canvas_flood_fill(center) failed\n");
@@ -158,10 +160,12 @@ int main(void) {
     int ok = 1;
     ok = ok && assert_pixel(&c, 80, 60, 0xFF2222CC, "center fill");
     ok = ok && assert_pixel(&c, 10, 10, 0xFFEFEFEF, "outer fill");
+    ok = ok && assert_pixel(&c, 20, 24, 0xFF8844FF, "filled rect");
+    ok = ok && assert_pixel(&c, 118, 34, 0xFF00C7D9, "filled ellipse");
     ok = ok && assert_pixel(&c, 80, 40, 0xFFFDD835, "ellipse stroke");
 
     uint64_t hash = fnv1a64(c.pixels, (size_t)c.width * (size_t)c.height);
-    const uint64_t expected_hash = 0x5F341D9AC3C3684EULL;
+    const uint64_t expected_hash = 0x82B19CA64A64D94DULL;
     if (hash != expected_hash) {
         fprintf(stderr, "scene hash mismatch expected=0x%016llX actual=0x%016llX\n",
                 (unsigned long long)expected_hash,

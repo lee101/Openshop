@@ -142,6 +142,22 @@ void canvas_draw_rect_outline(Canvas *c, int x0, int y0, int x1, int y1, int rad
     canvas_draw_line(c, left, bottom, left, top, radius, color);
 }
 
+void canvas_draw_rect_filled(Canvas *c, int x0, int y0, int x1, int y1, uint32_t color) {
+    if (!c || !c->pixels) {
+        return;
+    }
+    int left = x0 < x1 ? x0 : x1;
+    int right = x0 < x1 ? x1 : x0;
+    int top = y0 < y1 ? y0 : y1;
+    int bottom = y0 < y1 ? y1 : y0;
+
+    for (int y = top; y <= bottom; y++) {
+        for (int x = left; x <= right; x++) {
+            canvas_set_pixel(c, x, y, color);
+        }
+    }
+}
+
 void canvas_draw_ellipse_outline(Canvas *c, int cx, int cy, int rx, int ry, int radius, uint32_t color) {
     if (!c || !c->pixels || rx <= 0 || ry <= 0) {
         return;
@@ -154,6 +170,22 @@ void canvas_draw_ellipse_outline(Canvas *c, int cx, int cy, int rx, int ry, int 
         int x = (int)((double)rx * sqrt(norm) + 0.5);
         canvas_draw_circle(c, cx + x, cy + y, radius, color);
         canvas_draw_circle(c, cx - x, cy + y, radius, color);
+    }
+}
+
+void canvas_draw_ellipse_filled(Canvas *c, int cx, int cy, int rx, int ry, uint32_t color) {
+    if (!c || !c->pixels || rx <= 0 || ry <= 0) {
+        return;
+    }
+    for (int y = -ry; y <= ry; y++) {
+        double norm = 1.0 - ((double)(y * y) / (double)(ry * ry));
+        if (norm < 0.0) {
+            continue;
+        }
+        int x = (int)((double)rx * sqrt(norm) + 0.5);
+        for (int fill_x = -x; fill_x <= x; fill_x++) {
+            canvas_set_pixel(c, cx + fill_x, cy + y, color);
+        }
     }
 }
 
@@ -252,6 +284,19 @@ void canvas_flip_vertical(Canvas *c) {
         bottom--;
     }
     free(tmp);
+}
+
+void canvas_rotate_180(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count / 2; i++) {
+        size_t opposite = count - 1 - i;
+        uint32_t tmp = c->pixels[i];
+        c->pixels[i] = c->pixels[opposite];
+        c->pixels[opposite] = tmp;
+    }
 }
 
 void canvas_invert_rgb(Canvas *c) {

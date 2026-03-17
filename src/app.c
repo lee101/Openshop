@@ -25,7 +25,9 @@ typedef enum {
     TOOL_ERASER,
     TOOL_LINE,
     TOOL_RECT,
-    TOOL_ELLIPSE
+    TOOL_FILLED_RECT,
+    TOOL_ELLIPSE,
+    TOOL_FILLED_ELLIPSE
 } Tool;
 
 typedef struct {
@@ -116,6 +118,18 @@ static void apply_canvas_transform(
     transform(canvas);
 }
 
+static void cancel_shape_preview(Snapshot *shape_base, int *shaping, int *preview_active) {
+    if (shape_base) {
+        snapshot_free(shape_base);
+    }
+    if (shaping) {
+        *shaping = 0;
+    }
+    if (preview_active) {
+        *preview_active = 0;
+    }
+}
+
 static uint32_t compose_brush_color(uint32_t rgb_color, int opacity_percent) {
     if (opacity_percent < 1) {
         opacity_percent = 1;
@@ -150,8 +164,12 @@ static const char *tool_label(Tool tool) {
         return "Line";
     case TOOL_RECT:
         return "Rectangle";
+    case TOOL_FILLED_RECT:
+        return "Filled Rectangle";
     case TOOL_ELLIPSE:
         return "Ellipse";
+    case TOOL_FILLED_ELLIPSE:
+        return "Filled Ellipse";
     default:
         return "Brush";
     }
@@ -165,12 +183,23 @@ static void draw_shape(Canvas *c, Tool tool, int x0, int y0, int x1, int y1, int
     case TOOL_RECT:
         canvas_draw_rect_outline(c, x0, y0, x1, y1, radius, color);
         break;
+    case TOOL_FILLED_RECT:
+        canvas_draw_rect_filled(c, x0, y0, x1, y1, color);
+        break;
     case TOOL_ELLIPSE: {
         int cx = (x0 + x1) / 2;
         int cy = (y0 + y1) / 2;
         int rx = abs(x1 - x0) / 2;
         int ry = abs(y1 - y0) / 2;
         canvas_draw_ellipse_outline(c, cx, cy, rx, ry, radius, color);
+        break;
+    }
+    case TOOL_FILLED_ELLIPSE: {
+        int cx = (x0 + x1) / 2;
+        int cy = (y0 + y1) / 2;
+        int rx = abs(x1 - x0) / 2;
+        int ry = abs(y1 - y0) / 2;
+        canvas_draw_ellipse_filled(c, cx, cy, rx, ry, color);
         break;
     }
     default:
@@ -204,7 +233,7 @@ static void constrain_end(Tool tool, int x0, int y0, int x1, int y1, int shift, 
             *out_x = x0 + (dx >= 0 ? len : -len);
             *out_y = y0 + (dy >= 0 ? len : -len);
         }
-    } else if (tool == TOOL_RECT || tool == TOOL_ELLIPSE) {
+    } else if (tool == TOOL_RECT || tool == TOOL_FILLED_RECT || tool == TOOL_ELLIPSE || tool == TOOL_FILLED_ELLIPSE) {
         int len = adx > ady ? adx : ady;
         *out_x = x0 + (dx >= 0 ? len : -len);
         *out_y = y0 + (dy >= 0 ? len : -len);
@@ -348,10 +377,10 @@ int app_run(const char *input_path) {
                 break;
             case SDL_MOUSEBUTTONDOWN:
                 if (e.button.button == SDL_BUTTON_LEFT) {
-                    push_snapshot(&canvas, undo_stack, &undo_count, redo_stack, &redo_count);
                     last_x = e.button.x;
                     last_y = e.button.y;
                     if (tool == TOOL_BRUSH || tool == TOOL_ERASER) {
+                        push_snapshot(&canvas, undo_stack, &undo_count, redo_stack, &redo_count);
                         drawing = 1;
                         canvas_draw_circle(&canvas, last_x, last_y, brush_radius, brush_color);
                     } else {
@@ -362,6 +391,10 @@ int app_run(const char *input_path) {
                         snapshot_from_canvas(&shape_base, &canvas);
                     }
                 } else if (e.button.button == SDL_BUTTON_RIGHT) {
+                    if (shaping) {
+                        cancel_shape_preview(&shape_base, &shaping, &preview_active);
+                        break;
+                    }
                     int x = e.button.x;
                     int y = e.button.y;
                     if (x >= 0 && y >= 0 && x < CANVAS_WIDTH && y < CANVAS_HEIGHT) {
@@ -388,9 +421,9 @@ int app_run(const char *input_path) {
                         int end_x = e.button.x;
                         int end_y = e.button.y;
                         constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
+                        push_snapshot(&canvas, undo_stack, &undo_count, redo_stack, &redo_count);
                         draw_shape(&canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
-                        shaping = 0;
-                        preview_active = 0;
+                        cancel_shape_preview(&shape_base, &shaping, &preview_active);
                     }
                 }
                 break;
@@ -437,6 +470,10 @@ int app_run(const char *input_path) {
                 int ctrl = state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL];
 
                 if (key == SDLK_ESCAPE) {
+                    if (shaping) {
+                        cancel_shape_preview(&shape_base, &shaping, &preview_active);
+                        break;
+                    }
                     running = 0;
                 } else if (key == SDLK_b) {
                     brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
@@ -458,8 +495,16 @@ int app_run(const char *input_path) {
                     tool = TOOL_RECT;
                     tool_name = tool_label(tool);
                     update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
+                } else if (key == SDLK_t) {
+                    tool = TOOL_FILLED_RECT;
+                    tool_name = tool_label(tool);
+                    update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
                 } else if (key == SDLK_o) {
                     tool = TOOL_ELLIPSE;
+                    tool_name = tool_label(tool);
+                    update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
+                } else if (key == SDLK_p) {
+                    tool = TOOL_FILLED_ELLIPSE;
                     tool_name = tool_label(tool);
                     update_window_title(window, tool_name, brush_radius, brush_color, brush_opacity);
                 } else if (key == SDLK_LEFTBRACKET) {
@@ -546,6 +591,15 @@ int app_run(const char *input_path) {
                         redo_stack,
                         &redo_count,
                         canvas_flip_vertical
+                    );
+                } else if (key == SDLK_j) {
+                    apply_canvas_transform(
+                        &canvas,
+                        undo_stack,
+                        &undo_count,
+                        redo_stack,
+                        &redo_count,
+                        canvas_rotate_180
                     );
                 } else if (key == SDLK_x) {
                     apply_canvas_transform(

@@ -19,9 +19,19 @@ int main(void) {
     canvas_draw_circle(&c, 32, 32, 8, 0xFF000000);
     canvas_draw_line(&c, 0, 0, 63, 63, 2, 0xFF00FF00);
     canvas_draw_rect_outline(&c, 5, 5, 20, 20, 1, 0xFF0000FF);
+    canvas_draw_rect_filled(&c, 24, 8, 30, 14, 0xFF8844FF);
     canvas_draw_ellipse_outline(&c, 32, 32, 12, 6, 1, 0xFFFFFF00);
+    canvas_draw_ellipse_filled(&c, 48, 18, 6, 4, 0xFF00FFFF);
     if (!canvas_flood_fill(&c, 1, 1, 0xFFFF0000)) {
         fprintf(stderr, "canvas_flood_fill failed\n");
+        canvas_free(&c);
+        return 1;
+    }
+    if (!expect_pixel_eq("filled_rect_center", canvas_get_pixel(&c, 27, 11), 0xFF8844FF)) {
+        canvas_free(&c);
+        return 1;
+    }
+    if (!expect_pixel_eq("filled_ellipse_center", canvas_get_pixel(&c, 48, 18), 0xFF00FFFF)) {
         canvas_free(&c);
         return 1;
     }
@@ -107,6 +117,14 @@ int main(void) {
         return 1;
     }
 
+    canvas_rotate_180(&transform);
+    if (!expect_pixel_eq("rotate_180_tl", canvas_get_pixel(&transform, 0, 0), 0xFF010203) ||
+        !expect_pixel_eq("rotate_180_br", canvas_get_pixel(&transform, 2, 1), 0xFF515253)) {
+        canvas_free(&transform);
+        return 1;
+    }
+
+    canvas_rotate_180(&transform);
     canvas_invert_rgb(&transform);
     if (!expect_pixel_eq("invert_tl", canvas_get_pixel(&transform, 0, 0), 0xFFAEADAC)) {
         canvas_free(&transform);

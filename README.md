@@ -21,12 +21,15 @@ make test
 ## Controls
 - `Left Mouse`: draw
 - `Right Mouse` / `I`: eyedropper (pick color)
+- `Right Mouse` while shaping / `Esc`: cancel shape preview
 - `B`: brush
 - `E`: eraser
 - `L`: line tool
 - `R`: rectangle tool
+- `T`: filled rectangle tool
 - `O`: ellipse tool
-- `Shift` (with line/rect/ellipse): constrain angle or square/circle
+- `P`: filled ellipse tool
+- `Shift` (with line/rect/ellipse, filled variants included): constrain angle or square/circle
 - `[ / ]`: brush size down/up
 - `- / =`: opacity down/up (1%-100%)
 - `1-6`: quick colors (black, red, green, blue, yellow, purple)
@@ -34,6 +37,7 @@ make test
 - `C`: clear canvas
 - `H`: flip canvas horizontally
 - `V`: flip canvas vertically
+- `J`: rotate canvas 180 degrees
 - `X`: invert canvas colors (RGB)
 - `Ctrl+S`: save to `output.bmp`
 - `Ctrl+O`: load from `input.bmp`
