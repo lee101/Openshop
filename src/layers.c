@@ -183,6 +183,76 @@ int layer_stack_clear_layer(LayerStack *stack, int index, uint32_t color) {
     return 1;
 }
 
+int layer_stack_delete(LayerStack *stack, int index) {
+    if (!stack || index < 0 || index >= stack->layer_count || stack->layer_count == 1) {
+        return 0;
+    }
+
+    canvas_free(&stack->layers[index].canvas);
+    for (int i = index; i < stack->layer_count - 1; i++) {
+        stack->layers[i] = stack->layers[i + 1];
+    }
+
+    stack->layer_count--;
+    stack->layers[stack->layer_count].canvas.width = stack->width;
+    stack->layers[stack->layer_count].canvas.height = stack->height;
+    stack->layers[stack->layer_count].canvas.pixels = NULL;
+    stack->layers[stack->layer_count].visible = 0;
+    stack->layers[stack->layer_count].name[0] = '\0';
+
+    if (stack->active_layer >= stack->layer_count) {
+        stack->active_layer = stack->layer_count - 1;
+    } else if (stack->active_layer > index) {
+        stack->active_layer--;
+    }
+
+    return 1;
+}
+
+int layer_stack_duplicate(LayerStack *stack, int index, const char *name) {
+    if (!stack || index < 0 || index >= stack->layer_count || stack->layer_count >= MAX_LAYERS) {
+        return -1;
+    }
+
+    Layer *source = &stack->layers[index];
+    if (!source->canvas.pixels) {
+        return -1;
+    }
+
+    int insert_at = index + 1;
+    for (int i = stack->layer_count; i > insert_at; i--) {
+        stack->layers[i] = stack->layers[i - 1];
+    }
+
+    Layer *dup = &stack->layers[insert_at];
+    dup->canvas.width = stack->width;
+    dup->canvas.height = stack->height;
+    dup->canvas.pixels = NULL;
+    dup->visible = source->visible;
+    dup->name[0] = '\0';
+
+    if (!canvas_init(&dup->canvas, stack->width, stack->height)) {
+        for (int i = insert_at; i < stack->layer_count; i++) {
+            stack->layers[i] = stack->layers[i + 1];
+        }
+        return -1;
+    }
+
+    size_t total = (size_t)stack->width * (size_t)stack->height;
+    memcpy(dup->canvas.pixels, source->canvas.pixels, total * sizeof(uint32_t));
+
+    if (name && name[0]) {
+        strncpy(dup->name, name, LAYER_NAME_MAX - 1);
+        dup->name[LAYER_NAME_MAX - 1] = '\0';
+    } else {
+        snprintf(dup->name, LAYER_NAME_MAX, "%s Copy", source->name[0] ? source->name : "Layer");
+    }
+
+    stack->layer_count++;
+    stack->active_layer = insert_at;
+    return insert_at;
+}
+
 int layer_stack_merge_down(LayerStack *stack, int index) {
     if (!stack || index <= 0 || index >= stack->layer_count) {
         return 0;

@@ -48,6 +48,8 @@ make test-sdl
 - `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels
 - `PageUp / PageDown`: cycle active layer
 - `Ctrl+Shift+N`: add a new transparent layer
+- `Ctrl+D`: duplicate active layer
+- `Delete` / `Backspace`: delete active layer
 - `Ctrl+Shift+V`: toggle active layer visibility
 - `Ctrl+M`: merge active layer down
 - `Ctrl+S`: save the composited image to `output.bmp`

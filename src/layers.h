@@ -31,6 +31,8 @@ int layer_stack_toggle_visibility(LayerStack *stack, int index);
 int layer_stack_visible_count(const LayerStack *stack);
 void layer_stack_composite(const LayerStack *stack, Canvas *dest, uint32_t background_color);
 int layer_stack_clear_layer(LayerStack *stack, int index, uint32_t color);
+int layer_stack_delete(LayerStack *stack, int index);
+int layer_stack_duplicate(LayerStack *stack, int index, const char *name);
 int layer_stack_merge_down(LayerStack *stack, int index);
 
 #endif

@@ -298,7 +298,7 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     if (key == SDLK_ESCAPE || key == SDLK_LSHIFT || key == SDLK_RSHIFT) {
         return 0;
     }
-    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_v || key == SDLK_m)) {
+    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_v || key == SDLK_m || key == SDLK_d)) {
         return 1;
     }
     switch (key) {
@@ -334,6 +334,8 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     case SDLK_RIGHT:
     case SDLK_PAGEUP:
     case SDLK_PAGEDOWN:
+    case SDLK_DELETE:
+    case SDLK_BACKSPACE:
         return 1;
     default:
         return 0;
@@ -670,10 +672,32 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (ctrl && key == SDLK_d) {
+                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                    if (layer_stack_duplicate(&layers, layers.active_layer, NULL) < 0) {
+                        fprintf(stderr, "Could not duplicate layer\n");
+                    } else {
+                        needs_composite = 1;
+                    }
+                    update_window_title(window, &layers, tool, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
                 if (ctrl && shift && key == SDLK_v) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_toggle_visibility(&layers, layers.active_layer)) {
                         fprintf(stderr, "Cannot hide the final visible layer\n");
+                    } else {
+                        needs_composite = 1;
+                    }
+                    update_window_title(window, &layers, tool, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
+                if (key == SDLK_DELETE || key == SDLK_BACKSPACE) {
+                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                    if (!layer_stack_delete(&layers, layers.active_layer)) {
+                        fprintf(stderr, "Cannot delete the final layer\n");
                     } else {
                         needs_composite = 1;
                     }
