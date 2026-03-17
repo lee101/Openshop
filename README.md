@@ -24,8 +24,8 @@ make test-sdl
 ```
 
 ## Controls
-- `Left Mouse`: draw
-- `Right Mouse` / `I`: eyedropper (pick color)
+- `Left Mouse`: draw on the active layer
+- `Right Mouse` / `I`: eyedropper (pick visible color)
 - `Right Mouse` while shaping / `Esc`: cancel shape preview
 - `B`: brush
 - `E`: eraser
@@ -38,21 +38,26 @@ make test-sdl
 - `[ / ]`: brush size down/up
 - `- / =`: opacity down/up (1%-100%)
 - `1-6`: quick colors (black, red, green, blue, yellow, purple)
-- `F`: flood fill at cursor
-- `C`: clear canvas
-- `H`: flip canvas horizontally
-- `V`: flip canvas vertically
-- `J`: rotate canvas 180 degrees
-- `X`: invert canvas colors (RGB)
-- `Arrow Keys`: nudge canvas by 1 pixel
-- `Shift` + `Arrow Keys`: nudge canvas by 10 pixels
-- `Ctrl+S`: save to `output.bmp`
-- `Ctrl+O`: load from `input.bmp`
-- `Ctrl+Z` / `Ctrl+Y`: undo / redo
+- `F`: flood fill on the active layer
+- `C`: clear the active layer
+- `H`: flip the active layer horizontally
+- `V`: flip the active layer vertically
+- `J`: rotate the active layer 180 degrees
+- `X`: invert the active layer colors (RGB)
+- `Arrow Keys`: nudge the active layer by 1 pixel
+- `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels
+- `PageUp / PageDown`: cycle active layer
+- `Ctrl+Shift+N`: add a new transparent layer
+- `Ctrl+Shift+V`: toggle active layer visibility
+- `Ctrl+M`: merge active layer down
+- `Ctrl+S`: save the composited image to `output.bmp`
+- `Ctrl+O`: load `input.bmp` into the active layer
+- `Ctrl+Z` / `Ctrl+Y`: undo / redo (layer-aware)
 - `Esc`: quit
 
 ## Notes
 - Canvas size is 800x600; window is 1024x768.
+- Layer stack starts with a white background layer; new layers are transparent.
 - Load/save uses BMP via SDL built-ins for now.
 
 ## Self-test Images

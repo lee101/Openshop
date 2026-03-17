@@ -42,6 +42,16 @@ void canvas_clear(Canvas *c, uint32_t color) {
     }
 }
 
+void canvas_set_pixel_raw(Canvas *c, int x, int y, uint32_t color) {
+    if (!c || !c->pixels) {
+        return;
+    }
+    if (x < 0 || y < 0 || x >= c->width || y >= c->height) {
+        return;
+    }
+    c->pixels[(size_t)y * (size_t)c->width + (size_t)x] = color;
+}
+
 void canvas_set_pixel(Canvas *c, int x, int y, uint32_t color) {
     if (!c || !c->pixels) {
         return;

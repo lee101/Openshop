@@ -3,4 +3,5 @@ openshop
 canvas_smoke
 *.o
 image_selftest
+image_io_smoke
 test-artifacts/
