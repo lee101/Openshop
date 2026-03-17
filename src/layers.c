@@ -415,6 +415,55 @@ int layer_stack_merge_down(LayerStack *stack, int index) {
     return 1;
 }
 
+int layer_stack_merge_up(LayerStack *stack, int index) {
+    if (!stack || index < 0 || index >= stack->layer_count - 1) {
+        return 0;
+    }
+
+    Layer *lower = &stack->layers[index];
+    Layer *upper = &stack->layers[index + 1];
+    if (lower->locked || upper->locked || !lower->canvas.pixels || !upper->canvas.pixels) {
+        return 0;
+    }
+
+    size_t total = (size_t)stack->width * (size_t)stack->height;
+    for (size_t i = 0; i < total; i++) {
+        upper->canvas.pixels[i] = blend_pixel(
+            lower->canvas.pixels[i],
+            apply_layer_opacity(upper->canvas.pixels[i], upper->opacity_percent)
+        );
+    }
+    upper->visible = lower->visible || upper->visible;
+    upper->opacity_percent = 100;
+
+    canvas_free(&lower->canvas);
+    for (int i = index; i < stack->layer_count - 1; i++) {
+        stack->layers[i] = stack->layers[i + 1];
+    }
+
+    stack->layer_count--;
+    stack->layers[stack->layer_count].canvas.width = stack->width;
+    stack->layers[stack->layer_count].canvas.height = stack->height;
+    stack->layers[stack->layer_count].canvas.pixels = NULL;
+    stack->layers[stack->layer_count].visible = 0;
+    stack->layers[stack->layer_count].locked = 0;
+    stack->layers[stack->layer_count].opacity_percent = 100;
+    stack->layers[stack->layer_count].name[0] = '\0';
+
+    if (stack->active_layer >= stack->layer_count) {
+        stack->active_layer = stack->layer_count - 1;
+    } else if (stack->active_layer > index) {
+        stack->active_layer--;
+    }
+    if (stack->solo_index == index) {
+        stack->solo_index = index;
+    } else if (stack->solo_index > index) {
+        stack->solo_index--;
+    }
+
+    return 1;
+}
+
 int layer_stack_flatten(LayerStack *stack, uint32_t background_color) {
     if (!stack || stack->layer_count <= 0) {
         return 0;

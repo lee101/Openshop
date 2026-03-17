@@ -214,6 +214,38 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_add(&stack, "Upper Merge", 0x00000000) != 1) {
+        fprintf(stderr, "add upper merge layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    canvas_clear(&stack.layers[0].canvas, 0xFF0000FF);
+    canvas_clear(&stack.layers[1].canvas, 0x8000FF00);
+    if (!layer_stack_set_opacity(&stack, 1, 50)) {
+        fprintf(stderr, "set merge-up opacity failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.active_layer = 0;
+    if (!layer_stack_merge_up(&stack, 0)) {
+        fprintf(stderr, "merge up failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layer_count != 1 || stack.active_layer != 0) {
+        fprintf(stderr, "merge up bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("merge_up_blend", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF0040BF)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     if (layer_stack_duplicate(&stack, 0, "Background Copy") != 1) {
         fprintf(stderr, "duplicate layer failed\n");
@@ -268,7 +300,7 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (strcmp(stack.layers[0].name, "Background Copy") != 0 || strcmp(stack.layers[1].name, "Background") != 0) {
+    if (strcmp(stack.layers[0].name, "Background Copy") != 0 || strcmp(stack.layers[1].name, "Upper Merge") != 0) {
         fprintf(stderr, "move layer order failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);

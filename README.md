@@ -58,6 +58,7 @@ make test-sdl
 - `Ctrl+/`: solo active layer on/off
 - `Ctrl+Shift+V`: toggle active layer visibility
 - `Ctrl+M`: merge active layer down
+- `Ctrl+U`: merge active layer up
 - `Ctrl+Shift+E`: stamp visible image into active layer
 - `Ctrl+Shift+G`: stamp visible image into a new top layer
 - `Ctrl+Shift+M`: flatten visible layers
