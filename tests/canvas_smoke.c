@@ -96,6 +96,55 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_show(&stack, 1)) {
+        fprintf(stderr, "restore top layer for hide-and-advance failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.active_layer = 1;
+    if (!layer_stack_hide_and_advance(&stack, 1)) {
+        fprintf(stderr, "hide and advance failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[1].visible || stack.active_layer != 0) {
+        fprintf(stderr, "hide and advance bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_show(&stack, 1)) {
+        fprintf(stderr, "restore top layer after hide and advance failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_solo(&stack, 1) || !layer_stack_hide_and_advance(&stack, 1)) {
+        fprintf(stderr, "hide and advance from solo failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != -1 || stack.active_layer != 0) {
+        fprintf(stderr, "hide and advance should clear solo and focus visible layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_show(&stack, 1)) {
+        fprintf(stderr, "restore top layer after solo hide and advance failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_visibility(&stack, 1)) {
+        fprintf(stderr, "rehide top layer after hide and advance tests failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     if (layer_stack_toggle_visibility(&stack, 0)) {
         fprintf(stderr, "background should not hide when last visible\n");
@@ -103,6 +152,7 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.active_layer = 1;
 
     if (layer_stack_cycle(&stack, -1) != 0 || layer_stack_cycle(&stack, 1) != 1) {
         fprintf(stderr, "layer cycling failed\n");

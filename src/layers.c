@@ -240,6 +240,28 @@ int layer_stack_show(LayerStack *stack, int index) {
     return 1;
 }
 
+int layer_stack_hide_and_advance(LayerStack *stack, int index) {
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    Layer *layer = &stack->layers[index];
+    if (!layer->visible || layer_stack_visible_count(stack) == 1) {
+        return 0;
+    }
+    layer->visible = 0;
+    if (stack->solo_index == index) {
+        stack->solo_index = -1;
+    }
+    for (int offset = 1; offset < stack->layer_count; offset++) {
+        int next = (index + offset) % stack->layer_count;
+        if (stack->layers[next].visible) {
+            stack->active_layer = next;
+            return 1;
+        }
+    }
+    return 1;
+}
+
 int layer_stack_toggle_visibility(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
