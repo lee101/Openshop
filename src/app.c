@@ -101,6 +101,21 @@ static void push_snapshot(Canvas *canvas, Snapshot *stack, int *count, Snapshot 
     }
 }
 
+static void apply_canvas_transform(
+    Canvas *canvas,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    void (*transform)(Canvas *)
+) {
+    if (!canvas || !transform) {
+        return;
+    }
+    push_snapshot(canvas, undo_stack, undo_count, redo_stack, redo_count);
+    transform(canvas);
+}
+
 static uint32_t compose_brush_color(uint32_t rgb_color, int opacity_percent) {
     if (opacity_percent < 1) {
         opacity_percent = 1;
@@ -514,6 +529,33 @@ int app_run(const char *input_path) {
                 } else if (key == SDLK_c) {
                     push_snapshot(&canvas, undo_stack, &undo_count, redo_stack, &redo_count);
                     canvas_clear(&canvas, COLOR_BG);
+                } else if (key == SDLK_h) {
+                    apply_canvas_transform(
+                        &canvas,
+                        undo_stack,
+                        &undo_count,
+                        redo_stack,
+                        &redo_count,
+                        canvas_flip_horizontal
+                    );
+                } else if (key == SDLK_v) {
+                    apply_canvas_transform(
+                        &canvas,
+                        undo_stack,
+                        &undo_count,
+                        redo_stack,
+                        &redo_count,
+                        canvas_flip_vertical
+                    );
+                } else if (key == SDLK_x) {
+                    apply_canvas_transform(
+                        &canvas,
+                        undo_stack,
+                        &undo_count,
+                        redo_stack,
+                        &redo_count,
+                        canvas_invert_rgb
+                    );
                 } else if (ctrl && key == SDLK_s) {
                     if (!save_canvas_to_bmp(&canvas, "output.bmp")) {
                         fprintf(stderr, "Failed to save output.bmp\n");

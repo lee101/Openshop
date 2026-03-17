@@ -212,3 +212,57 @@ int canvas_flood_fill(Canvas *c, int x, int y, uint32_t new_color) {
     free(stack);
     return 1;
 }
+
+void canvas_flip_horizontal(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 1 || c->height <= 0) {
+        return;
+    }
+    for (int y = 0; y < c->height; y++) {
+        uint32_t *row = c->pixels + (size_t)y * (size_t)c->width;
+        int left = 0;
+        int right = c->width - 1;
+        while (left < right) {
+            uint32_t tmp = row[left];
+            row[left] = row[right];
+            row[right] = tmp;
+            left++;
+            right--;
+        }
+    }
+}
+
+void canvas_flip_vertical(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 1) {
+        return;
+    }
+    size_t row_bytes = (size_t)c->width * sizeof(uint32_t);
+    uint32_t *tmp = (uint32_t *)malloc(row_bytes);
+    if (!tmp) {
+        return;
+    }
+    int top = 0;
+    int bottom = c->height - 1;
+    while (top < bottom) {
+        uint32_t *top_row = c->pixels + (size_t)top * (size_t)c->width;
+        uint32_t *bottom_row = c->pixels + (size_t)bottom * (size_t)c->width;
+        memcpy(tmp, top_row, row_bytes);
+        memcpy(top_row, bottom_row, row_bytes);
+        memcpy(bottom_row, tmp, row_bytes);
+        top++;
+        bottom--;
+    }
+    free(tmp);
+}
+
+void canvas_invert_rgb(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint32_t a = p & 0xFF000000;
+        uint32_t rgb = p & 0x00FFFFFF;
+        c->pixels[i] = a | ((~rgb) & 0x00FFFFFF);
+    }
+}

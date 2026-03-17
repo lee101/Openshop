@@ -196,6 +196,30 @@ int main(void) {
         ok = 0;
     }
 
+    canvas_flip_horizontal(&c);
+    canvas_flip_horizontal(&c);
+    uint64_t hash2_hflip_roundtrip = fnv1a64(c.pixels, (size_t)c.width * (size_t)c.height);
+    if (hash2_hflip_roundtrip != hash2) {
+        fprintf(stderr, "double horizontal flip roundtrip mismatch\n");
+        ok = 0;
+    }
+
+    canvas_flip_vertical(&c);
+    canvas_flip_vertical(&c);
+    uint64_t hash2_vflip_roundtrip = fnv1a64(c.pixels, (size_t)c.width * (size_t)c.height);
+    if (hash2_vflip_roundtrip != hash2) {
+        fprintf(stderr, "double vertical flip roundtrip mismatch\n");
+        ok = 0;
+    }
+
+    canvas_invert_rgb(&c);
+    canvas_invert_rgb(&c);
+    uint64_t hash2_invert_roundtrip = fnv1a64(c.pixels, (size_t)c.width * (size_t)c.height);
+    if (hash2_invert_roundtrip != hash2) {
+        fprintf(stderr, "double invert roundtrip mismatch\n");
+        ok = 0;
+    }
+
     canvas_free(&c);
     if (!ok) {
         return 1;

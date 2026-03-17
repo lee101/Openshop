@@ -79,6 +79,45 @@ int main(void) {
     }
     canvas_free(&transparent);
 
+    Canvas transform;
+    if (!canvas_init(&transform, 3, 2)) {
+        fprintf(stderr, "transform canvas init failed\n");
+        return 1;
+    }
+    canvas_clear(&transform, 0xFF000000);
+    canvas_set_pixel(&transform, 0, 0, 0xFF010203);
+    canvas_set_pixel(&transform, 1, 0, 0xFF111213);
+    canvas_set_pixel(&transform, 2, 0, 0xFF212223);
+    canvas_set_pixel(&transform, 0, 1, 0xFF313233);
+    canvas_set_pixel(&transform, 1, 1, 0xFF414243);
+    canvas_set_pixel(&transform, 2, 1, 0xFF515253);
+
+    canvas_flip_horizontal(&transform);
+    if (!expect_pixel_eq("flip_h_tl", canvas_get_pixel(&transform, 0, 0), 0xFF212223) ||
+        !expect_pixel_eq("flip_h_tr", canvas_get_pixel(&transform, 2, 0), 0xFF010203) ||
+        !expect_pixel_eq("flip_h_bl", canvas_get_pixel(&transform, 0, 1), 0xFF515253)) {
+        canvas_free(&transform);
+        return 1;
+    }
+
+    canvas_flip_vertical(&transform);
+    if (!expect_pixel_eq("flip_v_tl", canvas_get_pixel(&transform, 0, 0), 0xFF515253) ||
+        !expect_pixel_eq("flip_v_br", canvas_get_pixel(&transform, 2, 1), 0xFF010203)) {
+        canvas_free(&transform);
+        return 1;
+    }
+
+    canvas_invert_rgb(&transform);
+    if (!expect_pixel_eq("invert_tl", canvas_get_pixel(&transform, 0, 0), 0xFFAEADAC)) {
+        canvas_free(&transform);
+        return 1;
+    }
+    if (!expect_pixel_eq("invert_br", canvas_get_pixel(&transform, 2, 1), 0xFFFEFDFC)) {
+        canvas_free(&transform);
+        return 1;
+    }
+    canvas_free(&transform);
+
     printf("ok\n");
     return 0;
 }

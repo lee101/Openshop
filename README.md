@@ -32,6 +32,9 @@ make test
 - `1-6`: quick colors (black, red, green, blue, yellow, purple)
 - `F`: flood fill at cursor
 - `C`: clear canvas
+- `H`: flip canvas horizontally
+- `V`: flip canvas vertically
+- `X`: invert canvas colors (RGB)
 - `Ctrl+S`: save to `output.bmp`
 - `Ctrl+O`: load from `input.bmp`
 - `Ctrl+Z` / `Ctrl+Y`: undo / redo
