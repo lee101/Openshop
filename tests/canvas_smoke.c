@@ -84,6 +84,18 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_show(&stack, 1) || !stack.layers[1].visible) {
+        fprintf(stderr, "show active layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_visibility(&stack, 1)) {
+        fprintf(stderr, "rehide top layer after show active failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     if (layer_stack_toggle_visibility(&stack, 0)) {
         fprintf(stderr, "background should not hide when last visible\n");

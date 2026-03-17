@@ -232,6 +232,14 @@ int layer_stack_show_all(LayerStack *stack) {
     return 1;
 }
 
+int layer_stack_show(LayerStack *stack, int index) {
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    stack->layers[index].visible = 1;
+    return 1;
+}
+
 int layer_stack_toggle_visibility(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
