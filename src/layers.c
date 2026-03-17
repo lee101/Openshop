@@ -124,13 +124,34 @@ const Layer *layer_stack_get(const LayerStack *stack, int index) {
 }
 
 int layer_stack_add(LayerStack *stack, const char *name, uint32_t clear_color) {
+    if (!stack) {
+        return -1;
+    }
+    return layer_stack_insert(stack, stack->layer_count, name, clear_color);
+}
+
+int layer_stack_insert(LayerStack *stack, int index, const char *name, uint32_t clear_color) {
     if (!stack || stack->layer_count >= MAX_LAYERS) {
         return -1;
     }
+    if (index < 0) {
+        index = 0;
+    } else if (index > stack->layer_count) {
+        index = stack->layer_count;
+    }
 
-    int index = stack->layer_count;
+    for (int i = stack->layer_count; i > index; i--) {
+        stack->layers[i] = stack->layers[i - 1];
+    }
+
     Layer *layer = &stack->layers[index];
+    layer->canvas.width = stack->width;
+    layer->canvas.height = stack->height;
+    layer->canvas.pixels = NULL;
     if (!ensure_layer_canvas(layer, stack->width, stack->height)) {
+        for (int i = index; i < stack->layer_count; i++) {
+            stack->layers[i] = stack->layers[i + 1];
+        }
         return -1;
     }
 
@@ -147,6 +168,9 @@ int layer_stack_add(LayerStack *stack, const char *name, uint32_t clear_color) {
 
     stack->layer_count++;
     stack->active_layer = index;
+    if (stack->solo_index >= index) {
+        stack->solo_index++;
+    }
     return index;
 }
 

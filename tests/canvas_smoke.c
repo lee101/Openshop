@@ -67,6 +67,60 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_insert(&stack, 1, "Inserted", 0x00000000) != 1) {
+        fprintf(stderr, "layer insert failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layer_count != 3 || stack.active_layer != 1) {
+        fprintf(stderr, "layer insert bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[1].name, "Inserted") != 0 || strcmp(stack.layers[2].name, "Top") != 0) {
+        fprintf(stderr, "layer insert order failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_solo(&stack, 2)) {
+        fprintf(stderr, "solo inserted stack top failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_insert(&stack, 2, "Solo Neighbor", 0x00000000) != 2) {
+        fprintf(stderr, "layer insert with solo failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != 3) {
+        fprintf(stderr, "solo index did not shift with insert\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_solo(&stack, 3) || stack.solo_index != -1) {
+        fprintf(stderr, "toggle solo off after insert failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 2) || !layer_stack_delete(&stack, 1)) {
+        fprintf(stderr, "cleanup inserted layers failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layer_count != 2 || strcmp(stack.layers[1].name, "Top") != 0) {
+        fprintf(stderr, "cleanup inserted layer order failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     if (!layer_stack_toggle_visibility(&stack, 1)) {
         fprintf(stderr, "re-show top layer failed\n");
