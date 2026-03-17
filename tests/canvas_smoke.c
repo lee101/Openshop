@@ -808,6 +808,33 @@ int main(void) {
     }
     canvas_free(&gray);
 
+    Canvas bright;
+    if (!canvas_init(&bright, 2, 1)) {
+        fprintf(stderr, "bright canvas init failed\n");
+        return 1;
+    }
+    /* +10 delta, no clamp */
+    canvas_set_pixel_raw(&bright, 0, 0, 0xFF406080);
+    /* +10 delta with clamp at 255: each channel >= 246 */
+    canvas_set_pixel_raw(&bright, 1, 0, 0xFFF8FEFF);
+    canvas_brightness(&bright, 10);
+    if (!expect_pixel_eq("bright_normal", canvas_get_pixel(&bright, 0, 0), 0xFF4A6A8A)) {
+        canvas_free(&bright);
+        return 1;
+    }
+    if (!expect_pixel_eq("bright_clamp", canvas_get_pixel(&bright, 1, 0), 0xFFFFFFFF)) {
+        canvas_free(&bright);
+        return 1;
+    }
+    /* -30 delta with clamp at 0 */
+    canvas_set_pixel_raw(&bright, 0, 0, 0xFF100810);
+    canvas_brightness(&bright, -30);
+    if (!expect_pixel_eq("bright_clamp_low", canvas_get_pixel(&bright, 0, 0), 0xFF000000)) {
+        canvas_free(&bright);
+        return 1;
+    }
+    canvas_free(&bright);
+
     Canvas translated;
     if (!canvas_init(&translated, 4, 3)) {
         fprintf(stderr, "translate canvas init failed\n");

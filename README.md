@@ -46,6 +46,7 @@ make test-sdl
 - `J`: rotate the active layer 180 degrees
 - `X`: invert the active layer colors (RGB)
 - `G`: convert the active layer to grayscale (BT.709 luminance)
+- `Shift+-` / `Shift+=`: decrease / increase active layer brightness by 10 (clamped to 0–255)
 - `Arrow Keys`: nudge the active layer by 1 pixel
 - `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels
 - `PageUp / PageDown`: cycle active layer

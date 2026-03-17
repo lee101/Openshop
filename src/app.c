@@ -1172,6 +1172,20 @@ int app_run(const char *input_path) {
                     brush_shape = cycle_brush_shape(brush_shape, -1);
                 } else if (key == SDLK_PERIOD) {
                     brush_shape = cycle_brush_shape(brush_shape, 1);
+                } else if ((key == SDLK_MINUS || key == SDLK_KP_MINUS) && shift) {
+                    Layer *active = layer_stack_active(&layers);
+                    if (active && !active->locked && active->canvas.pixels) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        canvas_brightness(&active->canvas, -10);
+                        needs_composite = 1;
+                    }
+                } else if ((key == SDLK_EQUALS || key == SDLK_KP_PLUS) && shift) {
+                    Layer *active = layer_stack_active(&layers);
+                    if (active && !active->locked && active->canvas.pixels) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        canvas_brightness(&active->canvas, 10);
+                        needs_composite = 1;
+                    }
                 } else if (key == SDLK_MINUS || key == SDLK_KP_MINUS) {
                     if (brush_opacity > 1) {
                         brush_opacity -= 5;
