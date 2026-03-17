@@ -58,6 +58,7 @@ make test-sdl
 - `Ctrl+Shift+V`: toggle active layer visibility
 - `Ctrl+M`: merge active layer down
 - `Ctrl+Shift+E`: stamp visible image into active layer
+- `Ctrl+Shift+G`: stamp visible image into a new top layer
 - `Ctrl+Shift+M`: flatten visible layers
 - `Ctrl+S`: save the composited image to `output.bmp`
 - `Ctrl+O`: load `input.bmp` into the active layer

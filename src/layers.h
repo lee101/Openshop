@@ -43,5 +43,6 @@ int layer_stack_merge_down(LayerStack *stack, int index);
 int layer_stack_flatten(LayerStack *stack, uint32_t background_color);
 int layer_stack_toggle_solo(LayerStack *stack, int index);
 int layer_stack_stamp_visible_into(LayerStack *stack, int index, uint32_t background_color);
+int layer_stack_stamp_visible_new(LayerStack *stack, const char *name, uint32_t background_color);
 
 #endif

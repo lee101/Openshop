@@ -458,6 +458,20 @@ int layer_stack_stamp_visible_into(LayerStack *stack, int index, uint32_t backgr
     return 1;
 }
 
+int layer_stack_stamp_visible_new(LayerStack *stack, const char *name, uint32_t background_color) {
+    if (!stack || stack->layer_count >= MAX_LAYERS) {
+        return -1;
+    }
+    int index = layer_stack_add(stack, name, 0x00000000);
+    if (index < 0) {
+        return -1;
+    }
+    if (!layer_stack_stamp_visible_into(stack, index, background_color)) {
+        return -1;
+    }
+    return index;
+}
+
 void layer_stack_composite(const LayerStack *stack, Canvas *dest, uint32_t background_color) {
     if (!stack || !dest || !dest->pixels) {
         return;
