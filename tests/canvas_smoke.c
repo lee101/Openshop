@@ -858,6 +858,28 @@ int main(void) {
     }
     canvas_free(&post);
 
+    Canvas sep;
+    if (!canvas_init(&sep, 2, 1)) {
+        fprintf(stderr, "sepia canvas init failed\n");
+        return 1;
+    }
+    /* gray 0x80 = 128: outR=(128*393+128*769+128*189+500)/1000=173=0xAD
+       outG=(128*349+128*686+128*168+500)/1000=154=0x9A
+       outB=(128*272+128*534+128*131+500)/1000=120=0x78 */
+    canvas_set_pixel_raw(&sep, 0, 0, 0xFF808080);
+    /* white 0xFF: outR=clamp(345)=255, outG=clamp(307)=255, outB=239=0xEF */
+    canvas_set_pixel_raw(&sep, 1, 0, 0xFFFFFFFF);
+    canvas_sepia(&sep);
+    if (!expect_pixel_eq("sepia_gray", canvas_get_pixel(&sep, 0, 0), 0xFFAD9A78)) {
+        canvas_free(&sep);
+        return 1;
+    }
+    if (!expect_pixel_eq("sepia_white", canvas_get_pixel(&sep, 1, 0), 0xFFFFFFEF)) {
+        canvas_free(&sep);
+        return 1;
+    }
+    canvas_free(&sep);
+
     Canvas translated;
     if (!canvas_init(&translated, 4, 3)) {
         fprintf(stderr, "translate canvas init failed\n");

@@ -29,6 +29,7 @@ void canvas_invert_rgb(Canvas *c);
 void canvas_grayscale(Canvas *c);
 void canvas_brightness(Canvas *c, int delta);
 void canvas_posterize(Canvas *c, int levels);
+void canvas_sepia(Canvas *c);
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color);
 
 #endif

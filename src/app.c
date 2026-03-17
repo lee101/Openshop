@@ -1245,8 +1245,12 @@ int app_run(const char *input_path) {
                     if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_rotate_180)) {
                         needs_composite = 1;
                     }
-                } else if (key == SDLK_x) {
+                } else if (key == SDLK_x && !shift) {
                     if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_invert_rgb)) {
+                        needs_composite = 1;
+                    }
+                } else if (key == SDLK_x && shift) {
+                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_sepia)) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_g && !shift) {

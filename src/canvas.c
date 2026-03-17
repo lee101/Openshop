@@ -383,6 +383,27 @@ void canvas_posterize(Canvas *c, int levels) {
     }
 }
 
+void canvas_sepia(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint32_t a = (p >> 24) & 0xFF;
+        int r = (int)((p >> 16) & 0xFF);
+        int g = (int)((p >> 8) & 0xFF);
+        int b = (int)(p & 0xFF);
+        int nr = (r * 393 + g * 769 + b * 189 + 500) / 1000;
+        int ng = (r * 349 + g * 686 + b * 168 + 500) / 1000;
+        int nb = (r * 272 + g * 534 + b * 131 + 500) / 1000;
+        if (nr > 255) { nr = 255; }
+        if (ng > 255) { ng = 255; }
+        if (nb > 255) { nb = 255; }
+        c->pixels[i] = (a << 24) | ((uint32_t)nr << 16) | ((uint32_t)ng << 8) | (uint32_t)nb;
+    }
+}
+
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;
