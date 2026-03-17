@@ -543,6 +543,46 @@ void canvas_rotate_90_ccw(Canvas *c) {
     free(tmp);
 }
 
+void canvas_sharpen(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t total = (size_t)c->width * (size_t)c->height;
+    uint32_t *src = (uint32_t *)malloc(total * sizeof(uint32_t));
+    if (!src) {
+        return;
+    }
+    memcpy(src, c->pixels, total * sizeof(uint32_t));
+
+    /* 4-connected sharpening kernel: centre * 5, each NSEW neighbour * -1 */
+    for (int y = 0; y < c->height; y++) {
+        int yu = y > 0 ? y - 1 : 0;
+        int yd = y < c->height - 1 ? y + 1 : c->height - 1;
+        for (int x = 0; x < c->width; x++) {
+            int xl = x > 0 ? x - 1 : 0;
+            int xr = x < c->width - 1 ? x + 1 : c->width - 1;
+
+            uint32_t cn = src[(size_t)y  * (size_t)c->width + (size_t)x];
+            uint32_t lf = src[(size_t)y  * (size_t)c->width + (size_t)xl];
+            uint32_t rt = src[(size_t)y  * (size_t)c->width + (size_t)xr];
+            uint32_t up = src[(size_t)yu * (size_t)c->width + (size_t)x];
+            uint32_t dn = src[(size_t)yd * (size_t)c->width + (size_t)x];
+
+            uint32_t a = (cn >> 24) & 0xFF;
+            int nr, ng, nb;
+            nr = 5*(int)((cn>>16)&0xFF) - (int)((lf>>16)&0xFF) - (int)((rt>>16)&0xFF) - (int)((up>>16)&0xFF) - (int)((dn>>16)&0xFF);
+            ng = 5*(int)((cn>>8)&0xFF)  - (int)((lf>>8)&0xFF)  - (int)((rt>>8)&0xFF)  - (int)((up>>8)&0xFF)  - (int)((dn>>8)&0xFF);
+            nb = 5*(int)(cn&0xFF)       - (int)(lf&0xFF)       - (int)(rt&0xFF)       - (int)(up&0xFF)       - (int)(dn&0xFF);
+            if (nr < 0) { nr = 0; } else if (nr > 255) { nr = 255; }
+            if (ng < 0) { ng = 0; } else if (ng > 255) { ng = 255; }
+            if (nb < 0) { nb = 0; } else if (nb > 255) { nb = 255; }
+            c->pixels[(size_t)y * (size_t)c->width + (size_t)x] =
+                (a << 24) | ((uint32_t)nr << 16) | ((uint32_t)ng << 8) | (uint32_t)nb;
+        }
+    }
+    free(src);
+}
+
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;

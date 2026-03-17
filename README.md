@@ -50,6 +50,7 @@ make test-sdl
 - `Shift+J`: rotate the active layer 90° clockwise (within the largest centred square)
 - `Ctrl+J`: rotate the active layer 90° counter-clockwise
 - `X`: invert the active layer colors (RGB)
+- `Shift+S`: sharpen the active layer (4-connected kernel, clamped)
 - `Shift+X`: apply sepia tone to the active layer
 - `G`: convert the active layer to grayscale (BT.709 luminance)
 - `Shift+G`: posterize the active layer to 4 colour levels per channel

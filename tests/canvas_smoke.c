@@ -938,6 +938,27 @@ int main(void) {
     }
     canvas_free(&rot90);
 
+    /* sharpen: 3x1 row, bright green centre, dim neighbours
+       kernel: 5*centre - left - right - up(clamp) - down(clamp)
+       centre G: 5*0xFF - 0x10 - 0x10 - 0xFF - 0xFF = 1275 - 542 = 733 -> 255
+       side   G: 5*0x10 - 0x10(clamp) - 0xFF - 0x10 - 0x10 = 80 - 303 = -223 -> 0 */
+    Canvas sharp;
+    if (!canvas_init(&sharp, 3, 1)) {
+        fprintf(stderr, "sharp canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&sharp, 0, 0, 0xFF001000);
+    canvas_set_pixel_raw(&sharp, 1, 0, 0xFF00FF00);
+    canvas_set_pixel_raw(&sharp, 2, 0, 0xFF001000);
+    canvas_sharpen(&sharp);
+    if (!expect_pixel_eq("sharpen_centre", canvas_get_pixel(&sharp, 1, 0), 0xFF00FF00) ||
+        !expect_pixel_eq("sharpen_left",   canvas_get_pixel(&sharp, 0, 0), 0xFF000000) ||
+        !expect_pixel_eq("sharpen_right",  canvas_get_pixel(&sharp, 2, 0), 0xFF000000)) {
+        canvas_free(&sharp);
+        return 1;
+    }
+    canvas_free(&sharp);
+
     Canvas translated;
     if (!canvas_init(&translated, 4, 3)) {
         fprintf(stderr, "translate canvas init failed\n");
