@@ -39,7 +39,8 @@ make test-sdl
 - `, / .`: cycle brush shape (round, square, diamond)
 - `- / =`: opacity down/up (1%-100%)
 - `1-6`: quick colors (black, red, green, blue, yellow, purple)
-- `F`: flood fill on the active layer
+- `F`: flood fill on the active layer (exact colour match)
+- `Shift+F`: flood fill with tolerance 32 (fills similar colours)
 - `C`: clear the active layer
 - `H`: flip the active layer horizontally
 - `V`: flip the active layer vertically

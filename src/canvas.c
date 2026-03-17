@@ -255,6 +255,89 @@ int canvas_flood_fill(Canvas *c, int x, int y, uint32_t new_color) {
     return 1;
 }
 
+static int rgb_chebyshev(uint32_t a, uint32_t b) {
+    int dr = abs((int)((a >> 16) & 0xFF) - (int)((b >> 16) & 0xFF));
+    int dg = abs((int)((a >> 8) & 0xFF) - (int)((b >> 8) & 0xFF));
+    int db = abs((int)(a & 0xFF) - (int)(b & 0xFF));
+    int dmax = dr > dg ? dr : dg;
+    return dmax > db ? dmax : db;
+}
+
+int canvas_flood_fill_tolerance(Canvas *c, int x, int y, uint32_t new_color, int tolerance) {
+    if (!c || !c->pixels) {
+        return 0;
+    }
+    if (x < 0 || y < 0 || x >= c->width || y >= c->height) {
+        return 0;
+    }
+    if (tolerance < 0) { tolerance = 0; }
+    if (tolerance > 255) { tolerance = 255; }
+
+    uint32_t target = canvas_get_pixel(c, x, y);
+    if (target == new_color) {
+        return 1;
+    }
+
+    size_t capacity = 1024;
+    size_t count = 0;
+    FillPoint *stack = (FillPoint *)malloc(capacity * sizeof(FillPoint));
+    if (!stack) {
+        return 0;
+    }
+
+    /* visited flag: mark pixels already pushed/painted to avoid re-pushing */
+    size_t total = (size_t)c->width * (size_t)c->height;
+    uint8_t *visited = (uint8_t *)calloc(total, 1);
+    if (!visited) {
+        free(stack);
+        return 0;
+    }
+
+    stack[count++] = (FillPoint){x, y};
+    visited[(size_t)y * (size_t)c->width + (size_t)x] = 1;
+
+    while (count > 0) {
+        FillPoint p = stack[--count];
+        if (p.x < 0 || p.y < 0 || p.x >= c->width || p.y >= c->height) {
+            continue;
+        }
+        uint32_t cur = canvas_get_pixel(c, p.x, p.y);
+        if (rgb_chebyshev(cur, target) > tolerance) {
+            continue;
+        }
+        canvas_set_pixel_raw(c, p.x, p.y, new_color);
+
+        if (count + 4 >= capacity) {
+            size_t new_capacity = capacity * 2;
+            FillPoint *next = (FillPoint *)realloc(stack, new_capacity * sizeof(FillPoint));
+            if (!next) {
+                free(visited);
+                free(stack);
+                return 0;
+            }
+            stack = next;
+            capacity = new_capacity;
+        }
+
+        int neighbors[4][2] = {{p.x + 1, p.y}, {p.x - 1, p.y}, {p.x, p.y + 1}, {p.x, p.y - 1}};
+        for (int k = 0; k < 4; k++) {
+            int nx = neighbors[k][0];
+            int ny = neighbors[k][1];
+            if (nx >= 0 && ny >= 0 && nx < c->width && ny < c->height) {
+                size_t idx = (size_t)ny * (size_t)c->width + (size_t)nx;
+                if (!visited[idx]) {
+                    visited[idx] = 1;
+                    stack[count++] = (FillPoint){nx, ny};
+                }
+            }
+        }
+    }
+
+    free(visited);
+    free(stack);
+    return 1;
+}
+
 void canvas_flip_horizontal(Canvas *c) {
     if (!c || !c->pixels || c->width <= 1 || c->height <= 0) {
         return;

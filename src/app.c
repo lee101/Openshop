@@ -1264,7 +1264,7 @@ int app_run(const char *input_path) {
                         canvas_posterize(&active->canvas, 4);
                         needs_composite = 1;
                     }
-                } else if (key == SDLK_f) {
+                } else if (key == SDLK_f && !shift) {
                     int mx = 0;
                     int my = 0;
                     SDL_GetMouseState(&mx, &my);
@@ -1275,6 +1275,21 @@ int app_run(const char *input_path) {
                         }
                         if (!active || active->locked || !canvas_flood_fill(&active->canvas, mx, my, brush_color)) {
                             fprintf(stderr, "Fill failed\n");
+                        } else {
+                            needs_composite = 1;
+                        }
+                    }
+                } else if (key == SDLK_f && shift) {
+                    int mx = 0;
+                    int my = 0;
+                    SDL_GetMouseState(&mx, &my);
+                    if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
+                        Layer *active = layer_stack_active(&layers);
+                        if (active && !active->locked) {
+                            push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        }
+                        if (!active || active->locked || !canvas_flood_fill_tolerance(&active->canvas, mx, my, brush_color, 32)) {
+                            fprintf(stderr, "Tolerance fill failed\n");
                         } else {
                             needs_composite = 1;
                         }

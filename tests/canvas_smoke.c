@@ -880,6 +880,33 @@ int main(void) {
     }
     canvas_free(&sep);
 
+    /* tolerance flood fill: seed at (0,0)=0xFF100000, tolerance=20
+       0x10(16), 0x15(21), 0x20(32) are within 20 of 0x10; 0x50(80) is not */
+    Canvas tol_fill;
+    if (!canvas_init(&tol_fill, 5, 1)) {
+        fprintf(stderr, "tol_fill canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&tol_fill, 0, 0, 0xFF100000);
+    canvas_set_pixel_raw(&tol_fill, 1, 0, 0xFF150000);
+    canvas_set_pixel_raw(&tol_fill, 2, 0, 0xFF200000);
+    canvas_set_pixel_raw(&tol_fill, 3, 0, 0xFF500000);
+    canvas_set_pixel_raw(&tol_fill, 4, 0, 0xFF800000);
+    if (!canvas_flood_fill_tolerance(&tol_fill, 0, 0, 0xFFFFFFFF, 20)) {
+        fprintf(stderr, "canvas_flood_fill_tolerance failed\n");
+        canvas_free(&tol_fill);
+        return 1;
+    }
+    if (!expect_pixel_eq("tol_fill_0", canvas_get_pixel(&tol_fill, 0, 0), 0xFFFFFFFF) ||
+        !expect_pixel_eq("tol_fill_1", canvas_get_pixel(&tol_fill, 1, 0), 0xFFFFFFFF) ||
+        !expect_pixel_eq("tol_fill_2", canvas_get_pixel(&tol_fill, 2, 0), 0xFFFFFFFF) ||
+        !expect_pixel_eq("tol_fill_3", canvas_get_pixel(&tol_fill, 3, 0), 0xFF500000) ||
+        !expect_pixel_eq("tol_fill_4", canvas_get_pixel(&tol_fill, 4, 0), 0xFF800000)) {
+        canvas_free(&tol_fill);
+        return 1;
+    }
+    canvas_free(&tol_fill);
+
     Canvas translated;
     if (!canvas_init(&translated, 4, 3)) {
         fprintf(stderr, "translate canvas init failed\n");
