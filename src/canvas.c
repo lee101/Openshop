@@ -357,6 +357,32 @@ void canvas_brightness(Canvas *c, int delta) {
     }
 }
 
+void canvas_posterize(Canvas *c, int levels) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    if (levels < 2) { levels = 2; }
+    if (levels > 255) { levels = 255; }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    int denom = levels - 1;
+    int half = (denom - 1) / 2;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint32_t a = (p >> 24) & 0xFF;
+        uint32_t r = (p >> 16) & 0xFF;
+        uint32_t g = (p >> 8) & 0xFF;
+        uint32_t b = p & 0xFF;
+        /* quantize to 'levels' steps, rounding to nearest */
+        r = (r * (uint32_t)denom + 127) / 255;
+        g = (g * (uint32_t)denom + 127) / 255;
+        b = (b * (uint32_t)denom + 127) / 255;
+        r = (r * 255 + (uint32_t)half) / (uint32_t)denom;
+        g = (g * 255 + (uint32_t)half) / (uint32_t)denom;
+        b = (b * 255 + (uint32_t)half) / (uint32_t)denom;
+        c->pixels[i] = (a << 24) | (r << 16) | (g << 8) | b;
+    }
+}
+
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;

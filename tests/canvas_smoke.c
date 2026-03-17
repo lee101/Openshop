@@ -835,6 +835,29 @@ int main(void) {
     }
     canvas_free(&bright);
 
+    Canvas post;
+    if (!canvas_init(&post, 2, 1)) {
+        fprintf(stderr, "post canvas init failed\n");
+        return 1;
+    }
+    /* 4-level posterize: output values are 0, 85, 170, 255 */
+    /* R=0x40=64 -> scale 1 -> 85=0x55; G=0x60=96 -> scale 1 -> 85; B=0xB0=176 -> scale 2 -> 170=0xAA */
+    canvas_set_pixel_raw(&post, 0, 0, 0xFF4060B0);
+    canvas_posterize(&post, 4);
+    if (!expect_pixel_eq("posterize_4", canvas_get_pixel(&post, 0, 0), 0xFF5555AA)) {
+        canvas_free(&post);
+        return 1;
+    }
+    /* 2-level (binary): R=0x64=100 -> 0; R=0xC8=200 -> 255 */
+    canvas_set_pixel_raw(&post, 0, 0, 0xFF64C800);
+    canvas_set_pixel_raw(&post, 1, 0, 0xFF000000);
+    canvas_posterize(&post, 2);
+    if (!expect_pixel_eq("posterize_2", canvas_get_pixel(&post, 0, 0), 0xFF00FF00)) {
+        canvas_free(&post);
+        return 1;
+    }
+    canvas_free(&post);
+
     Canvas translated;
     if (!canvas_init(&translated, 4, 3)) {
         fprintf(stderr, "translate canvas init failed\n");

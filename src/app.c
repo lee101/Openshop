@@ -1249,8 +1249,15 @@ int app_run(const char *input_path) {
                     if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_invert_rgb)) {
                         needs_composite = 1;
                     }
-                } else if (key == SDLK_g) {
+                } else if (key == SDLK_g && !shift) {
                     if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_grayscale)) {
+                        needs_composite = 1;
+                    }
+                } else if (key == SDLK_g && shift) {
+                    Layer *active = layer_stack_active(&layers);
+                    if (active && !active->locked && active->canvas.pixels) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        canvas_posterize(&active->canvas, 4);
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_f) {
