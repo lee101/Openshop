@@ -322,6 +322,23 @@ void canvas_invert_rgb(Canvas *c) {
     }
 }
 
+void canvas_grayscale(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint32_t a = p & 0xFF000000;
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        /* BT.709 luminance coefficients scaled to sum ~10000 */
+        uint8_t gray = (uint8_t)((2126 * (int)r + 7152 * (int)g + 722 * (int)b + 5000) / 10000);
+        c->pixels[i] = a | ((uint32_t)gray << 16) | ((uint32_t)gray << 8) | gray;
+    }
+}
+
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;

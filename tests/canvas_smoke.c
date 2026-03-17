@@ -842,6 +842,55 @@ int main(void) {
         return 1;
     }
 
+    /* grayscale test */
+    Canvas gray_c;
+    if (!canvas_init(&gray_c, 1, 1)) {
+        fprintf(stderr, "grayscale canvas init failed\n");
+        return 1;
+    }
+    /* pure red: BT.709 luminance = 0.2126 * 255 ~ 54 */
+    canvas_set_pixel_raw(&gray_c, 0, 0, 0xFFFF0000);
+    canvas_grayscale(&gray_c);
+    {
+        uint32_t gp = canvas_get_pixel(&gray_c, 0, 0);
+        uint8_t gr = (uint8_t)((gp >> 16) & 0xFF);
+        uint8_t gg = (uint8_t)((gp >> 8) & 0xFF);
+        uint8_t gb = (uint8_t)(gp & 0xFF);
+        if (gr != gg || gg != gb) {
+            fprintf(stderr, "grayscale: channels not equal: R=%d G=%d B=%d\n", gr, gg, gb);
+            canvas_free(&gray_c);
+            return 1;
+        }
+        if (gr < 50 || gr > 60) {
+            fprintf(stderr, "grayscale: unexpected luminance %d for pure red\n", gr);
+            canvas_free(&gray_c);
+            return 1;
+        }
+    }
+    /* white should stay white */
+    canvas_set_pixel_raw(&gray_c, 0, 0, 0xFFFFFFFF);
+    canvas_grayscale(&gray_c);
+    if (!expect_pixel_eq("grayscale_white", canvas_get_pixel(&gray_c, 0, 0), 0xFFFFFFFF)) {
+        canvas_free(&gray_c);
+        return 1;
+    }
+    /* black should stay black */
+    canvas_set_pixel_raw(&gray_c, 0, 0, 0xFF000000);
+    canvas_grayscale(&gray_c);
+    if (!expect_pixel_eq("grayscale_black", canvas_get_pixel(&gray_c, 0, 0), 0xFF000000)) {
+        canvas_free(&gray_c);
+        return 1;
+    }
+    /* alpha should be preserved */
+    canvas_set_pixel_raw(&gray_c, 0, 0, 0x80FF0000);
+    canvas_grayscale(&gray_c);
+    if (((canvas_get_pixel(&gray_c, 0, 0) >> 24) & 0xFF) != 0x80) {
+        fprintf(stderr, "grayscale: alpha not preserved\n");
+        canvas_free(&gray_c);
+        return 1;
+    }
+    canvas_free(&gray_c);
+
     printf("ok\n");
     return 0;
 }

@@ -38,12 +38,13 @@ make test-sdl
 - `[ / ]`: brush size down/up
 - `, / .`: cycle brush shape (round, square, diamond)
 - `- / =`: opacity down/up (1%-100%)
-- `1-6`: quick colors (black, red, green, blue, yellow, purple)
+- `1-8`: quick colors (black, red, green, blue, yellow, purple, white, orange)
 - `F`: flood fill on the active layer
 - `C`: clear the active layer
 - `H`: flip the active layer horizontally
 - `V`: flip the active layer vertically
 - `J`: rotate the active layer 180 degrees
+- `G`: convert the active layer to grayscale
 - `X`: invert the active layer colors (RGB)
 - `Arrow Keys`: nudge the active layer by 1 pixel
 - `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels
@@ -68,6 +69,8 @@ make test-sdl
 - `Ctrl+Shift+E`: stamp visible image into active layer
 - `Ctrl+Shift+G`: stamp visible image into a new top layer
 - `Ctrl+Shift+M`: flatten visible layers
+- `Ctrl+C`: copy the active layer pixels to the internal clipboard
+- `Ctrl+V`: paste the clipboard as a new layer above the active layer
 - `Ctrl+S`: save the composited image to `output.bmp`
 - `Ctrl+O`: load `input.bmp` into the active layer
 - `Ctrl+Z` / `Ctrl+Y`: undo / redo (layer-aware)

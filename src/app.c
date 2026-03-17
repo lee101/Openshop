@@ -22,6 +22,8 @@ static const uint32_t COLOR_GREEN = 0xFF43A047;
 static const uint32_t COLOR_BLUE = 0xFF1E88E5;
 static const uint32_t COLOR_YELLOW = 0xFFFDD835;
 static const uint32_t COLOR_PURPLE = 0xFF8E24AA;
+static const uint32_t COLOR_WHITE = 0xFFFFFFFF;
+static const uint32_t COLOR_ORANGE = 0xFFFB8C00;
 static const int CHECKER_SIZE = 16;
 
 typedef enum {
@@ -375,7 +377,7 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     if (key == SDLK_ESCAPE || key == SDLK_LSHIFT || key == SDLK_RSHIFT) {
         return 0;
     }
-    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_u || key == SDLK_v || key == SDLK_m || key == SDLK_d || key == SDLK_e || key == SDLK_g || key == SDLK_h || key == SDLK_l || key == SDLK_a || key == SDLK_r || key == SDLK_0 || key == SDLK_COMMA || key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET || key == SDLK_MINUS || key == SDLK_KP_MINUS || key == SDLK_EQUALS || key == SDLK_KP_PLUS || key == SDLK_SLASH || key == SDLK_1 || key == SDLK_2 || key == SDLK_3 || key == SDLK_4 || key == SDLK_5 || key == SDLK_6 || key == SDLK_7 || key == SDLK_8)) {
+    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_u || key == SDLK_v || key == SDLK_m || key == SDLK_d || key == SDLK_e || key == SDLK_g || key == SDLK_h || key == SDLK_l || key == SDLK_a || key == SDLK_r || key == SDLK_c || key == SDLK_0 || key == SDLK_COMMA || key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET || key == SDLK_MINUS || key == SDLK_KP_MINUS || key == SDLK_EQUALS || key == SDLK_KP_PLUS || key == SDLK_SLASH || key == SDLK_1 || key == SDLK_2 || key == SDLK_3 || key == SDLK_4 || key == SDLK_5 || key == SDLK_6 || key == SDLK_7 || key == SDLK_8)) {
         return 1;
     }
     switch (key) {
@@ -400,6 +402,9 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     case SDLK_4:
     case SDLK_5:
     case SDLK_6:
+    case SDLK_7:
+    case SDLK_8:
+    case SDLK_g:
     case SDLK_c:
     case SDLK_h:
     case SDLK_v:
@@ -628,6 +633,7 @@ int app_run(const char *input_path) {
     Snapshot redo_stack[MAX_HISTORY];
     int undo_count = 0;
     int redo_count = 0;
+    Canvas clipboard = {0};
     int shaping = 0;
     int shape_start_x = 0;
     int shape_start_y = 0;
@@ -1072,6 +1078,32 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (ctrl && !shift && key == SDLK_c) {
+                    const Layer *active = layer_stack_get(&layers, layers.active_layer);
+                    if (active && active->canvas.pixels) {
+                        canvas_free(&clipboard);
+                        if (canvas_init(&clipboard, active->canvas.width, active->canvas.height)) {
+                            memcpy(clipboard.pixels, active->canvas.pixels,
+                                   (size_t)clipboard.width * (size_t)clipboard.height * sizeof(uint32_t));
+                        }
+                    }
+                    break;
+                }
+
+                if (ctrl && !shift && key == SDLK_v) {
+                    if (clipboard.pixels) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        int idx = layer_stack_insert(&layers, layers.active_layer + 1, "Clipboard", 0x00000000);
+                        if (idx >= 0 && layers.layers[idx].canvas.pixels) {
+                            memcpy(layers.layers[idx].canvas.pixels, clipboard.pixels,
+                                   (size_t)clipboard.width * (size_t)clipboard.height * sizeof(uint32_t));
+                            needs_composite = 1;
+                        }
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    }
+                    break;
+                }
+
                 if (key == SDLK_PAGEUP) {
                     if (layer_stack_cycle(&layers, 1) >= 0) {
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1175,6 +1207,18 @@ int app_run(const char *input_path) {
                     brush_color_rgb = COLOR_PURPLE & 0x00FFFFFF;
                     brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
                     tool = TOOL_BRUSH;
+                } else if (key == SDLK_7) {
+                    brush_color_rgb = COLOR_WHITE & 0x00FFFFFF;
+                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
+                    tool = TOOL_BRUSH;
+                } else if (key == SDLK_8) {
+                    brush_color_rgb = COLOR_ORANGE & 0x00FFFFFF;
+                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
+                    tool = TOOL_BRUSH;
+                } else if (key == SDLK_g) {
+                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_grayscale)) {
+                        needs_composite = 1;
+                    }
                 } else if (key == SDLK_c) {
                     if (active_layer_editable(&layers)) {
                         push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
@@ -1274,6 +1318,7 @@ int app_run(const char *input_path) {
     free(shape_base_pixels);
     free(preview_pixels);
     canvas_free(&composite);
+    canvas_free(&clipboard);
     layer_stack_free(&layers);
     stack_clear(undo_stack, &undo_count);
     stack_clear(redo_stack, &redo_count);
