@@ -224,6 +224,14 @@ int main(void) {
         ok = 0;
     }
 
+    canvas_translate(&c, 7, 5, 0xFF123456);
+    ok = ok && assert_pixel(&c, 22, 20, red, "translate_preserve");
+    ok = ok && assert_pixel(&c, 1, 1, 0xFF123456, "translate_fill");
+
+    canvas_translate(&c, -7, -5, white);
+    ok = ok && assert_pixel(&c, 15, 15, red, "translate_roundtrip_preserve");
+    ok = ok && assert_pixel(&c, 159, 119, white, "translate_roundtrip_fill");
+
     canvas_free(&c);
     if (!ok) {
         return 1;

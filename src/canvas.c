@@ -311,3 +311,40 @@ void canvas_invert_rgb(Canvas *c) {
         c->pixels[i] = a | ((~rgb) & 0x00FFFFFF);
     }
 }
+
+void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    if (dx == 0 && dy == 0) {
+        return;
+    }
+
+    size_t count = (size_t)c->width * (size_t)c->height;
+    uint32_t *copy = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!copy) {
+        return;
+    }
+
+    for (size_t i = 0; i < count; i++) {
+        copy[i] = fill_color;
+    }
+
+    for (int y = 0; y < c->height; y++) {
+        int src_y = y - dy;
+        if (src_y < 0 || src_y >= c->height) {
+            continue;
+        }
+        for (int x = 0; x < c->width; x++) {
+            int src_x = x - dx;
+            if (src_x < 0 || src_x >= c->width) {
+                continue;
+            }
+            copy[(size_t)y * (size_t)c->width + (size_t)x] =
+                c->pixels[(size_t)src_y * (size_t)c->width + (size_t)src_x];
+        }
+    }
+
+    memcpy(c->pixels, copy, count * sizeof(uint32_t));
+    free(copy);
+}

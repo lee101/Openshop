@@ -136,6 +136,29 @@ int main(void) {
     }
     canvas_free(&transform);
 
+    Canvas translated;
+    if (!canvas_init(&translated, 4, 3)) {
+        fprintf(stderr, "translate canvas init failed\n");
+        return 1;
+    }
+    canvas_clear(&translated, 0xFF000000);
+    canvas_set_pixel(&translated, 1, 1, 0xFF112233);
+    canvas_set_pixel(&translated, 2, 1, 0xFF445566);
+    canvas_translate(&translated, 1, -1, 0xFFFFFFFF);
+    if (!expect_pixel_eq("translate_moved_a", canvas_get_pixel(&translated, 2, 0), 0xFF112233) ||
+        !expect_pixel_eq("translate_moved_b", canvas_get_pixel(&translated, 3, 0), 0xFF445566) ||
+        !expect_pixel_eq("translate_fill", canvas_get_pixel(&translated, 0, 2), 0xFFFFFFFF)) {
+        canvas_free(&translated);
+        return 1;
+    }
+    canvas_translate(&translated, -2, 2, 0xFFABCDEF);
+    if (!expect_pixel_eq("translate_back", canvas_get_pixel(&translated, 0, 2), 0xFF112233) ||
+        !expect_pixel_eq("translate_crop_fill", canvas_get_pixel(&translated, 3, 0), 0xFFABCDEF)) {
+        canvas_free(&translated);
+        return 1;
+    }
+    canvas_free(&translated);
+
     printf("ok\n");
     return 0;
 }

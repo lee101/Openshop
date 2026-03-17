@@ -44,6 +44,8 @@ make test-sdl
 - `V`: flip canvas vertically
 - `J`: rotate canvas 180 degrees
 - `X`: invert canvas colors (RGB)
+- `Arrow Keys`: nudge canvas by 1 pixel
+- `Shift` + `Arrow Keys`: nudge canvas by 10 pixels
 - `Ctrl+S`: save to `output.bmp`
 - `Ctrl+O`: load from `input.bmp`
 - `Ctrl+Z` / `Ctrl+Y`: undo / redo

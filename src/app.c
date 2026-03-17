@@ -119,6 +119,23 @@ static void apply_canvas_transform(
     transform(canvas);
 }
 
+static void apply_canvas_translation(
+    Canvas *canvas,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int dx,
+    int dy,
+    uint32_t fill_color
+) {
+    if (!canvas || (dx == 0 && dy == 0)) {
+        return;
+    }
+    push_snapshot(canvas, undo_stack, undo_count, redo_stack, redo_count);
+    canvas_translate(canvas, dx, dy, fill_color);
+}
+
 static void cancel_shape_preview(Snapshot *shape_base, int *shaping, int *preview_active) {
     if (shape_base) {
         snapshot_free(shape_base);
@@ -168,6 +185,10 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     case SDLK_x:
     case SDLK_f:
     case SDLK_i:
+    case SDLK_UP:
+    case SDLK_DOWN:
+    case SDLK_LEFT:
+    case SDLK_RIGHT:
         return 1;
     default:
         return 0;
@@ -467,6 +488,7 @@ int app_run(const char *input_path) {
                 SDL_Keycode key = e.key.keysym.sym;
                 const Uint8 *state = SDL_GetKeyboardState(NULL);
                 int ctrl = state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL];
+                int shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
 
                 if (shaping && should_cancel_shape_on_key(key, ctrl)) {
                     cancel_shape_preview(&shape_base, &shaping, &preview_active);
@@ -613,6 +635,14 @@ int app_run(const char *input_path) {
                         &redo_count,
                         canvas_invert_rgb
                     );
+                } else if (key == SDLK_UP) {
+                    apply_canvas_translation(&canvas, undo_stack, &undo_count, redo_stack, &redo_count, 0, shift ? -10 : -1, COLOR_BG);
+                } else if (key == SDLK_DOWN) {
+                    apply_canvas_translation(&canvas, undo_stack, &undo_count, redo_stack, &redo_count, 0, shift ? 10 : 1, COLOR_BG);
+                } else if (key == SDLK_LEFT) {
+                    apply_canvas_translation(&canvas, undo_stack, &undo_count, redo_stack, &redo_count, shift ? -10 : -1, 0, COLOR_BG);
+                } else if (key == SDLK_RIGHT) {
+                    apply_canvas_translation(&canvas, undo_stack, &undo_count, redo_stack, &redo_count, shift ? 10 : 1, 0, COLOR_BG);
                 } else if (ctrl && key == SDLK_s) {
                     if (!canvas_save_bmp(&canvas, "output.bmp")) {
                         fprintf(stderr, "Failed to save output.bmp\n");
