@@ -33,6 +33,7 @@ void layer_stack_composite(const LayerStack *stack, Canvas *dest, uint32_t backg
 int layer_stack_clear_layer(LayerStack *stack, int index, uint32_t color);
 int layer_stack_delete(LayerStack *stack, int index);
 int layer_stack_duplicate(LayerStack *stack, int index, const char *name);
+int layer_stack_move(LayerStack *stack, int index, int direction);
 int layer_stack_merge_down(LayerStack *stack, int index);
 
 #endif

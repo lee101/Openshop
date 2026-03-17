@@ -253,6 +253,23 @@ int layer_stack_duplicate(LayerStack *stack, int index, const char *name) {
     return insert_at;
 }
 
+int layer_stack_move(LayerStack *stack, int index, int direction) {
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+
+    int other = index + direction;
+    if (other < 0 || other >= stack->layer_count) {
+        return 0;
+    }
+
+    Layer tmp = stack->layers[index];
+    stack->layers[index] = stack->layers[other];
+    stack->layers[other] = tmp;
+    stack->active_layer = other;
+    return 1;
+}
+
 int layer_stack_merge_down(LayerStack *stack, int index) {
     if (!stack || index <= 0 || index >= stack->layer_count) {
         return 0;

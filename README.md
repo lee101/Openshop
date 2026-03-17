@@ -50,6 +50,7 @@ make test-sdl
 - `Ctrl+Shift+N`: add a new transparent layer
 - `Ctrl+D`: duplicate active layer
 - `Delete` / `Backspace`: delete active layer
+- `Ctrl+]` / `Ctrl+[`: move active layer up/down
 - `Ctrl+Shift+V`: toggle active layer visibility
 - `Ctrl+M`: merge active layer down
 - `Ctrl+S`: save the composited image to `output.bmp`

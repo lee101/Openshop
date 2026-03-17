@@ -1,6 +1,7 @@
 #include "../src/canvas.h"
 #include "../src/layers.h"
 #include <stdio.h>
+#include <string.h>
 
 static int expect_pixel_eq(const char *label, uint32_t got, uint32_t want) {
     if (got != want) {
@@ -106,6 +107,30 @@ static int test_layers_basic(void) {
         return 0;
     }
     if (!expect_pixel_eq("duplicate_copy_pixel", canvas_get_pixel(&stack.layers[1].canvas, 0, 0), 0xFF00807F)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_move(&stack, 1, -1) || stack.active_layer != 0) {
+        fprintf(stderr, "move layer down failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background Copy") != 0 || strcmp(stack.layers[1].name, "Background") != 0) {
+        fprintf(stderr, "move layer order failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_move(&stack, 0, 1) || stack.active_layer != 1) {
+        fprintf(stderr, "move layer up failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_move(&stack, 1, 1)) {
+        fprintf(stderr, "should not move top layer beyond bounds\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
