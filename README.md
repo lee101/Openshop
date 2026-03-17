@@ -51,6 +51,7 @@ make test-sdl
 - `Ctrl+D`: duplicate active layer
 - `Delete` / `Backspace`: delete active layer
 - `Ctrl+]` / `Ctrl+[`: move active layer up/down
+- `Ctrl+- / Ctrl+=`: active layer opacity down/up
 - `Ctrl+Shift+V`: toggle active layer visibility
 - `Ctrl+M`: merge active layer down
 - `Ctrl+S`: save the composited image to `output.bmp`

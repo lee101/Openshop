@@ -39,6 +39,7 @@ typedef struct {
     int layer_count;
     int active_layer;
     uint8_t visibility[MAX_LAYERS];
+    uint8_t opacity_percent[MAX_LAYERS];
     char names[MAX_LAYERS][LAYER_NAME_MAX];
     uint32_t *pixels;
 } Snapshot;
@@ -78,6 +79,7 @@ static int snapshot_from_layers(Snapshot *s, const LayerStack *stack) {
     for (int layer_index = 0; layer_index < stack->layer_count; layer_index++) {
         const Layer *layer = &stack->layers[layer_index];
         s->visibility[layer_index] = (uint8_t)layer->visible;
+        s->opacity_percent[layer_index] = (uint8_t)layer->opacity_percent;
         strncpy(s->names[layer_index], layer->name, LAYER_NAME_MAX - 1);
         s->names[layer_index][LAYER_NAME_MAX - 1] = '\0';
         if (!s->pixels) {
@@ -120,6 +122,7 @@ static int snapshot_apply(const Snapshot *s, LayerStack *stack) {
         }
         memcpy(layer->canvas.pixels, s->pixels + per_layer * (size_t)layer_index, per_layer * sizeof(uint32_t));
         layer->visible = s->visibility[layer_index] ? 1 : 0;
+        layer->opacity_percent = s->opacity_percent[layer_index];
         strncpy(layer->name, s->names[layer_index], LAYER_NAME_MAX - 1);
         layer->name[LAYER_NAME_MAX - 1] = '\0';
     }
@@ -206,7 +209,7 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
     snprintf(
         title,
         sizeof(title),
-        "Openshop - %s | size %d | opacity %d%% | layer %d/%d %s [%s] | #%08X",
+        "Openshop - %s | size %d | brush %d%% | layer %d/%d %s [%s %d%%] | #%08X",
         tool_label(tool),
         radius,
         opacity_percent,
@@ -214,6 +217,7 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
         layers->layer_count,
         layer_name,
         active && active->visible ? "visible" : "hidden",
+        active ? active->opacity_percent : 100,
         color
     );
     SDL_SetWindowTitle(window, title);
@@ -298,7 +302,7 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     if (key == SDLK_ESCAPE || key == SDLK_LSHIFT || key == SDLK_RSHIFT) {
         return 0;
     }
-    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_v || key == SDLK_m || key == SDLK_d || key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET)) {
+    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_v || key == SDLK_m || key == SDLK_d || key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET || key == SDLK_MINUS || key == SDLK_KP_MINUS || key == SDLK_EQUALS || key == SDLK_KP_PLUS)) {
         return 1;
     }
     switch (key) {
@@ -699,6 +703,28 @@ int app_run(const char *input_path) {
                     if (!layer_stack_move(&layers, layers.active_layer, 1)) {
                         fprintf(stderr, "Layer is already at the top\n");
                     } else {
+                        needs_composite = 1;
+                    }
+                    update_window_title(window, &layers, tool, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
+                if (ctrl && (key == SDLK_MINUS || key == SDLK_KP_MINUS)) {
+                    Layer *active = layer_stack_active(&layers);
+                    if (active) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        layer_stack_set_opacity(&layers, layers.active_layer, active->opacity_percent - 10);
+                        needs_composite = 1;
+                    }
+                    update_window_title(window, &layers, tool, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
+                if (ctrl && (key == SDLK_EQUALS || key == SDLK_KP_PLUS)) {
+                    Layer *active = layer_stack_active(&layers);
+                    if (active) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        layer_stack_set_opacity(&layers, layers.active_layer, active->opacity_percent + 10);
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_radius, brush_color, brush_opacity);

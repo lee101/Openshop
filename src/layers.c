@@ -35,6 +35,18 @@ static uint32_t blend_pixel(uint32_t dst, uint32_t src) {
     return ((uint32_t)out_a << 24) | ((uint32_t)out_r << 16) | ((uint32_t)out_g << 8) | out_b;
 }
 
+static uint32_t apply_layer_opacity(uint32_t src, int opacity_percent) {
+    if (opacity_percent >= 100) {
+        return src;
+    }
+    if (opacity_percent <= 0) {
+        return 0;
+    }
+    uint32_t alpha = (src >> 24) & 0xFF;
+    alpha = (uint32_t)((alpha * opacity_percent + 50) / 100);
+    return (src & 0x00FFFFFF) | (alpha << 24);
+}
+
 static int ensure_layer_canvas(Layer *layer, int width, int height) {
     if (!layer) {
         return 0;
@@ -62,6 +74,7 @@ int layer_stack_init(LayerStack *stack, int width, int height, uint32_t backgrou
         stack->layers[i].canvas.height = height;
         stack->layers[i].canvas.pixels = NULL;
         stack->layers[i].visible = 0;
+        stack->layers[i].opacity_percent = 100;
         stack->layers[i].name[0] = '\0';
     }
 
@@ -80,6 +93,7 @@ void layer_stack_free(LayerStack *stack) {
     for (int i = 0; i < MAX_LAYERS; i++) {
         canvas_free(&stack->layers[i].canvas);
         stack->layers[i].visible = 0;
+        stack->layers[i].opacity_percent = 100;
         stack->layers[i].name[0] = '\0';
     }
     stack->width = 0;
@@ -118,6 +132,7 @@ int layer_stack_add(LayerStack *stack, const char *name, uint32_t clear_color) {
 
     canvas_clear(&layer->canvas, clear_color);
     layer->visible = 1;
+    layer->opacity_percent = 100;
     if (name && name[0]) {
         strncpy(layer->name, name, LAYER_NAME_MAX - 1);
         layer->name[LAYER_NAME_MAX - 1] = '\0';
@@ -183,6 +198,19 @@ int layer_stack_clear_layer(LayerStack *stack, int index, uint32_t color) {
     return 1;
 }
 
+int layer_stack_set_opacity(LayerStack *stack, int index, int opacity_percent) {
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    if (opacity_percent < 0) {
+        opacity_percent = 0;
+    } else if (opacity_percent > 100) {
+        opacity_percent = 100;
+    }
+    stack->layers[index].opacity_percent = opacity_percent;
+    return 1;
+}
+
 int layer_stack_delete(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count || stack->layer_count == 1) {
         return 0;
@@ -229,6 +257,7 @@ int layer_stack_duplicate(LayerStack *stack, int index, const char *name) {
     dup->canvas.height = stack->height;
     dup->canvas.pixels = NULL;
     dup->visible = source->visible;
+    dup->opacity_percent = source->opacity_percent;
     dup->name[0] = '\0';
 
     if (!canvas_init(&dup->canvas, stack->width, stack->height)) {
@@ -283,9 +312,13 @@ int layer_stack_merge_down(LayerStack *stack, int index) {
 
     size_t total = (size_t)stack->width * (size_t)stack->height;
     for (size_t i = 0; i < total; i++) {
-        lower->canvas.pixels[i] = blend_pixel(lower->canvas.pixels[i], upper->canvas.pixels[i]);
+        lower->canvas.pixels[i] = blend_pixel(
+            lower->canvas.pixels[i],
+            apply_layer_opacity(upper->canvas.pixels[i], upper->opacity_percent)
+        );
     }
     lower->visible = lower->visible || upper->visible;
+    lower->opacity_percent = 100;
 
     canvas_free(&upper->canvas);
     for (int i = index; i < stack->layer_count - 1; i++) {
@@ -297,6 +330,7 @@ int layer_stack_merge_down(LayerStack *stack, int index) {
     stack->layers[stack->layer_count].canvas.height = stack->height;
     stack->layers[stack->layer_count].canvas.pixels = NULL;
     stack->layers[stack->layer_count].visible = 0;
+    stack->layers[stack->layer_count].opacity_percent = 100;
     stack->layers[stack->layer_count].name[0] = '\0';
 
     if (stack->active_layer >= stack->layer_count) {
@@ -324,7 +358,7 @@ void layer_stack_composite(const LayerStack *stack, Canvas *dest, uint32_t backg
             if (!layer->visible || !layer->canvas.pixels) {
                 continue;
             }
-            out = blend_pixel(out, layer->canvas.pixels[i]);
+            out = blend_pixel(out, apply_layer_opacity(layer->canvas.pixels[i], layer->opacity_percent));
         }
         dest->pixels[i] = out;
     }
