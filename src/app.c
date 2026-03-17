@@ -652,6 +652,25 @@ int app_run(const char *input_path) {
             case SDL_QUIT:
                 running = 0;
                 break;
+            case SDL_MOUSEWHEEL: {
+                const Uint8 *kstate = SDL_GetKeyboardState(NULL);
+                int wshift = kstate[SDL_SCANCODE_LSHIFT] || kstate[SDL_SCANCODE_RSHIFT];
+                int dy = e.wheel.y;
+                if (dy != 0) {
+                    if (wshift) {
+                        fill_tolerance += dy * 8;
+                        if (fill_tolerance < 0) { fill_tolerance = 0; }
+                        if (fill_tolerance > 255) { fill_tolerance = 255; }
+                    } else {
+                        brush_radius += dy;
+                        if (brush_radius < 1) { brush_radius = 1; }
+                        if (brush_radius > 64) { brush_radius = 64; }
+                        brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
+                    }
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity, fill_tolerance);
+                }
+                break;
+            }
             case SDL_MOUSEBUTTONDOWN:
                 if (e.button.button == SDL_BUTTON_LEFT) {
                     last_x = e.button.x;
