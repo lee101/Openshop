@@ -322,6 +322,67 @@ void canvas_invert_rgb(Canvas *c) {
     }
 }
 
+void canvas_grayscale(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        /* ITU-R BT.601 integer approximation: 0.299r + 0.587g + 0.114b */
+        uint8_t luma = (uint8_t)((77u * r + 150u * g + 29u * b) >> 8);
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)luma << 16) | ((uint32_t)luma << 8) | luma;
+    }
+}
+
+void canvas_blur(Canvas *c) {
+    /* 3x3 box blur — allocates a temporary copy to avoid reading written data */
+    if (!c || !c->pixels || c->width < 2 || c->height < 2) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    uint32_t *tmp = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!tmp) {
+        return;
+    }
+    memcpy(tmp, c->pixels, count * sizeof(uint32_t));
+
+    for (int y = 0; y < c->height; y++) {
+        for (int x = 0; x < c->width; x++) {
+            unsigned int sum_r = 0, sum_g = 0, sum_b = 0, sum_a = 0;
+            int samples = 0;
+            for (int ky = -1; ky <= 1; ky++) {
+                for (int kx = -1; kx <= 1; kx++) {
+                    int nx = x + kx;
+                    int ny = y + ky;
+                    if (nx < 0 || ny < 0 || nx >= c->width || ny >= c->height) {
+                        continue;
+                    }
+                    uint32_t p = tmp[(size_t)ny * (size_t)c->width + (size_t)nx];
+                    sum_a += (p >> 24) & 0xFF;
+                    sum_r += (p >> 16) & 0xFF;
+                    sum_g += (p >> 8) & 0xFF;
+                    sum_b += p & 0xFF;
+                    samples++;
+                }
+            }
+            if (samples > 0) {
+                uint32_t a = (sum_a + (unsigned int)samples / 2) / (unsigned int)samples;
+                uint32_t r = (sum_r + (unsigned int)samples / 2) / (unsigned int)samples;
+                uint32_t g = (sum_g + (unsigned int)samples / 2) / (unsigned int)samples;
+                uint32_t b = (sum_b + (unsigned int)samples / 2) / (unsigned int)samples;
+                c->pixels[(size_t)y * (size_t)c->width + (size_t)x] =
+                    (a << 24) | (r << 16) | (g << 8) | b;
+            }
+        }
+    }
+    free(tmp);
+}
+
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;

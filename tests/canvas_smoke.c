@@ -842,6 +842,82 @@ int main(void) {
         return 1;
     }
 
+    /* --- canvas_grayscale tests --- */
+    Canvas gray;
+    if (!canvas_init(&gray, 2, 1)) {
+        fprintf(stderr, "grayscale canvas init failed\n");
+        return 1;
+    }
+    /* Pure red 0xFFFF0000: luma = (77*255 + 150*0 + 29*0) >> 8 = 19635>>8 = 76 = 0x4C */
+    canvas_set_pixel_raw(&gray, 0, 0, 0xFFFF0000);
+    /* Pure white 0xFFFFFFFF: luma = (77*255+150*255+29*255)>>8 = 255 */
+    canvas_set_pixel_raw(&gray, 1, 0, 0xFFFFFFFF);
+    canvas_grayscale(&gray);
+    {
+        uint32_t p = canvas_get_pixel(&gray, 0, 0);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        if (a != 0xFF || r != g || g != b || r != 0x4C) {
+            fprintf(stderr, "grayscale_red failed: got 0x%08X want 0xFF4C4C4C\n", p);
+            canvas_free(&gray);
+            return 1;
+        }
+    }
+    {
+        uint32_t p = canvas_get_pixel(&gray, 1, 0);
+        if (!expect_pixel_eq("grayscale_white", p, 0xFFFFFFFF)) {
+            canvas_free(&gray);
+            return 1;
+        }
+    }
+    /* Alpha must be preserved through grayscale */
+    canvas_set_pixel_raw(&gray, 0, 0, 0x80FF0000);
+    canvas_grayscale(&gray);
+    {
+        uint32_t p = canvas_get_pixel(&gray, 0, 0);
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        if (a != 0x80) {
+            fprintf(stderr, "grayscale_alpha_preserved failed: alpha=0x%02X want 0x80\n", a);
+            canvas_free(&gray);
+            return 1;
+        }
+    }
+    canvas_free(&gray);
+
+    /* --- canvas_blur tests --- */
+    Canvas blur_c;
+    if (!canvas_init(&blur_c, 3, 3)) {
+        fprintf(stderr, "blur canvas init failed\n");
+        return 1;
+    }
+    /* All pixels black except center which is white */
+    canvas_clear(&blur_c, 0xFF000000);
+    canvas_set_pixel_raw(&blur_c, 1, 1, 0xFFFFFFFF);
+    canvas_blur(&blur_c);
+    {
+        /* After 3x3 box blur center pixel averages 9 samples (1 white + 8 black) = ~28 */
+        uint32_t p = canvas_get_pixel(&blur_c, 1, 1);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        /* White centre was 255, surrounded by 8 zeros: avg = 255/9 ≈ 28 */
+        if (r < 20 || r > 40) {
+            fprintf(stderr, "blur_center failed: r=%u want ~28\n", (unsigned)r);
+            canvas_free(&blur_c);
+            return 1;
+        }
+        /* Corner pixels should also have gained some brightness */
+        uint32_t corner = canvas_get_pixel(&blur_c, 0, 0);
+        uint8_t cr = (uint8_t)((corner >> 16) & 0xFF);
+        /* Corner of a 3×3 canvas borders 4 samples: 1 white centre + 3 black = avg ~63 */
+        if (cr == 0) {
+            fprintf(stderr, "blur_corner_still_zero: corner should have brightened\n");
+            canvas_free(&blur_c);
+            return 1;
+        }
+    }
+    canvas_free(&blur_c);
+
     printf("ok\n");
     return 0;
 }
