@@ -47,6 +47,8 @@ make test-sdl
 - `X`: invert the active layer colors (RGB)
 - `G`: convert the active layer to grayscale
 - `W`: apply a soft 3×3 blur to the active layer
+- `Ctrl+Shift+B`: brighten the active layer (+25)
+- `Ctrl+Shift+D`: darken the active layer (-25)
 - `Arrow Keys`: nudge the active layer by 1 pixel
 - `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels
 - `PageUp / PageDown`: cycle active layer

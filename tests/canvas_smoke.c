@@ -918,6 +918,87 @@ int main(void) {
     }
     canvas_free(&blur_c);
 
+    /* --- canvas_brightness tests --- */
+    Canvas bright;
+    if (!canvas_init(&bright, 1, 1)) {
+        fprintf(stderr, "brightness canvas init failed\n");
+        return 1;
+    }
+    /* Start at mid-grey, brighten by 25 -> 153 */
+    canvas_set_pixel_raw(&bright, 0, 0, 0xFF808080);
+    canvas_brightness(&bright, 25);
+    {
+        uint32_t p = canvas_get_pixel(&bright, 0, 0);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        if (r != 0x80 + 25) {
+            fprintf(stderr, "brightness_up failed: r=%u want %u\n", (unsigned)r, (unsigned)(0x80 + 25));
+            canvas_free(&bright);
+            return 1;
+        }
+    }
+    /* Darken to white (0xFF) by -10 -> 245, alpha must be preserved */
+    canvas_set_pixel_raw(&bright, 0, 0, 0x80FFFFFF);
+    canvas_brightness(&bright, -10);
+    {
+        uint32_t p = canvas_get_pixel(&bright, 0, 0);
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        if (a != 0x80 || r != 245) {
+            fprintf(stderr, "brightness_down_alpha failed: a=0x%02X r=%u\n", a, r);
+            canvas_free(&bright);
+            return 1;
+        }
+    }
+    /* Clamp: brighten black by 300 -> should clamp to 255 */
+    canvas_set_pixel_raw(&bright, 0, 0, 0xFF000000);
+    canvas_brightness(&bright, 300);
+    {
+        uint32_t p = canvas_get_pixel(&bright, 0, 0);
+        if (!expect_pixel_eq("brightness_clamp_up", p, 0xFFFFFFFF)) {
+            canvas_free(&bright);
+            return 1;
+        }
+    }
+    /* Clamp: darken white by -300 -> should clamp to 0 (rgb) */
+    canvas_set_pixel_raw(&bright, 0, 0, 0xFFFFFFFF);
+    canvas_brightness(&bright, -300);
+    {
+        uint32_t p = canvas_get_pixel(&bright, 0, 0);
+        if (!expect_pixel_eq("brightness_clamp_down", p, 0xFF000000)) {
+            canvas_free(&bright);
+            return 1;
+        }
+    }
+    canvas_free(&bright);
+
+    /* --- canvas_contrast tests --- */
+    Canvas contrast_c;
+    if (!canvas_init(&contrast_c, 1, 1)) {
+        fprintf(stderr, "contrast canvas init failed\n");
+        return 1;
+    }
+    /* Identity: factor_percent=100 leaves pixel unchanged */
+    canvas_set_pixel_raw(&contrast_c, 0, 0, 0xFF40A0C0);
+    canvas_contrast(&contrast_c, 100);
+    if (!expect_pixel_eq("contrast_identity", canvas_get_pixel(&contrast_c, 0, 0), 0xFF40A0C0)) {
+        canvas_free(&contrast_c);
+        return 1;
+    }
+    /* Zero contrast: all channels collapse to 128 */
+    canvas_contrast(&contrast_c, 0);
+    {
+        uint32_t p = canvas_get_pixel(&contrast_c, 0, 0);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        if (r != 128 || g != 128 || b != 128) {
+            fprintf(stderr, "contrast_zero failed: 0x%08X want 0xFF808080\n", p);
+            canvas_free(&contrast_c);
+            return 1;
+        }
+    }
+    canvas_free(&contrast_c);
+
     printf("ok\n");
     return 0;
 }
