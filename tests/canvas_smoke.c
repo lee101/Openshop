@@ -842,6 +842,93 @@ int main(void) {
         return 1;
     }
 
+    /* --- canvas_grayscale tests --- */
+    Canvas gray;
+    if (!canvas_init(&gray, 2, 1)) {
+        fprintf(stderr, "grayscale canvas init failed\n");
+        return 1;
+    }
+    /* Pure red -> luma should be round(299/1000*255) = 76 */
+    canvas_set_pixel_raw(&gray, 0, 0, 0xFFFF0000);
+    /* Pure blue -> luma should be round(114/1000*255) = 29 */
+    canvas_set_pixel_raw(&gray, 1, 0, 0xFF0000FF);
+    canvas_grayscale(&gray);
+    {
+        uint32_t p0 = canvas_get_pixel(&gray, 0, 0);
+        uint32_t p1 = canvas_get_pixel(&gray, 1, 0);
+        uint8_t l0 = (uint8_t)((p0 >> 16) & 0xFF);
+        uint8_t l1 = (uint8_t)((p1 >> 16) & 0xFF);
+        /* BT.601: red luma = (255*299+500)/1000 = 76 */
+        if (l0 != 76 || ((p0 >> 8) & 0xFF) != 76 || (p0 & 0xFF) != 76) {
+            fprintf(stderr, "grayscale red luma failed: got 0x%08X want R=G=B=76\n", p0);
+            canvas_free(&gray);
+            return 1;
+        }
+        /* BT.601: blue luma = (255*114+500)/1000 = 29 */
+        if (l1 != 29 || ((p1 >> 8) & 0xFF) != 29 || (p1 & 0xFF) != 29) {
+            fprintf(stderr, "grayscale blue luma failed: got 0x%08X want R=G=B=29\n", p1);
+            canvas_free(&gray);
+            return 1;
+        }
+        /* Alpha must be preserved */
+        if ((p0 >> 24) != 0xFF || (p1 >> 24) != 0xFF) {
+            fprintf(stderr, "grayscale alpha preservation failed\n");
+            canvas_free(&gray);
+            return 1;
+        }
+    }
+    canvas_free(&gray);
+
+    /* --- canvas_adjust_brightness tests --- */
+    Canvas bright;
+    if (!canvas_init(&bright, 2, 1)) {
+        fprintf(stderr, "brightness canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&bright, 0, 0, 0xFF406080);
+    canvas_set_pixel_raw(&bright, 1, 0, 0xFFF0F0F0);
+    canvas_adjust_brightness(&bright, 32);
+    /* 0x40+0x20=0x60, 0x60+0x20=0x80, 0x80+0x20=0xA0 -> 0xFF6080A0 */
+    if (!expect_pixel_eq("brightness_add", canvas_get_pixel(&bright, 0, 0), 0xFF6080A0)) {
+        canvas_free(&bright);
+        return 1;
+    }
+    /* Clamp at 255: 0xF0+0x20=0xFF (clamped) */
+    if (!expect_pixel_eq("brightness_clamp_max", canvas_get_pixel(&bright, 1, 0), 0xFFFFFFFF)) {
+        canvas_free(&bright);
+        return 1;
+    }
+    canvas_adjust_brightness(&bright, -200);
+    /* 0x60-200=-136 -> 0, 0x80-200=-72 -> 0, 0xA0-200=-56 -> 0 */
+    if (!expect_pixel_eq("brightness_clamp_min", canvas_get_pixel(&bright, 0, 0), 0xFF000000)) {
+        canvas_free(&bright);
+        return 1;
+    }
+    canvas_free(&bright);
+
+    /* --- canvas_posterize tests --- */
+    Canvas post;
+    if (!canvas_init(&post, 1, 1)) {
+        fprintf(stderr, "posterize canvas init failed\n");
+        return 1;
+    }
+    /* With 2 levels, values <128 map to 0, values >=128 map to 255 */
+    canvas_set_pixel_raw(&post, 0, 0, 0xFF807050);
+    canvas_posterize(&post, 2);
+    {
+        uint32_t p = canvas_get_pixel(&post, 0, 0);
+        /* 0x80=128 -> 1*255/1=255=0xFF; 0x70=112 -> 0*255/1=0; 0x50=80 -> 0 */
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        if (r != 0xFF || g != 0x00 || b != 0x00) {
+            fprintf(stderr, "posterize_2levels failed: got 0x%08X\n", p);
+            canvas_free(&post);
+            return 1;
+        }
+    }
+    canvas_free(&post);
+
     printf("ok\n");
     return 0;
 }

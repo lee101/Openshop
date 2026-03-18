@@ -358,3 +358,58 @@ void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color) {
     memcpy(c->pixels, copy, count * sizeof(uint32_t));
     free(copy);
 }
+
+void canvas_grayscale(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        /* BT.601 luma coefficients (integer approximation) */
+        uint8_t luma = (uint8_t)((r * 299 + g * 587 + b * 114 + 500) / 1000);
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)luma << 16) | ((uint32_t)luma << 8) | luma;
+    }
+}
+
+void canvas_adjust_brightness(Canvas *c, int delta) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0 || delta == 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        int r = (int)((p >> 16) & 0xFF) + delta;
+        int g = (int)((p >> 8) & 0xFF) + delta;
+        int b = (int)(p & 0xFF) + delta;
+        if (r < 0) r = 0; else if (r > 255) r = 255;
+        if (g < 0) g = 0; else if (g > 255) g = 255;
+        if (b < 0) b = 0; else if (b > 255) b = 255;
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+    }
+}
+
+void canvas_posterize(Canvas *c, int levels) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0 || levels < 2 || levels > 255) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        /* Map each channel to the nearest of `levels` evenly-spaced values.
+         * Uses rounding (+127) so values are bucketed symmetrically. */
+        r = (uint8_t)(((r * (levels - 1) + 127) / 255) * 255 / (levels - 1));
+        g = (uint8_t)(((g * (levels - 1) + 127) / 255) * 255 / (levels - 1));
+        b = (uint8_t)(((b * (levels - 1) + 127) / 255) * 255 / (levels - 1));
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
+    }
+}
