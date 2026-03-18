@@ -1054,6 +1054,63 @@ int main(void) {
     }
     canvas_free(&rot);
 
+    /* --- canvas_hue_rotate tests --- */
+    Canvas hue_c;
+    if (!canvas_init(&hue_c, 1, 1)) {
+        fprintf(stderr, "hue canvas init failed\n");
+        return 1;
+    }
+    /* Pure red (hue=0) rotated by 120° should become green (hue=120) */
+    canvas_set_pixel_raw(&hue_c, 0, 0, 0xFFFF0000);
+    canvas_hue_rotate(&hue_c, 120);
+    {
+        uint32_t p = canvas_get_pixel(&hue_c, 0, 0);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        /* Pure green: r≈0, g≈255, b≈0 (allow ±2 for float rounding) */
+        if (g < 253 || r > 2 || b > 2) {
+            fprintf(stderr, "hue_rotate_red_to_green failed: r=%u g=%u b=%u\n", r, g, b);
+            canvas_free(&hue_c);
+            return 1;
+        }
+    }
+    /* Rotating by 0 must be a no-op */
+    canvas_set_pixel_raw(&hue_c, 0, 0, 0xFFAB1234);
+    canvas_hue_rotate(&hue_c, 0);
+    if (!expect_pixel_eq("hue_rotate_zero_noop", canvas_get_pixel(&hue_c, 0, 0), 0xFFAB1234)) {
+        canvas_free(&hue_c);
+        return 1;
+    }
+    /* Alpha preserved through hue rotation */
+    canvas_set_pixel_raw(&hue_c, 0, 0, 0x80FF0000);
+    canvas_hue_rotate(&hue_c, 60);
+    {
+        uint32_t p = canvas_get_pixel(&hue_c, 0, 0);
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        if (a != 0x80) {
+            fprintf(stderr, "hue_rotate_alpha_preserved: a=0x%02X want 0x80\n", a);
+            canvas_free(&hue_c);
+            return 1;
+        }
+    }
+    /* 360° rotation is identity (within float rounding) */
+    canvas_set_pixel_raw(&hue_c, 0, 0, 0xFFFF8040);
+    canvas_hue_rotate(&hue_c, 360);
+    {
+        uint32_t orig = 0xFFFF8040;
+        uint32_t p = canvas_get_pixel(&hue_c, 0, 0);
+        uint8_t dr = (uint8_t)(((p >> 16) & 0xFF) > ((orig >> 16) & 0xFF)
+                     ? ((p >> 16) & 0xFF) - ((orig >> 16) & 0xFF)
+                     : ((orig >> 16) & 0xFF) - ((p >> 16) & 0xFF));
+        if (dr > 2) {
+            fprintf(stderr, "hue_rotate_360_not_identity: got 0x%08X\n", p);
+            canvas_free(&hue_c);
+            return 1;
+        }
+    }
+    canvas_free(&hue_c);
+
     printf("ok\n");
     return 0;
 }

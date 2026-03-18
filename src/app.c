@@ -12,7 +12,7 @@
 #define WINDOW_HEIGHT 768
 #define CANVAS_WIDTH 800
 #define CANVAS_HEIGHT 600
-#define MAX_HISTORY 20
+#define MAX_HISTORY 32
 
 static const uint32_t COLOR_BG = 0xFFFFFFFF;     // white
 static const uint32_t COLOR_BRUSH = 0xFF1B1F24;  // near-black
@@ -404,6 +404,7 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     case SDLK_g:
     case SDLK_h:
     case SDLK_k:
+    case SDLK_q:
     case SDLK_v:
     case SDLK_j:
     case SDLK_w:
@@ -456,6 +457,29 @@ static int apply_canvas_transform(
     return 1;
 }
 
+typedef void (*TransformIntFn)(Canvas *, int);
+
+static int apply_canvas_transform_int(
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    TransformIntFn transform,
+    int arg
+) {
+    if (!layers || !transform) {
+        return 0;
+    }
+    Layer *active = layer_stack_active(layers);
+    if (!active || active->locked || !active->canvas.pixels) {
+        return 0;
+    }
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    transform(&active->canvas, arg);
+    return 1;
+}
+
 static int apply_canvas_brightness(
     LayerStack *layers,
     Snapshot *undo_stack,
@@ -464,16 +488,7 @@ static int apply_canvas_brightness(
     int *redo_count,
     int delta
 ) {
-    if (!layers || delta == 0) {
-        return 0;
-    }
-    Layer *active = layer_stack_active(layers);
-    if (!active || active->locked || !active->canvas.pixels) {
-        return 0;
-    }
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-    canvas_brightness(&active->canvas, delta);
-    return 1;
+    return apply_canvas_transform_int(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_brightness, delta);
 }
 
 static int apply_canvas_translation(
@@ -1251,6 +1266,10 @@ int app_run(const char *input_path) {
                     }
                 } else if (key == SDLK_g) {
                     if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_grayscale)) {
+                        needs_composite = 1;
+                    }
+                } else if (key == SDLK_q) {
+                    if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_hue_rotate, 30)) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_w) {

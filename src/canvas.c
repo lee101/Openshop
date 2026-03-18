@@ -434,6 +434,85 @@ void canvas_rotate_90_ccw(Canvas *c) {
     canvas_rotate_90_impl(c, 0);
 }
 
+static uint8_t clamp_u8(int v);
+
+/* HSV conversion helpers for hue_rotate */
+static void rgb_to_hsv(uint8_t r, uint8_t g, uint8_t b, float *h, float *s, float *v) {
+    float rf = r / 255.0f;
+    float gf = g / 255.0f;
+    float bf = b / 255.0f;
+    float cmax = rf > gf ? (rf > bf ? rf : bf) : (gf > bf ? gf : bf);
+    float cmin = rf < gf ? (rf < bf ? rf : bf) : (gf < bf ? gf : bf);
+    float delta = cmax - cmin;
+    *v = cmax;
+    *s = (cmax > 0.0f) ? (delta / cmax) : 0.0f;
+    if (delta < 1e-6f) {
+        *h = 0.0f;
+        return;
+    }
+    if (cmax == rf) {
+        *h = 60.0f * ((gf - bf) / delta);
+    } else if (cmax == gf) {
+        *h = 60.0f * (2.0f + (bf - rf) / delta);
+    } else {
+        *h = 60.0f * (4.0f + (rf - gf) / delta);
+    }
+    if (*h < 0.0f) {
+        *h += 360.0f;
+    }
+}
+
+static void hsv_to_rgb(float h, float s, float v, uint8_t *r, uint8_t *g, uint8_t *b) {
+    if (s < 1e-6f) {
+        uint8_t grey = clamp_u8((int)(v * 255.0f + 0.5f));
+        *r = *g = *b = grey;
+        return;
+    }
+    h = h - (float)((int)(h / 360.0f)) * 360.0f;
+    if (h < 0.0f) h += 360.0f;
+    float hi = h / 60.0f;
+    int sector = (int)hi;
+    float f = hi - (float)sector;
+    float p = v * (1.0f - s);
+    float q = v * (1.0f - s * f);
+    float t = v * (1.0f - s * (1.0f - f));
+    float rf, gf, bf;
+    switch (sector % 6) {
+    case 0: rf = v; gf = t; bf = p; break;
+    case 1: rf = q; gf = v; bf = p; break;
+    case 2: rf = p; gf = v; bf = t; break;
+    case 3: rf = p; gf = q; bf = v; break;
+    case 4: rf = t; gf = p; bf = v; break;
+    default: rf = v; gf = p; bf = q; break;
+    }
+    *r = clamp_u8((int)(rf * 255.0f + 0.5f));
+    *g = clamp_u8((int)(gf * 255.0f + 0.5f));
+    *b = clamp_u8((int)(bf * 255.0f + 0.5f));
+}
+
+void canvas_hue_rotate(Canvas *c, int degrees) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0 || degrees == 0) {
+        return;
+    }
+    float shift = (float)degrees;
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        float h, s, v;
+        rgb_to_hsv(r, g, b, &h, &s, &v);
+        h += shift;
+        if (h >= 360.0f) h -= 360.0f;
+        if (h < 0.0f) h += 360.0f;
+        uint8_t nr, ng, nb;
+        hsv_to_rgb(h, s, v, &nr, &ng, &nb);
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)nr << 16) | ((uint32_t)ng << 8) | nb;
+    }
+}
+
 static uint8_t clamp_u8(int v) {
     if (v < 0) return 0;
     if (v > 255) return 255;
