@@ -436,6 +436,58 @@ void canvas_rotate_90_ccw(Canvas *c) {
 
 static uint8_t clamp_u8(int v);
 
+void canvas_sharpen(Canvas *c) {
+    /* 3×3 unsharp-mask kernel (centre weight 9, neighbours -1):
+         0 -1  0
+        -1  5 -1
+         0 -1  0
+       This is equivalent to original + (original - blur) which enhances edges. */
+    if (!c || !c->pixels || c->width < 2 || c->height < 2) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    uint32_t *tmp = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!tmp) {
+        return;
+    }
+    memcpy(tmp, c->pixels, count * sizeof(uint32_t));
+
+    for (int y = 0; y < c->height; y++) {
+        for (int x = 0; x < c->width; x++) {
+            uint32_t cp = tmp[(size_t)y * (size_t)c->width + (size_t)x];
+            int ca = (int)((cp >> 24) & 0xFF);
+            int cr = (int)((cp >> 16) & 0xFF);
+            int cg = (int)((cp >> 8) & 0xFF);
+            int cb = (int)(cp & 0xFF);
+
+            /* Sum neighbours (up, down, left, right) */
+            int nr = 0, ng = 0, nb = 0;
+            int neighbours = 0;
+            int dx_arr[4] = {0, 0, -1, 1};
+            int dy_arr[4] = {-1, 1, 0, 0};
+            for (int k = 0; k < 4; k++) {
+                int nx = x + dx_arr[k];
+                int ny = y + dy_arr[k];
+                if (nx < 0 || ny < 0 || nx >= c->width || ny >= c->height) {
+                    continue;
+                }
+                uint32_t np = tmp[(size_t)ny * (size_t)c->width + (size_t)nx];
+                nr += (int)((np >> 16) & 0xFF);
+                ng += (int)((np >> 8) & 0xFF);
+                nb += (int)(np & 0xFF);
+                neighbours++;
+            }
+            /* Apply kernel: 5*centre - sum_of_neighbours (for 4 neighbours) */
+            int out_r = clamp_u8(5 * cr - nr);
+            int out_g = clamp_u8(5 * cg - ng);
+            int out_b = clamp_u8(5 * cb - nb);
+            c->pixels[(size_t)y * (size_t)c->width + (size_t)x] =
+                ((uint32_t)ca << 24) | ((uint32_t)out_r << 16) | ((uint32_t)out_g << 8) | (uint32_t)out_b;
+        }
+    }
+    free(tmp);
+}
+
 void canvas_posterize(Canvas *c, int levels) {
     /* Quantise each RGB channel to `levels` equally-spaced values.
        levels < 2 is treated as 2; levels > 255 is a no-op. */

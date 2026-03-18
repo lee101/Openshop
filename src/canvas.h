@@ -35,5 +35,6 @@ void canvas_rotate_90_cw(Canvas *c);
 void canvas_rotate_90_ccw(Canvas *c);
 void canvas_hue_rotate(Canvas *c, int degrees);
 void canvas_posterize(Canvas *c, int levels);
+void canvas_sharpen(Canvas *c);
 
 #endif

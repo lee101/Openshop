@@ -1163,6 +1163,49 @@ int main(void) {
     }
     canvas_free(&post);
 
+    /* --- canvas_sharpen tests --- */
+    Canvas sharp;
+    if (!canvas_init(&sharp, 3, 3)) {
+        fprintf(stderr, "sharpen canvas init failed\n");
+        return 1;
+    }
+    /* All black except a white centre: sharpening should keep/boost centre,
+       but edges (border pixels with fewer than 4 neighbours) get boosted
+       differently; at least the centre must stay near 255 or clamp to 255. */
+    canvas_clear(&sharp, 0xFF000000);
+    canvas_set_pixel_raw(&sharp, 1, 1, 0xFFFFFFFF);
+    canvas_sharpen(&sharp);
+    {
+        uint32_t p = canvas_get_pixel(&sharp, 1, 1);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        /* kernel at centre: 5*255 - 4*0 = 1275 → clamp to 255 */
+        if (r != 255) {
+            fprintf(stderr, "sharpen_centre_white: r=%u want 255\n", (unsigned)r);
+            canvas_free(&sharp);
+            return 1;
+        }
+    }
+    /* A uniform canvas should be unchanged by sharpening */
+    canvas_clear(&sharp, 0xFF808080);
+    canvas_sharpen(&sharp);
+    if (!expect_pixel_eq("sharpen_uniform_noop", canvas_get_pixel(&sharp, 1, 1), 0xFF808080)) {
+        canvas_free(&sharp);
+        return 1;
+    }
+    /* Alpha is preserved through sharpening */
+    canvas_set_pixel_raw(&sharp, 1, 1, 0x60808080);
+    canvas_sharpen(&sharp);
+    {
+        uint32_t p = canvas_get_pixel(&sharp, 1, 1);
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        if (a != 0x60) {
+            fprintf(stderr, "sharpen_alpha_preserved: a=0x%02X want 0x60\n", a);
+            canvas_free(&sharp);
+            return 1;
+        }
+    }
+    canvas_free(&sharp);
+
     printf("ok\n");
     return 0;
 }
