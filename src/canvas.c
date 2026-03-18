@@ -309,6 +309,97 @@ void canvas_rotate_180(Canvas *c) {
     }
 }
 
+void canvas_rotate_90_cw(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    int w = c->width;
+    int h = c->height;
+    /*
+     * Rotated content has logical size h x w (width=h, height=w).
+     * Center that within the existing w x h pixel buffer so the layer stack
+     * dimensions never change (avoiding out-of-bounds composite accesses).
+     */
+    int rot_w = h;
+    int rot_h = w;
+    int off_x = (w - rot_w) / 2;
+    int off_y = (h - rot_h) / 2;
+
+    uint32_t *buf = (uint32_t *)calloc((size_t)w * (size_t)h, sizeof(uint32_t));
+    if (!buf) {
+        return;
+    }
+
+    for (int sy = 0; sy < h; sy++) {
+        for (int sx = 0; sx < w; sx++) {
+            /* 90° CW: source (sx,sy) maps to rotated coords rx=h-1-sy, ry=sx */
+            int dx = off_x + (h - 1 - sy);
+            int dy = off_y + sx;
+            if (dx >= 0 && dx < w && dy >= 0 && dy < h) {
+                buf[(size_t)dy * (size_t)w + (size_t)dx] =
+                    c->pixels[(size_t)sy * (size_t)w + (size_t)sx];
+            }
+        }
+    }
+
+    memcpy(c->pixels, buf, (size_t)w * (size_t)h * sizeof(uint32_t));
+    free(buf);
+}
+
+void canvas_rotate_90_ccw(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    int w = c->width;
+    int h = c->height;
+    /*
+     * Rotated content has logical size h x w (width=h, height=w).
+     * Center that within the existing w x h pixel buffer so the layer stack
+     * dimensions never change (avoiding out-of-bounds composite accesses).
+     */
+    int rot_w = h;
+    int rot_h = w;
+    int off_x = (w - rot_w) / 2;
+    int off_y = (h - rot_h) / 2;
+
+    uint32_t *buf = (uint32_t *)calloc((size_t)w * (size_t)h, sizeof(uint32_t));
+    if (!buf) {
+        return;
+    }
+
+    for (int sy = 0; sy < h; sy++) {
+        for (int sx = 0; sx < w; sx++) {
+            /* 90° CCW: source (sx,sy) maps to rotated coords rx=sy, ry=w-1-sx */
+            int dx = off_x + sy;
+            int dy = off_y + (w - 1 - sx);
+            if (dx >= 0 && dx < w && dy >= 0 && dy < h) {
+                buf[(size_t)dy * (size_t)w + (size_t)dx] =
+                    c->pixels[(size_t)sy * (size_t)w + (size_t)sx];
+            }
+        }
+    }
+
+    memcpy(c->pixels, buf, (size_t)w * (size_t)h * sizeof(uint32_t));
+    free(buf);
+}
+
+void canvas_to_grayscale(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        /* Luminance (BT.601 coefficients, integer approximation) */
+        uint8_t lum = (uint8_t)((77 * r + 150 * g + 29 * b) >> 8);
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)lum << 16) | ((uint32_t)lum << 8) | lum;
+    }
+}
+
 void canvas_invert_rgb(Canvas *c) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;

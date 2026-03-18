@@ -838,6 +838,72 @@ int main(void) {
     }
     canvas_free(&mask);
 
+    /* 90-degree rotation tests on a square 4x4 canvas (off_x=off_y=0). */
+    Canvas rot;
+    if (!canvas_init(&rot, 4, 4)) {
+        fprintf(stderr, "rot canvas init failed\n");
+        return 1;
+    }
+    canvas_clear(&rot, 0xFF000000);
+    canvas_set_pixel_raw(&rot, 0, 0, 0xFF000001); /* top-left     */
+    canvas_set_pixel_raw(&rot, 3, 0, 0xFF000002); /* top-right    */
+    canvas_set_pixel_raw(&rot, 0, 3, 0xFF000003); /* bottom-left  */
+    canvas_set_pixel_raw(&rot, 3, 3, 0xFF000004); /* bottom-right */
+
+    canvas_rotate_90_cw(&rot);
+    /* After 90 CW: TL<-BL, TR<-TL, BR<-TR, BL<-BR */
+    if (!expect_pixel_eq("rot90cw_tl", canvas_get_pixel(&rot, 0, 0), 0xFF000003) ||
+        !expect_pixel_eq("rot90cw_tr", canvas_get_pixel(&rot, 3, 0), 0xFF000001) ||
+        !expect_pixel_eq("rot90cw_bl", canvas_get_pixel(&rot, 0, 3), 0xFF000004) ||
+        !expect_pixel_eq("rot90cw_br", canvas_get_pixel(&rot, 3, 3), 0xFF000002)) {
+        canvas_free(&rot);
+        return 1;
+    }
+
+    canvas_rotate_90_ccw(&rot);
+    /* After 90 CCW (inverse of above): should restore original corners */
+    if (!expect_pixel_eq("rot90ccw_tl", canvas_get_pixel(&rot, 0, 0), 0xFF000001) ||
+        !expect_pixel_eq("rot90ccw_tr", canvas_get_pixel(&rot, 3, 0), 0xFF000002) ||
+        !expect_pixel_eq("rot90ccw_bl", canvas_get_pixel(&rot, 0, 3), 0xFF000003) ||
+        !expect_pixel_eq("rot90ccw_br", canvas_get_pixel(&rot, 3, 3), 0xFF000004)) {
+        canvas_free(&rot);
+        return 1;
+    }
+
+    /* Four CW rotations must return to the original layout. */
+    for (int r = 0; r < 4; r++) {
+        canvas_rotate_90_cw(&rot);
+    }
+    if (!expect_pixel_eq("rot360_tl", canvas_get_pixel(&rot, 0, 0), 0xFF000001) ||
+        !expect_pixel_eq("rot360_br", canvas_get_pixel(&rot, 3, 3), 0xFF000004)) {
+        canvas_free(&rot);
+        return 1;
+    }
+    canvas_free(&rot);
+
+    /* Grayscale conversion test. */
+    Canvas gray;
+    if (!canvas_init(&gray, 1, 1)) {
+        fprintf(stderr, "gray canvas init failed\n");
+        return 1;
+    }
+    /* R=255, G=128, B=0: lum = (77*255 + 150*128 + 29*0) >> 8 = 38835>>8 = 151 = 0x97 */
+    canvas_set_pixel_raw(&gray, 0, 0, 0xFFFF8000);
+    canvas_to_grayscale(&gray);
+    if (!expect_pixel_eq("grayscale_lum", canvas_get_pixel(&gray, 0, 0), 0xFF979797)) {
+        canvas_free(&gray);
+        return 1;
+    }
+    /* Fully transparent pixel must stay transparent after grayscale. */
+    canvas_set_pixel_raw(&gray, 0, 0, 0x00FF8000);
+    canvas_to_grayscale(&gray);
+    if ((canvas_get_pixel(&gray, 0, 0) >> 24) != 0x00) {
+        fprintf(stderr, "grayscale_transparent_alpha: alpha not preserved\n");
+        canvas_free(&gray);
+        return 1;
+    }
+    canvas_free(&gray);
+
     if (!test_layers_basic()) {
         return 1;
     }
