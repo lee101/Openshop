@@ -44,6 +44,8 @@ make test-sdl
 - `H`: flip the active layer horizontally
 - `V`: flip the active layer vertically
 - `J`: rotate the active layer 180 degrees
+- `K`: rotate the active layer 90° clockwise (within the largest centred square)
+- `Ctrl+K`: rotate the active layer 90° counter-clockwise
 - `X`: invert the active layer colors (RGB)
 - `G`: convert the active layer to grayscale
 - `W`: apply a soft 3×3 blur to the active layer

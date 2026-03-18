@@ -31,5 +31,7 @@ void canvas_grayscale(Canvas *c);
 void canvas_blur(Canvas *c);
 void canvas_brightness(Canvas *c, int delta);
 void canvas_contrast(Canvas *c, int factor_percent);
+void canvas_rotate_90_cw(Canvas *c);
+void canvas_rotate_90_ccw(Canvas *c);
 
 #endif

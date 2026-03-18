@@ -999,6 +999,61 @@ int main(void) {
     }
     canvas_free(&contrast_c);
 
+    /* --- canvas_rotate_90_cw / canvas_rotate_90_ccw tests (square canvas) --- */
+    Canvas rot;
+    if (!canvas_init(&rot, 4, 4)) {
+        fprintf(stderr, "rotate canvas init failed\n");
+        return 1;
+    }
+    /*
+     * Layout (4×4):
+     *  TL(0,0)  TR(3,0)
+     *  BL(0,3)  BR(3,3)
+     * After CW 90°:
+     *  BL(0,0)  TL(0,3)      => output(0,0)=BL, output(3,0)=TL
+     */
+    canvas_clear(&rot, 0xFF000000);
+    canvas_set_pixel_raw(&rot, 0, 0, 0xFFAABBCC); /* TL */
+    canvas_set_pixel_raw(&rot, 3, 0, 0xFF112233); /* TR */
+    canvas_set_pixel_raw(&rot, 0, 3, 0xFF445566); /* BL */
+    canvas_set_pixel_raw(&rot, 3, 3, 0xFF778899); /* BR */
+
+    canvas_rotate_90_cw(&rot);
+    /* After CW: output(dx,dy) <- source(dy, s-1-dx)
+       output(0,0) <- source(0, 3) = BL */
+    if (!expect_pixel_eq("cw_tl=src_bl", canvas_get_pixel(&rot, 0, 0), 0xFF445566) ||
+        /* output(3,0) <- source(0, 0) = TL */
+        !expect_pixel_eq("cw_tr=src_tl", canvas_get_pixel(&rot, 3, 0), 0xFFAABBCC) ||
+        /* output(0,3) <- source(3, 3) = BR */
+        !expect_pixel_eq("cw_bl=src_br", canvas_get_pixel(&rot, 0, 3), 0xFF778899) ||
+        /* output(3,3) <- source(3, 0) = TR */
+        !expect_pixel_eq("cw_br=src_tr", canvas_get_pixel(&rot, 3, 3), 0xFF112233)) {
+        canvas_free(&rot);
+        return 1;
+    }
+
+    /* Apply CCW to the CW result: should restore original */
+    canvas_rotate_90_ccw(&rot);
+    if (!expect_pixel_eq("ccw_restore_tl", canvas_get_pixel(&rot, 0, 0), 0xFFAABBCC) ||
+        !expect_pixel_eq("ccw_restore_tr", canvas_get_pixel(&rot, 3, 0), 0xFF112233) ||
+        !expect_pixel_eq("ccw_restore_bl", canvas_get_pixel(&rot, 0, 3), 0xFF445566) ||
+        !expect_pixel_eq("ccw_restore_br", canvas_get_pixel(&rot, 3, 3), 0xFF778899)) {
+        canvas_free(&rot);
+        return 1;
+    }
+
+    /* Four CW rotations must equal the identity */
+    canvas_rotate_90_cw(&rot);
+    canvas_rotate_90_cw(&rot);
+    canvas_rotate_90_cw(&rot);
+    canvas_rotate_90_cw(&rot);
+    if (!expect_pixel_eq("4cw_identity_tl", canvas_get_pixel(&rot, 0, 0), 0xFFAABBCC) ||
+        !expect_pixel_eq("4cw_identity_br", canvas_get_pixel(&rot, 3, 3), 0xFF778899)) {
+        canvas_free(&rot);
+        return 1;
+    }
+    canvas_free(&rot);
+
     printf("ok\n");
     return 0;
 }

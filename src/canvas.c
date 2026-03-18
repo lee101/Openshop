@@ -383,6 +383,57 @@ void canvas_blur(Canvas *c) {
     free(tmp);
 }
 
+/* Rotate within the largest centred square of the canvas.
+   For a non-square canvas the outer strips outside the square are untouched.
+   output(dx,dy) <- source(dy, s-1-dx) for CW
+   output(dx,dy) <- source(s-1-dy, dx) for CCW */
+static void canvas_rotate_90_impl(Canvas *c, int cw) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    int s = c->width < c->height ? c->width : c->height;
+    int ox = (c->width - s) / 2;
+    int oy = (c->height - s) / 2;
+
+    uint32_t *tmp = (uint32_t *)malloc((size_t)s * (size_t)s * sizeof(uint32_t));
+    if (!tmp) {
+        return;
+    }
+
+    /* Copy the square region into tmp */
+    for (int y = 0; y < s; y++) {
+        for (int x = 0; x < s; x++) {
+            tmp[(size_t)y * (size_t)s + (size_t)x] =
+                c->pixels[(size_t)(oy + y) * (size_t)c->width + (size_t)(ox + x)];
+        }
+    }
+
+    /* Write back rotated.
+       CW 90°:  result(dy,dx) <- source(s-1-dx, dy)   i.e. tmp[(s-1-dx)*s + dy]
+       CCW 90°: result(dy,dx) <- source(dx, s-1-dy)   i.e. tmp[dx*s + (s-1-dy)] */
+    for (int dy = 0; dy < s; dy++) {
+        for (int dx = 0; dx < s; dx++) {
+            uint32_t val;
+            if (cw) {
+                val = tmp[(size_t)(s - 1 - dx) * (size_t)s + (size_t)dy];
+            } else {
+                val = tmp[(size_t)dx * (size_t)s + (size_t)(s - 1 - dy)];
+            }
+            c->pixels[(size_t)(oy + dy) * (size_t)c->width + (size_t)(ox + dx)] = val;
+        }
+    }
+
+    free(tmp);
+}
+
+void canvas_rotate_90_cw(Canvas *c) {
+    canvas_rotate_90_impl(c, 1);
+}
+
+void canvas_rotate_90_ccw(Canvas *c) {
+    canvas_rotate_90_impl(c, 0);
+}
+
 static uint8_t clamp_u8(int v) {
     if (v < 0) return 0;
     if (v > 255) return 255;
