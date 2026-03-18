@@ -49,6 +49,7 @@ make test-sdl
 - `X`: invert the active layer colors (RGB)
 - `G`: convert the active layer to grayscale
 - `Q`: hue-rotate the active layer by +30°
+- `Ctrl+Q`: posterize the active layer to 4 colour levels
 - `W`: apply a soft 3×3 blur to the active layer
 - `Ctrl+Shift+B`: brighten the active layer (+25)
 - `Ctrl+Shift+D`: darken the active layer (-25)

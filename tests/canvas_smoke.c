@@ -1111,6 +1111,58 @@ int main(void) {
     }
     canvas_free(&hue_c);
 
+    /* --- canvas_posterize tests --- */
+    Canvas post;
+    if (!canvas_init(&post, 1, 1)) {
+        fprintf(stderr, "posterize canvas init failed\n");
+        return 1;
+    }
+    /* levels=2 with step=128: 0..127→64, 128..255→192
+       Input 0xFF: (255/128)*128 + 64 = 192 */
+    canvas_set_pixel_raw(&post, 0, 0, 0xFFFFFFFF);
+    canvas_posterize(&post, 2);
+    {
+        uint32_t p = canvas_get_pixel(&post, 0, 0);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        if (r != 192) {
+            fprintf(stderr, "posterize_2levels_white: r=%u want 192\n", (unsigned)r);
+            canvas_free(&post);
+            return 1;
+        }
+    }
+    /* Black (0) with levels=2: (0/128)*128+64 = 64 */
+    canvas_set_pixel_raw(&post, 0, 0, 0xFF000000);
+    canvas_posterize(&post, 2);
+    {
+        uint32_t p = canvas_get_pixel(&post, 0, 0);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        if (r != 64) {
+            fprintf(stderr, "posterize_2levels_black: r=%u want 64\n", (unsigned)r);
+            canvas_free(&post);
+            return 1;
+        }
+    }
+    /* Alpha is preserved through posterize */
+    canvas_set_pixel_raw(&post, 0, 0, 0x40FF8020);
+    canvas_posterize(&post, 4);
+    {
+        uint32_t p = canvas_get_pixel(&post, 0, 0);
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        if (a != 0x40) {
+            fprintf(stderr, "posterize_alpha_preserved: a=0x%02X want 0x40\n", a);
+            canvas_free(&post);
+            return 1;
+        }
+    }
+    /* levels>=256 is identity */
+    canvas_set_pixel_raw(&post, 0, 0, 0xFF7B3C9A);
+    canvas_posterize(&post, 256);
+    if (!expect_pixel_eq("posterize_256_noop", canvas_get_pixel(&post, 0, 0), 0xFF7B3C9A)) {
+        canvas_free(&post);
+        return 1;
+    }
+    canvas_free(&post);
+
     printf("ok\n");
     return 0;
 }

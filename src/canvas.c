@@ -436,6 +436,35 @@ void canvas_rotate_90_ccw(Canvas *c) {
 
 static uint8_t clamp_u8(int v);
 
+void canvas_posterize(Canvas *c, int levels) {
+    /* Quantise each RGB channel to `levels` equally-spaced values.
+       levels < 2 is treated as 2; levels > 255 is a no-op. */
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    if (levels > 255) {
+        return;
+    }
+    if (levels < 2) {
+        levels = 2;
+    }
+    /* Step size between adjacent output levels (in 0..255 range) */
+    int step = 256 / levels;
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        int r = (int)((p >> 16) & 0xFF);
+        int g = (int)((p >> 8) & 0xFF);
+        int b = (int)(p & 0xFF);
+        /* Quantise: map channel to nearest level centre */
+        r = clamp_u8((r / step) * step + step / 2);
+        g = clamp_u8((g / step) * step + step / 2);
+        b = clamp_u8((b / step) * step + step / 2);
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+    }
+}
+
 /* HSV conversion helpers for hue_rotate */
 static void rgb_to_hsv(uint8_t r, uint8_t g, uint8_t b, float *h, float *s, float *v) {
     float rf = r / 255.0f;

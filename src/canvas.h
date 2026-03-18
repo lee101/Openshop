@@ -34,5 +34,6 @@ void canvas_contrast(Canvas *c, int factor_percent);
 void canvas_rotate_90_cw(Canvas *c);
 void canvas_rotate_90_ccw(Canvas *c);
 void canvas_hue_rotate(Canvas *c, int degrees);
+void canvas_posterize(Canvas *c, int levels);
 
 #endif
