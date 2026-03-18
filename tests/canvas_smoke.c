@@ -904,6 +904,41 @@ int main(void) {
     }
     canvas_free(&gray);
 
+    /* Box-blur tests. */
+    Canvas blr;
+    if (!canvas_init(&blr, 3, 3)) {
+        fprintf(stderr, "blur canvas init failed\n");
+        return 1;
+    }
+    /* Uniform canvas: blur must not change any pixel value. */
+    canvas_clear(&blr, 0xFF808080);
+    canvas_blur_box(&blr, 1);
+    for (int y = 0; y < 3; y++) {
+        for (int x = 0; x < 3; x++) {
+            if (!expect_pixel_eq("blur_uniform", canvas_get_pixel(&blr, x, y), 0xFF808080)) {
+                canvas_free(&blr);
+                return 1;
+            }
+        }
+    }
+    /* Single bright center on black: center should be darkened, corner unchanged to black. */
+    canvas_clear(&blr, 0xFF000000);
+    canvas_set_pixel_raw(&blr, 1, 1, 0xFFFFFFFF);
+    canvas_blur_box(&blr, 1);
+    /* Center pixel (1,1) was bright; after blur it must be darker than 0xFFFFFFFF. */
+    if (canvas_get_pixel(&blr, 1, 1) == 0xFFFFFFFF) {
+        fprintf(stderr, "blur_center: center should be blurred (darkened)\n");
+        canvas_free(&blr);
+        return 1;
+    }
+    /* Corner (0,0) received some light from the center; it must be brighter than 0xFF000000. */
+    if (canvas_get_pixel(&blr, 0, 0) == 0xFF000000) {
+        fprintf(stderr, "blur_corner: corner should have received some light from center\n");
+        canvas_free(&blr);
+        return 1;
+    }
+    canvas_free(&blr);
+
     if (!test_layers_basic()) {
         return 1;
     }

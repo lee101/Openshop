@@ -400,6 +400,72 @@ void canvas_to_grayscale(Canvas *c) {
     }
 }
 
+void canvas_blur_box(Canvas *c, int radius) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0 || radius <= 0) {
+        return;
+    }
+    int w = c->width;
+    int h = c->height;
+    size_t count = (size_t)w * (size_t)h;
+
+    /* Separate horizontal and vertical passes for O(n*r) instead of O(n*r^2). */
+    uint32_t *tmp = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!tmp) {
+        return;
+    }
+
+    /* Horizontal pass: for each row, average a sliding window of (2*radius+1) pixels. */
+    for (int y = 0; y < h; y++) {
+        const uint32_t *row = c->pixels + (size_t)y * (size_t)w;
+        uint32_t *dst = tmp + (size_t)y * (size_t)w;
+        for (int x = 0; x < w; x++) {
+            long sum_a = 0, sum_r = 0, sum_g = 0, sum_b = 0;
+            int count_pix = 0;
+            for (int kx = -radius; kx <= radius; kx++) {
+                int nx = x + kx;
+                if (nx < 0) { nx = 0; }
+                if (nx >= w) { nx = w - 1; }
+                uint32_t p = row[nx];
+                sum_a += (p >> 24) & 0xFF;
+                sum_r += (p >> 16) & 0xFF;
+                sum_g += (p >> 8)  & 0xFF;
+                sum_b +=  p        & 0xFF;
+                count_pix++;
+            }
+            dst[x] = ((uint32_t)(sum_a / count_pix) << 24) |
+                     ((uint32_t)(sum_r / count_pix) << 16) |
+                     ((uint32_t)(sum_g / count_pix) << 8)  |
+                      (uint32_t)(sum_b / count_pix);
+        }
+    }
+
+    /* Vertical pass: average a sliding window of (2*radius+1) rows into c->pixels. */
+    for (int x = 0; x < w; x++) {
+        for (int y = 0; y < h; y++) {
+            long sum_a = 0, sum_r = 0, sum_g = 0, sum_b = 0;
+            int count_pix = 0;
+            for (int ky = -radius; ky <= radius; ky++) {
+                int ny = y + ky;
+                if (ny < 0) { ny = 0; }
+                if (ny >= h) { ny = h - 1; }
+                uint32_t p = tmp[(size_t)ny * (size_t)w + (size_t)x];
+                sum_a += (p >> 24) & 0xFF;
+                sum_r += (p >> 16) & 0xFF;
+                sum_g += (p >> 8)  & 0xFF;
+                sum_b +=  p        & 0xFF;
+                count_pix++;
+            }
+            c->pixels[(size_t)y * (size_t)w + (size_t)x] =
+                ((uint32_t)(sum_a / count_pix) << 24) |
+                ((uint32_t)(sum_r / count_pix) << 16) |
+                ((uint32_t)(sum_g / count_pix) << 8)  |
+                 (uint32_t)(sum_b / count_pix);
+        }
+    }
+
+    free(tmp);
+}
+
 void canvas_invert_rgb(Canvas *c) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;

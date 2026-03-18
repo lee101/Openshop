@@ -29,6 +29,7 @@ void canvas_rotate_90_cw(Canvas *c);
 void canvas_rotate_90_ccw(Canvas *c);
 void canvas_invert_rgb(Canvas *c);
 void canvas_to_grayscale(Canvas *c);
+void canvas_blur_box(Canvas *c, int radius);
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color);
 
 #endif
