@@ -48,6 +48,8 @@ make test-sdl
 - `Shift+K`: rotate the active layer 90 degrees counter-clockwise
 - `G`: convert the active layer to grayscale (BT.601 luminance)
 - `U`: apply a box blur (radius 2) to the active layer
+- `W`: increase brightness of the active layer by 25 (clamped)
+- `Q`: decrease brightness of the active layer by 25 (clamped)
 - `X`: invert the active layer colors (RGB)
 - `Arrow Keys`: nudge the active layer by 1 pixel
 - `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels

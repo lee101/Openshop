@@ -466,6 +466,27 @@ void canvas_blur_box(Canvas *c, int radius) {
     free(tmp);
 }
 
+static uint8_t clamp_u8(int v) {
+    if (v < 0) { return 0; }
+    if (v > 255) { return 255; }
+    return (uint8_t)v;
+}
+
+void canvas_adjust_brightness(Canvas *c, int delta) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0 || delta == 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = clamp_u8((int)((p >> 16) & 0xFF) + delta);
+        uint8_t g = clamp_u8((int)((p >> 8)  & 0xFF) + delta);
+        uint8_t b = clamp_u8((int)( p         & 0xFF) + delta);
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
+    }
+}
+
 void canvas_invert_rgb(Canvas *c) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;

@@ -408,6 +408,8 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     case SDLK_x:
     case SDLK_g:
     case SDLK_u:
+    case SDLK_w:
+    case SDLK_q:
     case SDLK_f:
     case SDLK_i:
     case SDLK_UP:
@@ -438,6 +440,14 @@ static int active_layer_editable(const LayerStack *layers) {
 
 static void canvas_blur_box_default(Canvas *c) {
     canvas_blur_box(c, 2);
+}
+
+static void canvas_brightness_up(Canvas *c) {
+    canvas_adjust_brightness(c, 25);
+}
+
+static void canvas_brightness_down(Canvas *c) {
+    canvas_adjust_brightness(c, -25);
 }
 
 static int apply_canvas_transform(
@@ -1219,6 +1229,14 @@ int app_run(const char *input_path) {
                     }
                 } else if (key == SDLK_u && !ctrl) {
                     if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_blur_box_default)) {
+                        needs_composite = 1;
+                    }
+                } else if (key == SDLK_w && !ctrl) {
+                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_brightness_up)) {
+                        needs_composite = 1;
+                    }
+                } else if (key == SDLK_q && !ctrl) {
+                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_brightness_down)) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_f) {
