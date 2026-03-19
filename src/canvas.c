@@ -428,6 +428,27 @@ void canvas_posterize(Canvas *c, int levels) {
 
 void canvas_posterize4(Canvas *c) { canvas_posterize(c, 4); }
 
+void canvas_threshold(Canvas *c, int lum_threshold) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    if (lum_threshold < 0) lum_threshold = 0;
+    if (lum_threshold > 255) lum_threshold = 255;
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        int r = (int)((p >> 16) & 0xFF);
+        int g = (int)((p >> 8) & 0xFF);
+        int b = (int)(p & 0xFF);
+        int lum = (r * 299 + g * 587 + b * 114 + 500) / 1000;
+        uint8_t out = (lum >= lum_threshold) ? 255 : 0;
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)out << 16) | ((uint32_t)out << 8) | out;
+    }
+}
+
+void canvas_threshold_mid(Canvas *c) { canvas_threshold(c, 128); }
+
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;

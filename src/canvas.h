@@ -37,5 +37,7 @@ void canvas_increase_contrast(Canvas *c);
 void canvas_decrease_contrast(Canvas *c);
 void canvas_posterize(Canvas *c, int levels);
 void canvas_posterize4(Canvas *c);
+void canvas_threshold(Canvas *c, int lum_threshold);
+void canvas_threshold_mid(Canvas *c);
 
 #endif

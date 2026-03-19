@@ -981,6 +981,49 @@ int main(void) {
     }
     canvas_free(&post);
 
+    Canvas thr;
+    if (!canvas_init(&thr, 1, 1)) {
+        fprintf(stderr, "threshold canvas init failed\n");
+        return 1;
+    }
+    /* pure white lum=255 >= 128 → white */
+    canvas_set_pixel_raw(&thr, 0, 0, 0xFFFFFFFF);
+    canvas_threshold(&thr, 128);
+    if (!expect_pixel_eq("threshold_white", canvas_get_pixel(&thr, 0, 0), 0xFFFFFFFF)) {
+        canvas_free(&thr);
+        return 1;
+    }
+    /* pure black lum=0 < 128 → black */
+    canvas_set_pixel_raw(&thr, 0, 0, 0xFF000000);
+    canvas_threshold(&thr, 128);
+    if (!expect_pixel_eq("threshold_black", canvas_get_pixel(&thr, 0, 0), 0xFF000000)) {
+        canvas_free(&thr);
+        return 1;
+    }
+    /* dark gray below threshold → black */
+    canvas_set_pixel_raw(&thr, 0, 0, 0xFF404040);
+    canvas_threshold(&thr, 128);
+    if (!expect_pixel_eq("threshold_dark_gray", canvas_get_pixel(&thr, 0, 0), 0xFF000000)) {
+        canvas_free(&thr);
+        return 1;
+    }
+    /* light gray above threshold → white */
+    canvas_set_pixel_raw(&thr, 0, 0, 0xFFC0C0C0);
+    canvas_threshold(&thr, 128);
+    if (!expect_pixel_eq("threshold_light_gray", canvas_get_pixel(&thr, 0, 0), 0xFFFFFFFF)) {
+        canvas_free(&thr);
+        return 1;
+    }
+    /* alpha preserved */
+    canvas_set_pixel_raw(&thr, 0, 0, 0x80808080);
+    canvas_threshold(&thr, 128);
+    if (((canvas_get_pixel(&thr, 0, 0) >> 24) & 0xFF) != 0x80) {
+        fprintf(stderr, "threshold should preserve alpha\n");
+        canvas_free(&thr);
+        return 1;
+    }
+    canvas_free(&thr);
+
     Canvas translated;
     if (!canvas_init(&translated, 4, 3)) {
         fprintf(stderr, "translate canvas init failed\n");
