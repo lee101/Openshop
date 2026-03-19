@@ -396,3 +396,24 @@ void canvas_sepia(Canvas *c) {
         c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)out_r << 16) | ((uint32_t)out_g << 8) | (uint32_t)out_b;
     }
 }
+
+static int clamp_u8(int v) {
+    if (v < 0) { return 0; }
+    if (v > 255) { return 255; }
+    return v;
+}
+
+void canvas_adjust_brightness(Canvas *c, int delta) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0 || delta == 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        int r = clamp_u8((int)((p >> 16) & 0xFF) + delta);
+        int g = clamp_u8((int)((p >> 8) & 0xFF) + delta);
+        int b = clamp_u8((int)(p & 0xFF) + delta);
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+    }
+}

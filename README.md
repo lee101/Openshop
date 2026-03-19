@@ -47,6 +47,7 @@ make test-sdl
 - `X`: invert the active layer colors (RGB)
 - `G`: convert the active layer to grayscale (BT.709 luminance)
 - `K`: apply a sepia tone to the active layer
+- `Ctrl+Up / Ctrl+Down`: brighten / darken the active layer by 16 levels
 - `Arrow Keys`: nudge the active layer by 1 pixel
 - `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels
 - `PageUp / PageDown`: cycle active layer

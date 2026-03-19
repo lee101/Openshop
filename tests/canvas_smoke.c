@@ -842,6 +842,50 @@ int main(void) {
         return 1;
     }
 
+    /* brightness adjustment tests */
+    {
+        Canvas bc;
+        if (!canvas_init(&bc, 1, 1)) {
+            fprintf(stderr, "brightness canvas init failed\n");
+            return 1;
+        }
+        canvas_set_pixel_raw(&bc, 0, 0, 0xFF808080);
+        canvas_adjust_brightness(&bc, 16);
+        if (!expect_pixel_eq("brightness_up", canvas_get_pixel(&bc, 0, 0), 0xFF909090)) {
+            canvas_free(&bc);
+            return 1;
+        }
+        canvas_adjust_brightness(&bc, -32);
+        if (!expect_pixel_eq("brightness_down", canvas_get_pixel(&bc, 0, 0), 0xFF707070)) {
+            canvas_free(&bc);
+            return 1;
+        }
+        /* clamping at 0 */
+        canvas_set_pixel_raw(&bc, 0, 0, 0xFF080808);
+        canvas_adjust_brightness(&bc, -16);
+        if (!expect_pixel_eq("brightness_clamp_low", canvas_get_pixel(&bc, 0, 0), 0xFF000000)) {
+            canvas_free(&bc);
+            return 1;
+        }
+        /* clamping at 255 */
+        canvas_set_pixel_raw(&bc, 0, 0, 0xFFF8F8F8);
+        canvas_adjust_brightness(&bc, 16);
+        if (!expect_pixel_eq("brightness_clamp_high", canvas_get_pixel(&bc, 0, 0), 0xFFFFFFFF)) {
+            canvas_free(&bc);
+            return 1;
+        }
+        /* alpha not affected */
+        canvas_set_pixel_raw(&bc, 0, 0, 0x80404040);
+        canvas_adjust_brightness(&bc, 32);
+        uint32_t bpx = canvas_get_pixel(&bc, 0, 0);
+        if ((bpx >> 24) != 0x80 || (bpx & 0x00FFFFFF) != 0x00606060) {
+            fprintf(stderr, "brightness_alpha: expected 0x80606060 got 0x%08X\n", bpx);
+            canvas_free(&bc);
+            return 1;
+        }
+        canvas_free(&bc);
+    }
+
     /* grayscale filter tests */
     {
         Canvas gc;
