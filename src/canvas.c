@@ -417,3 +417,64 @@ void canvas_adjust_brightness(Canvas *c, int delta) {
         c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
     }
 }
+
+void canvas_box_blur(Canvas *c, int radius) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0 || radius <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    uint32_t *tmp = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!tmp) {
+        return;
+    }
+
+    /* Horizontal pass into tmp */
+    for (int y = 0; y < c->height; y++) {
+        for (int x = 0; x < c->width; x++) {
+            int sum_r = 0, sum_g = 0, sum_b = 0, sum_a = 0, n = 0;
+            for (int dx = -radius; dx <= radius; dx++) {
+                int sx = x + dx;
+                if (sx < 0 || sx >= c->width) {
+                    continue;
+                }
+                uint32_t p = c->pixels[(size_t)y * (size_t)c->width + (size_t)sx];
+                sum_a += (int)((p >> 24) & 0xFF);
+                sum_r += (int)((p >> 16) & 0xFF);
+                sum_g += (int)((p >> 8) & 0xFF);
+                sum_b += (int)(p & 0xFF);
+                n++;
+            }
+            tmp[(size_t)y * (size_t)c->width + (size_t)x] =
+                ((uint32_t)(sum_a / n) << 24) |
+                ((uint32_t)(sum_r / n) << 16) |
+                ((uint32_t)(sum_g / n) << 8) |
+                (uint32_t)(sum_b / n);
+        }
+    }
+
+    /* Vertical pass from tmp back into c->pixels */
+    for (int y = 0; y < c->height; y++) {
+        for (int x = 0; x < c->width; x++) {
+            int sum_r = 0, sum_g = 0, sum_b = 0, sum_a = 0, n = 0;
+            for (int dy = -radius; dy <= radius; dy++) {
+                int sy = y + dy;
+                if (sy < 0 || sy >= c->height) {
+                    continue;
+                }
+                uint32_t p = tmp[(size_t)sy * (size_t)c->width + (size_t)x];
+                sum_a += (int)((p >> 24) & 0xFF);
+                sum_r += (int)((p >> 16) & 0xFF);
+                sum_g += (int)((p >> 8) & 0xFF);
+                sum_b += (int)(p & 0xFF);
+                n++;
+            }
+            c->pixels[(size_t)y * (size_t)c->width + (size_t)x] =
+                ((uint32_t)(sum_a / n) << 24) |
+                ((uint32_t)(sum_r / n) << 16) |
+                ((uint32_t)(sum_g / n) << 8) |
+                (uint32_t)(sum_b / n);
+        }
+    }
+
+    free(tmp);
+}

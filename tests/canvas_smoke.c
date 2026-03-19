@@ -842,6 +842,44 @@ int main(void) {
         return 1;
     }
 
+    /* box blur tests */
+    {
+        Canvas blc;
+        /* 3-pixel canvas: black | white | black; blur radius 1 */
+        if (!canvas_init(&blc, 3, 1)) {
+            fprintf(stderr, "blur canvas init failed\n");
+            return 1;
+        }
+        canvas_set_pixel_raw(&blc, 0, 0, 0xFF000000);
+        canvas_set_pixel_raw(&blc, 1, 0, 0xFFFFFFFF);
+        canvas_set_pixel_raw(&blc, 2, 0, 0xFF000000);
+        canvas_box_blur(&blc, 1);
+        /* center pixel: average of black+white+black = 0x55 in each channel */
+        uint32_t center = canvas_get_pixel(&blc, 1, 0);
+        uint8_t cg = (uint8_t)((center >> 8) & 0xFF);
+        if (cg != 0x55) {
+            fprintf(stderr, "blur center channel expected 0x55 got 0x%02X\n", cg);
+            canvas_free(&blc);
+            return 1;
+        }
+        /* left pixel: average of black+white = 0x7F */
+        uint32_t left = canvas_get_pixel(&blc, 0, 0);
+        uint8_t lg = (uint8_t)((left >> 8) & 0xFF);
+        if (lg != 0x7F) {
+            fprintf(stderr, "blur left channel expected 0x7F got 0x%02X\n", lg);
+            canvas_free(&blc);
+            return 1;
+        }
+        /* uniform image should be unchanged by blur */
+        canvas_clear(&blc, 0xFF112233);
+        canvas_box_blur(&blc, 1);
+        if (!expect_pixel_eq("blur_uniform", canvas_get_pixel(&blc, 1, 0), 0xFF112233)) {
+            canvas_free(&blc);
+            return 1;
+        }
+        canvas_free(&blc);
+    }
+
     /* brightness adjustment tests */
     {
         Canvas bc;
