@@ -32,5 +32,8 @@ void canvas_sepia(Canvas *c);
 void canvas_adjust_brightness(Canvas *c, int delta);
 void canvas_brighten(Canvas *c);
 void canvas_darken(Canvas *c);
+void canvas_adjust_contrast(Canvas *c, int factor_x100);
+void canvas_increase_contrast(Canvas *c);
+void canvas_decrease_contrast(Canvas *c);
 
 #endif

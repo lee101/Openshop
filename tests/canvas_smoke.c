@@ -895,6 +895,52 @@ int main(void) {
     }
     canvas_free(&sepia_c);
 
+    Canvas contrast_c;
+    if (!canvas_init(&contrast_c, 1, 1)) {
+        fprintf(stderr, "contrast canvas init failed\n");
+        return 1;
+    }
+    /* mid-gray (128) must stay unchanged by any contrast factor */
+    canvas_set_pixel_raw(&contrast_c, 0, 0, 0xFF808080);
+    canvas_adjust_contrast(&contrast_c, 150);
+    if (!expect_pixel_eq("contrast_midgray_unchanged", canvas_get_pixel(&contrast_c, 0, 0), 0xFF808080)) {
+        canvas_free(&contrast_c);
+        return 1;
+    }
+    /* dark pixel should get darker when contrast increases */
+    canvas_set_pixel_raw(&contrast_c, 0, 0, 0xFF404040);
+    canvas_adjust_contrast(&contrast_c, 150);
+    {
+        uint32_t cp = canvas_get_pixel(&contrast_c, 0, 0);
+        uint8_t cv = (uint8_t)(cp & 0xFF);
+        if (cv >= 0x40) {
+            fprintf(stderr, "contrast increase should darken dark pixels: got 0x%08X\n", cp);
+            canvas_free(&contrast_c);
+            return 1;
+        }
+    }
+    /* bright pixel should get brighter when contrast increases */
+    canvas_set_pixel_raw(&contrast_c, 0, 0, 0xFFC0C0C0);
+    canvas_adjust_contrast(&contrast_c, 150);
+    {
+        uint32_t cp = canvas_get_pixel(&contrast_c, 0, 0);
+        uint8_t cv = (uint8_t)(cp & 0xFF);
+        if (cv <= 0xC0) {
+            fprintf(stderr, "contrast increase should brighten bright pixels: got 0x%08X\n", cp);
+            canvas_free(&contrast_c);
+            return 1;
+        }
+    }
+    /* alpha must be preserved */
+    canvas_set_pixel_raw(&contrast_c, 0, 0, 0x80808080);
+    canvas_adjust_contrast(&contrast_c, 120);
+    if (((canvas_get_pixel(&contrast_c, 0, 0) >> 24) & 0xFF) != 0x80) {
+        fprintf(stderr, "contrast should preserve alpha\n");
+        canvas_free(&contrast_c);
+        return 1;
+    }
+    canvas_free(&contrast_c);
+
     Canvas translated;
     if (!canvas_init(&translated, 4, 3)) {
         fprintf(stderr, "translate canvas init failed\n");

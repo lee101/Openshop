@@ -49,6 +49,8 @@ make test-sdl
 - `W`: brighten the active layer (+10 per channel)
 - `S`: darken the active layer (−10 per channel)
 - `K`: apply sepia tone to the active layer
+- `A`: increase contrast of the active layer (×1.2 around mid-gray)
+- `Z`: decrease contrast of the active layer (×0.83 around mid-gray)
 - `Arrow Keys`: nudge the active layer by 1 pixel
 - `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels
 - `PageUp / PageDown`: cycle active layer
