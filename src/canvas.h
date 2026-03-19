@@ -35,5 +35,7 @@ void canvas_darken(Canvas *c);
 void canvas_adjust_contrast(Canvas *c, int factor_x100);
 void canvas_increase_contrast(Canvas *c);
 void canvas_decrease_contrast(Canvas *c);
+void canvas_posterize(Canvas *c, int levels);
+void canvas_posterize4(Canvas *c);
 
 #endif

@@ -51,6 +51,7 @@ make test-sdl
 - `K`: apply sepia tone to the active layer
 - `A`: increase contrast of the active layer (×1.2 around mid-gray)
 - `Z`: decrease contrast of the active layer (×0.83 around mid-gray)
+- `Q`: posterize the active layer (4 levels per channel)
 - `Arrow Keys`: nudge the active layer by 1 pixel
 - `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels
 - `PageUp / PageDown`: cycle active layer

@@ -404,6 +404,30 @@ void canvas_adjust_contrast(Canvas *c, int factor_x100) {
 void canvas_increase_contrast(Canvas *c) { canvas_adjust_contrast(c, 120); }
 void canvas_decrease_contrast(Canvas *c) { canvas_adjust_contrast(c,  83); }
 
+void canvas_posterize(Canvas *c, int levels) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0 || levels < 2) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        int r = (int)((p >> 16) & 0xFF);
+        int g = (int)((p >> 8) & 0xFF);
+        int b = (int)(p & 0xFF);
+        /* Map each channel to nearest quantized step */
+        r = (r * levels / 256) * 255 / (levels - 1);
+        g = (g * levels / 256) * 255 / (levels - 1);
+        b = (b * levels / 256) * 255 / (levels - 1);
+        if (r > 255) r = 255;
+        if (g > 255) g = 255;
+        if (b > 255) b = 255;
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+    }
+}
+
+void canvas_posterize4(Canvas *c) { canvas_posterize(c, 4); }
+
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;

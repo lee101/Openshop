@@ -941,6 +941,46 @@ int main(void) {
     }
     canvas_free(&contrast_c);
 
+    Canvas post;
+    if (!canvas_init(&post, 1, 1)) {
+        fprintf(stderr, "posterize canvas init failed\n");
+        return 1;
+    }
+    /* With 4 levels: channel 0 -> 0, 64-127 -> 85, 128-191 -> 170, 192-255 -> 255 */
+    canvas_set_pixel_raw(&post, 0, 0, 0xFF000000);
+    canvas_posterize(&post, 4);
+    if (!expect_pixel_eq("posterize_black", canvas_get_pixel(&post, 0, 0), 0xFF000000)) {
+        canvas_free(&post);
+        return 1;
+    }
+    canvas_set_pixel_raw(&post, 0, 0, 0xFFFFFFFF);
+    canvas_posterize(&post, 4);
+    if (!expect_pixel_eq("posterize_white", canvas_get_pixel(&post, 0, 0), 0xFFFFFFFF)) {
+        canvas_free(&post);
+        return 1;
+    }
+    /* two distinct mid values must map to different quantized steps */
+    canvas_set_pixel_raw(&post, 0, 0, 0xFF408080);
+    canvas_posterize(&post, 4);
+    uint32_t p4a = canvas_get_pixel(&post, 0, 0);
+    canvas_set_pixel_raw(&post, 0, 0, 0xFFC0C0C0);
+    canvas_posterize(&post, 4);
+    uint32_t p4b = canvas_get_pixel(&post, 0, 0);
+    if (p4a == p4b) {
+        fprintf(stderr, "posterize should map distinct bands to distinct values\n");
+        canvas_free(&post);
+        return 1;
+    }
+    /* alpha must be preserved */
+    canvas_set_pixel_raw(&post, 0, 0, 0x80808080);
+    canvas_posterize(&post, 4);
+    if (((canvas_get_pixel(&post, 0, 0) >> 24) & 0xFF) != 0x80) {
+        fprintf(stderr, "posterize should preserve alpha\n");
+        canvas_free(&post);
+        return 1;
+    }
+    canvas_free(&post);
+
     Canvas translated;
     if (!canvas_init(&translated, 4, 3)) {
         fprintf(stderr, "translate canvas init failed\n");
