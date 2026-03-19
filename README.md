@@ -48,6 +48,7 @@ make test-sdl
 - `G`: convert the active layer to grayscale
 - `W`: brighten the active layer (+10 per channel)
 - `S`: darken the active layer (−10 per channel)
+- `K`: apply sepia tone to the active layer
 - `Arrow Keys`: nudge the active layer by 1 pixel
 - `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels
 - `PageUp / PageDown`: cycle active layer

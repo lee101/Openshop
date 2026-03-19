@@ -861,6 +861,40 @@ int main(void) {
     }
     canvas_free(&bright);
 
+    Canvas sepia_c;
+    if (!canvas_init(&sepia_c, 1, 1)) {
+        fprintf(stderr, "sepia canvas init failed\n");
+        return 1;
+    }
+    /* pure white: sepia should produce a warm (red >= green >= blue) tone */
+    canvas_set_pixel_raw(&sepia_c, 0, 0, 0xFFFFFFFF);
+    canvas_sepia(&sepia_c);
+    {
+        uint32_t sp = canvas_get_pixel(&sepia_c, 0, 0);
+        uint8_t sr = (uint8_t)((sp >> 16) & 0xFF);
+        uint8_t sg = (uint8_t)((sp >> 8) & 0xFF);
+        uint8_t sb = (uint8_t)(sp & 0xFF);
+        if (!(sr >= sg && sg >= sb)) {
+            fprintf(stderr, "sepia should produce warm tone: R=%u G=%u B=%u\n", sr, sg, sb);
+            canvas_free(&sepia_c);
+            return 1;
+        }
+        if ((sp >> 24) != 0xFF) {
+            fprintf(stderr, "sepia should preserve alpha\n");
+            canvas_free(&sepia_c);
+            return 1;
+        }
+    }
+    /* semi-transparent pixel: alpha preserved */
+    canvas_set_pixel_raw(&sepia_c, 0, 0, 0x80804020);
+    canvas_sepia(&sepia_c);
+    if (((canvas_get_pixel(&sepia_c, 0, 0) >> 24) & 0xFF) != 0x80) {
+        fprintf(stderr, "sepia should preserve partial alpha\n");
+        canvas_free(&sepia_c);
+        return 1;
+    }
+    canvas_free(&sepia_c);
+
     Canvas translated;
     if (!canvas_init(&translated, 4, 3)) {
         fprintf(stderr, "translate canvas init failed\n");

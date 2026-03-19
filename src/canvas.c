@@ -338,6 +338,27 @@ void canvas_grayscale(Canvas *c) {
     }
 }
 
+void canvas_sepia(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a  = (uint8_t)((p >> 24) & 0xFF);
+        int r = (int)((p >> 16) & 0xFF);
+        int g = (int)((p >> 8) & 0xFF);
+        int b = (int)(p & 0xFF);
+        int or = (r * 393 + g * 769 + b * 189 + 500) / 1000;
+        int og = (r * 349 + g * 686 + b * 168 + 500) / 1000;
+        int ob = (r * 272 + g * 534 + b * 131 + 500) / 1000;
+        if (or > 255) or = 255;
+        if (og > 255) og = 255;
+        if (ob > 255) ob = 255;
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)or << 16) | ((uint32_t)og << 8) | (uint32_t)ob;
+    }
+}
+
 void canvas_adjust_brightness(Canvas *c, int delta) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0 || delta == 0) {
         return;
