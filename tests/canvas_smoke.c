@@ -842,6 +842,80 @@ int main(void) {
         return 1;
     }
 
+    /* grayscale filter tests */
+    {
+        Canvas gc;
+        if (!canvas_init(&gc, 2, 1)) {
+            fprintf(stderr, "grayscale canvas init failed\n");
+            return 1;
+        }
+        /* pure red: BT.709 luma = round(0.2126*255) = 54 */
+        canvas_set_pixel_raw(&gc, 0, 0, 0xFFFF0000);
+        /* pure white stays white */
+        canvas_set_pixel_raw(&gc, 1, 0, 0xFFFFFFFF);
+        canvas_grayscale(&gc);
+        /* red -> y=54 (0x36) */
+        if (!expect_pixel_eq("gray_red", canvas_get_pixel(&gc, 0, 0), 0xFF363636)) {
+            canvas_free(&gc);
+            return 1;
+        }
+        if (!expect_pixel_eq("gray_white", canvas_get_pixel(&gc, 1, 0), 0xFFFFFFFF)) {
+            canvas_free(&gc);
+            return 1;
+        }
+        /* applying grayscale twice is idempotent */
+        canvas_grayscale(&gc);
+        if (!expect_pixel_eq("gray_idempotent", canvas_get_pixel(&gc, 0, 0), 0xFF363636)) {
+            canvas_free(&gc);
+            return 1;
+        }
+        /* alpha preserved through grayscale */
+        canvas_set_pixel_raw(&gc, 0, 0, 0x80FF0000);
+        canvas_grayscale(&gc);
+        if ((canvas_get_pixel(&gc, 0, 0) >> 24) != 0x80) {
+            fprintf(stderr, "grayscale alpha not preserved\n");
+            canvas_free(&gc);
+            return 1;
+        }
+        canvas_free(&gc);
+    }
+
+    /* sepia filter tests */
+    {
+        Canvas sc;
+        if (!canvas_init(&sc, 2, 1)) {
+            fprintf(stderr, "sepia canvas init failed\n");
+            return 1;
+        }
+        /* pure black stays black */
+        canvas_set_pixel_raw(&sc, 0, 0, 0xFF000000);
+        /* pure white -> sepia white (out_r clamped 255, out_g clamped 255, out_b=238) */
+        canvas_set_pixel_raw(&sc, 1, 0, 0xFFFFFFFF);
+        canvas_sepia(&sc);
+        if (!expect_pixel_eq("sepia_black", canvas_get_pixel(&sc, 0, 0), 0xFF000000)) {
+            canvas_free(&sc);
+            return 1;
+        }
+        /* white sepia: r=min(255,(255*393+255*769+255*189)/1000)=255,
+           g=min(255,(255*349+255*686+255*168)/1000)=255,
+           b=(255*272+255*534+255*131)/1000=238 */
+        uint32_t sw = canvas_get_pixel(&sc, 1, 0);
+        if ((sw & 0x00FFFFFF) != 0x00FFFFEE) {
+            fprintf(stderr, "sepia_white: expected 0xFFFFFFEE got 0x%08X\n", sw);
+            canvas_free(&sc);
+            return 1;
+        }
+        /* alpha preserved */
+        canvas_set_pixel_raw(&sc, 0, 0, 0xC0123456);
+        canvas_sepia(&sc);
+        if ((canvas_get_pixel(&sc, 0, 0) >> 24) != 0xC0) {
+            fprintf(stderr, "sepia alpha not preserved\n");
+            canvas_free(&sc);
+            return 1;
+        }
+        canvas_free(&sc);
+    }
+
     printf("ok\n");
     return 0;
 }

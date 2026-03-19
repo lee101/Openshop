@@ -27,5 +27,7 @@ void canvas_flip_vertical(Canvas *c);
 void canvas_rotate_180(Canvas *c);
 void canvas_invert_rgb(Canvas *c);
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color);
+void canvas_grayscale(Canvas *c);
+void canvas_sepia(Canvas *c);
 
 #endif

@@ -358,3 +358,41 @@ void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color) {
     memcpy(c->pixels, copy, count * sizeof(uint32_t));
     free(copy);
 }
+
+void canvas_grayscale(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        /* BT.709 luminance coefficients scaled by 10000 */
+        uint8_t y = (uint8_t)((2126 * (int)r + 7152 * (int)g + 722 * (int)b + 5000) / 10000);
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)y << 16) | ((uint32_t)y << 8) | y;
+    }
+}
+
+void canvas_sepia(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        int r = (int)((p >> 16) & 0xFF);
+        int g = (int)((p >> 8) & 0xFF);
+        int b = (int)(p & 0xFF);
+        int out_r = (r * 393 + g * 769 + b * 189) / 1000;
+        int out_g = (r * 349 + g * 686 + b * 168) / 1000;
+        int out_b = (r * 272 + g * 534 + b * 131) / 1000;
+        if (out_r > 255) { out_r = 255; }
+        if (out_g > 255) { out_g = 255; }
+        if (out_b > 255) { out_b = 255; }
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)out_r << 16) | ((uint32_t)out_g << 8) | (uint32_t)out_b;
+    }
+}

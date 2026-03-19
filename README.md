@@ -45,6 +45,8 @@ make test-sdl
 - `V`: flip the active layer vertically
 - `J`: rotate the active layer 180 degrees
 - `X`: invert the active layer colors (RGB)
+- `G`: convert the active layer to grayscale (BT.709 luminance)
+- `K`: apply a sepia tone to the active layer
 - `Arrow Keys`: nudge the active layer by 1 pixel
 - `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels
 - `PageUp / PageDown`: cycle active layer
