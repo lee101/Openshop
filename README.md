@@ -49,6 +49,7 @@ make test-sdl
 - `K`: apply a sepia tone to the active layer
 - `Ctrl+Up / Ctrl+Down`: brighten / darken the active layer by 16 levels
 - `Ctrl+B`: apply a box blur (radius 2) to the active layer
+- `Ctrl+P`: posterize the active layer to 4 levels per channel
 - `Arrow Keys`: nudge the active layer by 1 pixel
 - `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels
 - `PageUp / PageDown`: cycle active layer

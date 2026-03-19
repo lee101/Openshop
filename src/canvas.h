@@ -31,5 +31,6 @@ void canvas_grayscale(Canvas *c);
 void canvas_sepia(Canvas *c);
 void canvas_adjust_brightness(Canvas *c, int delta);
 void canvas_box_blur(Canvas *c, int radius);
+void canvas_posterize(Canvas *c, int levels);
 
 #endif

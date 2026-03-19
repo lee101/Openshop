@@ -478,3 +478,25 @@ void canvas_box_blur(Canvas *c, int radius) {
 
     free(tmp);
 }
+
+void canvas_posterize(Canvas *c, int levels) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0 || levels < 2 || levels > 256) {
+        return;
+    }
+    /* Build a lookup table mapping each 8-bit value to its posterized value */
+    uint8_t lut[256];
+    for (int i = 0; i < 256; i++) {
+        /* Quantize to `levels` buckets then scale back to [0,255] */
+        int bucket = (i * levels) / 256;
+        lut[i] = (uint8_t)((bucket * 255) / (levels - 1));
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = lut[(p >> 16) & 0xFF];
+        uint8_t g = lut[(p >> 8) & 0xFF];
+        uint8_t b = lut[p & 0xFF];
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
+    }
+}

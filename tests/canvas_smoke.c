@@ -842,6 +842,38 @@ int main(void) {
         return 1;
     }
 
+    /* posterize tests */
+    {
+        Canvas pc;
+        if (!canvas_init(&pc, 1, 1)) {
+            fprintf(stderr, "posterize canvas init failed\n");
+            return 1;
+        }
+        /* With 2 levels: bucket = (v*2)/256, lut[128] = bucket=1 -> 1*255/(2-1)=255 */
+        canvas_set_pixel_raw(&pc, 0, 0, 0xFF808080);
+        canvas_posterize(&pc, 2);
+        if (!expect_pixel_eq("posterize_2_mid", canvas_get_pixel(&pc, 0, 0), 0xFFFFFFFF)) {
+            canvas_free(&pc);
+            return 1;
+        }
+        /* 0x00 -> bucket 0 -> lut=0; stays black */
+        canvas_set_pixel_raw(&pc, 0, 0, 0xFF000000);
+        canvas_posterize(&pc, 2);
+        if (!expect_pixel_eq("posterize_2_black", canvas_get_pixel(&pc, 0, 0), 0xFF000000)) {
+            canvas_free(&pc);
+            return 1;
+        }
+        /* Alpha preserved */
+        canvas_set_pixel_raw(&pc, 0, 0, 0xC0808080);
+        canvas_posterize(&pc, 2);
+        if ((canvas_get_pixel(&pc, 0, 0) >> 24) != 0xC0) {
+            fprintf(stderr, "posterize alpha not preserved\n");
+            canvas_free(&pc);
+            return 1;
+        }
+        canvas_free(&pc);
+    }
+
     /* box blur tests */
     {
         Canvas blc;
