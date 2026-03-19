@@ -407,6 +407,8 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     case SDLK_x:
     case SDLK_f:
     case SDLK_g:
+    case SDLK_w:
+    case SDLK_s:
     case SDLK_i:
     case SDLK_UP:
     case SDLK_DOWN:
@@ -1216,6 +1218,14 @@ int app_run(const char *input_path) {
                     }
                 } else if (key == SDLK_g) {
                     if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_grayscale)) {
+                        needs_composite = 1;
+                    }
+                } else if (key == SDLK_w) {
+                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_brighten)) {
+                        needs_composite = 1;
+                    }
+                } else if (key == SDLK_s) {
+                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_darken)) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_i) {

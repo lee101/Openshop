@@ -46,6 +46,8 @@ make test-sdl
 - `J`: rotate the active layer 180 degrees
 - `X`: invert the active layer colors (RGB)
 - `G`: convert the active layer to grayscale
+- `W`: brighten the active layer (+10 per channel)
+- `S`: darken the active layer (−10 per channel)
 - `Arrow Keys`: nudge the active layer by 1 pixel
 - `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels
 - `PageUp / PageDown`: cycle active layer

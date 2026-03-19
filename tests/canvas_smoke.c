@@ -820,6 +820,47 @@ int main(void) {
     }
     canvas_free(&gray);
 
+    Canvas bright;
+    if (!canvas_init(&bright, 1, 1)) {
+        fprintf(stderr, "bright canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&bright, 0, 0, 0xFF806040);
+    canvas_adjust_brightness(&bright, 20);
+    /* R: 0x80+20=148=0x94, G: 0x60+20=116=0x74, B: 0x40+20=84=0x54 */
+    if (!expect_pixel_eq("brighten", canvas_get_pixel(&bright, 0, 0), 0xFF947454)) {
+        canvas_free(&bright);
+        return 1;
+    }
+    canvas_adjust_brightness(&bright, -20);
+    if (!expect_pixel_eq("darken_back", canvas_get_pixel(&bright, 0, 0), 0xFF806040)) {
+        canvas_free(&bright);
+        return 1;
+    }
+    /* clamping: channel past 255 */
+    canvas_set_pixel_raw(&bright, 0, 0, 0xFFF0F0F0);
+    canvas_adjust_brightness(&bright, 100);
+    if (!expect_pixel_eq("brighten_clamp", canvas_get_pixel(&bright, 0, 0), 0xFFFFFFFF)) {
+        canvas_free(&bright);
+        return 1;
+    }
+    /* clamping: channel below 0 */
+    canvas_set_pixel_raw(&bright, 0, 0, 0xFF101010);
+    canvas_adjust_brightness(&bright, -100);
+    if (!expect_pixel_eq("darken_clamp", canvas_get_pixel(&bright, 0, 0), 0xFF000000)) {
+        canvas_free(&bright);
+        return 1;
+    }
+    /* alpha must be preserved */
+    canvas_set_pixel_raw(&bright, 0, 0, 0x80808080);
+    canvas_adjust_brightness(&bright, 10);
+    if (((canvas_get_pixel(&bright, 0, 0) >> 24) & 0xFF) != 0x80) {
+        fprintf(stderr, "brightness should preserve alpha\n");
+        canvas_free(&bright);
+        return 1;
+    }
+    canvas_free(&bright);
+
     Canvas translated;
     if (!canvas_init(&translated, 4, 3)) {
         fprintf(stderr, "translate canvas init failed\n");
