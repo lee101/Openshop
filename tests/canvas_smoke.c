@@ -782,6 +782,44 @@ int main(void) {
     }
     canvas_free(&transform);
 
+    Canvas gray;
+    if (!canvas_init(&gray, 2, 1)) {
+        fprintf(stderr, "gray canvas init failed\n");
+        return 1;
+    }
+    /* pure red -> luminance-weighted gray: (255*299+0+0+500)/1000 = 76 */
+    canvas_set_pixel_raw(&gray, 0, 0, 0xFF0000FF);
+    /* pure green -> luminance: (0+255*587+0+500)/1000 = 150 */
+    canvas_set_pixel_raw(&gray, 1, 0, 0xFF00FF00);
+    canvas_grayscale(&gray);
+    uint32_t gray_red = canvas_get_pixel(&gray, 0, 0);
+    uint32_t gray_green = canvas_get_pixel(&gray, 1, 0);
+    if ((gray_red >> 24) != 0xFF || (gray_red & 0xFF) != ((gray_red >> 16) & 0xFF) || (gray_red & 0xFF) != ((gray_red >> 8) & 0xFF)) {
+        fprintf(stderr, "grayscale red channel not equal across RGB: 0x%08X\n", gray_red);
+        canvas_free(&gray);
+        return 1;
+    }
+    if ((gray_green >> 24) != 0xFF || (gray_green & 0xFF) != ((gray_green >> 16) & 0xFF) || (gray_green & 0xFF) != ((gray_green >> 8) & 0xFF)) {
+        fprintf(stderr, "grayscale green channel not equal across RGB: 0x%08X\n", gray_green);
+        canvas_free(&gray);
+        return 1;
+    }
+    /* red lum ~76, green lum ~150; green should be brighter */
+    if ((gray_green & 0xFF) <= (gray_red & 0xFF)) {
+        fprintf(stderr, "grayscale green should be brighter than red: red=%u green=%u\n", gray_red & 0xFF, gray_green & 0xFF);
+        canvas_free(&gray);
+        return 1;
+    }
+    /* alpha must be preserved */
+    canvas_set_pixel_raw(&gray, 0, 0, 0x80FF0000);
+    canvas_grayscale(&gray);
+    if (((canvas_get_pixel(&gray, 0, 0) >> 24) & 0xFF) != 0x80) {
+        fprintf(stderr, "grayscale should preserve alpha\n");
+        canvas_free(&gray);
+        return 1;
+    }
+    canvas_free(&gray);
+
     Canvas translated;
     if (!canvas_init(&translated, 4, 3)) {
         fprintf(stderr, "translate canvas init failed\n");
