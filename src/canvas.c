@@ -500,3 +500,23 @@ void canvas_posterize(Canvas *c, int levels) {
         c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
     }
 }
+
+void canvas_threshold(Canvas *c, int level) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    if (level < 0) { level = 0; }
+    if (level > 255) { level = 255; }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        int r = (int)((p >> 16) & 0xFF);
+        int g = (int)((p >> 8) & 0xFF);
+        int b = (int)(p & 0xFF);
+        /* BT.709 luminance */
+        int luma = (2126 * r + 7152 * g + 722 * b + 5000) / 10000;
+        uint8_t out = (luma >= level) ? 255 : 0;
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)out << 16) | ((uint32_t)out << 8) | out;
+    }
+}

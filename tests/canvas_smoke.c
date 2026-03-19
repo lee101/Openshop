@@ -842,6 +842,44 @@ int main(void) {
         return 1;
     }
 
+    /* threshold tests */
+    {
+        Canvas tc;
+        if (!canvas_init(&tc, 2, 1)) {
+            fprintf(stderr, "threshold canvas init failed\n");
+            return 1;
+        }
+        /* white luma=255 >= 128 -> stays white */
+        canvas_set_pixel_raw(&tc, 0, 0, 0xFFFFFFFF);
+        /* black luma=0 < 128 -> becomes black */
+        canvas_set_pixel_raw(&tc, 1, 0, 0xFF000000);
+        canvas_threshold(&tc, 128);
+        if (!expect_pixel_eq("threshold_white_above", canvas_get_pixel(&tc, 0, 0), 0xFFFFFFFF)) {
+            canvas_free(&tc);
+            return 1;
+        }
+        if (!expect_pixel_eq("threshold_black_below", canvas_get_pixel(&tc, 1, 0), 0xFF000000)) {
+            canvas_free(&tc);
+            return 1;
+        }
+        /* mid gray luma ~54 (red-dominant): level=128 -> black */
+        canvas_set_pixel_raw(&tc, 0, 0, 0xFF800000);
+        canvas_threshold(&tc, 128);
+        if (!expect_pixel_eq("threshold_dim_red", canvas_get_pixel(&tc, 0, 0), 0xFF000000)) {
+            canvas_free(&tc);
+            return 1;
+        }
+        /* alpha preserved */
+        canvas_set_pixel_raw(&tc, 0, 0, 0xA0FFFFFF);
+        canvas_threshold(&tc, 128);
+        if ((canvas_get_pixel(&tc, 0, 0) >> 24) != 0xA0) {
+            fprintf(stderr, "threshold alpha not preserved\n");
+            canvas_free(&tc);
+            return 1;
+        }
+        canvas_free(&tc);
+    }
+
     /* posterize tests */
     {
         Canvas pc;
