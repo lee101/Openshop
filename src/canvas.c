@@ -520,3 +520,34 @@ void canvas_threshold(Canvas *c, int level) {
         c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)out << 16) | ((uint32_t)out << 8) | out;
     }
 }
+
+void canvas_sharpen(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    /* Unsharp mask: sharpened = 2*original - blur(original)
+     * We apply a 3x3 box blur to a copy, then compute 2*orig - blurred,
+     * clamping each channel to [0,255]. Alpha uses original value.
+     */
+    size_t count = (size_t)c->width * (size_t)c->height;
+    uint32_t *orig = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!orig) {
+        return;
+    }
+    memcpy(orig, c->pixels, count * sizeof(uint32_t));
+
+    /* blur into c->pixels using radius 1 */
+    canvas_box_blur(c, 1);
+
+    for (size_t i = 0; i < count; i++) {
+        uint32_t o = orig[i];
+        uint32_t b = c->pixels[i];
+        uint8_t a = (uint8_t)((o >> 24) & 0xFF);
+        int r = clamp_u8(2 * (int)((o >> 16) & 0xFF) - (int)((b >> 16) & 0xFF));
+        int g = clamp_u8(2 * (int)((o >> 8) & 0xFF) - (int)((b >> 8) & 0xFF));
+        int bv = clamp_u8(2 * (int)(o & 0xFF) - (int)(b & 0xFF));
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)bv;
+    }
+
+    free(orig);
+}

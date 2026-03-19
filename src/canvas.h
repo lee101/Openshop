@@ -33,5 +33,6 @@ void canvas_adjust_brightness(Canvas *c, int delta);
 void canvas_box_blur(Canvas *c, int radius);
 void canvas_posterize(Canvas *c, int levels);
 void canvas_threshold(Canvas *c, int level);
+void canvas_sharpen(Canvas *c);
 
 #endif

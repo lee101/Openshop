@@ -842,6 +842,31 @@ int main(void) {
         return 1;
     }
 
+    /* sharpen tests */
+    {
+        Canvas shc;
+        /* Uniform canvas: sharpening should leave it unchanged */
+        if (!canvas_init(&shc, 3, 3)) {
+            fprintf(stderr, "sharpen canvas init failed\n");
+            return 1;
+        }
+        canvas_clear(&shc, 0xFF607080);
+        canvas_sharpen(&shc);
+        if (!expect_pixel_eq("sharpen_uniform_center", canvas_get_pixel(&shc, 1, 1), 0xFF607080)) {
+            canvas_free(&shc);
+            return 1;
+        }
+        /* Alpha preserved: set semi-transparent pixel, sharpen uniform; alpha unchanged */
+        canvas_clear(&shc, 0x80808080);
+        canvas_sharpen(&shc);
+        if ((canvas_get_pixel(&shc, 1, 1) >> 24) != 0x80) {
+            fprintf(stderr, "sharpen alpha not preserved\n");
+            canvas_free(&shc);
+            return 1;
+        }
+        canvas_free(&shc);
+    }
+
     /* threshold tests */
     {
         Canvas tc;
