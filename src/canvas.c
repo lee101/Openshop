@@ -358,3 +358,87 @@ void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color) {
     memcpy(c->pixels, copy, count * sizeof(uint32_t));
     free(copy);
 }
+
+/* 90-degree clockwise rotation.
+ * For a landscape W×H canvas the rotated content is H×W; pixels that fall
+ * outside the original bounds are filled with fill_color so the canvas
+ * dimensions stay the same. */
+void canvas_rotate_90_cw(Canvas *c, uint32_t fill_color) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    int W = c->width;
+    int H = c->height;
+    size_t count = (size_t)W * (size_t)H;
+    uint32_t *copy = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!copy) {
+        return;
+    }
+
+    /* For 90° CW: dst(dx,dy) ← src(src_x=dy, src_y=H-1-dx) */
+    for (int dy = 0; dy < H; dy++) {
+        for (int dx = 0; dx < W; dx++) {
+            int src_x = dy;
+            int src_y = H - 1 - dx;
+            if (src_x >= 0 && src_x < W && src_y >= 0 && src_y < H) {
+                copy[(size_t)dy * (size_t)W + (size_t)dx] =
+                    c->pixels[(size_t)src_y * (size_t)W + (size_t)src_x];
+            } else {
+                copy[(size_t)dy * (size_t)W + (size_t)dx] = fill_color;
+            }
+        }
+    }
+
+    memcpy(c->pixels, copy, count * sizeof(uint32_t));
+    free(copy);
+}
+
+/* 90-degree counter-clockwise rotation.
+ * For dst(dx,dy) ← src(src_x=W-1-dy, src_y=dx). */
+void canvas_rotate_90_ccw(Canvas *c, uint32_t fill_color) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    int W = c->width;
+    int H = c->height;
+    size_t count = (size_t)W * (size_t)H;
+    uint32_t *copy = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!copy) {
+        return;
+    }
+
+    /* For 90° CCW: dst(dx,dy) ← src(src_x=W-1-dy, src_y=dx) */
+    for (int dy = 0; dy < H; dy++) {
+        for (int dx = 0; dx < W; dx++) {
+            int src_x = W - 1 - dy;
+            int src_y = dx;
+            if (src_x >= 0 && src_x < W && src_y >= 0 && src_y < H) {
+                copy[(size_t)dy * (size_t)W + (size_t)dx] =
+                    c->pixels[(size_t)src_y * (size_t)W + (size_t)src_x];
+            } else {
+                copy[(size_t)dy * (size_t)W + (size_t)dx] = fill_color;
+            }
+        }
+    }
+
+    memcpy(c->pixels, copy, count * sizeof(uint32_t));
+    free(copy);
+}
+
+/* Convert all pixels to grayscale using Rec. 601 luminance weights. */
+void canvas_grayscale(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        /* Rec. 601: Y = 0.299R + 0.587G + 0.114B (≈ 77/256, 150/256, 29/256) */
+        uint8_t luma = (uint8_t)((77u * r + 150u * g + 29u * b) >> 8);
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)luma << 16) | ((uint32_t)luma << 8) | luma;
+    }
+}

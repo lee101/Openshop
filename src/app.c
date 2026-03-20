@@ -381,11 +381,14 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     switch (key) {
     case SDLK_b:
     case SDLK_e:
+    case SDLK_g:
     case SDLK_l:
+    case SDLK_q:
     case SDLK_r:
     case SDLK_t:
     case SDLK_o:
     case SDLK_p:
+    case SDLK_w:
     case SDLK_LEFTBRACKET:
     case SDLK_RIGHTBRACKET:
     case SDLK_COMMA:
@@ -1192,6 +1195,24 @@ int app_run(const char *input_path) {
                     }
                 } else if (key == SDLK_j) {
                     if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_rotate_180)) {
+                        needs_composite = 1;
+                    }
+                } else if (key == SDLK_q) {
+                    Layer *active = layer_stack_active(&layers);
+                    if (active && !active->locked && active->canvas.pixels) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        canvas_rotate_90_ccw(&active->canvas, active_layer_clear_color(&layers));
+                        needs_composite = 1;
+                    }
+                } else if (key == SDLK_w) {
+                    Layer *active = layer_stack_active(&layers);
+                    if (active && !active->locked && active->canvas.pixels) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        canvas_rotate_90_cw(&active->canvas, active_layer_clear_color(&layers));
+                        needs_composite = 1;
+                    }
+                } else if (key == SDLK_g) {
+                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_grayscale)) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_x) {

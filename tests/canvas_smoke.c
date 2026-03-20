@@ -838,6 +838,98 @@ int main(void) {
     }
     canvas_free(&mask);
 
+    /* --- 90-degree rotation tests (square canvas) --- */
+    Canvas rot;
+    if (!canvas_init(&rot, 3, 3)) {
+        fprintf(stderr, "rot canvas init failed\n");
+        return 1;
+    }
+    /* Fill a 3×3 grid with distinct values:
+     * (0,0)=0xA (1,0)=0xB (2,0)=0xC
+     * (0,1)=0xD (1,1)=0xE (2,1)=0xF
+     * (0,2)=0x1 (1,2)=0x2 (2,2)=0x3  */
+    canvas_set_pixel_raw(&rot, 0, 0, 0xFF0A0A0A);
+    canvas_set_pixel_raw(&rot, 1, 0, 0xFF0B0B0B);
+    canvas_set_pixel_raw(&rot, 2, 0, 0xFF0C0C0C);
+    canvas_set_pixel_raw(&rot, 0, 1, 0xFF0D0D0D);
+    canvas_set_pixel_raw(&rot, 1, 1, 0xFF0E0E0E);
+    canvas_set_pixel_raw(&rot, 2, 1, 0xFF0F0F0F);
+    canvas_set_pixel_raw(&rot, 0, 2, 0xFF010101);
+    canvas_set_pixel_raw(&rot, 1, 2, 0xFF020202);
+    canvas_set_pixel_raw(&rot, 2, 2, 0xFF030303);
+
+    /* After 90° CW:
+     * (0,0)=0x1 (1,0)=0xD (2,0)=0xA
+     * (0,1)=0x2 (1,1)=0xE (2,1)=0xB
+     * (0,2)=0x3 (1,2)=0xF (2,2)=0xC  */
+    canvas_rotate_90_cw(&rot, 0x00000000);
+    if (!expect_pixel_eq("rot90cw_00", canvas_get_pixel(&rot, 0, 0), 0xFF010101) ||
+        !expect_pixel_eq("rot90cw_10", canvas_get_pixel(&rot, 1, 0), 0xFF0D0D0D) ||
+        !expect_pixel_eq("rot90cw_20", canvas_get_pixel(&rot, 2, 0), 0xFF0A0A0A) ||
+        !expect_pixel_eq("rot90cw_22", canvas_get_pixel(&rot, 2, 2), 0xFF0C0C0C)) {
+        canvas_free(&rot);
+        return 1;
+    }
+
+    /* Applying CW × 3 should equal CCW × 1. Reset and apply CCW once. */
+    canvas_set_pixel_raw(&rot, 0, 0, 0xFF0A0A0A);
+    canvas_set_pixel_raw(&rot, 1, 0, 0xFF0B0B0B);
+    canvas_set_pixel_raw(&rot, 2, 0, 0xFF0C0C0C);
+    canvas_set_pixel_raw(&rot, 0, 1, 0xFF0D0D0D);
+    canvas_set_pixel_raw(&rot, 1, 1, 0xFF0E0E0E);
+    canvas_set_pixel_raw(&rot, 2, 1, 0xFF0F0F0F);
+    canvas_set_pixel_raw(&rot, 0, 2, 0xFF010101);
+    canvas_set_pixel_raw(&rot, 1, 2, 0xFF020202);
+    canvas_set_pixel_raw(&rot, 2, 2, 0xFF030303);
+
+    /* After 90° CCW:
+     * (0,0)=0xC (1,0)=0xF (2,0)=0x3
+     * (0,1)=0xB (1,1)=0xE (2,1)=0x2
+     * (0,2)=0xA (1,2)=0xD (2,2)=0x1  */
+    canvas_rotate_90_ccw(&rot, 0x00000000);
+    if (!expect_pixel_eq("rot90ccw_00", canvas_get_pixel(&rot, 0, 0), 0xFF0C0C0C) ||
+        !expect_pixel_eq("rot90ccw_20", canvas_get_pixel(&rot, 2, 0), 0xFF030303) ||
+        !expect_pixel_eq("rot90ccw_02", canvas_get_pixel(&rot, 0, 2), 0xFF0A0A0A) ||
+        !expect_pixel_eq("rot90ccw_22", canvas_get_pixel(&rot, 2, 2), 0xFF010101)) {
+        canvas_free(&rot);
+        return 1;
+    }
+
+    /* CW followed by CCW must restore the original image. */
+    canvas_rotate_90_cw(&rot, 0x00000000);
+    if (!expect_pixel_eq("rot_roundtrip_00", canvas_get_pixel(&rot, 0, 0), 0xFF0A0A0A) ||
+        !expect_pixel_eq("rot_roundtrip_22", canvas_get_pixel(&rot, 2, 2), 0xFF030303)) {
+        canvas_free(&rot);
+        return 1;
+    }
+    canvas_free(&rot);
+
+    /* --- grayscale test --- */
+    Canvas gs;
+    if (!canvas_init(&gs, 3, 1)) {
+        fprintf(stderr, "gs canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&gs, 0, 0, 0xFFFF0000); /* pure red   → luma 76 */
+    canvas_set_pixel_raw(&gs, 1, 0, 0xFF00FF00); /* pure green → luma 149 */
+    canvas_set_pixel_raw(&gs, 2, 0, 0xFF0000FF); /* pure blue  → luma 28 */
+    canvas_grayscale(&gs);
+    if (!expect_pixel_eq("gray_red",   canvas_get_pixel(&gs, 0, 0), 0xFF4C4C4C) ||
+        !expect_pixel_eq("gray_green", canvas_get_pixel(&gs, 1, 0), 0xFF959595) ||
+        !expect_pixel_eq("gray_blue",  canvas_get_pixel(&gs, 2, 0), 0xFF1C1C1C)) {
+        canvas_free(&gs);
+        return 1;
+    }
+    /* Alpha must be preserved */
+    canvas_set_pixel_raw(&gs, 0, 0, 0x80FF0000);
+    canvas_grayscale(&gs);
+    if ((canvas_get_pixel(&gs, 0, 0) >> 24) != 0x80) {
+        fprintf(stderr, "gray_alpha_preserved failed\n");
+        canvas_free(&gs);
+        return 1;
+    }
+    canvas_free(&gs);
+
     if (!test_layers_basic()) {
         return 1;
     }
