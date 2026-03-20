@@ -1038,6 +1038,36 @@ int main(void) {
     }
     canvas_free(&post);
 
+    /* --- sepia tests --- */
+    Canvas sepia;
+    if (!canvas_init(&sepia, 2, 1)) {
+        fprintf(stderr, "sepia canvas init failed\n");
+        return 1;
+    }
+    /* mid-gray: (346*128)>>8=173=0xAD  (308*128)>>8=154=0x9A  (241*128)>>8=120=0x78 */
+    canvas_set_pixel_raw(&sepia, 0, 0, 0xFF808080);
+    canvas_sepia(&sepia);
+    if (!expect_pixel_eq("sepia_midgray", canvas_get_pixel(&sepia, 0, 0), 0xFFAD9A78)) {
+        canvas_free(&sepia);
+        return 1;
+    }
+    /* black stays black */
+    canvas_set_pixel_raw(&sepia, 1, 0, 0xFF000000);
+    canvas_sepia(&sepia);
+    if (!expect_pixel_eq("sepia_black", canvas_get_pixel(&sepia, 1, 0), 0xFF000000)) {
+        canvas_free(&sepia);
+        return 1;
+    }
+    /* alpha must be preserved */
+    canvas_set_pixel_raw(&sepia, 0, 0, 0x80808080);
+    canvas_sepia(&sepia);
+    if ((canvas_get_pixel(&sepia, 0, 0) >> 24) != 0x80) {
+        fprintf(stderr, "sepia_alpha_preserved failed\n");
+        canvas_free(&sepia);
+        return 1;
+    }
+    canvas_free(&sepia);
+
     if (!test_layers_basic()) {
         return 1;
     }

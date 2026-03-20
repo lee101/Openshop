@@ -480,6 +480,35 @@ void canvas_posterize(Canvas *c, int levels) {
     }
 }
 
+/* Apply a sepia-tone effect using the standard luminance matrix:
+ *   out_r = 0.393R + 0.769G + 0.189B  (scaled via ÷256 integer approximation)
+ *   out_g = 0.349R + 0.686G + 0.168B
+ *   out_b = 0.272R + 0.534G + 0.131B
+ * Results are clamped to [0, 255]; alpha is unchanged. */
+void canvas_sepia(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        int r = (int)((p >> 16) & 0xFF);
+        int g = (int)((p >> 8) & 0xFF);
+        int b = (int)(p & 0xFF);
+
+        int nr = (101 * r + 197 * g + 48 * b) >> 8;
+        int ng = ( 89 * r + 176 * g + 43 * b) >> 8;
+        int nb = ( 70 * r + 137 * g + 34 * b) >> 8;
+
+        if (nr > 255) nr = 255;
+        if (ng > 255) ng = 255;
+        if (nb > 255) nb = 255;
+
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)nr << 16) | ((uint32_t)ng << 8) | (uint32_t)nb;
+    }
+}
+
 /* Adjust brightness of all pixels by adding delta to each RGB channel.
  * delta is clamped so the result stays within [0, 255]. Alpha is unchanged. */
 void canvas_adjust_brightness(Canvas *c, int delta) {
