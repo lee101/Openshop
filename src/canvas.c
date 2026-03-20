@@ -309,6 +309,93 @@ void canvas_rotate_180(Canvas *c) {
     }
 }
 
+void canvas_rotate_90_cw(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    int W = c->width, H = c->height;
+    size_t count = (size_t)W * (size_t)H;
+    uint32_t *buf = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!buf) {
+        return;
+    }
+
+    /*
+     * 90° CW rotation (clockwise as seen on screen) around the canvas centre,
+     * result cropped/padded to keep the same WxH frame.
+     *
+     * Using the standard 90° CW formula for a WxH → HxW image:
+     *   R(rx, ry) = S(ry, H-1-rx)   (rx in [0,H-1], ry in [0,W-1])
+     * Then centre-crop the HxW rotated image back into WxH:
+     *   x_pad  = (W - H) / 2        (pad left/right when W > H)
+     *   y_crop = (W - H) / 2        (crop top/bottom when W > H)
+     *   dest(dx,dy) = R(dx - x_pad, dy + y_crop)
+     *               = S(dy + x_pad, H-1-(dx - x_pad))
+     *               = S(dy + x_pad, (W+H-2)/2 - dx)
+     *
+     * For W=800, H=600: x_pad=100, cross=699 → S(dy+100, 699-dx)
+     * Pixels outside the source bounds are filled with 0 (transparent).
+     */
+    int x_pad = (W - H) / 2;
+    int cross  = (W - 1 + H - 1) / 2;   /* floor((W+H-2)/2) */
+
+    for (int dy = 0; dy < H; dy++) {
+        for (int dx = 0; dx < W; dx++) {
+            int sx = dy + x_pad;
+            int sy = cross - dx;
+            uint32_t px = (sx >= 0 && sx < W && sy >= 0 && sy < H)
+                          ? c->pixels[(size_t)sy * (size_t)W + (size_t)sx]
+                          : 0;
+            buf[(size_t)dy * (size_t)W + (size_t)dx] = px;
+        }
+    }
+
+    memcpy(c->pixels, buf, count * sizeof(uint32_t));
+    free(buf);
+}
+
+void canvas_rotate_90_ccw(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    int W = c->width, H = c->height;
+    size_t count = (size_t)W * (size_t)H;
+    uint32_t *buf = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!buf) {
+        return;
+    }
+
+    /*
+     * 90° CCW rotation (counter-clockwise as seen on screen) around the
+     * canvas centre, result cropped/padded to keep the same WxH frame.
+     *
+     * Standard 90° CCW: R(rx, ry) = S(W-1-ry, rx)  (rx in [0,H-1], ry in [0,W-1])
+     * Centre-crop back to WxH (same offsets as CW):
+     *   dest(dx,dy) = R(dx - x_pad, dy + y_crop)
+     *               = S(W-1-(dy+x_pad), dx - x_pad)
+     *               = S((W+H-2)/2 - dy, dx - x_pad)
+     *
+     * For W=800, H=600: S(699-dy, dx-100)
+     * Pixels outside the source bounds are filled with 0 (transparent).
+     */
+    int x_pad = (W - H) / 2;
+    int cross  = (W - 1 + H - 1) / 2;
+
+    for (int dy = 0; dy < H; dy++) {
+        for (int dx = 0; dx < W; dx++) {
+            int sx = cross - dy;
+            int sy = dx - x_pad;
+            uint32_t px = (sx >= 0 && sx < W && sy >= 0 && sy < H)
+                          ? c->pixels[(size_t)sy * (size_t)W + (size_t)sx]
+                          : 0;
+            buf[(size_t)dy * (size_t)W + (size_t)dx] = px;
+        }
+    }
+
+    memcpy(c->pixels, buf, count * sizeof(uint32_t));
+    free(buf);
+}
+
 void canvas_invert_rgb(Canvas *c) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;
@@ -319,6 +406,23 @@ void canvas_invert_rgb(Canvas *c) {
         uint32_t a = p & 0xFF000000;
         uint32_t rgb = p & 0x00FFFFFF;
         c->pixels[i] = a | ((~rgb) & 0x00FFFFFF);
+    }
+}
+
+void canvas_grayscale(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        /* ITU-R BT.601 luminance coefficients: 0.299R + 0.587G + 0.114B */
+        uint8_t y = (uint8_t)((299u * r + 587u * g + 114u * b) / 1000u);
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)y << 16) | ((uint32_t)y << 8) | y;
     }
 }
 

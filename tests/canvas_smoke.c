@@ -805,6 +805,120 @@ int main(void) {
     }
     canvas_free(&translated);
 
+    /* --- canvas_rotate_90_cw / canvas_rotate_90_ccw --- */
+    /* Use a 4×4 square canvas where the rotation formula is exact (W==H, x_pad==0). */
+    Canvas rot4;
+    if (!canvas_init(&rot4, 4, 4)) {
+        fprintf(stderr, "rot4 canvas init failed\n");
+        return 1;
+    }
+    /*
+     * Paint a unique colour in each corner so we can verify the rotation.
+     *   TL=0xFFAA0000  TR=0xFF00AA00
+     *   BL=0xFF0000AA  BR=0xFFAAAAAA
+     */
+    canvas_set_pixel_raw(&rot4, 0, 0, 0xFFAA0000);  /* top-left     */
+    canvas_set_pixel_raw(&rot4, 3, 0, 0xFF00AA00);  /* top-right    */
+    canvas_set_pixel_raw(&rot4, 0, 3, 0xFF0000AA);  /* bottom-left  */
+    canvas_set_pixel_raw(&rot4, 3, 3, 0xFFAAAAAA);  /* bottom-right */
+
+    /*
+     * After one 90° CW rotation (square canvas):
+     *   new TL = old BL,  new TR = old TL
+     *   new BL = old BR,  new BR = old TR
+     */
+    canvas_rotate_90_cw(&rot4);
+    if (!expect_pixel_eq("rot90cw_tl", canvas_get_pixel(&rot4, 0, 0), 0xFF0000AA) ||
+        !expect_pixel_eq("rot90cw_tr", canvas_get_pixel(&rot4, 3, 0), 0xFFAA0000) ||
+        !expect_pixel_eq("rot90cw_bl", canvas_get_pixel(&rot4, 0, 3), 0xFFAAAAAA) ||
+        !expect_pixel_eq("rot90cw_br", canvas_get_pixel(&rot4, 3, 3), 0xFF00AA00)) {
+        canvas_free(&rot4);
+        return 1;
+    }
+
+    /* Four CW rotations on a square canvas must be identity (back to original). */
+    canvas_rotate_90_cw(&rot4);
+    canvas_rotate_90_cw(&rot4);
+    canvas_rotate_90_cw(&rot4);
+    /* Total: 4 CW from the start → original corners restored. */
+    if (!expect_pixel_eq("rot90cw_roundtrip_tl", canvas_get_pixel(&rot4, 0, 0), 0xFFAA0000) ||
+        !expect_pixel_eq("rot90cw_roundtrip_br", canvas_get_pixel(&rot4, 3, 3), 0xFFAAAAAA)) {
+        canvas_free(&rot4);
+        return 1;
+    }
+
+    /* Re-initialise corners for CCW test. */
+    canvas_set_pixel_raw(&rot4, 0, 0, 0xFFAA0000);
+    canvas_set_pixel_raw(&rot4, 3, 0, 0xFF00AA00);
+    canvas_set_pixel_raw(&rot4, 0, 3, 0xFF0000AA);
+    canvas_set_pixel_raw(&rot4, 3, 3, 0xFFAAAAAA);
+
+    /*
+     * After one 90° CCW rotation (square canvas):
+     *   new TL = old TR,  new TR = old BR
+     *   new BL = old TL,  new BR = old BL
+     */
+    canvas_rotate_90_ccw(&rot4);
+    if (!expect_pixel_eq("rot90ccw_tl", canvas_get_pixel(&rot4, 0, 0), 0xFF00AA00) ||
+        !expect_pixel_eq("rot90ccw_tr", canvas_get_pixel(&rot4, 3, 0), 0xFFAAAAAA) ||
+        !expect_pixel_eq("rot90ccw_bl", canvas_get_pixel(&rot4, 0, 3), 0xFFAA0000) ||
+        !expect_pixel_eq("rot90ccw_br", canvas_get_pixel(&rot4, 3, 3), 0xFF0000AA)) {
+        canvas_free(&rot4);
+        return 1;
+    }
+
+    /* CW followed by CCW must be identity. */
+    canvas_rotate_90_cw(&rot4);
+    canvas_rotate_90_ccw(&rot4);
+    if (!expect_pixel_eq("rot_cw_ccw_id_tl", canvas_get_pixel(&rot4, 0, 0), 0xFF00AA00) ||
+        !expect_pixel_eq("rot_cw_ccw_id_br", canvas_get_pixel(&rot4, 3, 3), 0xFF0000AA)) {
+        canvas_free(&rot4);
+        return 1;
+    }
+
+    canvas_free(&rot4);
+
+    /* --- canvas_grayscale --- */
+    Canvas grey;
+    if (!canvas_init(&grey, 4, 1)) {
+        fprintf(stderr, "grey canvas init failed\n");
+        return 1;
+    }
+    /* Pure red: luminance = 0.299*255 ≈ 76 */
+    canvas_set_pixel_raw(&grey, 0, 0, 0xFFFF0000);
+    /* Pure green: luminance = 0.587*255 ≈ 149 */
+    canvas_set_pixel_raw(&grey, 1, 0, 0xFF00FF00);
+    /* Pure blue: luminance = 0.114*255 ≈ 29 */
+    canvas_set_pixel_raw(&grey, 2, 0, 0xFF0000FF);
+    /* White: luminance = 255 */
+    canvas_set_pixel_raw(&grey, 3, 0, 0xFFFFFFFF);
+    canvas_grayscale(&grey);
+    {
+        uint32_t gr = canvas_get_pixel(&grey, 0, 0);
+        uint32_t gg = canvas_get_pixel(&grey, 1, 0);
+        uint32_t gb = canvas_get_pixel(&grey, 2, 0);
+        uint32_t gw = canvas_get_pixel(&grey, 3, 0);
+        /* Check all channels equal (proper grey), alpha preserved, rough luminance range */
+        uint8_t gr_r = (gr >> 16) & 0xFF, gr_g = (gr >> 8) & 0xFF, gr_b = gr & 0xFF;
+        uint8_t gg_r = (gg >> 16) & 0xFF, gg_g = (gg >> 8) & 0xFF, gg_b = gg & 0xFF;
+        uint8_t gb_r = (gb >> 16) & 0xFF, gb_g = (gb >> 8) & 0xFF, gb_b = gb & 0xFF;
+        int ok = 1;
+        ok = ok && (gr_r == gr_g && gr_g == gr_b);   /* R==G==B for grey */
+        ok = ok && (gg_r == gg_g && gg_g == gg_b);
+        ok = ok && (gb_r == gb_g && gb_g == gb_b);
+        ok = ok && (gw == 0xFFFFFFFF);                /* white stays white */
+        ok = ok && (gr_r >= 70 && gr_r <= 82);        /* red luminance ~76 */
+        ok = ok && (gg_r >= 143 && gg_r <= 155);      /* green luminance ~149 */
+        ok = ok && (gb_r >= 24 && gb_r <= 34);        /* blue luminance ~29 */
+        if (!ok) {
+            fprintf(stderr, "grayscale checks failed: R=%u G=%u B=%u W=%08X\n",
+                    gr_r, gg_r, gb_r, gw);
+            canvas_free(&grey);
+            return 1;
+        }
+    }
+    canvas_free(&grey);
+
     Canvas mask;
     if (!canvas_init(&mask, 9, 9)) {
         fprintf(stderr, "mask canvas init failed\n");
