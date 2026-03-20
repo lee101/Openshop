@@ -969,6 +969,46 @@ int main(void) {
     }
     canvas_free(&bright);
 
+    /* --- contrast adjustment tests --- */
+    Canvas con;
+    if (!canvas_init(&con, 3, 1)) {
+        fprintf(stderr, "con canvas init failed\n");
+        return 1;
+    }
+    /* mid-gray is invariant under any contrast change */
+    canvas_set_pixel_raw(&con, 0, 0, 0xFF808080);
+    canvas_adjust_contrast(&con, 50);
+    if (!expect_pixel_eq("contrast_midgray_invariant", canvas_get_pixel(&con, 0, 0), 0xFF808080)) {
+        canvas_free(&con);
+        return 1;
+    }
+
+    /* channel=200=0xC8, step=+50: (72*150)/100 + 128 = 108+128 = 236 = 0xEC */
+    canvas_set_pixel_raw(&con, 1, 0, 0xFFC8C8C8);
+    canvas_adjust_contrast(&con, 50);
+    if (!expect_pixel_eq("contrast_plus50", canvas_get_pixel(&con, 1, 0), 0xFFECECEC)) {
+        canvas_free(&con);
+        return 1;
+    }
+
+    /* channel=0, step=+50: (-128*150)/100 + 128 = -192+128 = -64, clamped to 0 */
+    canvas_set_pixel_raw(&con, 2, 0, 0xFF000000);
+    canvas_adjust_contrast(&con, 50);
+    if (!expect_pixel_eq("contrast_clamp_low", canvas_get_pixel(&con, 2, 0), 0xFF000000)) {
+        canvas_free(&con);
+        return 1;
+    }
+
+    /* alpha preserved through contrast */
+    canvas_set_pixel_raw(&con, 0, 0, 0x7F808080);
+    canvas_adjust_contrast(&con, 20);
+    if ((canvas_get_pixel(&con, 0, 0) >> 24) != 0x7F) {
+        fprintf(stderr, "contrast_alpha_preserved failed\n");
+        canvas_free(&con);
+        return 1;
+    }
+    canvas_free(&con);
+
     if (!test_layers_basic()) {
         return 1;
     }
