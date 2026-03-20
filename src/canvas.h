@@ -22,6 +22,7 @@ void canvas_draw_rect_filled(Canvas *c, int x0, int y0, int x1, int y1, uint32_t
 void canvas_draw_ellipse_outline(Canvas *c, int cx, int cy, int rx, int ry, int radius, uint32_t color);
 void canvas_draw_ellipse_filled(Canvas *c, int cx, int cy, int rx, int ry, uint32_t color);
 int canvas_flood_fill(Canvas *c, int x, int y, uint32_t new_color);
+int canvas_flood_fill_tol(Canvas *c, int x, int y, uint32_t new_color, int tolerance);
 void canvas_flip_horizontal(Canvas *c);
 void canvas_flip_vertical(Canvas *c);
 void canvas_rotate_180(Canvas *c);

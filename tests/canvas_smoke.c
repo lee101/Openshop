@@ -1129,6 +1129,39 @@ int main(void) {
     }
     canvas_free(&sharp_c);
 
+    /* --- canvas_flood_fill_tol ---
+       3x3 canvas: centre column is slightly off-white (0xFFFEFEFE),
+       rest is pure white (0xFFFFFFFF). tolerance=5 should fill all;
+       tolerance=0 should fill only exact matches. */
+    Canvas tol_c;
+    if (!canvas_init(&tol_c, 3, 3)) {
+        fprintf(stderr, "tol fill canvas init failed\n");
+        return 1;
+    }
+    canvas_clear(&tol_c, 0xFFFFFFFF);
+    canvas_set_pixel_raw(&tol_c, 1, 0, 0xFFFEFEFE);
+    canvas_set_pixel_raw(&tol_c, 1, 1, 0xFFFEFEFE);
+    canvas_set_pixel_raw(&tol_c, 1, 2, 0xFFFEFEFE);
+    /* Fill from (0,0) with tolerance=5: off-white (dist=sqrt(3)<5) should also be filled. */
+    canvas_flood_fill_tol(&tol_c, 0, 0, 0xFF000000, 5);
+    if (!expect_pixel_eq("tol_fill_exact",  canvas_get_pixel(&tol_c, 0, 0), 0xFF000000) ||
+        !expect_pixel_eq("tol_fill_approx", canvas_get_pixel(&tol_c, 1, 1), 0xFF000000)) {
+        canvas_free(&tol_c);
+        return 1;
+    }
+    /* Reset and verify that tolerance=0 does NOT cross to the near-white column. */
+    canvas_clear(&tol_c, 0xFFFFFFFF);
+    canvas_set_pixel_raw(&tol_c, 1, 0, 0xFFFEFEFE);
+    canvas_set_pixel_raw(&tol_c, 1, 1, 0xFFFEFEFE);
+    canvas_set_pixel_raw(&tol_c, 1, 2, 0xFFFEFEFE);
+    canvas_flood_fill_tol(&tol_c, 0, 0, 0xFF000000, 0);
+    if (!expect_pixel_eq("tol0_fill_exact",  canvas_get_pixel(&tol_c, 0, 0), 0xFF000000) ||
+        !expect_pixel_eq("tol0_no_spill",    canvas_get_pixel(&tol_c, 1, 1), 0xFFFEFEFE)) {
+        canvas_free(&tol_c);
+        return 1;
+    }
+    canvas_free(&tol_c);
+
     printf("ok\n");
     return 0;
 }
