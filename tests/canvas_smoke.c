@@ -919,6 +919,53 @@ int main(void) {
     }
     canvas_free(&grey);
 
+    /* --- canvas_auto_levels --- */
+    Canvas levels;
+    if (!canvas_init(&levels, 3, 1)) {
+        fprintf(stderr, "levels canvas init failed\n");
+        return 1;
+    }
+    /*
+     * Red channel: values 50, 100, 200 → range 150 → after stretch: 0, 85, 255
+     * Green channel: all 128 → range 0 → unchanged
+     * Blue channel: values 10, 10, 255 → range 245 → after stretch: 0, 0, 255
+     */
+    canvas_set_pixel_raw(&levels, 0, 0, 0xFF328032);  /* r=50,  g=128, b=50  */
+    canvas_set_pixel_raw(&levels, 1, 0, 0xFF648064);  /* r=100, g=128, b=100 */
+    canvas_set_pixel_raw(&levels, 2, 0, 0xFFC88000);  /* r=200, g=128, b=0 (actually b=0 but we need b=255 for the test to work cleanly)  */
+    /* Adjust: let's use simple values for predictable stretch.
+     * R: 0 → 255 across 3 pixels.  Already full range → no change expected.
+     * Use a clear scenario: all three pixels have R in [10, 210], G all same, B in [0, 255].
+     */
+    canvas_clear(&levels, 0xFF000000);
+    canvas_set_pixel_raw(&levels, 0, 0, 0xFF0A800A);  /* r=10,  g=128, b=10  */
+    canvas_set_pixel_raw(&levels, 1, 0, 0xFF6E806E);  /* r=110, g=128, b=110 */
+    canvas_set_pixel_raw(&levels, 2, 0, 0xFFD28000);  /* r=210, g=128, b=0   */
+    canvas_auto_levels(&levels);
+    {
+        /* R: min=10, max=210, range=200.  pixel0 r=(10-10)*255/200=0, pixel2 r=(210-10)*255/200=255 */
+        /* G: min=max=128 → unchanged */
+        /* B: min=0, max=110, range=110.  pixel0 b=(10-0)*255/110=23..24, pixel1 b=(110-0)*255/110=255 */
+        uint32_t p0 = canvas_get_pixel(&levels, 0, 0);
+        uint32_t p2 = canvas_get_pixel(&levels, 2, 0);
+        int p0_r = (int)((p0 >> 16) & 0xFF);
+        int p0_g = (int)((p0 >> 8) & 0xFF);
+        int p2_r = (int)((p2 >> 16) & 0xFF);
+        int p2_g = (int)((p2 >> 8) & 0xFF);
+        int ok = 1;
+        ok = ok && (p0_r == 0);           /* r channel min stretched to 0 */
+        ok = ok && (p2_r == 255);         /* r channel max stretched to 255 */
+        ok = ok && (p0_g == 128);         /* g channel flat → unchanged */
+        ok = ok && (p2_g == 128);
+        if (!ok) {
+            fprintf(stderr, "auto_levels failed: p0_r=%d p0_g=%d p2_r=%d p2_g=%d\n",
+                    p0_r, p0_g, p2_r, p2_g);
+            canvas_free(&levels);
+            return 1;
+        }
+    }
+    canvas_free(&levels);
+
     Canvas mask;
     if (!canvas_init(&mask, 9, 9)) {
         fprintf(stderr, "mask canvas init failed\n");

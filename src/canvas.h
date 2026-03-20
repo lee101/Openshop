@@ -29,6 +29,7 @@ void canvas_rotate_90_cw(Canvas *c);
 void canvas_rotate_90_ccw(Canvas *c);
 void canvas_invert_rgb(Canvas *c);
 void canvas_grayscale(Canvas *c);
+void canvas_auto_levels(Canvas *c);
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color);
 
 #endif
