@@ -452,6 +452,34 @@ void canvas_adjust_contrast(Canvas *c, int step) {
     }
 }
 
+/* Reduce each RGB channel to 'levels' discrete values (2–8).
+ * Formula: new_ch = floor(ch * levels / 256) * 255 / (levels - 1)
+ * Alpha is unchanged. */
+void canvas_posterize(Canvas *c, int levels) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    if (levels < 2) levels = 2;
+    if (levels > 8) levels = 8;
+
+    /* Build a lookup table for all 256 input values. */
+    uint8_t lut[256];
+    for (int i = 0; i < 256; i++) {
+        int bucket = i * levels / 256;
+        lut[i] = (uint8_t)(bucket * 255 / (levels - 1));
+    }
+
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = lut[(p >> 16) & 0xFF];
+        uint8_t g = lut[(p >> 8) & 0xFF];
+        uint8_t b = lut[p & 0xFF];
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
+    }
+}
+
 /* Adjust brightness of all pixels by adding delta to each RGB channel.
  * delta is clamped so the result stays within [0, 255]. Alpha is unchanged. */
 void canvas_adjust_brightness(Canvas *c, int delta) {

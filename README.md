@@ -47,6 +47,7 @@ make test-sdl
 - `Q`: rotate the active layer 90° counter-clockwise
 - `W`: rotate the active layer 90° clockwise
 - `G`: convert the active layer to grayscale (desaturate)
+- `K`: posterize the active layer to 4 color levels
 - `X`: invert the active layer colors (RGB)
 - `Arrow Keys`: nudge the active layer by 1 pixel
 - `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels

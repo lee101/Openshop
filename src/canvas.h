@@ -32,5 +32,6 @@ void canvas_rotate_90_ccw(Canvas *c, uint32_t fill_color);
 void canvas_grayscale(Canvas *c);
 void canvas_adjust_brightness(Canvas *c, int delta);
 void canvas_adjust_contrast(Canvas *c, int step);
+void canvas_posterize(Canvas *c, int levels);
 
 #endif

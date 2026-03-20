@@ -1009,6 +1009,35 @@ int main(void) {
     }
     canvas_free(&con);
 
+    /* --- posterize tests (levels=4) --- */
+    Canvas post;
+    if (!canvas_init(&post, 4, 1)) {
+        fprintf(stderr, "post canvas init failed\n");
+        return 1;
+    }
+    /* With 4 levels the lookup is: [0,64)→0, [64,128)→85, [128,192)→170, [192,256)→255 */
+    canvas_set_pixel_raw(&post, 0, 0, 0xFF000000); /* all 0   → bucket 0 → 0 */
+    canvas_set_pixel_raw(&post, 1, 0, 0xFF404040); /* all 64  → bucket 1 → 85=0x55 */
+    canvas_set_pixel_raw(&post, 2, 0, 0xFF808080); /* all 128 → bucket 2 → 170=0xAA */
+    canvas_set_pixel_raw(&post, 3, 0, 0xFFC0C0C0); /* all 192 → bucket 3 → 255=0xFF */
+    canvas_posterize(&post, 4);
+    if (!expect_pixel_eq("post_0",   canvas_get_pixel(&post, 0, 0), 0xFF000000) ||
+        !expect_pixel_eq("post_64",  canvas_get_pixel(&post, 1, 0), 0xFF555555) ||
+        !expect_pixel_eq("post_128", canvas_get_pixel(&post, 2, 0), 0xFFAAAAAA) ||
+        !expect_pixel_eq("post_192", canvas_get_pixel(&post, 3, 0), 0xFFFFFFFF)) {
+        canvas_free(&post);
+        return 1;
+    }
+    /* alpha must be preserved */
+    canvas_set_pixel_raw(&post, 0, 0, 0x80404040);
+    canvas_posterize(&post, 4);
+    if ((canvas_get_pixel(&post, 0, 0) >> 24) != 0x80) {
+        fprintf(stderr, "post_alpha_preserved failed\n");
+        canvas_free(&post);
+        return 1;
+    }
+    canvas_free(&post);
+
     if (!test_layers_basic()) {
         return 1;
     }
