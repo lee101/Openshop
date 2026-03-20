@@ -496,3 +496,42 @@ void canvas_adjust_contrast(Canvas *c, int delta) {
         c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
     }
 }
+
+void canvas_posterize(Canvas *c, int levels) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    if (levels < 2) levels = 2;
+    if (levels > 255) levels = 255;
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        /* Quantise each channel to `levels` distinct values. */
+        r = (uint8_t)((r * levels / 256) * 255 / (levels - 1));
+        g = (uint8_t)((g * levels / 256) * 255 / (levels - 1));
+        b = (uint8_t)((b * levels / 256) * 255 / (levels - 1));
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+    }
+}
+
+void canvas_threshold(Canvas *c, uint8_t thresh) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        /* Luminance-based threshold: pixel becomes black or white. */
+        uint8_t lum = (uint8_t)((77 * (unsigned)r + 150 * (unsigned)g + 29 * (unsigned)b) >> 8);
+        uint8_t out = (lum >= thresh) ? 0xFF : 0x00;
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)out << 16) | ((uint32_t)out << 8) | (uint32_t)out;
+    }
+}

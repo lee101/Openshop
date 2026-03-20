@@ -1014,6 +1014,55 @@ int main(void) {
     }
     canvas_free(&contrast_c);
 
+    /* --- canvas_posterize: 2 levels (black/white) ---
+       Input: 0xFF804020 (r=128, g=64, b=32)
+       levels=2: r: 128*2/256=1 -> 1*255/1=255=0xFF
+                 g: 64*2/256=0  -> 0*255/1=0=0x00
+                 b: 32*2/256=0  -> 0=0x00
+       Expected: 0xFFFF0000 */
+    Canvas post_c;
+    if (!canvas_init(&post_c, 1, 1)) {
+        fprintf(stderr, "posterize canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&post_c, 0, 0, 0xFF804020);
+    canvas_posterize(&post_c, 2);
+    if (!expect_pixel_eq("posterize_2lev", canvas_get_pixel(&post_c, 0, 0), 0xFFFF0000)) {
+        canvas_free(&post_c);
+        return 1;
+    }
+    /* A fully white pixel must remain white for any levels count. */
+    canvas_set_pixel_raw(&post_c, 0, 0, 0xFFFFFFFF);
+    canvas_posterize(&post_c, 4);
+    if (!expect_pixel_eq("posterize_white_invariant", canvas_get_pixel(&post_c, 0, 0), 0xFFFFFFFF)) {
+        canvas_free(&post_c);
+        return 1;
+    }
+    canvas_free(&post_c);
+
+    /* --- canvas_threshold ---
+       A bright pixel (lum > 128) -> white; a dark pixel (lum < 128) -> black. */
+    Canvas thresh_c;
+    if (!canvas_init(&thresh_c, 1, 1)) {
+        fprintf(stderr, "threshold canvas init failed\n");
+        return 1;
+    }
+    /* White pixel: lum=255 >= 128 -> 0xFFFFFFFF */
+    canvas_set_pixel_raw(&thresh_c, 0, 0, 0xFFFFFFFF);
+    canvas_threshold(&thresh_c, 128);
+    if (!expect_pixel_eq("threshold_white", canvas_get_pixel(&thresh_c, 0, 0), 0xFFFFFFFF)) {
+        canvas_free(&thresh_c);
+        return 1;
+    }
+    /* Dark pixel: 0xFF101010, lum=(77*16+150*16+29*16)>>8=(256*16)>>8=16 < 128 -> 0xFF000000 */
+    canvas_set_pixel_raw(&thresh_c, 0, 0, 0xFF101010);
+    canvas_threshold(&thresh_c, 128);
+    if (!expect_pixel_eq("threshold_black", canvas_get_pixel(&thresh_c, 0, 0), 0xFF000000)) {
+        canvas_free(&thresh_c);
+        return 1;
+    }
+    canvas_free(&thresh_c);
+
     printf("ok\n");
     return 0;
 }
