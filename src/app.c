@@ -1303,6 +1303,22 @@ int app_run(const char *input_path) {
                 update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                 break;
             }
+            case SDL_MOUSEWHEEL: {
+                /* Scroll wheel adjusts active layer opacity (±5% per tick). */
+                Layer *active = layer_stack_active(&layers);
+                if (active && e.wheel.y != 0) {
+                    int new_op = active->opacity_percent + e.wheel.y * 5;
+                    if (new_op < 1) new_op = 1;
+                    if (new_op > 100) new_op = 100;
+                    if (new_op != active->opacity_percent) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        layer_stack_set_opacity(&layers, layers.active_layer, new_op);
+                        needs_composite = 1;
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    }
+                }
+                break;
+            }
             default:
                 break;
             }

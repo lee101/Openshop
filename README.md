@@ -24,6 +24,7 @@ make test-sdl
 ```
 
 ## Controls
+- `Scroll Wheel`: adjust active layer opacity (±5% per tick)
 - `Left Mouse`: draw on the active layer
 - `Right Mouse` / `I`: eyedropper (pick visible color)
 - `Right Mouse` while shaping / `Esc`: cancel shape preview
