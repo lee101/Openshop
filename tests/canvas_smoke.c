@@ -1098,6 +1098,37 @@ int main(void) {
     }
     canvas_free(&blur_c);
 
+    /* --- canvas_sharpen: uniform canvas must stay unchanged ---
+       Kernel: 5*c - top - bot - left - right.
+       When all neighbours equal c, result = 5*c - 4*c = c. */
+    Canvas sharp_c;
+    if (!canvas_init(&sharp_c, 3, 3)) {
+        fprintf(stderr, "sharpen canvas init failed\n");
+        return 1;
+    }
+    canvas_clear(&sharp_c, 0xFF808080);
+    canvas_sharpen(&sharp_c);
+    if (!expect_pixel_eq("sharpen_uniform_center", canvas_get_pixel(&sharp_c, 1, 1), 0xFF808080) ||
+        !expect_pixel_eq("sharpen_uniform_edge",   canvas_get_pixel(&sharp_c, 0, 0), 0xFF808080)) {
+        canvas_free(&sharp_c);
+        return 1;
+    }
+    /* A single bright pixel on a dark canvas should become brighter at its location. */
+    canvas_clear(&sharp_c, 0xFF000000);
+    canvas_set_pixel_raw(&sharp_c, 1, 1, 0xFF808080); /* mid-gray centre */
+    canvas_sharpen(&sharp_c);
+    {
+        uint32_t sp = canvas_get_pixel(&sharp_c, 1, 1);
+        uint8_t sr = (uint8_t)((sp >> 16) & 0xFF);
+        /* 5*0x80 - 4*0 = 640 -> clamped to 255 */
+        if (sr != 0xFF) {
+            fprintf(stderr, "sharpen isolated pixel failed: r=0x%02X want 0xFF\n", (unsigned)sr);
+            canvas_free(&sharp_c);
+            return 1;
+        }
+    }
+    canvas_free(&sharp_c);
+
     printf("ok\n");
     return 0;
 }

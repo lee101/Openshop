@@ -575,3 +575,46 @@ void canvas_blur(Canvas *c, int radius) {
     memcpy(c->pixels, copy, count * sizeof(uint32_t));
     free(copy);
 }
+
+void canvas_sharpen(Canvas *c) {
+    /* 3x3 sharpen kernel:  0 -1  0
+                           -1  5 -1
+                            0 -1  0  */
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    int W = c->width;
+    int H = c->height;
+    size_t count = (size_t)W * (size_t)H;
+    uint32_t *copy = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!copy) {
+        return;
+    }
+    for (int y = 0; y < H; y++) {
+        for (int x = 0; x < W; x++) {
+            uint32_t p  = c->pixels[(size_t)y * (size_t)W + (size_t)x];
+            uint32_t pu = y > 0   ? c->pixels[(size_t)(y-1) * (size_t)W + (size_t)x] : p;
+            uint32_t pd = y < H-1 ? c->pixels[(size_t)(y+1) * (size_t)W + (size_t)x] : p;
+            uint32_t pl = x > 0   ? c->pixels[(size_t)y * (size_t)W + (size_t)(x-1)] : p;
+            uint32_t pr = x < W-1 ? c->pixels[(size_t)y * (size_t)W + (size_t)(x+1)] : p;
+            uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+            int channels[3];
+            for (int ch = 0; ch < 3; ch++) {
+                int shift = (2 - ch) * 8;
+                int vc  = (int)((p  >> shift) & 0xFF);
+                int vup = (int)((pu >> shift) & 0xFF);
+                int vdn = (int)((pd >> shift) & 0xFF);
+                int vlt = (int)((pl >> shift) & 0xFF);
+                int vrt = (int)((pr >> shift) & 0xFF);
+                channels[ch] = clamp_u8(5 * vc - vup - vdn - vlt - vrt);
+            }
+            copy[(size_t)y * (size_t)W + (size_t)x] =
+                ((uint32_t)a << 24) |
+                ((uint32_t)channels[0] << 16) |
+                ((uint32_t)channels[1] << 8) |
+                (uint32_t)channels[2];
+        }
+    }
+    memcpy(c->pixels, copy, count * sizeof(uint32_t));
+    free(copy);
+}
