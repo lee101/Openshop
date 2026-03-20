@@ -930,6 +930,45 @@ int main(void) {
     }
     canvas_free(&gs);
 
+    /* --- brightness adjustment tests --- */
+    Canvas bright;
+    if (!canvas_init(&bright, 2, 1)) {
+        fprintf(stderr, "bright canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&bright, 0, 0, 0xFF808080); /* mid-gray */
+    canvas_set_pixel_raw(&bright, 1, 0, 0xFFFF1000); /* near-max red, low channels */
+
+    /* +50 brightness */
+    canvas_adjust_brightness(&bright, 50);
+    /* 0x80=128 + 50 = 178 = 0xB2 */
+    if (!expect_pixel_eq("bright_plus50", canvas_get_pixel(&bright, 0, 0), 0xFFB2B2B2)) {
+        canvas_free(&bright);
+        return 1;
+    }
+    /* red: 255+50 clamped to 255; green: 16+50=66=0x42; blue: 0+50=50=0x32 */
+    if (!expect_pixel_eq("bright_plus50_clamp", canvas_get_pixel(&bright, 1, 0), 0xFFFF4232)) {
+        canvas_free(&bright);
+        return 1;
+    }
+
+    /* -200 brightness on mid-gray: 178-200 = -22, clamped to 0 */
+    canvas_adjust_brightness(&bright, -200);
+    if (!expect_pixel_eq("bright_clamp_zero", canvas_get_pixel(&bright, 0, 0), 0xFF000000)) {
+        canvas_free(&bright);
+        return 1;
+    }
+
+    /* alpha is preserved by brightness */
+    canvas_set_pixel_raw(&bright, 0, 0, 0x80404040);
+    canvas_adjust_brightness(&bright, 10);
+    if ((canvas_get_pixel(&bright, 0, 0) >> 24) != 0x80) {
+        fprintf(stderr, "bright_alpha_preserved failed\n");
+        canvas_free(&bright);
+        return 1;
+    }
+    canvas_free(&bright);
+
     if (!test_layers_basic()) {
         return 1;
     }

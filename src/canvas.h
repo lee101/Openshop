@@ -30,5 +30,6 @@ void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color);
 void canvas_rotate_90_cw(Canvas *c, uint32_t fill_color);
 void canvas_rotate_90_ccw(Canvas *c, uint32_t fill_color);
 void canvas_grayscale(Canvas *c);
+void canvas_adjust_brightness(Canvas *c, int delta);
 
 #endif

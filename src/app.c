@@ -864,6 +864,26 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (ctrl && shift && key == SDLK_LEFTBRACKET) {
+                    Layer *active = layer_stack_active(&layers);
+                    if (active && !active->locked && active->canvas.pixels) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        canvas_adjust_brightness(&active->canvas, -10);
+                        needs_composite = 1;
+                    }
+                    break;
+                }
+
+                if (ctrl && shift && key == SDLK_RIGHTBRACKET) {
+                    Layer *active = layer_stack_active(&layers);
+                    if (active && !active->locked && active->canvas.pixels) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        canvas_adjust_brightness(&active->canvas, +10);
+                        needs_composite = 1;
+                    }
+                    break;
+                }
+
                 if (ctrl && key == SDLK_LEFTBRACKET) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_move(&layers, layers.active_layer, -1)) {
