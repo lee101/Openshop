@@ -509,6 +509,59 @@ void canvas_sepia(Canvas *c) {
     }
 }
 
+/* Sharpen the canvas using the 3×3 Laplacian-based kernel
+ *   [ 0  -1   0 ]
+ *   [-1   5  -1 ]
+ *   [ 0  -1   0 ]
+ * Only interior pixels are processed; the one-pixel border is left unchanged.
+ * Alpha is unchanged. */
+void canvas_sharpen(Canvas *c) {
+    if (!c || !c->pixels || c->width < 3 || c->height < 3) {
+        return;
+    }
+    int W = c->width;
+    int H = c->height;
+    size_t count = (size_t)W * (size_t)H;
+    uint32_t *src = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!src) {
+        return;
+    }
+    memcpy(src, c->pixels, count * sizeof(uint32_t));
+
+    for (int y = 1; y < H - 1; y++) {
+        for (int x = 1; x < W - 1; x++) {
+            uint32_t pc = src[(size_t)y * (size_t)W + (size_t)x];
+            uint32_t pu = src[(size_t)(y - 1) * (size_t)W + (size_t)x];
+            uint32_t pd = src[(size_t)(y + 1) * (size_t)W + (size_t)x];
+            uint32_t pl = src[(size_t)y * (size_t)W + (size_t)(x - 1)];
+            uint32_t pr = src[(size_t)y * (size_t)W + (size_t)(x + 1)];
+
+            uint8_t a = (uint8_t)((pc >> 24) & 0xFF);
+
+            /* For each channel: new = 5*center - up - down - left - right */
+            int rc = (int)((pc >> 16) & 0xFF);
+            int gc = (int)((pc >> 8) & 0xFF);
+            int bc = (int)(pc & 0xFF);
+
+            int nr = 5 * rc - (int)((pu >> 16) & 0xFF) - (int)((pd >> 16) & 0xFF)
+                            - (int)((pl >> 16) & 0xFF) - (int)((pr >> 16) & 0xFF);
+            int ng = 5 * gc - (int)((pu >> 8) & 0xFF)  - (int)((pd >> 8) & 0xFF)
+                            - (int)((pl >> 8) & 0xFF)  - (int)((pr >> 8) & 0xFF);
+            int nb = 5 * bc - (int)(pu & 0xFF)          - (int)(pd & 0xFF)
+                            - (int)(pl & 0xFF)          - (int)(pr & 0xFF);
+
+            if (nr < 0) nr = 0; else if (nr > 255) nr = 255;
+            if (ng < 0) ng = 0; else if (ng > 255) ng = 255;
+            if (nb < 0) nb = 0; else if (nb > 255) nb = 255;
+
+            c->pixels[(size_t)y * (size_t)W + (size_t)x] =
+                ((uint32_t)a << 24) | ((uint32_t)nr << 16) | ((uint32_t)ng << 8) | (uint32_t)nb;
+        }
+    }
+
+    free(src);
+}
+
 /* Adjust brightness of all pixels by adding delta to each RGB channel.
  * delta is clamped so the result stays within [0, 255]. Alpha is unchanged. */
 void canvas_adjust_brightness(Canvas *c, int delta) {

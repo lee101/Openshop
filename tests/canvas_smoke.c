@@ -1068,6 +1068,44 @@ int main(void) {
     }
     canvas_free(&sepia);
 
+    /* --- sharpen tests --- */
+    Canvas sharp;
+    if (!canvas_init(&sharp, 5, 5)) {
+        fprintf(stderr, "sharp canvas init failed\n");
+        return 1;
+    }
+    /* A flat uniform canvas must be invariant under sharpening:
+     * 5*c - c - c - c - c = c for any constant c. */
+    canvas_clear(&sharp, 0xFF808080);
+    canvas_sharpen(&sharp);
+    if (!expect_pixel_eq("sharpen_flat", canvas_get_pixel(&sharp, 2, 2), 0xFF808080)) {
+        canvas_free(&sharp);
+        return 1;
+    }
+    /* Border pixels are left unchanged; check corner */
+    if (!expect_pixel_eq("sharpen_border", canvas_get_pixel(&sharp, 0, 0), 0xFF808080)) {
+        canvas_free(&sharp);
+        return 1;
+    }
+    /* An isolated bright pixel on a black background should stay clamped to 0xFF.
+     * center=255, neighbors=0 → 5*255 = 1275, clamped to 255. */
+    canvas_clear(&sharp, 0xFF000000);
+    canvas_set_pixel_raw(&sharp, 2, 2, 0xFFFFFFFF);
+    canvas_sharpen(&sharp);
+    if (!expect_pixel_eq("sharpen_bright_center", canvas_get_pixel(&sharp, 2, 2), 0xFFFFFFFF)) {
+        canvas_free(&sharp);
+        return 1;
+    }
+    /* alpha must be preserved on interior pixels */
+    canvas_clear(&sharp, 0x80808080);
+    canvas_sharpen(&sharp);
+    if ((canvas_get_pixel(&sharp, 2, 2) >> 24) != 0x80) {
+        fprintf(stderr, "sharpen_alpha_preserved failed\n");
+        canvas_free(&sharp);
+        return 1;
+    }
+    canvas_free(&sharp);
+
     if (!test_layers_basic()) {
         return 1;
     }
