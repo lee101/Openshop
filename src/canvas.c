@@ -535,3 +535,43 @@ void canvas_threshold(Canvas *c, uint8_t thresh) {
         c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)out << 16) | ((uint32_t)out << 8) | (uint32_t)out;
     }
 }
+
+void canvas_blur(Canvas *c, int radius) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0 || radius <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    uint32_t *copy = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!copy) {
+        return;
+    }
+    int W = c->width;
+    int H = c->height;
+    for (int y = 0; y < H; y++) {
+        int y0 = y - radius < 0 ? 0 : y - radius;
+        int y1 = y + radius >= H ? H - 1 : y + radius;
+        for (int x = 0; x < W; x++) {
+            int x0 = x - radius < 0 ? 0 : x - radius;
+            int x1 = x + radius >= W ? W - 1 : x + radius;
+            unsigned long sum_a = 0, sum_r = 0, sum_g = 0, sum_b = 0;
+            int n = 0;
+            for (int sy = y0; sy <= y1; sy++) {
+                for (int sx = x0; sx <= x1; sx++) {
+                    uint32_t p = c->pixels[(size_t)sy * (size_t)W + (size_t)sx];
+                    sum_a += (p >> 24) & 0xFF;
+                    sum_r += (p >> 16) & 0xFF;
+                    sum_g += (p >> 8) & 0xFF;
+                    sum_b += p & 0xFF;
+                    n++;
+                }
+            }
+            copy[(size_t)y * (size_t)W + (size_t)x] =
+                (uint32_t)((sum_a / (unsigned)n) << 24) |
+                (uint32_t)((sum_r / (unsigned)n) << 16) |
+                (uint32_t)((sum_g / (unsigned)n) << 8) |
+                (uint32_t)(sum_b / (unsigned)n);
+        }
+    }
+    memcpy(c->pixels, copy, count * sizeof(uint32_t));
+    free(copy);
+}

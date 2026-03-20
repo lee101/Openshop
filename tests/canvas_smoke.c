@@ -1063,6 +1063,41 @@ int main(void) {
     }
     canvas_free(&thresh_c);
 
+    /* --- canvas_blur: 3x1 row, radius=1 ---
+       Row: [0xFF000000, 0xFFFF0000, 0xFF000000]
+       For center pixel (1,0) the 3x1 neighbourhood averages to:
+         a=(0+255+0)/3=85, r=(0+255+0)/3=85, g=0, b=0 -> 0x55550000
+       For edge pixels (0,0) and (2,0), neighbourhood is 2 wide:
+         a=(0+255)/2=127, r=(0+255)/2=127 -> 0x7F7F0000 */
+    Canvas blur_c;
+    if (!canvas_init(&blur_c, 3, 1)) {
+        fprintf(stderr, "blur canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&blur_c, 0, 0, 0xFF000000);
+    canvas_set_pixel_raw(&blur_c, 1, 0, 0xFFFF0000);
+    canvas_set_pixel_raw(&blur_c, 2, 0, 0xFF000000);
+    canvas_blur(&blur_c, 1);
+    {
+        uint32_t center = canvas_get_pixel(&blur_c, 1, 0);
+        uint8_t cr = (uint8_t)((center >> 16) & 0xFF);
+        uint8_t cg = (uint8_t)((center >> 8) & 0xFF);
+        /* center red channel should be ~85 (255/3), green must stay 0 */
+        if (cr != 85 || cg != 0) {
+            fprintf(stderr, "blur center failed: 0x%08X (want r=85 g=0)\n", center);
+            canvas_free(&blur_c);
+            return 1;
+        }
+    }
+    /* A uniform canvas must be unchanged by blur. */
+    canvas_clear(&blur_c, 0xFF123456);
+    canvas_blur(&blur_c, 1);
+    if (!expect_pixel_eq("blur_uniform_invariant", canvas_get_pixel(&blur_c, 1, 0), 0xFF123456)) {
+        canvas_free(&blur_c);
+        return 1;
+    }
+    canvas_free(&blur_c);
+
     printf("ok\n");
     return 0;
 }
