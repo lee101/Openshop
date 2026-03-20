@@ -1090,6 +1090,26 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (ctrl && shift && (key == SDLK_UP || key == SDLK_DOWN)) {
+                    Layer *active = layer_stack_active(&layers);
+                    if (active && !active->locked && active->canvas.pixels) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        canvas_adjust_brightness(&active->canvas, (key == SDLK_UP) ? 20 : -20);
+                        needs_composite = 1;
+                    }
+                    break;
+                }
+
+                if (ctrl && shift && (key == SDLK_LEFT || key == SDLK_RIGHT)) {
+                    Layer *active = layer_stack_active(&layers);
+                    if (active && !active->locked && active->canvas.pixels) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        canvas_adjust_contrast(&active->canvas, (key == SDLK_RIGHT) ? 20 : -20);
+                        needs_composite = 1;
+                    }
+                    break;
+                }
+
                 if (key == SDLK_UP || key == SDLK_DOWN || key == SDLK_LEFT || key == SDLK_RIGHT) {
                     int step = shift ? 10 : 1;
                     int dx = 0;

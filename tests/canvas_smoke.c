@@ -952,6 +952,68 @@ int main(void) {
     }
     canvas_free(&sepia_c);
 
+    /* --- canvas_adjust_brightness ---
+       Input: 0xFF808080 (mid-gray). delta = +20 -> each channel clamped to 128+20=148=0x94
+       Expected: 0xFF949494 */
+    Canvas bright_c;
+    if (!canvas_init(&bright_c, 1, 1)) {
+        fprintf(stderr, "brightness canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&bright_c, 0, 0, 0xFF808080);
+    canvas_adjust_brightness(&bright_c, 20);
+    if (!expect_pixel_eq("brightness_up", canvas_get_pixel(&bright_c, 0, 0), 0xFF949494)) {
+        canvas_free(&bright_c);
+        return 1;
+    }
+    /* Darken back: 0x94 - 20 = 0x80; should round-trip */
+    canvas_adjust_brightness(&bright_c, -20);
+    if (!expect_pixel_eq("brightness_down", canvas_get_pixel(&bright_c, 0, 0), 0xFF808080)) {
+        canvas_free(&bright_c);
+        return 1;
+    }
+    /* Clamp test: brighten a near-white pixel; channels must not exceed 255 */
+    canvas_set_pixel_raw(&bright_c, 0, 0, 0xFFF0F0F0);
+    canvas_adjust_brightness(&bright_c, 50);
+    {
+        uint32_t cp = canvas_get_pixel(&bright_c, 0, 0);
+        if ((cp & 0x00FFFFFF) != 0x00FFFFFF) {
+            fprintf(stderr, "brightness clamp failed: 0x%08X\n", cp);
+            canvas_free(&bright_c);
+            return 1;
+        }
+    }
+    canvas_free(&bright_c);
+
+    /* --- canvas_adjust_contrast ---
+       Input: 0xFF808080 (128,128,128 = midpoint). Contrast at midpoint is invariant.
+       Expected: unchanged for any delta */
+    Canvas contrast_c;
+    if (!canvas_init(&contrast_c, 1, 1)) {
+        fprintf(stderr, "contrast canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&contrast_c, 0, 0, 0xFF808080);
+    canvas_adjust_contrast(&contrast_c, 50);
+    if (!expect_pixel_eq("contrast_midpoint_invariant", canvas_get_pixel(&contrast_c, 0, 0), 0xFF808080)) {
+        canvas_free(&contrast_c);
+        return 1;
+    }
+    /* A bright channel (200) with +100 delta (factor=200) should move away from 128 */
+    canvas_set_pixel_raw(&contrast_c, 0, 0, 0xFFC8C8C8); /* 200 per channel */
+    canvas_adjust_contrast(&contrast_c, 100);
+    {
+        uint32_t cp = canvas_get_pixel(&contrast_c, 0, 0);
+        uint8_t cr = (uint8_t)((cp >> 16) & 0xFF);
+        /* (200-128)*200/100+128 = 72*2+128 = 272 -> clamped to 255 */
+        if (cr != 255) {
+            fprintf(stderr, "contrast bright channel failed: got %d want 255\n", (int)cr);
+            canvas_free(&contrast_c);
+            return 1;
+        }
+    }
+    canvas_free(&contrast_c);
+
     printf("ok\n");
     return 0;
 }
