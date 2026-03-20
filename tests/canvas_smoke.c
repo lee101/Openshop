@@ -842,6 +842,116 @@ int main(void) {
         return 1;
     }
 
+    /* --- canvas_rotate_90_cw: square 2x2 ---
+       Input layout (row-major, W=H=2):
+         (0,0)=0xFF000001  (1,0)=0xFF000002
+         (0,1)=0xFF000003  (1,1)=0xFF000004
+       Expected after 90° CW (dest(dx,dy) <- src(dy, H-1-dx)):
+         (0,0)=src(0,1)=0xFF000003  (1,0)=src(0,0)=0xFF000001
+         (0,1)=src(1,1)=0xFF000004  (1,1)=src(1,0)=0xFF000002  */
+    Canvas rot_cw;
+    if (!canvas_init(&rot_cw, 2, 2)) {
+        fprintf(stderr, "rot_cw init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&rot_cw, 0, 0, 0xFF000001);
+    canvas_set_pixel_raw(&rot_cw, 1, 0, 0xFF000002);
+    canvas_set_pixel_raw(&rot_cw, 0, 1, 0xFF000003);
+    canvas_set_pixel_raw(&rot_cw, 1, 1, 0xFF000004);
+    canvas_rotate_90_cw(&rot_cw);
+    if (!expect_pixel_eq("rot_cw_00", canvas_get_pixel(&rot_cw, 0, 0), 0xFF000003) ||
+        !expect_pixel_eq("rot_cw_10", canvas_get_pixel(&rot_cw, 1, 0), 0xFF000001) ||
+        !expect_pixel_eq("rot_cw_01", canvas_get_pixel(&rot_cw, 0, 1), 0xFF000004) ||
+        !expect_pixel_eq("rot_cw_11", canvas_get_pixel(&rot_cw, 1, 1), 0xFF000002)) {
+        canvas_free(&rot_cw);
+        return 1;
+    }
+    canvas_free(&rot_cw);
+
+    /* --- canvas_rotate_90_ccw: square 2x2 ---
+       Input layout (W=H=2):
+         (0,0)=0xFF000001  (1,0)=0xFF000002
+         (0,1)=0xFF000003  (1,1)=0xFF000004
+       Expected after 90° CCW (dest(dx,dy) <- src(W-1-dy, dx)):
+         (0,0)=src(W-1-0,0)=src(1,0)=0xFF000002
+         (1,0)=src(W-1-0,1)=src(1,1)=0xFF000004
+         (0,1)=src(W-1-1,0)=src(0,0)=0xFF000001
+         (1,1)=src(W-1-1,1)=src(0,1)=0xFF000003  */
+    Canvas rot_ccw;
+    if (!canvas_init(&rot_ccw, 2, 2)) {
+        fprintf(stderr, "rot_ccw init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&rot_ccw, 0, 0, 0xFF000001);
+    canvas_set_pixel_raw(&rot_ccw, 1, 0, 0xFF000002);
+    canvas_set_pixel_raw(&rot_ccw, 0, 1, 0xFF000003);
+    canvas_set_pixel_raw(&rot_ccw, 1, 1, 0xFF000004);
+    canvas_rotate_90_ccw(&rot_ccw);
+    if (!expect_pixel_eq("rot_ccw_00", canvas_get_pixel(&rot_ccw, 0, 0), 0xFF000002) ||
+        !expect_pixel_eq("rot_ccw_10", canvas_get_pixel(&rot_ccw, 1, 0), 0xFF000004) ||
+        !expect_pixel_eq("rot_ccw_01", canvas_get_pixel(&rot_ccw, 0, 1), 0xFF000001) ||
+        !expect_pixel_eq("rot_ccw_11", canvas_get_pixel(&rot_ccw, 1, 1), 0xFF000003)) {
+        canvas_free(&rot_ccw);
+        return 1;
+    }
+    canvas_free(&rot_ccw);
+
+    /* --- canvas_grayscale: red pixel -> gray ---
+       Input: 0xFF804020 (r=0x80, g=0x40, b=0x20)
+       gray = (77*0x80 + 150*0x40 + 29*0x20) >> 8
+            = (77*128 + 150*64 + 29*32) >> 8
+            = (9856 + 9600 + 928) >> 8
+            = 20384 >> 8 = 79 = 0x4F
+       Expected: 0xFF4F4F4F */
+    Canvas gray_c;
+    if (!canvas_init(&gray_c, 1, 1)) {
+        fprintf(stderr, "gray canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&gray_c, 0, 0, 0xFF804020);
+    canvas_grayscale(&gray_c);
+    {
+        uint32_t gp = canvas_get_pixel(&gray_c, 0, 0);
+        uint8_t ga = (uint8_t)((gp >> 24) & 0xFF);
+        uint8_t gr = (uint8_t)((gp >> 16) & 0xFF);
+        uint8_t gg = (uint8_t)((gp >> 8) & 0xFF);
+        uint8_t gb = (uint8_t)(gp & 0xFF);
+        if (ga != 0xFF || gr != gg || gg != gb) {
+            fprintf(stderr, "grayscale R!=G or G!=B or alpha changed: 0x%08X\n", gp);
+            canvas_free(&gray_c);
+            return 1;
+        }
+    }
+    canvas_free(&gray_c);
+
+    /* --- canvas_sepia: pure red pixel warm-tones ---
+       Input: 0xFFFF0000 (r=255, g=0, b=0)
+       out_r = (255*50 + 0 + 0) >> 7 = 12750 >> 7 = 99
+       out_g = (255*45) >> 7 = 11475 >> 7 = 89
+       out_b = (255*35) >> 7 = 8925 >> 7 = 69
+       Expected: 0xFF63593F (approximately warm brown) */
+    Canvas sepia_c;
+    if (!canvas_init(&sepia_c, 1, 1)) {
+        fprintf(stderr, "sepia canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&sepia_c, 0, 0, 0xFFFF0000);
+    canvas_sepia(&sepia_c);
+    {
+        uint32_t sp = canvas_get_pixel(&sepia_c, 0, 0);
+        uint8_t sa = (uint8_t)((sp >> 24) & 0xFF);
+        uint8_t sr = (uint8_t)((sp >> 16) & 0xFF);
+        uint8_t sg = (uint8_t)((sp >> 8) & 0xFF);
+        uint8_t sb = (uint8_t)(sp & 0xFF);
+        /* sepia should be warm: R > G > B, alpha preserved */
+        if (sa != 0xFF || sr <= sg || sg <= sb) {
+            fprintf(stderr, "sepia warm tone failed (R>G>B expected): 0x%08X\n", sp);
+            canvas_free(&sepia_c);
+            return 1;
+        }
+    }
+    canvas_free(&sepia_c);
+
     printf("ok\n");
     return 0;
 }

@@ -358,3 +358,103 @@ void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color) {
     memcpy(c->pixels, copy, count * sizeof(uint32_t));
     free(copy);
 }
+
+void canvas_rotate_90_cw(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    int W = c->width;
+    int H = c->height;
+    size_t count = (size_t)W * (size_t)H;
+    uint32_t *copy = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!copy) {
+        return;
+    }
+    /* For a true 90° CW rotation the output is H wide and W tall.
+       We keep the same W×H frame: dest(dx,dy) <- src(dy, H-1-dx).
+       Pixels outside the rotated image bounds are set transparent. */
+    for (int dy = 0; dy < H; dy++) {
+        for (int dx = 0; dx < W; dx++) {
+            if (dx < H && dy < W) {
+                int src_x = dy;
+                int src_y = H - 1 - dx;
+                copy[(size_t)dy * (size_t)W + (size_t)dx] =
+                    c->pixels[(size_t)src_y * (size_t)W + (size_t)src_x];
+            } else {
+                copy[(size_t)dy * (size_t)W + (size_t)dx] = 0;
+            }
+        }
+    }
+    memcpy(c->pixels, copy, count * sizeof(uint32_t));
+    free(copy);
+}
+
+void canvas_rotate_90_ccw(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    int W = c->width;
+    int H = c->height;
+    size_t count = (size_t)W * (size_t)H;
+    uint32_t *copy = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!copy) {
+        return;
+    }
+    /* For a true 90° CCW rotation the output is H wide and W tall.
+       We keep the same W×H frame: dest(dx,dy) <- src(W-1-dy, dx).
+       Pixels outside the rotated image bounds are set transparent. */
+    for (int dy = 0; dy < H; dy++) {
+        for (int dx = 0; dx < W; dx++) {
+            if (dx < H && dy < W) {
+                int src_x = W - 1 - dy;
+                int src_y = dx;
+                copy[(size_t)dy * (size_t)W + (size_t)dx] =
+                    c->pixels[(size_t)src_y * (size_t)W + (size_t)src_x];
+            } else {
+                copy[(size_t)dy * (size_t)W + (size_t)dx] = 0;
+            }
+        }
+    }
+    memcpy(c->pixels, copy, count * sizeof(uint32_t));
+    free(copy);
+}
+
+void canvas_grayscale(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        /* Rec. 601 luminance weights: 0.299*R + 0.587*G + 0.114*B */
+        uint8_t gray = (uint8_t)((77 * (unsigned)r + 150 * (unsigned)g + 29 * (unsigned)b) >> 8);
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)gray << 16) | ((uint32_t)gray << 8) | (uint32_t)gray;
+    }
+}
+
+void canvas_sepia(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        /* Standard sepia tone matrix (scaled by 128 to avoid floats). */
+        int out_r = ((int)r * 50 + (int)g * 98 + (int)b * 24) >> 7;
+        int out_g = ((int)r * 45 + (int)g * 88 + (int)b * 22) >> 7;
+        int out_b = ((int)r * 35 + (int)g * 68 + (int)b * 17) >> 7;
+        if (out_r > 255) out_r = 255;
+        if (out_g > 255) out_g = 255;
+        if (out_b > 255) out_b = 255;
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)out_r << 16) |
+                       ((uint32_t)out_g << 8) | (uint32_t)out_b;
+    }
+}
