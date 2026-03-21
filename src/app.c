@@ -587,7 +587,16 @@ static void draw_brush_line(Canvas *c, int x0, int y0, int x1, int y1, int radiu
     }
 }
 
-int app_run(const char *input_path) {
+int app_run(const char *input_path, int canvas_w, int canvas_h) {
+    if (canvas_w <= 0) {
+        canvas_w = CANVAS_WIDTH;
+    }
+    if (canvas_h <= 0) {
+        canvas_h = CANVAS_HEIGHT;
+    }
+    int win_w = canvas_w > WINDOW_WIDTH ? canvas_w : WINDOW_WIDTH;
+    int win_h = canvas_h > WINDOW_HEIGHT ? canvas_h : WINDOW_HEIGHT;
+
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
         return 1;
@@ -597,8 +606,8 @@ int app_run(const char *input_path) {
         "Openshop - Minimal Paint",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
-        WINDOW_WIDTH,
-        WINDOW_HEIGHT,
+        win_w,
+        win_h,
         SDL_WINDOW_SHOWN
     );
     if (!window) {
@@ -619,8 +628,8 @@ int app_run(const char *input_path) {
         renderer,
         SDL_PIXELFORMAT_ARGB8888,
         SDL_TEXTUREACCESS_STREAMING,
-        CANVAS_WIDTH,
-        CANVAS_HEIGHT
+        canvas_w,
+        canvas_h
     );
     if (!texture) {
         fprintf(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
@@ -631,7 +640,7 @@ int app_run(const char *input_path) {
     }
 
     LayerStack layers;
-    if (!layer_stack_init(&layers, CANVAS_WIDTH, CANVAS_HEIGHT, COLOR_BG)) {
+    if (!layer_stack_init(&layers, canvas_w, canvas_h, COLOR_BG)) {
         fprintf(stderr, "Layer stack init failed\n");
         SDL_DestroyTexture(texture);
         SDL_DestroyRenderer(renderer);
@@ -641,7 +650,7 @@ int app_run(const char *input_path) {
     }
 
     Canvas composite = {0};
-    if (!canvas_init(&composite, CANVAS_WIDTH, CANVAS_HEIGHT)) {
+    if (!canvas_init(&composite, canvas_w, canvas_h)) {
         fprintf(stderr, "Composite canvas init failed\n");
         layer_stack_free(&layers);
         SDL_DestroyTexture(texture);
@@ -680,9 +689,12 @@ int app_run(const char *input_path) {
     int needs_composite = 0;
     int rename_active = 0;
     char rename_buffer[LAYER_NAME_MAX] = {0};
-    uint32_t *shape_base_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
-    uint32_t *preview_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
-    Canvas preview_canvas = {CANVAS_WIDTH, CANVAS_HEIGHT, preview_pixels};
+    int zoom_level = 0; /* 0=1x, 1=2x, 2=4x, 3=8x */
+    int view_x = 0;
+    int view_y = 0;
+    uint32_t *shape_base_pixels = (uint32_t *)malloc((size_t)canvas_w * (size_t)canvas_h * sizeof(uint32_t));
+    uint32_t *preview_pixels = (uint32_t *)malloc((size_t)canvas_w * (size_t)canvas_h * sizeof(uint32_t));
+    Canvas preview_canvas = {canvas_w, canvas_h, preview_pixels};
     memset(undo_stack, 0, sizeof(undo_stack));
     memset(redo_stack, 0, sizeof(redo_stack));
     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -718,7 +730,7 @@ int app_run(const char *input_path) {
                             memcpy(
                                 shape_base_pixels,
                                 composite.pixels,
-                                (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t)
+                                (size_t)canvas_w * (size_t)canvas_h * sizeof(uint32_t)
                             );
                         }
                     }
@@ -727,9 +739,9 @@ int app_run(const char *input_path) {
                         cancel_shape_preview(&shaping, &preview_active);
                         break;
                     }
-                    int x = e.button.x;
-                    int y = e.button.y;
-                    if (x >= 0 && y >= 0 && x < CANVAS_WIDTH && y < CANVAS_HEIGHT) {
+                    int x = sc_to_cx(e.button.x, view_x, 1 << zoom_level);
+                    int y = sc_to_cy(e.button.y, view_y, 1 << zoom_level);
+                    if (x >= 0 && y >= 0 && x < canvas_w && y < canvas_h) {
                         const Canvas *sample = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
                         brush_color = canvas_get_pixel(sample, x, y);
                         brush_color_rgb = brush_color & 0x00FFFFFF;
@@ -750,8 +762,8 @@ int app_run(const char *input_path) {
                     if (shaping) {
                         const Uint8 *state = SDL_GetKeyboardState(NULL);
                         int shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
-                        int end_x = e.button.x;
-                        int end_y = e.button.y;
+                        int end_x = sc_to_cx(e.button.x, view_x, 1 << zoom_level);
+                        int end_y = sc_to_cy(e.button.y, view_y, 1 << zoom_level);
                         constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
                         Layer *active = layer_stack_active(&layers);
                         if (active && !active->locked && active->canvas.pixels) {
@@ -765,9 +777,9 @@ int app_run(const char *input_path) {
                 break;
             case SDL_MOUSEMOTION:
                 if (drawing) {
-                    int x = e.motion.x;
-                    int y = e.motion.y;
-                    if (x >= 0 && y >= 0 && x < CANVAS_WIDTH && y < CANVAS_HEIGHT) {
+                    int x = sc_to_cx(e.motion.x, view_x, 1 << zoom_level);
+                    int y = sc_to_cy(e.motion.y, view_y, 1 << zoom_level);
+                    if (x >= 0 && y >= 0 && x < canvas_w && y < canvas_h) {
                         Layer *active = layer_stack_active(&layers);
                         if (active && !active->locked && active->canvas.pixels) {
                             if (tool == TOOL_ERASER) {
@@ -784,9 +796,9 @@ int app_run(const char *input_path) {
                     if (!shape_base_pixels || !preview_canvas.pixels) {
                         break;
                     }
-                    int x = e.motion.x;
-                    int y = e.motion.y;
-                    if (x < 0 || y < 0 || x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT) {
+                    int x = sc_to_cx(e.motion.x, view_x, 1 << zoom_level);
+                    int y = sc_to_cy(e.motion.y, view_y, 1 << zoom_level);
+                    if (x < 0 || y < 0 || x >= canvas_w || y >= canvas_h) {
                         break;
                     }
                     const Uint8 *state = SDL_GetKeyboardState(NULL);
@@ -797,7 +809,7 @@ int app_run(const char *input_path) {
                     memcpy(
                         preview_pixels,
                         shape_base_pixels,
-                        (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t)
+                        (size_t)canvas_w * (size_t)canvas_h * sizeof(uint32_t)
                     );
                     draw_shape(&preview_canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
                     preview_active = 1;
@@ -1416,6 +1428,33 @@ int app_run(const char *input_path) {
                     if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_rotate_180)) {
                         needs_composite = 1;
                     }
+                } else if (key == SDLK_z) {
+                    int zs = 1 << zoom_level;
+                    if (shift) {
+                        if (zoom_level > 0) {
+                            int old_vis_w = win_w / zs;
+                            int old_vis_h = win_h / zs;
+                            zoom_level--;
+                            int new_zs = 1 << zoom_level;
+                            int new_vis_w = win_w / new_zs;
+                            int new_vis_h = win_h / new_zs;
+                            /* Keep the visible center stable */
+                            view_x += (old_vis_w - new_vis_w) / 2;
+                            view_y += (old_vis_h - new_vis_h) / 2;
+                        }
+                    } else {
+                        if (zoom_level < 3) {
+                            int mx = 0, my = 0;
+                            SDL_GetMouseState(&mx, &my);
+                            int cx = sc_to_cx(mx, view_x, zs);
+                            int cy = sc_to_cy(my, view_y, zs);
+                            zoom_level++;
+                            int new_zs = 1 << zoom_level;
+                            /* Center new view on the canvas pixel under the cursor */
+                            view_x = cx - mx / new_zs;
+                            view_y = cy - my / new_zs;
+                        }
+                    }
                 } else if (key == SDLK_x) {
                     if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_invert_rgb)) {
                         needs_composite = 1;
@@ -1450,7 +1489,9 @@ int app_run(const char *input_path) {
                     int mx = 0;
                     int my = 0;
                     SDL_GetMouseState(&mx, &my);
-                    if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
+                    mx = sc_to_cx(mx, view_x, 1 << zoom_level);
+                    my = sc_to_cy(my, view_y, 1 << zoom_level);
+                    if (mx >= 0 && my >= 0 && mx < canvas_w && my < canvas_h) {
                         Layer *active = layer_stack_active(&layers);
                         Snapshot before = {0};
                         int filled = 0;
@@ -1469,7 +1510,9 @@ int app_run(const char *input_path) {
                     int mx = 0;
                     int my = 0;
                     SDL_GetMouseState(&mx, &my);
-                    if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
+                    mx = sc_to_cx(mx, view_x, 1 << zoom_level);
+                    my = sc_to_cy(my, view_y, 1 << zoom_level);
+                    if (mx >= 0 && my >= 0 && mx < canvas_w && my < canvas_h) {
                         const Canvas *sample = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
                         brush_color = canvas_get_pixel(sample, mx, my);
                         brush_color_rgb = brush_color & 0x00FFFFFF;
@@ -1507,28 +1550,68 @@ int app_run(const char *input_path) {
         }
 
         if (preview_active && preview_canvas.pixels) {
-            SDL_UpdateTexture(texture, NULL, preview_canvas.pixels, CANVAS_WIDTH * 4);
+            SDL_UpdateTexture(texture, NULL, preview_canvas.pixels, canvas_w * 4);
         } else {
-            SDL_UpdateTexture(texture, NULL, composite.pixels, CANVAS_WIDTH * 4);
+            SDL_UpdateTexture(texture, NULL, composite.pixels, canvas_w * 4);
         }
         SDL_SetRenderDrawColor(renderer, 30, 30, 34, 255);
         SDL_RenderClear(renderer);
 
-        for (int y = 0; y < CANVAS_HEIGHT; y += CHECKER_SIZE) {
-            for (int x = 0; x < CANVAS_WIDTH; x += CHECKER_SIZE) {
-                int even = ((x / CHECKER_SIZE) + (y / CHECKER_SIZE)) % 2 == 0;
-                if (even) {
-                    SDL_SetRenderDrawColor(renderer, 232, 232, 236, 255);
-                } else {
-                    SDL_SetRenderDrawColor(renderer, 206, 206, 212, 255);
-                }
-                SDL_Rect cell = {x, y, CHECKER_SIZE, CHECKER_SIZE};
-                SDL_RenderFillRect(renderer, &cell);
+        /* --- Zoom / pan: compute visible canvas region --- */
+        {
+            int zoom_scale = 1 << zoom_level;
+            int vis_w = win_w / zoom_scale;
+            int vis_h = win_h / zoom_scale;
+            /* Clamp view_x and view_y */
+            if (view_x < 0) { view_x = 0; }
+            if (view_y < 0) { view_y = 0; }
+            {
+                int max_vx = canvas_w - vis_w;
+                if (max_vx < 0) { max_vx = 0; }
+                if (view_x > max_vx) { view_x = max_vx; }
+                int max_vy = canvas_h - vis_h;
+                if (max_vy < 0) { max_vy = 0; }
+                if (view_y > max_vy) { view_y = max_vy; }
             }
-        }
+            /* Actual canvas area that fits on screen */
+            int draw_w = canvas_w - view_x;
+            if (draw_w > vis_w) { draw_w = vis_w; }
+            int draw_h = canvas_h - view_y;
+            if (draw_h > vis_h) { draw_h = vis_h; }
 
-        SDL_Rect dest = {0, 0, CANVAS_WIDTH, CANVAS_HEIGHT};
-        SDL_RenderCopy(renderer, texture, NULL, &dest);
+            SDL_SetRenderDrawColor(renderer, 30, 30, 34, 255);
+            SDL_RenderClear(renderer);
+
+            /* Draw checkerboard scaled to current zoom, offset to match view */
+            {
+                int start_cx = (view_x / CHECKER_SIZE) * CHECKER_SIZE;
+                int start_cy = (view_y / CHECKER_SIZE) * CHECKER_SIZE;
+                int end_cx = view_x + draw_w;
+                int end_cy = view_y + draw_h;
+                for (int cy = start_cy; cy < end_cy; cy += CHECKER_SIZE) {
+                    for (int cx = start_cx; cx < end_cx; cx += CHECKER_SIZE) {
+                        int even = ((cx / CHECKER_SIZE) + (cy / CHECKER_SIZE)) % 2 == 0;
+                        if (even) {
+                            SDL_SetRenderDrawColor(renderer, 232, 232, 236, 255);
+                        } else {
+                            SDL_SetRenderDrawColor(renderer, 206, 206, 212, 255);
+                        }
+                        int sx = (cx - view_x) * zoom_scale;
+                        int sy = (cy - view_y) * zoom_scale;
+                        int sw = CHECKER_SIZE * zoom_scale;
+                        int sh = CHECKER_SIZE * zoom_scale;
+                        if (sx < 0) { sw += sx; sx = 0; }
+                        if (sy < 0) { sh += sy; sy = 0; }
+                        if (sw > 0 && sh > 0) {
+                            SDL_Rect cell = {sx, sy, sw, sh};
+                            SDL_RenderFillRect(renderer, &cell);
+                        }
+                    }
+                }
+            SDL_Rect src_rect = {view_x, view_y, draw_w, draw_h};
+            SDL_Rect dst_rect = {0, 0, draw_w * zoom_scale, draw_h * zoom_scale};
+            SDL_RenderCopy(renderer, texture, &src_rect, &dst_rect);
+        }
         SDL_RenderPresent(renderer);
         SDL_Delay(16);
     }
