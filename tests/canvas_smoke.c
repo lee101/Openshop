@@ -845,6 +845,51 @@ int main(void) {
         return 1;
     }
     canvas_free(&ctr);
+
+    /* Hue-rotation tests */
+    Canvas hue;
+    if (!canvas_init(&hue, 1, 1)) {
+        fprintf(stderr, "hue canvas init failed\n");
+        return 1;
+    }
+    /* Red (hue=0) +120° → green (hue=120°) */
+    canvas_set_pixel_raw(&hue, 0, 0, 0xFFFF0000);
+    canvas_hue_rotate(&hue, 120);
+    if (!expect_pixel_eq("hue_red_to_green", canvas_get_pixel(&hue, 0, 0), 0xFF00FF00)) {
+        canvas_free(&hue);
+        return 1;
+    }
+    /* Green (hue=120°) +120° → blue (hue=240°) */
+    canvas_hue_rotate(&hue, 120);
+    if (!expect_pixel_eq("hue_green_to_blue", canvas_get_pixel(&hue, 0, 0), 0xFF0000FF)) {
+        canvas_free(&hue);
+        return 1;
+    }
+    /* Blue (hue=240°) +120° → red (hue=360°=0°): full cycle */
+    canvas_hue_rotate(&hue, 120);
+    if (!expect_pixel_eq("hue_blue_to_red_cycle", canvas_get_pixel(&hue, 0, 0), 0xFFFF0000)) {
+        canvas_free(&hue);
+        return 1;
+    }
+    /* Gray: saturation=0, hue rotation must leave it unchanged */
+    canvas_set_pixel_raw(&hue, 0, 0, 0xFF808080);
+    canvas_hue_rotate(&hue, 90);
+    if (!expect_pixel_eq("hue_gray_invariant", canvas_get_pixel(&hue, 0, 0), 0xFF808080)) {
+        canvas_free(&hue);
+        return 1;
+    }
+    /* Alpha must be preserved */
+    canvas_set_pixel_raw(&hue, 0, 0, 0x80FF0000);
+    canvas_hue_rotate(&hue, 120);
+    {
+        uint32_t p = canvas_get_pixel(&hue, 0, 0);
+        if ((p >> 24) != 0x80) {
+            fprintf(stderr, "hue_alpha_preserved: alpha expected 0x80 got 0x%02X\n", (p >> 24) & 0xFF);
+            canvas_free(&hue);
+            return 1;
+        }
+    }
+    canvas_free(&hue);
     Canvas translated;
     if (!canvas_init(&translated, 4, 3)) {
         fprintf(stderr, "translate canvas init failed\n");

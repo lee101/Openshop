@@ -29,12 +29,14 @@ void canvas_invert_rgb(Canvas *c);
 void canvas_sepia(Canvas *c);
 void canvas_contrast_up(Canvas *c);
 void canvas_contrast_down(Canvas *c);
+/* Rotate hue by degrees (positive = CW on colour wheel).
+ * Saturation and value are preserved; alpha is untouched. */
+void canvas_hue_rotate(Canvas *c, int degrees);
 void canvas_rotate_90cw(Canvas *c);
 void canvas_rotate_90ccw(Canvas *c);
 void canvas_desaturate(Canvas *c);
 void canvas_posterize(Canvas *c);
 void canvas_threshold(Canvas *c);
-void canvas_sepia(Canvas *c);
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color);
 
 #endif

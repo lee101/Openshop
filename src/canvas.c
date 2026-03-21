@@ -487,6 +487,143 @@ void canvas_contrast_up(Canvas *c) {
 void canvas_contrast_down(Canvas *c) {
     canvas_contrast_step(c, -16);
 }
+/* Hue rotation via RGB↔HSV conversion.
+ * Hue is represented as [0,360), stored as a float internally.
+ * S and V are [0,1] floats; RGB are 0-255 integers. */
+void canvas_hue_rotate(Canvas *c, int degrees) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    /* Normalise degrees to [0,360) */
+    int delta = ((degrees % 360) + 360) % 360;
+    if (delta == 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint32_t a = p & 0xFF000000;
+        float r = (float)((p >> 16) & 0xFF) / 255.0f;
+        float g = (float)((p >> 8)  & 0xFF) / 255.0f;
+        float b = (float)( p         & 0xFF) / 255.0f;
+
+        /* RGB → HSV */
+        float cmax = r > g ? (r > b ? r : b) : (g > b ? g : b);
+        float cmin = r < g ? (r < b ? r : b) : (g < b ? g : b);
+        float diff = cmax - cmin;
+        float h = 0.0f, s = 0.0f, v = cmax;
+        if (diff > 1e-6f) {
+            s = diff / cmax;
+            if (cmax == r) {
+                h = 60.0f * (g - b) / diff;
+            } else if (cmax == g) {
+                h = 60.0f * ((b - r) / diff + 2.0f);
+            } else {
+                h = 60.0f * ((r - g) / diff + 4.0f);
+            }
+            if (h < 0.0f) h += 360.0f;
+        }
+
+        /* Rotate hue */
+        h += (float)delta;
+        if (h >= 360.0f) h -= 360.0f;
+
+        /* HSV → RGB */
+        float nr, ng, nb;
+        if (s < 1e-6f) {
+            nr = ng = nb = v;
+        } else {
+            int hi = (int)(h / 60.0f) % 6;
+            float f  = h / 60.0f - (float)hi;
+            float pv = v * (1.0f - s);
+            float qv = v * (1.0f - s * f);
+            float tv = v * (1.0f - s * (1.0f - f));
+            switch (hi) {
+                case 0: nr = v;  ng = tv; nb = pv; break;
+                case 1: nr = qv; ng = v;  nb = pv; break;
+                case 2: nr = pv; ng = v;  nb = tv; break;
+                case 3: nr = pv; ng = qv; nb = v;  break;
+                case 4: nr = tv; ng = pv; nb = v;  break;
+                default:nr = v;  ng = pv; nb = qv; break;
+            }
+        }
+
+        uint32_t ir = (uint32_t)(nr * 255.0f + 0.5f);
+        uint32_t ig = (uint32_t)(ng * 255.0f + 0.5f);
+        uint32_t ib = (uint32_t)(nb * 255.0f + 0.5f);
+        if (ir > 255) ir = 255;
+        if (ig > 255) ig = 255;
+        if (ib > 255) ib = 255;
+        c->pixels[i] = a | (ir << 16) | (ig << 8) | ib;
+    }
+}
+
+/* Rotate 90 degrees clockwise, cropping/padding with transparent pixels to
+ * preserve the original canvas dimensions.  The rotated image is centered. */
+void canvas_rotate_90cw(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    int W = c->width;
+    int H = c->height;
+    int rw = H; /* width of the fully-rotated image */
+    int rh = W; /* height of the fully-rotated image */
+    int off_x = (W - rw) / 2;
+    int off_y = (H - rh) / 2;
+    size_t count = (size_t)W * (size_t)H;
+    uint32_t *tmp = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!tmp) {
+        return;
+    }
+    for (int oy = 0; oy < H; oy++) {
+        for (int ox = 0; ox < W; ox++) {
+            int rx = ox - off_x;
+            int ry = oy - off_y;
+            uint32_t pixel = 0x00000000;
+            if (rx >= 0 && rx < rw && ry >= 0 && ry < rh) {
+                int old_x = ry;
+                int old_y = rw - 1 - rx;
+                pixel = c->pixels[(size_t)old_y * (size_t)W + (size_t)old_x];
+            }
+            tmp[(size_t)oy * (size_t)W + (size_t)ox] = pixel;
+        }
+    }
+    memcpy(c->pixels, tmp, count * sizeof(uint32_t));
+    free(tmp);
+}
+
+/* Rotate 90 degrees counter-clockwise, same crop/pad logic. */
+void canvas_rotate_90ccw(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    int W = c->width;
+    int H = c->height;
+    int rw = H;
+    int rh = W;
+    int off_x = (W - rw) / 2;
+    int off_y = (H - rh) / 2;
+    size_t count = (size_t)W * (size_t)H;
+    uint32_t *tmp = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!tmp) {
+        return;
+    }
+    for (int oy = 0; oy < H; oy++) {
+        for (int ox = 0; ox < W; ox++) {
+            int rx = ox - off_x;
+            int ry = oy - off_y;
+            uint32_t pixel = 0x00000000;
+            if (rx >= 0 && rx < rw && ry >= 0 && ry < rh) {
+                int old_x = rh - 1 - ry;
+                int old_y = rx;
+                pixel = c->pixels[(size_t)old_y * (size_t)W + (size_t)old_x];
+            }
+            tmp[(size_t)oy * (size_t)W + (size_t)ox] = pixel;
+        }
+    }
+    memcpy(c->pixels, tmp, count * sizeof(uint32_t));
+    free(tmp);
+}
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;

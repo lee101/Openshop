@@ -474,6 +474,10 @@ static int active_layer_editable(const LayerStack *layers) {
     return active && !active->locked && active->canvas.pixels;
 }
 
+static void hue_rotate_30(Canvas *c) {
+    canvas_hue_rotate(c, 30);
+}
+
 static int apply_canvas_transform(
     LayerStack *layers,
     Snapshot *undo_stack,
@@ -1395,8 +1399,14 @@ int app_run(const char *input_path) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_h) {
-                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_flip_horizontal)) {
-                        needs_composite = 1;
+                    if (shift) {
+                        if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, hue_rotate_30)) {
+                            needs_composite = 1;
+                        }
+                    } else {
+                        if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_flip_horizontal)) {
+                            needs_composite = 1;
+                        }
                     }
                 } else if (key == SDLK_v) {
                     if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_flip_vertical)) {
