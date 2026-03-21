@@ -809,6 +809,42 @@ int main(void) {
     }
     canvas_free(&transform);
 
+    /* Contrast tests: delta=16, fp=128+16=144
+     * new_ch = 128 + ((ch-128)*fp) >> 7  */
+    Canvas ctr;
+    if (!canvas_init(&ctr, 1, 1)) {
+        fprintf(stderr, "contrast canvas init failed\n");
+        return 1;
+    }
+    /* light pixel R=G=B=200=0xC8: up → 128+(72*144>>7)=128+81=209=0xD1 */
+    canvas_set_pixel_raw(&ctr, 0, 0, 0xFFC8C8C8);
+    canvas_contrast_up(&ctr);
+    if (!expect_pixel_eq("contrast_up_light", canvas_get_pixel(&ctr, 0, 0), 0xFFD1D1D1)) {
+        canvas_free(&ctr);
+        return 1;
+    }
+    /* light pixel 0xC8 down → 128+(72*112>>7)=128+63=191=0xBF */
+    canvas_set_pixel_raw(&ctr, 0, 0, 0xFFC8C8C8);
+    canvas_contrast_down(&ctr);
+    if (!expect_pixel_eq("contrast_down_light", canvas_get_pixel(&ctr, 0, 0), 0xFFBFBFBF)) {
+        canvas_free(&ctr);
+        return 1;
+    }
+    /* mid-gray 0x80 must not change under either direction */
+    canvas_set_pixel_raw(&ctr, 0, 0, 0xFF808080);
+    canvas_contrast_up(&ctr);
+    if (!expect_pixel_eq("contrast_up_midgray", canvas_get_pixel(&ctr, 0, 0), 0xFF808080)) {
+        canvas_free(&ctr);
+        return 1;
+    }
+    /* white must clamp to white after contrast_up */
+    canvas_set_pixel_raw(&ctr, 0, 0, 0xFFFFFFFF);
+    canvas_contrast_up(&ctr);
+    if (!expect_pixel_eq("contrast_up_white_clamp", canvas_get_pixel(&ctr, 0, 0), 0xFFFFFFFF)) {
+        canvas_free(&ctr);
+        return 1;
+    }
+    canvas_free(&ctr);
     Canvas translated;
     if (!canvas_init(&translated, 4, 3)) {
         fprintf(stderr, "translate canvas init failed\n");

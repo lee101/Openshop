@@ -1312,12 +1312,24 @@ int app_run(const char *input_path) {
                 } else if (key == SDLK_p) {
                     tool = TOOL_FILLED_ELLIPSE;
                 } else if (key == SDLK_LEFTBRACKET) {
-                    if (brush_radius > 1) {
-                        brush_radius -= 1;
+                    if (shift) {
+                        if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_contrast_down)) {
+                            needs_composite = 1;
+                        }
+                    } else {
+                        if (brush_radius > 1) {
+                            brush_radius -= 1;
+                        }
                     }
                 } else if (key == SDLK_RIGHTBRACKET) {
-                    if (brush_radius < 64) {
-                        brush_radius += 1;
+                    if (shift) {
+                        if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_contrast_up)) {
+                            needs_composite = 1;
+                        }
+                    } else {
+                        if (brush_radius < 64) {
+                            brush_radius += 1;
+                        }
                     }
                 } else if (key == SDLK_COMMA) {
                     brush_shape = cycle_brush_shape(brush_shape, -1);

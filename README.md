@@ -51,6 +51,7 @@ make test-sdl
 - `Q`: posterize the active layer (4 levels per channel)
 - `N`: threshold the active layer to black/white (BT.709 luminance, midpoint 128)
 - `W`: apply sepia tone to the active layer
+- `Shift+[` / `Shift+]`: decrease/increase active layer contrast (scales RGB around mid-gray)
 - `Arrow Keys`: nudge the active layer by 1 pixel
 - `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels
 - `PageUp / PageDown`: cycle active layer
