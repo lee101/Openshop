@@ -403,6 +403,26 @@ void canvas_desaturate(Canvas *c) {
     }
 }
 
+void canvas_posterize(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    /* 4 levels: 0, 85, 170, 255 — step size 64, each bucket maps to level*85 */
+    static const uint8_t LEVELS = 4;
+    static const uint8_t STEP = 64; /* 256 / LEVELS */
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        uint8_t br = (uint8_t)((r / STEP) * (255u / (LEVELS - 1u)));
+        uint8_t bg = (uint8_t)((g / STEP) * (255u / (LEVELS - 1u)));
+        uint8_t bb = (uint8_t)((b / STEP) * (255u / (LEVELS - 1u)));
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)br << 16) | ((uint32_t)bg << 8) | bb;
+    }
+}
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;

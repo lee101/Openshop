@@ -886,6 +886,31 @@ int main(void) {
     }
     canvas_free(&mask);
 
+    Canvas poster_test;
+    if (!canvas_init(&poster_test, 4, 1)) {
+        fprintf(stderr, "poster_test canvas init failed\n");
+        return 1;
+    }
+    /*
+     * 4-level posterize: bucket = v/64, output = bucket*85
+     *   0xFF003264: R=0→0, G=50→0(bkt0*85),  B=100→85(bkt1*85) → 0xFF000055
+     *   0xFF0096C8: R=0→0, G=150→170(bkt2*85), B=200→255(bkt3*85) → 0xFF00AAFF
+     *   white 0xFFFFFFFF: all 255→255(bkt3*85) → 0xFFFFFFFF
+     *   black 0xFF000000: all 0→0  → 0xFF000000
+     */
+    canvas_set_pixel_raw(&poster_test, 0, 0, 0xFF003264);
+    canvas_set_pixel_raw(&poster_test, 1, 0, 0xFF0096C8);
+    canvas_set_pixel_raw(&poster_test, 2, 0, 0xFFFFFFFF);
+    canvas_set_pixel_raw(&poster_test, 3, 0, 0xFF000000);
+    canvas_posterize(&poster_test);
+    if (!expect_pixel_eq("posterize_px0",  canvas_get_pixel(&poster_test, 0, 0), 0xFF000055) ||
+        !expect_pixel_eq("posterize_px1",  canvas_get_pixel(&poster_test, 1, 0), 0xFF00AAFF) ||
+        !expect_pixel_eq("posterize_white", canvas_get_pixel(&poster_test, 2, 0), 0xFFFFFFFF) ||
+        !expect_pixel_eq("posterize_black", canvas_get_pixel(&poster_test, 3, 0), 0xFF000000)) {
+        canvas_free(&poster_test);
+        return 1;
+    }
+    canvas_free(&poster_test);
     if (!test_layers_basic()) {
         return 1;
     }

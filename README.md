@@ -48,6 +48,7 @@ make test-sdl
 - `K`: rotate the active layer 90 degrees clockwise (content centered, edges cropped/padded)
 - `Shift+K`: rotate the active layer 90 degrees counter-clockwise
 - `G`: desaturate (grayscale) the active layer
+- `Q`: posterize the active layer (4 levels per channel)
 - `Arrow Keys`: nudge the active layer by 1 pixel
 - `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels
 - `PageUp / PageDown`: cycle active layer
