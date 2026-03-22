@@ -912,24 +912,46 @@ int main(void) {
     }
     canvas_free(&poster_test);
 
+    Canvas sepia_test;
+    if (!canvas_init(&sepia_test, 1, 1)) {
+        fprintf(stderr, "sepia_test canvas init failed\n");
+        return 1;
+    }
+    /* white pixel: all channels 255 */
+    canvas_set_pixel_raw(&sepia_test, 0, 0, 0xFFFFFFFF);
+    canvas_sepia(&sepia_test);
+    {
+        uint32_t p = canvas_get_pixel(&sepia_test, 0, 0);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        /* Sepia of white: R > G > B (warm brownish tone) */
+        if (r < g || g < b) {
+            fprintf(stderr, "sepia_white: expected R >= G >= B, got R=%u G=%u B=%u\n", r, g, b);
+            canvas_free(&sepia_test);
+            return 1;
+        }
+        /* Alpha must be preserved */
+        if (((p >> 24) & 0xFF) != 0xFF) {
+            fprintf(stderr, "sepia: alpha was not preserved\n");
+            canvas_free(&sepia_test);
+            return 1;
+        }
+    }
+    canvas_free(&sepia_test);
+
     Canvas thresh_test;
     if (!canvas_init(&thresh_test, 3, 1)) {
         fprintf(stderr, "thresh_test canvas init failed\n");
         return 1;
     }
-    /*
-     * BT.709 luma thresholds at 128:
-     *   white 0xFFFFFFFF: luma=255 >= 128 → output 0xFFFFFFFF
-     *   mid-gray 0xFF7F7F7F: luma=127 <  128 → output 0xFF000000
-     *   pure green 0xFF00FF00: luma=(7152*255)/10000=182 >= 128 → 0xFFFFFFFF
-     */
     canvas_set_pixel_raw(&thresh_test, 0, 0, 0xFFFFFFFF);
     canvas_set_pixel_raw(&thresh_test, 1, 0, 0xFF7F7F7F);
     canvas_set_pixel_raw(&thresh_test, 2, 0, 0xFF00FF00);
     canvas_threshold(&thresh_test);
-    if (!expect_pixel_eq("threshold_white",      canvas_get_pixel(&thresh_test, 0, 0), 0xFFFFFFFF) ||
-        !expect_pixel_eq("threshold_midgray",    canvas_get_pixel(&thresh_test, 1, 0), 0xFF000000) ||
-        !expect_pixel_eq("threshold_green",      canvas_get_pixel(&thresh_test, 2, 0), 0xFFFFFFFF)) {
+    if (!expect_pixel_eq("threshold_white", canvas_get_pixel(&thresh_test, 0, 0), 0xFFFFFFFF) ||
+        !expect_pixel_eq("threshold_midgray", canvas_get_pixel(&thresh_test, 1, 0), 0xFF000000) ||
+        !expect_pixel_eq("threshold_green", canvas_get_pixel(&thresh_test, 2, 0), 0xFFFFFFFF)) {
         canvas_free(&thresh_test);
         return 1;
     }

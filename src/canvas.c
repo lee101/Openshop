@@ -403,13 +403,34 @@ void canvas_desaturate(Canvas *c) {
     }
 }
 
+void canvas_sepia(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint32_t r = (p >> 16) & 0xFF;
+        uint32_t g = (p >> 8) & 0xFF;
+        uint32_t b = p & 0xFF;
+        /* Standard sepia matrix (scaled to integer arithmetic) */
+        uint32_t nr = (r * 393u + g * 769u + b * 189u) / 1000u;
+        uint32_t ng = (r * 349u + g * 686u + b * 168u) / 1000u;
+        uint32_t nb = (r * 272u + g * 534u + b * 131u) / 1000u;
+        if (nr > 255u) nr = 255u;
+        if (ng > 255u) ng = 255u;
+        if (nb > 255u) nb = 255u;
+        c->pixels[i] = ((uint32_t)a << 24) | (nr << 16) | (ng << 8) | nb;
+    }
+}
+
 void canvas_posterize(Canvas *c) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;
     }
-    /* 4 levels: 0, 85, 170, 255 — step size 64, each bucket maps to level*85 */
     static const uint8_t LEVELS = 4;
-    static const uint8_t STEP = 64; /* 256 / LEVELS */
+    static const uint8_t STEP = 64;
     size_t count = (size_t)c->width * (size_t)c->height;
     for (size_t i = 0; i < count; i++) {
         uint32_t p = c->pixels[i];
@@ -435,7 +456,6 @@ void canvas_threshold(Canvas *c) {
         uint32_t r = (p >> 16) & 0xFF;
         uint32_t g = (p >> 8) & 0xFF;
         uint32_t b = p & 0xFF;
-        /* BT.709 luminance: same formula as canvas_grayscale */
         uint32_t luma = (2126u * r + 7152u * g + 722u * b) / 10000u;
         uint8_t out = luma >= 128u ? 0xFF : 0x00;
         c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)out << 16) | ((uint32_t)out << 8) | out;
