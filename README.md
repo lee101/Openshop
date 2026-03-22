@@ -83,6 +83,7 @@ make test-sdl
 ## Notes
 - Canvas size is 800x600; window is 1024x768.
 - Layer stack starts with a white background layer; new layers are transparent.
+- Maximum of 16 layers supported. `Ctrl+1`...`Ctrl+8` selects layers 1–8 directly.
 - Locked layers stay visible in the stack but reject paint, fill, clear, transform, load, merge, flatten, stamp, and delete operations.
 - Solo preview still renders the active layer even if that layer's normal visibility is off.
 - Transparent regions render over a checkerboard preview in the editor.

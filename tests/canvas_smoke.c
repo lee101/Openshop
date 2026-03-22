@@ -656,35 +656,14 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (layer_stack_stamp_visible_new(&stack, "Overflow", 0xFFFFFFFF) != 3) {
-        fprintf(stderr, "second stamp visible new layer failed\n");
-        canvas_free(&composite);
-        layer_stack_free(&stack);
-        return 0;
-    }
-    if (layer_stack_stamp_visible_new(&stack, "Overflow", 0xFFFFFFFF) != 4) {
-        fprintf(stderr, "third stamp visible new layer failed\n");
-        canvas_free(&composite);
-        layer_stack_free(&stack);
-        return 0;
-    }
-    if (layer_stack_stamp_visible_new(&stack, "Overflow", 0xFFFFFFFF) != 5) {
-        fprintf(stderr, "fourth stamp visible new layer failed\n");
-        canvas_free(&composite);
-        layer_stack_free(&stack);
-        return 0;
-    }
-    if (layer_stack_stamp_visible_new(&stack, "Overflow", 0xFFFFFFFF) != 6) {
-        fprintf(stderr, "fifth stamp visible new layer failed\n");
-        canvas_free(&composite);
-        layer_stack_free(&stack);
-        return 0;
-    }
-    if (layer_stack_stamp_visible_new(&stack, "Overflow", 0xFFFFFFFF) != 7) {
-        fprintf(stderr, "sixth stamp visible new layer failed\n");
-        canvas_free(&composite);
-        layer_stack_free(&stack);
-        return 0;
+    /* Fill up to MAX_LAYERS by adding overflow layers one at a time */
+    for (int expected_idx = 3; expected_idx < MAX_LAYERS; expected_idx++) {
+        if (layer_stack_stamp_visible_new(&stack, "Overflow", 0xFFFFFFFF) != expected_idx) {
+            fprintf(stderr, "stamp visible new layer %d failed\n", expected_idx);
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
     }
     if (layer_stack_stamp_visible_new(&stack, "Overflow", 0xFFFFFFFF) != -1) {
         fprintf(stderr, "stamp visible new should respect max layers\n");

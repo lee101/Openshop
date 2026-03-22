@@ -4,7 +4,7 @@
 #include "canvas.h"
 #include <stdint.h>
 
-#define MAX_LAYERS 8
+#define MAX_LAYERS 16
 #define LAYER_NAME_MAX 32
 
 typedef struct {
