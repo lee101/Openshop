@@ -423,6 +423,24 @@ void canvas_posterize(Canvas *c) {
         c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)br << 16) | ((uint32_t)bg << 8) | bb;
     }
 }
+
+void canvas_threshold(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint32_t r = (p >> 16) & 0xFF;
+        uint32_t g = (p >> 8) & 0xFF;
+        uint32_t b = p & 0xFF;
+        /* BT.709 luminance: same formula as canvas_grayscale */
+        uint32_t luma = (2126u * r + 7152u * g + 722u * b) / 10000u;
+        uint8_t out = luma >= 128u ? 0xFF : 0x00;
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)out << 16) | ((uint32_t)out << 8) | out;
+    }
+}
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;

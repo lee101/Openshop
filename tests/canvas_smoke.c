@@ -911,6 +911,29 @@ int main(void) {
         return 1;
     }
     canvas_free(&poster_test);
+
+    Canvas thresh_test;
+    if (!canvas_init(&thresh_test, 3, 1)) {
+        fprintf(stderr, "thresh_test canvas init failed\n");
+        return 1;
+    }
+    /*
+     * BT.709 luma thresholds at 128:
+     *   white 0xFFFFFFFF: luma=255 >= 128 → output 0xFFFFFFFF
+     *   mid-gray 0xFF7F7F7F: luma=127 <  128 → output 0xFF000000
+     *   pure green 0xFF00FF00: luma=(7152*255)/10000=182 >= 128 → 0xFFFFFFFF
+     */
+    canvas_set_pixel_raw(&thresh_test, 0, 0, 0xFFFFFFFF);
+    canvas_set_pixel_raw(&thresh_test, 1, 0, 0xFF7F7F7F);
+    canvas_set_pixel_raw(&thresh_test, 2, 0, 0xFF00FF00);
+    canvas_threshold(&thresh_test);
+    if (!expect_pixel_eq("threshold_white",      canvas_get_pixel(&thresh_test, 0, 0), 0xFFFFFFFF) ||
+        !expect_pixel_eq("threshold_midgray",    canvas_get_pixel(&thresh_test, 1, 0), 0xFF000000) ||
+        !expect_pixel_eq("threshold_green",      canvas_get_pixel(&thresh_test, 2, 0), 0xFFFFFFFF)) {
+        canvas_free(&thresh_test);
+        return 1;
+    }
+    canvas_free(&thresh_test);
     if (!test_layers_basic()) {
         return 1;
     }
