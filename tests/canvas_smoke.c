@@ -842,6 +842,98 @@ int main(void) {
         return 1;
     }
 
+    /* --- canvas_desaturate test --- */
+    Canvas grey;
+    if (!canvas_init(&grey, 4, 4)) {
+        fprintf(stderr, "grey canvas init failed\n");
+        return 1;
+    }
+    /* Bright red pixel: R=255 G=0 B=0 A=255 → grey ≈ round(0.2126*255) = 54 */
+    canvas_set_pixel_raw(&grey, 0, 0, 0xFFFF0000);
+    /* Bright green pixel: R=0 G=255 B=0 A=255 → grey ≈ round(0.7152*255) = 182 */
+    canvas_set_pixel_raw(&grey, 1, 0, 0xFF00FF00);
+    /* Fully transparent pixel should stay transparent */
+    canvas_set_pixel_raw(&grey, 2, 0, 0x00FF0000);
+    canvas_desaturate(&grey);
+    {
+        uint32_t p0 = canvas_get_pixel(&grey, 0, 0);
+        uint8_t r0 = (uint8_t)((p0 >> 16) & 0xFF);
+        uint8_t g0 = (uint8_t)((p0 >> 8) & 0xFF);
+        uint8_t b0 = (uint8_t)(p0 & 0xFF);
+        if (r0 != g0 || g0 != b0) {
+            fprintf(stderr, "desaturate_red: channels not equal: %02X %02X %02X\n", r0, g0, b0);
+            canvas_free(&grey);
+            return 1;
+        }
+        if (r0 < 50 || r0 > 58) {
+            fprintf(stderr, "desaturate_red: expected ~54, got %d\n", r0);
+            canvas_free(&grey);
+            return 1;
+        }
+        uint32_t p1 = canvas_get_pixel(&grey, 1, 0);
+        uint8_t r1 = (uint8_t)((p1 >> 16) & 0xFF);
+        uint8_t g1 = (uint8_t)((p1 >> 8) & 0xFF);
+        uint8_t b1 = (uint8_t)(p1 & 0xFF);
+        if (r1 != g1 || g1 != b1) {
+            fprintf(stderr, "desaturate_green: channels not equal: %02X %02X %02X\n", r1, g1, b1);
+            canvas_free(&grey);
+            return 1;
+        }
+        if (r1 < 178 || r1 > 186) {
+            fprintf(stderr, "desaturate_green: expected ~182, got %d\n", r1);
+            canvas_free(&grey);
+            return 1;
+        }
+        uint32_t p2 = canvas_get_pixel(&grey, 2, 0);
+        uint8_t a2 = (uint8_t)((p2 >> 24) & 0xFF);
+        if (a2 != 0) {
+            fprintf(stderr, "desaturate_transparent: alpha should be 0, got %d\n", a2);
+            canvas_free(&grey);
+            return 1;
+        }
+    }
+    canvas_free(&grey);
+
+    /* --- canvas_rotate_90cw test (square canvas) --- */
+    Canvas rot;
+    if (!canvas_init(&rot, 4, 4)) {
+        fprintf(stderr, "rot canvas init failed\n");
+        return 1;
+    }
+    canvas_clear(&rot, 0x00000000);
+    /* Place a distinctive marker at top-left (0,0) */
+    canvas_set_pixel_raw(&rot, 0, 0, 0xFF110000);
+    /* After 90-degree CW rotation on a square canvas:
+       (x,y) -> (H-1-y, x)  i.e. top-left (0,0) -> (3,0) bottom-left of new */
+    canvas_rotate_90cw(&rot);
+    if (!expect_pixel_eq("rotate90cw_origin", canvas_get_pixel(&rot, 3, 0), 0xFF110000)) {
+        canvas_free(&rot);
+        return 1;
+    }
+    /* And top-left of result should be transparent (was (0,3) in original which was cleared) */
+    if (!expect_pixel_eq("rotate90cw_topleft_clear", canvas_get_pixel(&rot, 0, 0), 0x00000000)) {
+        canvas_free(&rot);
+        return 1;
+    }
+    canvas_free(&rot);
+
+    /* --- canvas_rotate_90ccw test (square canvas) --- */
+    Canvas rot2;
+    if (!canvas_init(&rot2, 4, 4)) {
+        fprintf(stderr, "rot2 canvas init failed\n");
+        return 1;
+    }
+    canvas_clear(&rot2, 0x00000000);
+    /* Place marker at top-right (3,0) */
+    canvas_set_pixel_raw(&rot2, 3, 0, 0xFF002200);
+    /* After 90-degree CCW on a square: (x,y) -> (y, W-1-x), so (3,0) -> (0,0) */
+    canvas_rotate_90ccw(&rot2);
+    if (!expect_pixel_eq("rotate90ccw_topright", canvas_get_pixel(&rot2, 0, 0), 0xFF002200)) {
+        canvas_free(&rot2);
+        return 1;
+    }
+    canvas_free(&rot2);
+
     printf("ok\n");
     return 0;
 }

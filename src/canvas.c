@@ -322,6 +322,87 @@ void canvas_invert_rgb(Canvas *c) {
     }
 }
 
+void canvas_rotate_90cw(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    int W = c->width;
+    int H = c->height;
+    size_t count = (size_t)W * (size_t)H;
+    uint32_t *copy = (uint32_t *)calloc(count, sizeof(uint32_t));
+    if (!copy) {
+        return;
+    }
+    /* Rotated image is H wide × W tall; center it inside the original W×H frame. */
+    int x_pad = (W - H) / 2;
+    int y_crop = (W - H) / 2;
+    for (int dy = 0; dy < H; dy++) {
+        for (int dx = 0; dx < W; dx++) {
+            int rx = dx - x_pad;
+            int ry = dy + y_crop;
+            if (rx < 0 || rx >= H || ry < 0 || ry >= W) {
+                copy[(size_t)dy * (size_t)W + (size_t)dx] = 0;
+                continue;
+            }
+            int old_y = H - 1 - rx;
+            int old_x = ry;
+            copy[(size_t)dy * (size_t)W + (size_t)dx] =
+                c->pixels[(size_t)old_y * (size_t)W + (size_t)old_x];
+        }
+    }
+    memcpy(c->pixels, copy, count * sizeof(uint32_t));
+    free(copy);
+}
+
+void canvas_rotate_90ccw(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    int W = c->width;
+    int H = c->height;
+    size_t count = (size_t)W * (size_t)H;
+    uint32_t *copy = (uint32_t *)calloc(count, sizeof(uint32_t));
+    if (!copy) {
+        return;
+    }
+    /* Rotated image is H wide × W tall; center it inside the original W×H frame. */
+    int x_pad = (W - H) / 2;
+    int y_crop = (W - H) / 2;
+    for (int dy = 0; dy < H; dy++) {
+        for (int dx = 0; dx < W; dx++) {
+            int rx = dx - x_pad;
+            int ry = dy + y_crop;
+            if (rx < 0 || rx >= H || ry < 0 || ry >= W) {
+                copy[(size_t)dy * (size_t)W + (size_t)dx] = 0;
+                continue;
+            }
+            int old_x = W - 1 - ry;
+            int old_y = rx;
+            copy[(size_t)dy * (size_t)W + (size_t)dx] =
+                c->pixels[(size_t)old_y * (size_t)W + (size_t)old_x];
+        }
+    }
+    memcpy(c->pixels, copy, count * sizeof(uint32_t));
+    free(copy);
+}
+
+void canvas_desaturate(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        /* Luminosity weights: 0.2126 R + 0.7152 G + 0.0722 B */
+        uint8_t grey = (uint8_t)((2126 * r + 7152 * g + 722 * b + 5000) / 10000);
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)grey << 16) | ((uint32_t)grey << 8) | grey;
+    }
+}
+
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;

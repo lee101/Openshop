@@ -38,13 +38,16 @@ make test-sdl
 - `[ / ]`: brush size down/up
 - `, / .`: cycle brush shape (round, square, diamond)
 - `- / =`: opacity down/up (1%-100%)
-- `1-6`: quick colors (black, red, green, blue, yellow, purple)
+- `1-9`: quick colors (black, red, green, blue, yellow, purple, orange, cyan, white)
 - `F`: flood fill on the active layer
 - `C`: clear the active layer
 - `H`: flip the active layer horizontally
 - `V`: flip the active layer vertically
 - `J`: rotate the active layer 180 degrees
 - `X`: invert the active layer colors (RGB)
+- `K`: rotate the active layer 90 degrees clockwise (content centered, edges cropped/padded)
+- `Shift+K`: rotate the active layer 90 degrees counter-clockwise
+- `G`: desaturate (grayscale) the active layer
 - `Arrow Keys`: nudge the active layer by 1 pixel
 - `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels
 - `PageUp / PageDown`: cycle active layer

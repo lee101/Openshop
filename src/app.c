@@ -22,6 +22,9 @@ static const uint32_t COLOR_GREEN = 0xFF43A047;
 static const uint32_t COLOR_BLUE = 0xFF1E88E5;
 static const uint32_t COLOR_YELLOW = 0xFFFDD835;
 static const uint32_t COLOR_PURPLE = 0xFF8E24AA;
+static const uint32_t COLOR_ORANGE = 0xFFFB8C00;
+static const uint32_t COLOR_CYAN   = 0xFF00BCD4;
+static const uint32_t COLOR_WHITE  = 0xFFFFFFFF;
 static const int CHECKER_SIZE = 16;
 
 typedef enum {
@@ -1175,6 +1178,18 @@ int app_run(const char *input_path) {
                     brush_color_rgb = COLOR_PURPLE & 0x00FFFFFF;
                     brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
                     tool = TOOL_BRUSH;
+                } else if (key == SDLK_7) {
+                    brush_color_rgb = COLOR_ORANGE & 0x00FFFFFF;
+                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
+                    tool = TOOL_BRUSH;
+                } else if (key == SDLK_8) {
+                    brush_color_rgb = COLOR_CYAN & 0x00FFFFFF;
+                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
+                    tool = TOOL_BRUSH;
+                } else if (key == SDLK_9) {
+                    brush_color_rgb = COLOR_WHITE & 0x00FFFFFF;
+                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
+                    tool = TOOL_BRUSH;
                 } else if (key == SDLK_c) {
                     if (active_layer_editable(&layers)) {
                         push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
@@ -1196,6 +1211,20 @@ int app_run(const char *input_path) {
                     }
                 } else if (key == SDLK_x) {
                     if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_invert_rgb)) {
+                        needs_composite = 1;
+                    }
+                } else if (key == SDLK_k) {
+                    if (shift) {
+                        if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_rotate_90ccw)) {
+                            needs_composite = 1;
+                        }
+                    } else {
+                        if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_rotate_90cw)) {
+                            needs_composite = 1;
+                        }
+                    }
+                } else if (key == SDLK_g && !ctrl) {
+                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_desaturate)) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_f) {
