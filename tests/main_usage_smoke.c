@@ -295,8 +295,6 @@ struct success_case {
     SUCCESS_CASE(label, 4, program, input, width, height, result, expected_exit, input, canvas_w, canvas_h, expected_stderr)
 #define SUCCESS_INPUT_SIZE_CASE_EMPTY_STDERR(label, program, input, width, height, result, expected_exit, canvas_w, canvas_h) \
     SUCCESS_INPUT_SIZE_CASE(label, program, input, width, height, result, expected_exit, canvas_w, canvas_h, empty_stderr)
-#define SUCCESS_CASE_EMPTY_STDERR(label, argc, program, input, width, height, result, expected_exit, expected_path, canvas_w, canvas_h) \
-    SUCCESS_CASE(label, argc, program, input, width, height, result, expected_exit, expected_path, canvas_w, canvas_h, empty_stderr)
 
 static int expect_invalid_size_only_cases(const struct invalid_size_token_case *cases, size_t case_count,
                                           const char *program_name, const char *fixed_token,
