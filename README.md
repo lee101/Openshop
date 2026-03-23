@@ -23,6 +23,7 @@ make test-sdl
 ./openshop [optional_input_path] [width height]
 ```
 You can also run `./openshop WIDTH HEIGHT` to start with a custom canvas size and no input image. Width and height must be supplied together as positive integers.
+With a single extra argument, the CLI always treats it as an input path, even if it looks numeric.
 
 ## Controls
 - `Left Mouse`: draw on the active layer

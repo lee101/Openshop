@@ -44,6 +44,14 @@ int main(void) {
         return 1;
     }
 
+    char *argv_numeric_input[] = {"openshop", "640"};
+    if (!expect_int("numeric_input_ok", parse_cli_args(2, argv_numeric_input, &options), 1) ||
+        !expect_str("numeric_input_path", options.input_path, "640") ||
+        !expect_int("numeric_input_w", options.canvas_w, 0) ||
+        !expect_int("numeric_input_h", options.canvas_h, 0)) {
+        return 1;
+    }
+
     char *argv_size_only[] = {"openshop", "1024", "768"};
     if (!expect_int("size_only_ok", parse_cli_args(3, argv_size_only, &options), 1) ||
         !expect_str("size_only_input", options.input_path, NULL) ||
