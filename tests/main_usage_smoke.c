@@ -292,10 +292,10 @@ struct success_case {
     const char *expected_stderr;
 };
 
-#define SUCCESS_INPUT_CASE(label, argc, program, input, result, expected_exit, expected_stderr) \
-    {label, argc, program, input, NULL, NULL, result, expected_exit, input, 0, 0, expected_stderr}
-#define SUCCESS_INPUT_CASE_EMPTY_STDERR(label, argc, program, input, result, expected_exit) \
-    SUCCESS_INPUT_CASE(label, argc, program, input, result, expected_exit, empty_stderr)
+#define SUCCESS_INPUT_CASE(label, program, input, result, expected_exit, expected_stderr) \
+    {label, input_only_argc, program, input, NULL, NULL, result, expected_exit, input, 0, 0, expected_stderr}
+#define SUCCESS_INPUT_CASE_EMPTY_STDERR(label, program, input, result, expected_exit) \
+    SUCCESS_INPUT_CASE(label, program, input, result, expected_exit, empty_stderr)
 #define SUCCESS_STARTUP_CASE_EMPTY_STDERR(label, program, result, expected_exit) \
     {label, startup_argc, program, NULL, NULL, NULL, result, expected_exit, NULL, 0, 0, empty_stderr}
 #define SUCCESS_SIZE_ONLY_CASE(label, program, width, height, result, expected_exit, canvas_w, canvas_h, expected_stderr) \
@@ -672,12 +672,12 @@ int main(void) {
 
     const struct success_case success_cases[] = {
         SUCCESS_STARTUP_CASE_EMPTY_STDERR("default", default_program_name, 0, 0),
-        SUCCESS_INPUT_CASE_EMPTY_STDERR("custom_program_input", 2, custom_program_name, custom_input_path, 0, 0),
+        SUCCESS_INPUT_CASE_EMPTY_STDERR("custom_program_input", custom_program_name, custom_input_path, 0, 0),
         SUCCESS_STARTUP_CASE_EMPTY_STDERR("custom_program_default", custom_program_name, 0, 0),
-        SUCCESS_INPUT_CASE_EMPTY_STDERR("custom_program_numeric_input", 2, custom_program_name, numeric_input_token, 0, 0),
-        SUCCESS_INPUT_CASE("custom_program_nonzero", 2, custom_program_name, custom_input_path, app_exit_code_5, app_exit_code_5, app_exit_code_5_stderr),
-        SUCCESS_INPUT_CASE_EMPTY_STDERR("input_only", 2, default_program_name, default_input_path, 0, 0),
-        SUCCESS_INPUT_CASE_EMPTY_STDERR("numeric_input", 2, default_program_name, numeric_input_token, 0, 0),
+        SUCCESS_INPUT_CASE_EMPTY_STDERR("custom_program_numeric_input", custom_program_name, numeric_input_token, 0, 0),
+        SUCCESS_INPUT_CASE("custom_program_nonzero", custom_program_name, custom_input_path, app_exit_code_5, app_exit_code_5, app_exit_code_5_stderr),
+        SUCCESS_INPUT_CASE_EMPTY_STDERR("input_only", default_program_name, default_input_path, 0, 0),
+        SUCCESS_INPUT_CASE_EMPTY_STDERR("numeric_input", default_program_name, numeric_input_token, 0, 0),
         SUCCESS_SIZE_ONLY_CASE("size_only", default_program_name, default_size_only_width, default_size_only_height, app_exit_code_7, app_exit_code_7, default_size_only_canvas_w, default_size_only_canvas_h, app_exit_code_7_stderr),
         SUCCESS_SIZE_ONLY_CASE_EMPTY_STDERR("plus_prefixed_size_only", default_program_name, default_plus_prefixed_width_token, default_size_only_height, 0, 0, default_size_only_canvas_w, default_size_only_canvas_h),
         SUCCESS_SIZE_ONLY_CASE_EMPTY_STDERR("custom_program_size_only", custom_program_name, custom_size_only_width, custom_size_only_height, 0, 0, custom_size_only_canvas_w, custom_size_only_canvas_h),
