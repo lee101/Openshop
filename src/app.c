@@ -1623,17 +1623,29 @@ static int restore_runtime_history(LayerStack *layers, AppRuntime *runtime, int 
 }
 
 static int apply_runtime_canvas_transform(LayerStack *layers, AppRuntime *runtime, void (*transform)(Canvas *)) {
-    if (!runtime) {
+    if (!layers || !runtime || !transform) {
         return 0;
     }
-    return apply_canvas_transform(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count, transform);
+    Layer *active = layer_stack_active(layers);
+    if (!active || active->locked || !active->canvas.pixels) {
+        return 0;
+    }
+    push_runtime_snapshot(layers, runtime);
+    transform(&active->canvas);
+    return 1;
 }
 
 static int apply_runtime_canvas_translation(LayerStack *layers, AppRuntime *runtime, int dx, int dy) {
-    if (!runtime) {
+    if (!layers || !runtime || (dx == 0 && dy == 0)) {
         return 0;
     }
-    return apply_canvas_translation(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count, dx, dy);
+    Layer *active = layer_stack_active(layers);
+    if (!active || active->locked || !active->canvas.pixels) {
+        return 0;
+    }
+    push_runtime_snapshot(layers, runtime);
+    canvas_translate(&active->canvas, dx, dy, active_layer_clear_color(layers));
+    return 1;
 }
 
 static void cleanup_app_runtime(
@@ -1669,47 +1681,6 @@ static uint32_t active_layer_clear_color(const LayerStack *layers) {
 static int active_layer_editable(const LayerStack *layers) {
     const Layer *active = layers ? layer_stack_get(layers, layers->active_layer) : NULL;
     return active && !active->locked && active->canvas.pixels;
-}
-
-static int apply_canvas_transform(
-    LayerStack *layers,
-    Snapshot *undo_stack,
-    int *undo_count,
-    Snapshot *redo_stack,
-    int *redo_count,
-    void (*transform)(Canvas *)
-) {
-    if (!layers || !transform) {
-        return 0;
-    }
-    Layer *active = layer_stack_active(layers);
-    if (!active || active->locked || !active->canvas.pixels) {
-        return 0;
-    }
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-    transform(&active->canvas);
-    return 1;
-}
-
-static int apply_canvas_translation(
-    LayerStack *layers,
-    Snapshot *undo_stack,
-    int *undo_count,
-    Snapshot *redo_stack,
-    int *redo_count,
-    int dx,
-    int dy
-) {
-    if (!layers || (dx == 0 && dy == 0)) {
-        return 0;
-    }
-    Layer *active = layer_stack_active(layers);
-    if (!active || active->locked || !active->canvas.pixels) {
-        return 0;
-    }
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-    canvas_translate(&active->canvas, dx, dy, active_layer_clear_color(layers));
-    return 1;
 }
 
 static void erase_stamp(Canvas *c, int cx, int cy, int radius, uint32_t clear_color, BrushShape shape) {
