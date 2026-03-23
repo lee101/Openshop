@@ -17,6 +17,8 @@ static const char *custom_numeric_input = "640";
 static const char *default_numeric_input = "640";
 static const char *default_size_only_width = "640";
 static const char *default_size_only_height = "480";
+static const char *zero_token = "0";
+static const char *invalid_probe_size = "768";
 static const char *negative_size_only_width = "-640";
 static const char *negative_size_only_height = "-480";
 static const char *bad_width_token = "12x";
@@ -37,6 +39,8 @@ static const char *custom_plus_prefixed_size_only_width = "+800";
 static const char *custom_input_size_width = "320";
 static const char *custom_input_size_height = "240";
 static const char *custom_plus_prefixed_input_size_width = "+320";
+static const char *app_exit_code_7_stderr = "App exited with code 7\n";
+static const char *app_exit_code_5_stderr = "App exited with code 5\n";
 
 int app_run(const char *input_path, int canvas_w, int canvas_h) {
     app_run_called += 1;
@@ -258,12 +262,12 @@ int main(void) {
         return 1;
     }
 
-    char *argv_bad_size_only[] = {"openshop", (char *)default_scene_path, "768"};
+    char *argv_bad_size_only[] = {"openshop", (char *)default_scene_path, (char *)invalid_probe_size};
     if (!expect_invalid_main_run("bad_size_only", 3, argv_bad_size_only, stderr_text, sizeof(stderr_text), &exit_code)) {
         return 1;
     }
 
-    char *argv_custom_program_invalid[] = {(char *)custom_program_name, (char *)default_scene_path, "768"};
+    char *argv_custom_program_invalid[] = {(char *)custom_program_name, (char *)default_scene_path, (char *)invalid_probe_size};
     if (!expect_invalid_main_run_with_usage("custom_program_invalid", 3, argv_custom_program_invalid,
                                             stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
@@ -319,7 +323,7 @@ int main(void) {
     }
 
     char *argv_custom_program_zero_size_only_width[] = {
-        (char *)custom_program_name, "0", (char *)default_size_only_height};
+        (char *)custom_program_name, (char *)zero_token, (char *)default_size_only_height};
     if (!expect_invalid_main_run_with_usage("custom_program_zero_size_only_width", 3, argv_custom_program_zero_size_only_width,
                                             stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
@@ -340,7 +344,7 @@ int main(void) {
     }
 
     char *argv_custom_program_zero_size_only_height[] = {
-        (char *)custom_program_name, (char *)default_size_only_width, "0"};
+        (char *)custom_program_name, (char *)default_size_only_width, (char *)zero_token};
     if (!expect_invalid_main_run_with_usage("custom_program_zero_size_only_height", 3, argv_custom_program_zero_size_only_height,
                                             stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
@@ -396,7 +400,7 @@ int main(void) {
         return 1;
     }
 
-    char *argv_zero_size_only_height[] = {"openshop", (char *)default_size_only_width, "0"};
+    char *argv_zero_size_only_height[] = {"openshop", (char *)default_size_only_width, (char *)zero_token};
     if (!expect_invalid_main_run("zero_size_only_height", 3, argv_zero_size_only_height, stderr_text, sizeof(stderr_text), &exit_code)) {
         return 1;
     }
@@ -436,7 +440,7 @@ int main(void) {
         return 1;
     }
 
-    char *argv_zero_size_only_width[] = {"openshop", "0", (char *)default_size_only_height};
+    char *argv_zero_size_only_width[] = {"openshop", (char *)zero_token, (char *)default_size_only_height};
     if (!expect_invalid_main_run("zero_size_only_width", 3, argv_zero_size_only_width, stderr_text, sizeof(stderr_text), &exit_code)) {
         return 1;
     }
@@ -565,14 +569,14 @@ int main(void) {
     }
 
     char *argv_custom_program_zero_width[] = {
-        (char *)custom_program_name, (char *)default_scene_path, "0", (char *)default_size_only_height};
+        (char *)custom_program_name, (char *)default_scene_path, (char *)zero_token, (char *)default_size_only_height};
     if (!expect_invalid_main_run_with_usage("custom_program_zero_width", 4, argv_custom_program_zero_width,
                                             stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
     char *argv_custom_program_zero_height[] = {
-        (char *)custom_program_name, (char *)default_scene_path, (char *)default_size_only_width, "0"};
+        (char *)custom_program_name, (char *)default_scene_path, (char *)default_size_only_width, (char *)zero_token};
     if (!expect_invalid_main_run_with_usage("custom_program_zero_height", 4, argv_custom_program_zero_height,
                                             stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
@@ -619,12 +623,12 @@ int main(void) {
         return 1;
     }
 
-    char *argv_bad_width_value[] = {"openshop", (char *)default_scene_path, "0", "768"};
+    char *argv_bad_width_value[] = {"openshop", (char *)default_scene_path, (char *)zero_token, (char *)invalid_probe_size};
     if (!expect_invalid_main_run("bad_width_value", 4, argv_bad_width_value, stderr_text, sizeof(stderr_text), &exit_code)) {
         return 1;
     }
 
-    char *argv_negative_width_value[] = {"openshop", (char *)default_scene_path, (char *)negative_size_only_width, "768"};
+    char *argv_negative_width_value[] = {"openshop", (char *)default_scene_path, (char *)negative_size_only_width, (char *)invalid_probe_size};
     if (!expect_invalid_main_run("negative_width_value", 4, argv_negative_width_value, stderr_text, sizeof(stderr_text), &exit_code)) {
         return 1;
     }
@@ -702,7 +706,7 @@ int main(void) {
 
     char *argv_size_only[] = {"openshop", (char *)default_size_only_width, (char *)default_size_only_height};
     if (!expect_successful_main_run("size_only", 3, argv_size_only, 7, stderr_text, sizeof(stderr_text), &exit_code,
-                                    7, NULL, 640, 480, "App exited with code 7\n")) {
+                                    7, NULL, 640, 480, app_exit_code_7_stderr)) {
         return 1;
     }
 
@@ -732,7 +736,7 @@ int main(void) {
 
     char *argv_custom_program_nonzero[] = {(char *)custom_program_name, (char *)custom_input_path};
     if (!expect_successful_main_run("custom_program_nonzero", 2, argv_custom_program_nonzero, 5, stderr_text, sizeof(stderr_text),
-                                    &exit_code, 5, custom_input_path, 0, 0, "App exited with code 5\n")) {
+                                    &exit_code, 5, custom_input_path, 0, 0, app_exit_code_5_stderr)) {
         return 1;
     }
 
