@@ -50,6 +50,7 @@ typedef enum {
 typedef struct AppRuntime AppRuntime;
 
 static void push_runtime_snapshot(const LayerStack *layers, AppRuntime *runtime);
+static void push_runtime_snapshot_callback(const LayerStack *layers, void *userdata);
 static int restore_runtime_history(LayerStack *layers, AppRuntime *runtime, int redo_to_undo);
 static int apply_runtime_canvas_transform(LayerStack *layers, AppRuntime *runtime, void (*transform)(Canvas *));
 static int apply_runtime_canvas_translation(LayerStack *layers, AppRuntime *runtime, int dx, int dy);
@@ -320,198 +321,135 @@ static int handle_layer_stack_shortcut(
 ) {
     AppLayerStackCommand command = app_layer_stack_command_for_key((int)key, ctrl, shift);
     int handled = command.handled;
+    int succeeded = 0;
+    AppLayerStackState state = {
+        .needs_composite = runtime ? runtime->needs_composite : 0,
+    };
+    AppLayerStackCallbacks callbacks = {
+        .push_snapshot = push_runtime_snapshot_callback,
+        .userdata = runtime,
+    };
+
+    if (handled) {
+        succeeded = app_layer_stack_apply(command, layers, &state, COLOR_BG, &callbacks);
+    }
 
     switch (command.action) {
     case APP_LAYER_STACK_ADD_TOP:
-        push_runtime_snapshot(layers, runtime);
-        if (layer_stack_add(layers, NULL, 0x00000000) < 0) {
+        if (!succeeded) {
             fprintf(stderr, "Max layers reached (%d)\n", MAX_LAYERS);
-        } else {
-            runtime->needs_composite = 1;
         }
         break;
     case APP_LAYER_STACK_INSERT_ABOVE:
-        push_runtime_snapshot(layers, runtime);
-        if (layer_stack_insert(layers, layers->active_layer + 1, NULL, 0x00000000) < 0) {
+        if (!succeeded) {
             fprintf(stderr, "Could not insert a layer above the active layer\n");
-        } else {
-            runtime->needs_composite = 1;
         }
         break;
     case APP_LAYER_STACK_INSERT_BELOW:
-        push_runtime_snapshot(layers, runtime);
-        if (layer_stack_insert(layers, layers->active_layer, NULL, 0x00000000) < 0) {
+        if (!succeeded) {
             fprintf(stderr, "Could not insert a layer below the active layer\n");
-        } else {
-            runtime->needs_composite = 1;
         }
         break;
     case APP_LAYER_STACK_TOGGLE_LOCK:
-        push_runtime_snapshot(layers, runtime);
-        if (!layer_stack_toggle_lock(layers, layers->active_layer)) {
+        if (!succeeded) {
             fprintf(stderr, "Could not toggle layer lock\n");
         }
         break;
     case APP_LAYER_STACK_TOGGLE_LOCK_OTHERS:
-        push_runtime_snapshot(layers, runtime);
-        if (!layer_stack_toggle_lock_others(layers, layers->active_layer)) {
+        if (!succeeded) {
             fprintf(stderr, "Could not toggle locks on the other layers\n");
         }
         break;
     case APP_LAYER_STACK_TOGGLE_VISIBILITY_OTHERS:
-        push_runtime_snapshot(layers, runtime);
-        if (!layer_stack_toggle_visibility_others(layers, layers->active_layer)) {
+        if (!succeeded) {
             fprintf(stderr, "Could not toggle visibility on the other layers\n");
-        } else {
-            runtime->needs_composite = 1;
         }
         break;
     case APP_LAYER_STACK_UNLOCK_ALL:
-        push_runtime_snapshot(layers, runtime);
-        if (!layer_stack_unlock_all(layers)) {
+        if (!succeeded) {
             fprintf(stderr, "Could not unlock layers\n");
         }
         break;
     case APP_LAYER_STACK_FLATTEN:
-        push_runtime_snapshot(layers, runtime);
-        if (!layer_stack_flatten(layers, COLOR_BG)) {
+        if (!succeeded) {
             fprintf(stderr, "Flatten failed (check for locked layers)\n");
-        } else {
-            runtime->needs_composite = 1;
         }
         break;
     case APP_LAYER_STACK_STAMP_VISIBLE_INTO:
-        push_runtime_snapshot(layers, runtime);
-        if (!layer_stack_stamp_visible_into(layers, layers->active_layer, COLOR_BG)) {
+        if (!succeeded) {
             fprintf(stderr, "Stamp visible failed (active layer may be locked)\n");
-        } else {
-            runtime->needs_composite = 1;
         }
         break;
     case APP_LAYER_STACK_STAMP_VISIBLE_NEW:
-        push_runtime_snapshot(layers, runtime);
-        if (layer_stack_stamp_visible_new(layers, "Visible Stamp", COLOR_BG) < 0) {
+        if (!succeeded) {
             fprintf(stderr, "Could not stamp visible image into a new layer\n");
-        } else {
-            runtime->needs_composite = 1;
         }
         break;
     case APP_LAYER_STACK_DUPLICATE_BELOW:
-        push_runtime_snapshot(layers, runtime);
-        if (layer_stack_duplicate_below(layers, layers->active_layer, NULL) < 0) {
+        if (!succeeded) {
             fprintf(stderr, "Could not duplicate layer below\n");
-        } else {
-            runtime->needs_composite = 1;
         }
         break;
     case APP_LAYER_STACK_DUPLICATE:
-        push_runtime_snapshot(layers, runtime);
-        if (layer_stack_duplicate(layers, layers->active_layer, NULL) < 0) {
+        if (!succeeded) {
             fprintf(stderr, "Could not duplicate layer\n");
-        } else {
-            runtime->needs_composite = 1;
         }
         break;
     case APP_LAYER_STACK_MOVE_RELATIVE:
-        push_runtime_snapshot(layers, runtime);
-        if (!layer_stack_move(layers, layers->active_layer, command.argument)) {
+        if (!succeeded) {
             fprintf(stderr, command.argument < 0 ? "Layer is already at the bottom\n" : "Layer is already at the top\n");
-        } else {
-            runtime->needs_composite = 1;
         }
         break;
     case APP_LAYER_STACK_MOVE_TO_EDGE:
-        push_runtime_snapshot(layers, runtime);
-        if (!layer_stack_move_to(
-                layers,
-                layers->active_layer,
-                command.argument == 0 ? 0 : layers->layer_count - 1)) {
+        if (!succeeded) {
             fprintf(stderr, command.argument == 0 ? "Layer is already at the bottom\n" : "Layer is already at the top\n");
-        } else {
-            runtime->needs_composite = 1;
         }
         break;
-    case APP_LAYER_STACK_ADJUST_OPACITY: {
-        Layer *active = layer_stack_active(layers);
-        if (active) {
-            push_runtime_snapshot(layers, runtime);
-            layer_stack_set_opacity(layers, layers->active_layer, active->opacity_percent + command.argument);
-            runtime->needs_composite = 1;
-        }
+    case APP_LAYER_STACK_ADJUST_OPACITY:
         break;
-    }
     case APP_LAYER_STACK_TOGGLE_VISIBILITY:
-        push_runtime_snapshot(layers, runtime);
-        if (!layer_stack_toggle_visibility(layers, layers->active_layer)) {
+        if (!succeeded) {
             fprintf(stderr, "Cannot hide the final visible layer\n");
-        } else {
-            runtime->needs_composite = 1;
         }
         break;
     case APP_LAYER_STACK_HIDE_AND_ADVANCE:
-        push_runtime_snapshot(layers, runtime);
-        if (!layer_stack_hide_and_advance(layers, layers->active_layer)) {
+        if (!succeeded) {
             fprintf(stderr, "Cannot hide the final visible layer\n");
-        } else {
-            runtime->needs_composite = 1;
         }
         break;
     case APP_LAYER_STACK_TOGGLE_SOLO:
-        push_runtime_snapshot(layers, runtime);
-        if (!layer_stack_toggle_solo(layers, layers->active_layer)) {
+        if (!succeeded) {
             fprintf(stderr, "Could not toggle solo mode\n");
-        } else {
-            runtime->needs_composite = 1;
         }
         break;
     case APP_LAYER_STACK_DELETE:
-        push_runtime_snapshot(layers, runtime);
-        if (!layer_stack_delete(layers, layers->active_layer)) {
+        if (!succeeded) {
             fprintf(stderr, "Cannot delete the final or a locked layer\n");
-        } else {
-            runtime->needs_composite = 1;
         }
         break;
     case APP_LAYER_STACK_MERGE_DOWN:
-        push_runtime_snapshot(layers, runtime);
-        if (!layer_stack_merge_down(layers, layers->active_layer)) {
+        if (!succeeded) {
             fprintf(stderr, "No lower layer to merge into, or one of the layers is locked\n");
-        } else {
-            runtime->needs_composite = 1;
         }
         break;
     case APP_LAYER_STACK_MERGE_UP:
-        push_runtime_snapshot(layers, runtime);
-        if (!layer_stack_merge_up(layers, layers->active_layer)) {
+        if (!succeeded) {
             fprintf(stderr, "No upper layer to merge into, or one of the layers is locked\n");
-        } else {
-            runtime->needs_composite = 1;
         }
         break;
-    case APP_LAYER_STACK_RESET_OPACITY: {
-        Layer *active = layer_stack_active(layers);
-        if (active && active->opacity_percent != 100) {
-            push_runtime_snapshot(layers, runtime);
-            layer_stack_set_opacity(layers, layers->active_layer, 100);
-            runtime->needs_composite = 1;
-        }
+    case APP_LAYER_STACK_RESET_OPACITY:
         break;
-    }
     case APP_LAYER_STACK_SHOW_ALL:
-        push_runtime_snapshot(layers, runtime);
-        if (layer_stack_show_all(layers)) {
-            runtime->needs_composite = 1;
-        }
         break;
     case APP_LAYER_STACK_SHOW_ACTIVE:
-        push_runtime_snapshot(layers, runtime);
-        if (layer_stack_show(layers, layers->active_layer)) {
-            runtime->needs_composite = 1;
-        }
         break;
     case APP_LAYER_STACK_NONE:
     default:
         break;
+    }
+
+    if (runtime) {
+        runtime->needs_composite = state.needs_composite;
     }
 
     if (handled) {
@@ -1420,6 +1358,10 @@ static void push_runtime_snapshot(const LayerStack *layers, AppRuntime *runtime)
         return;
     }
     snapshot_push(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
+}
+
+static void push_runtime_snapshot_callback(const LayerStack *layers, void *userdata) {
+    push_runtime_snapshot(layers, (AppRuntime *)userdata);
 }
 
 static int save_document_canvas(const Canvas *canvas, const char *path, void *userdata) {

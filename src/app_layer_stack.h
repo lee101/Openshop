@@ -1,6 +1,9 @@
 #ifndef APP_LAYER_STACK_H
 #define APP_LAYER_STACK_H
 
+#include "layers.h"
+#include <stdint.h>
+
 typedef enum {
     APP_LAYER_STACK_NONE = 0,
     APP_LAYER_STACK_ADD_TOP,
@@ -35,6 +38,22 @@ typedef struct {
     int argument;
 } AppLayerStackCommand;
 
+typedef struct {
+    int needs_composite;
+} AppLayerStackState;
+
+typedef struct {
+    void (*push_snapshot)(const LayerStack *layers, void *userdata);
+    void *userdata;
+} AppLayerStackCallbacks;
+
 AppLayerStackCommand app_layer_stack_command_for_key(int key, int ctrl, int shift);
+int app_layer_stack_apply(
+    AppLayerStackCommand command,
+    LayerStack *layers,
+    AppLayerStackState *state,
+    uint32_t background_color,
+    const AppLayerStackCallbacks *callbacks
+);
 
 #endif

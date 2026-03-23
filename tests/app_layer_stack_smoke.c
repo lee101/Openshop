@@ -2,12 +2,24 @@
 
 #include <stdio.h>
 
+typedef struct {
+    int push_count;
+} SnapshotStubState;
+
 static int expect_int_eq(const char *label, int got, int want) {
     if (got != want) {
         fprintf(stderr, "%s mismatch: got %d want %d\n", label, got, want);
         return 0;
     }
     return 1;
+}
+
+static void stub_push_snapshot(const LayerStack *layers, void *userdata) {
+    SnapshotStubState *state = (SnapshotStubState *)userdata;
+    (void)layers;
+    if (state) {
+        state->push_count++;
+    }
 }
 
 static int test_creation_and_duplication_commands(void) {
@@ -115,6 +127,113 @@ static int test_unhandled_key(void) {
            expect_int_eq("argument", command.argument, 0);
 }
 
+static int test_apply_success_sets_needs_composite(void) {
+    LayerStack stack;
+    SnapshotStubState snapshot_state = {0};
+    AppLayerStackState state = {0};
+    AppLayerStackCallbacks callbacks = {
+        .push_snapshot = stub_push_snapshot,
+        .userdata = &snapshot_state,
+    };
+    AppLayerStackCommand command = {.handled = 1, .action = APP_LAYER_STACK_TOGGLE_SOLO, .argument = 0};
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "layer_stack_init failed\n");
+        return 0;
+    }
+
+    if (!app_layer_stack_apply(command, &stack, &state, 0xFFFFFFFF, &callbacks) ||
+        !expect_int_eq("apply_success_needs_composite", state.needs_composite, 1) ||
+        !expect_int_eq("apply_success_push_count", snapshot_state.push_count, 1) ||
+        !expect_int_eq("apply_success_solo_index", stack.solo_index, 0)) {
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    return 1;
+}
+
+static int test_apply_success_without_composite_flag(void) {
+    LayerStack stack;
+    SnapshotStubState snapshot_state = {0};
+    AppLayerStackState state = {0};
+    AppLayerStackCallbacks callbacks = {
+        .push_snapshot = stub_push_snapshot,
+        .userdata = &snapshot_state,
+    };
+    AppLayerStackCommand command = {.handled = 1, .action = APP_LAYER_STACK_TOGGLE_LOCK, .argument = 0};
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "layer_stack_init failed\n");
+        return 0;
+    }
+
+    if (!app_layer_stack_apply(command, &stack, &state, 0xFFFFFFFF, &callbacks) ||
+        !expect_int_eq("apply_lock_needs_composite", state.needs_composite, 0) ||
+        !expect_int_eq("apply_lock_push_count", snapshot_state.push_count, 1) ||
+        !expect_int_eq("apply_lock_locked", stack.layers[0].locked, 1)) {
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    return 1;
+}
+
+static int test_apply_failure_preserves_composite_flag(void) {
+    LayerStack stack;
+    SnapshotStubState snapshot_state = {0};
+    AppLayerStackState state = {.needs_composite = 0};
+    AppLayerStackCallbacks callbacks = {
+        .push_snapshot = stub_push_snapshot,
+        .userdata = &snapshot_state,
+    };
+    AppLayerStackCommand command = {.handled = 1, .action = APP_LAYER_STACK_TOGGLE_VISIBILITY, .argument = 0};
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "layer_stack_init failed\n");
+        return 0;
+    }
+
+    if (app_layer_stack_apply(command, &stack, &state, 0xFFFFFFFF, &callbacks) ||
+        !expect_int_eq("apply_fail_needs_composite", state.needs_composite, 0) ||
+        !expect_int_eq("apply_fail_push_count", snapshot_state.push_count, 1) ||
+        !expect_int_eq("apply_fail_visible", stack.layers[0].visible, 1)) {
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    return 1;
+}
+
+static int test_apply_noop_does_not_push_snapshot(void) {
+    LayerStack stack;
+    SnapshotStubState snapshot_state = {0};
+    AppLayerStackState state = {0};
+    AppLayerStackCallbacks callbacks = {
+        .push_snapshot = stub_push_snapshot,
+        .userdata = &snapshot_state,
+    };
+    AppLayerStackCommand command = {.handled = 1, .action = APP_LAYER_STACK_RESET_OPACITY, .argument = 0};
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "layer_stack_init failed\n");
+        return 0;
+    }
+
+    if (app_layer_stack_apply(command, &stack, &state, 0xFFFFFFFF, &callbacks) ||
+        !expect_int_eq("apply_noop_needs_composite", state.needs_composite, 0) ||
+        !expect_int_eq("apply_noop_push_count", snapshot_state.push_count, 0)) {
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    return 1;
+}
+
 int main(void) {
     if (!test_creation_and_duplication_commands()) {
         return 1;
@@ -132,6 +251,18 @@ int main(void) {
         return 1;
     }
     if (!test_unhandled_key()) {
+        return 1;
+    }
+    if (!test_apply_success_sets_needs_composite()) {
+        return 1;
+    }
+    if (!test_apply_success_without_composite_flag()) {
+        return 1;
+    }
+    if (!test_apply_failure_preserves_composite_flag()) {
+        return 1;
+    }
+    if (!test_apply_noop_does_not_push_snapshot()) {
         return 1;
     }
     return 0;
