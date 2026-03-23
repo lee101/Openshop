@@ -623,6 +623,31 @@ static int try_begin_brush_stroke(LayerStack *layers,
     return 1;
 }
 
+static void set_brush_color_tool(uint32_t color_rgb, int brush_opacity,
+                                 uint32_t *brush_color_rgb, uint32_t *brush_color,
+                                 Tool *tool, Tool next_tool) {
+    if (!brush_color_rgb || !brush_color || !tool) {
+        return;
+    }
+    *brush_color_rgb = color_rgb & 0x00FFFFFF;
+    *brush_color = compose_brush_color(*brush_color_rgb, brush_opacity);
+    *tool = next_tool;
+}
+
+static void adjust_brush_opacity(int delta, uint32_t brush_color_rgb,
+                                 int *brush_opacity, uint32_t *brush_color) {
+    if (!brush_opacity || !brush_color) {
+        return;
+    }
+    *brush_opacity += delta;
+    if (*brush_opacity < 1) {
+        *brush_opacity = 1;
+    } else if (*brush_opacity > 100) {
+        *brush_opacity = 100;
+    }
+    *brush_color = compose_brush_color(brush_color_rgb, *brush_opacity);
+}
+
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
     switch (shape) {
     case BRUSH_SHAPE_ROUND:
@@ -1689,13 +1714,9 @@ int app_run(const char *input_path) {
                 }
 
                 if (key == SDLK_b) {
-                    brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
-                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                    tool = TOOL_BRUSH;
+                    set_brush_color_tool(COLOR_BRUSH, brush_opacity, &brush_color_rgb, &brush_color, &tool, TOOL_BRUSH);
                 } else if (key == SDLK_e) {
-                    brush_color_rgb = COLOR_ERASE & 0x00FFFFFF;
-                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                    tool = TOOL_ERASER;
+                    set_brush_color_tool(COLOR_ERASE, brush_opacity, &brush_color_rgb, &brush_color, &tool, TOOL_ERASER);
                 } else if (key == SDLK_l) {
                     tool = TOOL_LINE;
                 } else if (key == SDLK_r) {
@@ -1720,44 +1741,24 @@ int app_run(const char *input_path) {
                     brush_shape = cycle_brush_shape(brush_shape, 1);
                 } else if (key == SDLK_MINUS || key == SDLK_KP_MINUS) {
                     if (brush_opacity > 1) {
-                        brush_opacity -= 5;
-                        if (brush_opacity < 1) {
-                            brush_opacity = 1;
-                        }
-                        brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
+                        adjust_brush_opacity(-5, brush_color_rgb, &brush_opacity, &brush_color);
                     }
                 } else if (key == SDLK_EQUALS || key == SDLK_KP_PLUS) {
                     if (brush_opacity < 100) {
-                        brush_opacity += 5;
-                        if (brush_opacity > 100) {
-                            brush_opacity = 100;
-                        }
-                        brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
+                        adjust_brush_opacity(5, brush_color_rgb, &brush_opacity, &brush_color);
                     }
                 } else if (key == SDLK_1) {
-                    brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
-                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                    tool = TOOL_BRUSH;
+                    set_brush_color_tool(COLOR_BRUSH, brush_opacity, &brush_color_rgb, &brush_color, &tool, TOOL_BRUSH);
                 } else if (key == SDLK_2) {
-                    brush_color_rgb = COLOR_RED & 0x00FFFFFF;
-                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                    tool = TOOL_BRUSH;
+                    set_brush_color_tool(COLOR_RED, brush_opacity, &brush_color_rgb, &brush_color, &tool, TOOL_BRUSH);
                 } else if (key == SDLK_3) {
-                    brush_color_rgb = COLOR_GREEN & 0x00FFFFFF;
-                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                    tool = TOOL_BRUSH;
+                    set_brush_color_tool(COLOR_GREEN, brush_opacity, &brush_color_rgb, &brush_color, &tool, TOOL_BRUSH);
                 } else if (key == SDLK_4) {
-                    brush_color_rgb = COLOR_BLUE & 0x00FFFFFF;
-                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                    tool = TOOL_BRUSH;
+                    set_brush_color_tool(COLOR_BLUE, brush_opacity, &brush_color_rgb, &brush_color, &tool, TOOL_BRUSH);
                 } else if (key == SDLK_5) {
-                    brush_color_rgb = COLOR_YELLOW & 0x00FFFFFF;
-                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                    tool = TOOL_BRUSH;
+                    set_brush_color_tool(COLOR_YELLOW, brush_opacity, &brush_color_rgb, &brush_color, &tool, TOOL_BRUSH);
                 } else if (key == SDLK_6) {
-                    brush_color_rgb = COLOR_PURPLE & 0x00FFFFFF;
-                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                    tool = TOOL_BRUSH;
+                    set_brush_color_tool(COLOR_PURPLE, brush_opacity, &brush_color_rgb, &brush_color, &tool, TOOL_BRUSH);
                 } else if (key == SDLK_c) {
                     if (try_clear_active_layer(&layers, undo_stack, &undo_count, redo_stack, &redo_count)) {
                         needs_composite = 1;
