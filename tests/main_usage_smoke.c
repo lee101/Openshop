@@ -270,6 +270,14 @@ int main(void) {
         return 1;
     }
 
+    char *argv_custom_program_overflow_width[] = {
+        (char *)custom_program_name, (char *)default_scene_path, "2147483648", (char *)default_size_only_height};
+    reset_app_state(0, NULL, 0, 0, stderr_text);
+    if (!capture_main_stderr(4, argv_custom_program_overflow_width, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_invalid_run_with_usage("custom_program_overflow_width", exit_code, stderr_text, custom_usage_text)) {
+        return 1;
+    }
+
     reset_app_state(0, NULL, 0, 0, stderr_text);
     if (!capture_main_stderr(1, NULL, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("null_argv", exit_code, stderr_text)) {
