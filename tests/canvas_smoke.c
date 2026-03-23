@@ -1353,6 +1353,10 @@ static int test_layers_basic(void) {
     }
     uint32_t final_layer_pixel = canvas_get_pixel(&stack.layers[0].canvas, 0, 0);
     char final_layer_name[LAYER_NAME_MAX];
+    int final_layer_visible = stack.layers[0].visible;
+    int final_layer_locked = stack.layers[0].locked;
+    int final_layer_opacity = stack.layers[0].opacity_percent;
+    int final_layer_solo = stack.solo_index;
     strncpy(final_layer_name, stack.layers[0].name, LAYER_NAME_MAX - 1);
     final_layer_name[LAYER_NAME_MAX - 1] = '\0';
     if (layer_stack_delete(&stack, 0)) {
@@ -1361,7 +1365,9 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (stack.layer_count != 1 || stack.active_layer != 0 || strcmp(stack.layers[0].name, final_layer_name) != 0 ||
+    if (stack.layer_count != 1 || stack.active_layer != 0 || stack.solo_index != final_layer_solo ||
+        stack.layers[0].visible != final_layer_visible || stack.layers[0].locked != final_layer_locked ||
+        stack.layers[0].opacity_percent != final_layer_opacity || strcmp(stack.layers[0].name, final_layer_name) != 0 ||
         !expect_pixel_eq("final_delete_preserves_layer", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), final_layer_pixel)) {
         canvas_free(&composite);
         layer_stack_free(&stack);
