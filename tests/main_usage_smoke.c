@@ -312,6 +312,14 @@ int main(void) {
         return 1;
     }
 
+    char *argv_custom_program_leading_tab_size_only_height[] = {
+        (char *)custom_program_name, (char *)default_size_only_width, "\t480"};
+    reset_app_state(0, NULL, 0, 0, stderr_text);
+    if (!capture_main_stderr(3, argv_custom_program_leading_tab_size_only_height, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_invalid_run_with_usage("custom_program_leading_tab_size_only_height", exit_code, stderr_text, custom_usage_text)) {
+        return 1;
+    }
+
     char *argv_custom_program_empty_size_only_height[] = {
         (char *)custom_program_name, (char *)default_size_only_width, ""};
     reset_app_state(0, NULL, 0, 0, stderr_text);
