@@ -478,6 +478,64 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[1].locked = 1;
+    stack.layers[3].locked = 1;
+    stack.active_layer = 1;
+    if (layer_stack_cycle_unlocked(&stack, 1) != 2 || stack.active_layer != 2) {
+        fprintf(stderr, "unlocked layer cycling forward failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_cycle_unlocked(&stack, 1) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "unlocked layer cycling wrap failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_cycle_unlocked(&stack, -1) != 2 || stack.active_layer != 2) {
+        fprintf(stderr, "unlocked layer cycling backward failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_bottom_unlocked(&stack) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "select bottom unlocked failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_top_unlocked(&stack) != 2 || stack.active_layer != 2) {
+        fprintf(stderr, "select top unlocked failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[0].locked = 1;
+    stack.layers[2].locked = 1;
+    stack.active_layer = 1;
+    if (layer_stack_cycle_unlocked(&stack, 1) != -1 || stack.active_layer != 1) {
+        fprintf(stderr, "unlocked layer cycling should fail when none are unlocked\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_bottom_unlocked(&stack) != -1 || stack.active_layer != 1) {
+        fprintf(stderr, "select bottom unlocked should fail when none are unlocked\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_top_unlocked(&stack) != -1 || stack.active_layer != 1) {
+        fprintf(stderr, "select top unlocked should fail when none are unlocked\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[0].locked = 0;
+    stack.layers[1].locked = 0;
+    stack.layers[2].locked = 0;
+    stack.layers[3].locked = 0;
     stack.active_layer = 1;
     if (!layer_stack_lock_and_advance(&stack, 1)) {
         fprintf(stderr, "lock and advance failed\n");

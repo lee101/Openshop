@@ -328,6 +328,10 @@ int layer_stack_cycle_locked(LayerStack *stack, int direction) {
     return layer_stack_cycle_bool_field(stack, direction, 1, 1);
 }
 
+int layer_stack_cycle_unlocked(LayerStack *stack, int direction) {
+    return layer_stack_cycle_bool_field(stack, direction, 0, 1);
+}
+
 int layer_stack_select_bottom_visible(LayerStack *stack) {
     return layer_stack_select_edge_filtered(stack, 1, 0);
 }
@@ -350,6 +354,14 @@ int layer_stack_select_bottom_locked(LayerStack *stack) {
 
 int layer_stack_select_top_locked(LayerStack *stack) {
     return layer_stack_select_bool_edge(stack, 1, 1, 1);
+}
+
+int layer_stack_select_bottom_unlocked(LayerStack *stack) {
+    return layer_stack_select_bool_edge(stack, 0, 0, 1);
+}
+
+int layer_stack_select_top_unlocked(LayerStack *stack) {
+    return layer_stack_select_bool_edge(stack, 0, 1, 1);
 }
 
 int layer_stack_toggle_solo(LayerStack *stack, int index) {
