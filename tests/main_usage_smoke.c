@@ -161,6 +161,40 @@ int main(void) {
         return 1;
     }
 
+    app_run_result = 0;
+    app_run_called = 0;
+    last_input_path = NULL;
+    last_canvas_w = 0;
+    last_canvas_h = 0;
+    stderr_text[0] = '\0';
+    char *argv_input_only[] = {"openshop", "art/input.png"};
+    if (!capture_main_stderr(2, argv_input_only, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_int("input_only_exit", exit_code, 0) ||
+        !expect_int("input_only_app_run_called", app_run_called, 1) ||
+        !expect_str("input_only_path_forwarded", last_input_path, "art/input.png") ||
+        !expect_int("input_only_canvas_w", last_canvas_w, 0) ||
+        !expect_int("input_only_canvas_h", last_canvas_h, 0) ||
+        !expect_str("input_only_exit_text", stderr_text, "")) {
+        return 1;
+    }
+
+    app_run_result = 0;
+    app_run_called = 0;
+    last_input_path = NULL;
+    last_canvas_w = 0;
+    last_canvas_h = 0;
+    stderr_text[0] = '\0';
+    char *argv_numeric_input[] = {"openshop", "640"};
+    if (!capture_main_stderr(2, argv_numeric_input, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_int("numeric_input_exit", exit_code, 0) ||
+        !expect_int("numeric_input_app_run_called", app_run_called, 1) ||
+        !expect_str("numeric_input_path_forwarded", last_input_path, "640") ||
+        !expect_int("numeric_input_canvas_w", last_canvas_w, 0) ||
+        !expect_int("numeric_input_canvas_h", last_canvas_h, 0) ||
+        !expect_str("numeric_input_exit_text", stderr_text, "")) {
+        return 1;
+    }
+
     printf("main usage smoke ok\n");
     return 0;
 }
