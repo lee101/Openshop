@@ -179,6 +179,13 @@ int main(void) {
         return 1;
     }
 
+    char *argv_null_size_only_height[] = {"openshop", "640", NULL};
+    reset_app_state(0, NULL, 0, 0, stderr_text);
+    if (!capture_main_stderr(3, argv_null_size_only_height, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_invalid_run("null_size_only_height", exit_code, stderr_text)) {
+        return 1;
+    }
+
     char *argv_extra[] = {"openshop", "art/scene.png", "640", "480", "extra"};
     reset_app_state(0, NULL, 0, 0, stderr_text);
     if (!capture_main_stderr(5, argv_extra, stderr_text, sizeof(stderr_text), &exit_code) ||
@@ -214,6 +221,13 @@ int main(void) {
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
+    char *argv_null_input[] = {"openshop", NULL};
+    if (!capture_main_stderr(2, argv_null_input, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_invalid_run("null_input", exit_code, stderr_text)) {
+        return 1;
+    }
+
+    reset_app_state(0, NULL, 0, 0, stderr_text);
     char *argv_bad_width_value[] = {"openshop", "art/scene.png", "0", "768"};
     if (!capture_main_stderr(4, argv_bad_width_value, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("bad_width_value", exit_code, stderr_text)) {
@@ -238,6 +252,20 @@ int main(void) {
     char *argv_empty_width[] = {"openshop", "art/scene.png", "", "480"};
     if (!capture_main_stderr(4, argv_empty_width, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("empty_width", exit_code, stderr_text)) {
+        return 1;
+    }
+
+    reset_app_state(0, NULL, 0, 0, stderr_text);
+    char *argv_null_width[] = {"openshop", "art/scene.png", NULL, "480"};
+    if (!capture_main_stderr(4, argv_null_width, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_invalid_run("null_width", exit_code, stderr_text)) {
+        return 1;
+    }
+
+    reset_app_state(0, NULL, 0, 0, stderr_text);
+    char *argv_null_height[] = {"openshop", "art/scene.png", "640", NULL};
+    if (!capture_main_stderr(4, argv_null_height, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_invalid_run("null_height", exit_code, stderr_text)) {
         return 1;
     }
 
