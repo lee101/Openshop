@@ -285,20 +285,18 @@ struct success_case {
     const char *expected_stderr;
 };
 
-#define SUCCESS_CASE(label, argc, program, input, width, height, result, expected_exit, expected_path, canvas_w, canvas_h, expected_stderr) \
-    {label, argc, program, input, width, height, result, expected_exit, expected_path, canvas_w, canvas_h, expected_stderr}
 #define SUCCESS_INPUT_CASE(label, argc, program, input, result, expected_exit, expected_stderr) \
-    SUCCESS_CASE(label, argc, program, input, NULL, NULL, result, expected_exit, input, 0, 0, expected_stderr)
+    {label, argc, program, input, NULL, NULL, result, expected_exit, input, 0, 0, expected_stderr}
 #define SUCCESS_INPUT_CASE_EMPTY_STDERR(label, argc, program, input, result, expected_exit) \
     SUCCESS_INPUT_CASE(label, argc, program, input, result, expected_exit, empty_stderr)
 #define SUCCESS_STARTUP_CASE_EMPTY_STDERR(label, program, result, expected_exit) \
-    SUCCESS_CASE(label, 1, program, NULL, NULL, NULL, result, expected_exit, NULL, 0, 0, empty_stderr)
+    {label, 1, program, NULL, NULL, NULL, result, expected_exit, NULL, 0, 0, empty_stderr}
 #define SUCCESS_SIZE_ONLY_CASE(label, program, width, height, result, expected_exit, canvas_w, canvas_h, expected_stderr) \
-    SUCCESS_CASE(label, 3, program, width, height, NULL, result, expected_exit, NULL, canvas_w, canvas_h, expected_stderr)
+    {label, 3, program, width, height, NULL, result, expected_exit, NULL, canvas_w, canvas_h, expected_stderr}
 #define SUCCESS_SIZE_ONLY_CASE_EMPTY_STDERR(label, program, width, height, result, expected_exit, canvas_w, canvas_h) \
     SUCCESS_SIZE_ONLY_CASE(label, program, width, height, result, expected_exit, canvas_w, canvas_h, empty_stderr)
 #define SUCCESS_INPUT_SIZE_CASE(label, program, input, width, height, result, expected_exit, canvas_w, canvas_h, expected_stderr) \
-    SUCCESS_CASE(label, 4, program, input, width, height, result, expected_exit, input, canvas_w, canvas_h, expected_stderr)
+    {label, 4, program, input, width, height, result, expected_exit, input, canvas_w, canvas_h, expected_stderr}
 #define SUCCESS_INPUT_SIZE_CASE_EMPTY_STDERR(label, program, input, width, height, result, expected_exit, canvas_w, canvas_h) \
     SUCCESS_INPUT_SIZE_CASE(label, program, input, width, height, result, expected_exit, canvas_w, canvas_h, empty_stderr)
 
