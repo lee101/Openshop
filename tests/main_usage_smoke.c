@@ -22,8 +22,6 @@ static const int no_input_canvas_w = 0;
 static const int no_input_canvas_h = 0;
 static const int size_only_width_argv_index = 1;
 static const int size_only_height_argv_index = 2;
-static const int argv_is_present = 0;
-static const int argv_is_null = 1;
 static const int zero_argc = 0;
 static const int startup_argc = 1;
 static const int input_only_argc = 2;
@@ -274,7 +272,10 @@ struct invalid_input_size_case {
 struct invalid_argv_case {
     const char *label_prefix;
     int argc;
-    int argv_state;
+    enum {
+        argv_is_present = 0,
+        argv_is_null = 1,
+    } argv_state;
     const char *expected_usage_text;
     const char *argv[5];
 };
