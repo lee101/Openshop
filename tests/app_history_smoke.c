@@ -414,6 +414,56 @@ static int test_snapshot_push_preserves_stacks_on_allocation_failure(void) {
     return 1;
 }
 
+static int test_snapshot_push_preserves_full_history_on_allocation_failure(void) {
+    LayerStack stack;
+    Snapshot undo_stack[MAX_HISTORY];
+    Snapshot redo_stack[MAX_HISTORY];
+    int undo_count = 0;
+    int redo_count = 0;
+    AllocatorStubState alloc = {.fail_after = 0, .calls = 0};
+
+    memset(undo_stack, 0, sizeof(undo_stack));
+    memset(redo_stack, 0, sizeof(redo_stack));
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "layer_stack_init failed\n");
+        return 0;
+    }
+
+    for (int i = 0; i < MAX_HISTORY; i++) {
+        canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF660000u + (uint32_t)i);
+        if (!snapshot_from_layers(&undo_stack[i], &stack)) {
+            fprintf(stderr, "snapshot_from_layers failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        undo_count++;
+    }
+    uint32_t oldest_before = undo_stack[0].pixels[0];
+    uint32_t newest_before = undo_stack[MAX_HISTORY - 1].pixels[0];
+
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF770000u);
+    install_allocator_stub(&alloc);
+    snapshot_push(&stack, undo_stack, &undo_count, redo_stack, &redo_count);
+    install_allocator_stub(NULL);
+
+    if (!expect_int_eq("push_full_fail_undo_count", undo_count, MAX_HISTORY) ||
+        !expect_int_eq("push_full_fail_redo_count", redo_count, 0) ||
+        !expect_pixel_eq("push_full_fail_oldest", undo_stack[0].pixels[0], oldest_before) ||
+        !expect_pixel_eq("push_full_fail_newest", undo_stack[MAX_HISTORY - 1].pixels[0], newest_before)) {
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_snapshot_restore_preserves_state_on_allocation_failure(void) {
     LayerStack stack;
     Snapshot undo_stack[MAX_HISTORY];
@@ -819,6 +869,9 @@ int main(void) {
         return 1;
     }
     if (!test_snapshot_push_preserves_stacks_on_allocation_failure()) {
+        return 1;
+    }
+    if (!test_snapshot_push_preserves_full_history_on_allocation_failure()) {
         return 1;
     }
     if (!test_snapshot_restore_preserves_state_on_allocation_failure()) {

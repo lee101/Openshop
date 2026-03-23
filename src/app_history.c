@@ -137,18 +137,23 @@ void snapshot_push(const LayerStack *layers, Snapshot *stack, int *count, Snapsh
     if (!layers || !stack || !count) {
         return;
     }
-    if (*count == MAX_HISTORY) {
-        snapshot_free(&stack[0]);
-        memmove(&stack[0], &stack[1], sizeof(Snapshot) * (size_t)(MAX_HISTORY - 1));
-        *count = MAX_HISTORY - 1;
-    }
 
     Snapshot snapshot = {0};
     if (!snapshot_from_layers(&snapshot, layers)) {
         snapshot_free(&snapshot);
         return;
     }
-    stack[(*count)++] = snapshot;
+
+    int target_index = *count;
+    if (target_index == MAX_HISTORY) {
+        snapshot_free(&stack[0]);
+        memmove(&stack[0], &stack[1], sizeof(Snapshot) * (size_t)(MAX_HISTORY - 1));
+        target_index = MAX_HISTORY - 1;
+    }
+    stack[target_index] = snapshot;
+    if (*count < MAX_HISTORY) {
+        (*count)++;
+    }
     if (redo && redo_count) {
         snapshot_stack_clear(redo, redo_count);
     }
