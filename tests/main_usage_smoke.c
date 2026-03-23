@@ -249,6 +249,17 @@ static int expect_custom_invalid_main_run(const char *label_prefix, int argc, ch
                                               custom_usage_text);
 }
 
+static int expect_invalid_main_case_run(const char *label_prefix, int argc, char **argv,
+                                        char *stderr_text, size_t stderr_size, int *exit_code,
+                                        const char *usage_text) {
+    if (usage_text) {
+        return expect_custom_invalid_main_run(label_prefix, argc, argv, stderr_text, stderr_size, exit_code,
+                                              usage_text);
+    }
+
+    return expect_invalid_main_run(label_prefix, argc, argv, stderr_text, stderr_size, exit_code);
+}
+
 struct invalid_size_token_case {
     const char *label_prefix;
     const char *token;
@@ -294,15 +305,8 @@ static int expect_invalid_size_only_cases(const struct invalid_size_token_case *
 
         argv[variable_token_index] = (char *)cases[i].token;
 
-        if (custom_usage_text) {
-            if (!expect_custom_invalid_main_run(cases[i].label_prefix, 3, argv, stderr_text, stderr_size, exit_code,
-                                                custom_usage_text)) {
-                return 0;
-            }
-            continue;
-        }
-
-        if (!expect_invalid_main_run(cases[i].label_prefix, 3, argv, stderr_text, stderr_size, exit_code)) {
+        if (!expect_invalid_main_case_run(cases[i].label_prefix, 3, argv, stderr_text, stderr_size, exit_code,
+                                          custom_usage_text)) {
             return 0;
         }
     }
@@ -318,15 +322,8 @@ static int expect_invalid_input_size_cases(const struct invalid_input_size_case 
     for (i = 0; i < case_count; i += 1) {
         char *argv[] = {(char *)program_name, (char *)scene_token, (char *)cases[i].width_token, (char *)cases[i].height_token};
 
-        if (custom_usage_text) {
-            if (!expect_custom_invalid_main_run(cases[i].label_prefix, 4, argv, stderr_text, stderr_size, exit_code,
-                                                custom_usage_text)) {
-                return 0;
-            }
-            continue;
-        }
-
-        if (!expect_invalid_main_run(cases[i].label_prefix, 4, argv, stderr_text, stderr_size, exit_code)) {
+        if (!expect_invalid_main_case_run(cases[i].label_prefix, 4, argv, stderr_text, stderr_size, exit_code,
+                                          custom_usage_text)) {
             return 0;
         }
     }
@@ -362,16 +359,9 @@ static int expect_invalid_argv_cases(const struct invalid_argv_case *cases, size
             argv = NULL;
         }
 
-        if (cases[i].expected_usage_text) {
-            if (!expect_custom_invalid_main_run(cases[i].label_prefix, cases[i].argc, argv,
-                                                stderr_text, stderr_size, exit_code, cases[i].expected_usage_text)) {
-                return 0;
-            }
-            continue;
-        }
-
-        if (!expect_invalid_main_run(cases[i].label_prefix, cases[i].argc, argv,
-                                     stderr_text, stderr_size, exit_code)) {
+        if (!expect_invalid_main_case_run(cases[i].label_prefix, cases[i].argc, argv,
+                                          stderr_text, stderr_size, exit_code,
+                                          cases[i].expected_usage_text)) {
             return 0;
         }
     }
