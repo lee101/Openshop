@@ -84,6 +84,9 @@ int main(void) {
                     "       or: WIDTH HEIGHT\n")) {
         return 1;
     }
+    if (!expect_int("usage_default_size_matches", cli_usage_size(argv_default), (int)strlen(usage) + 1)) {
+        return 1;
+    }
     if (!expect_int("usage_null_argv_ok", format_cli_usage(usage, (int)sizeof(usage), NULL), 1) ||
         !expect_str("usage_null_argv_text", usage,
                     "Usage: openshop [input_path] [width height]\n"
@@ -111,6 +114,9 @@ int main(void) {
         !expect_str("usage_custom_buffer_text", exact_usage,
                     "Usage: ./bin/openshop-dev [input_path] [width height]\n"
                     "       or: WIDTH HEIGHT\n")) {
+        return 1;
+    }
+    if (!expect_int("usage_custom_size_matches", cli_usage_size(argv_custom_program), (int)strlen(exact_usage) + 1)) {
         return 1;
     }
     if (!expect_int("usage_short_buffer",
