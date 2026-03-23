@@ -38,46 +38,50 @@ int path_exists(const char *path) {
     return 1;
 }
 
-const char *default_input_path(int prefer_png, int bmp_exists, int png_exists) {
+const char *default_routed_path(
+    const char *bmp_path,
+    const char *png_path,
+    int prefer_png,
+    int bmp_exists,
+    int png_exists
+) {
+    if (!bmp_path || !png_path) {
+        return NULL;
+    }
     if (prefer_png) {
-        return "input.png";
+        return png_path;
     }
     if (bmp_exists || !png_exists) {
-        return "input.bmp";
+        return bmp_path;
     }
-    return "input.png";
+    return png_path;
+}
+
+const char *default_input_path(int prefer_png, int bmp_exists, int png_exists) {
+    return default_routed_path("input.bmp", "input.png", prefer_png, bmp_exists, png_exists);
 }
 
 const char *default_output_path(int prefer_png, int bmp_exists, int png_exists) {
-    if (prefer_png) {
-        return "output.png";
+    return default_routed_path("output.bmp", "output.png", prefer_png, bmp_exists, png_exists);
+}
+
+RoutedPath resolve_routed_choice(const char *bmp_path, const char *png_path, int prefer_png) {
+    int bmp_exists = path_exists(bmp_path);
+    int png_exists = path_exists(png_path);
+    RoutedPath choice = {default_routed_path(bmp_path, png_path, prefer_png, bmp_exists, png_exists), 0};
+
+    if (!prefer_png && !bmp_exists && png_exists) {
+        choice.used_alternate = 1;
     }
-    if (bmp_exists || !png_exists) {
-        return "output.bmp";
-    }
-    return "output.png";
+    return choice;
 }
 
 RoutedPath resolve_default_input_choice(int prefer_png) {
-    int bmp_exists = path_exists("input.bmp");
-    int png_exists = path_exists("input.png");
-    RoutedPath choice = {default_input_path(prefer_png, bmp_exists, png_exists), 0};
-
-    if (!prefer_png && !bmp_exists && png_exists) {
-        choice.used_alternate = 1;
-    }
-    return choice;
+    return resolve_routed_choice("input.bmp", "input.png", prefer_png);
 }
 
 RoutedPath resolve_default_output_choice(int prefer_png) {
-    int bmp_exists = path_exists("output.bmp");
-    int png_exists = path_exists("output.png");
-    RoutedPath choice = {default_output_path(prefer_png, bmp_exists, png_exists), 0};
-
-    if (!prefer_png && !bmp_exists && png_exists) {
-        choice.used_alternate = 1;
-    }
-    return choice;
+    return resolve_routed_choice("output.bmp", "output.png", prefer_png);
 }
 
 const char *resolve_default_input_path(int prefer_png) {

@@ -33,6 +33,8 @@ static void cleanup_artifacts(void) {
     remove_if_exists("input.png");
     remove_if_exists("output.bmp");
     remove_if_exists("output.png");
+    remove_if_exists("draft.bmp");
+    remove_if_exists("draft.png");
 }
 
 static int expect_int(const char *label, int actual, int expected) {
@@ -72,6 +74,13 @@ int main(void) {
         !expect_str("output_prefer_bmp_existing", default_output_path(0, 1, 1), "output.bmp") ||
         !expect_str("output_reuse_png", default_output_path(0, 0, 1), "output.png") ||
         !expect_str("output_default_bmp", default_output_path(0, 0, 0), "output.bmp")) {
+        return 1;
+    }
+
+    if (!expect_str("generic_prefer_png", default_routed_path("draft.bmp", "draft.png", 1, 1, 1), "draft.png") ||
+        !expect_str("generic_prefer_bmp_existing", default_routed_path("draft.bmp", "draft.png", 0, 1, 1), "draft.bmp") ||
+        !expect_str("generic_fallback_png", default_routed_path("draft.bmp", "draft.png", 0, 0, 1), "draft.png") ||
+        !expect_str("generic_default_bmp", default_routed_path("draft.bmp", "draft.png", 0, 0, 0), "draft.bmp")) {
         return 1;
     }
 
@@ -141,6 +150,27 @@ int main(void) {
     choice = resolve_default_output_choice(1);
     if (!expect_str("resolve_output_prefer_png", choice.path, "output.png") ||
         !expect_int("resolve_output_prefer_png_alternate", choice.used_alternate, 0)) {
+        return 1;
+    }
+
+    cleanup_artifacts();
+    if (!touch_file("draft.png")) {
+        fprintf(stderr, "touch draft png failed\n");
+        return 1;
+    }
+    choice = resolve_routed_choice("draft.bmp", "draft.png", 0);
+    if (!expect_str("resolve_generic_fallback_png", choice.path, "draft.png") ||
+        !expect_int("resolve_generic_fallback_png_alternate", choice.used_alternate, 1)) {
+        return 1;
+    }
+
+    if (!touch_file("draft.bmp")) {
+        fprintf(stderr, "touch draft bmp failed\n");
+        return 1;
+    }
+    choice = resolve_routed_choice("draft.bmp", "draft.png", 0);
+    if (!expect_str("resolve_generic_prefer_bmp", choice.path, "draft.bmp") ||
+        !expect_int("resolve_generic_prefer_bmp_alternate", choice.used_alternate, 0)) {
         return 1;
     }
 

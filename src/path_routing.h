@@ -8,6 +8,14 @@ typedef struct RoutedPath {
 
 int path_has_extension_ci(const char *path, const char *ext);
 int path_exists(const char *path);
+const char *default_routed_path(
+    const char *bmp_path,
+    const char *png_path,
+    int prefer_png,
+    int bmp_exists,
+    int png_exists
+);
+RoutedPath resolve_routed_choice(const char *bmp_path, const char *png_path, int prefer_png);
 const char *default_input_path(int prefer_png, int bmp_exists, int png_exists);
 const char *default_output_path(int prefer_png, int bmp_exists, int png_exists);
 RoutedPath resolve_default_input_choice(int prefer_png);
