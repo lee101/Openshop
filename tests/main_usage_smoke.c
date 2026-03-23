@@ -89,12 +89,23 @@ static int capture_main_stderr(int argc, char **argv, char *buffer, size_t buffe
     return 1;
 }
 
+static void reset_app_state(int result, const char *input_path, int canvas_w, int canvas_h, char *stderr_text) {
+    app_run_result = result;
+    app_run_called = 0;
+    last_input_path = input_path;
+    last_canvas_w = canvas_w;
+    last_canvas_h = canvas_h;
+    if (stderr_text) {
+        stderr_text[0] = '\0';
+    }
+}
+
 int main(void) {
     char stderr_text[256] = {0};
     int exit_code = 0;
 
     char *argv_invalid[] = {"openshop", "art/scene.png", "640"};
-    app_run_called = 0;
+    reset_app_state(0, NULL, 0, 0, stderr_text);
     if (!capture_main_stderr(3, argv_invalid, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("invalid_exit", exit_code, 1) ||
         !expect_int("invalid_app_run_called", app_run_called, 0) ||
@@ -105,8 +116,7 @@ int main(void) {
     }
 
     char *argv_bad_size_only[] = {"openshop", "art/scene.png", "768"};
-    app_run_called = 0;
-    stderr_text[0] = '\0';
+    reset_app_state(0, NULL, 0, 0, stderr_text);
     if (!capture_main_stderr(3, argv_bad_size_only, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("bad_size_only_exit", exit_code, 1) ||
         !expect_int("bad_size_only_app_run_called", app_run_called, 0) ||
@@ -117,8 +127,7 @@ int main(void) {
     }
 
     char *argv_extra[] = {"openshop", "art/scene.png", "640", "480", "extra"};
-    app_run_called = 0;
-    stderr_text[0] = '\0';
+    reset_app_state(0, NULL, 0, 0, stderr_text);
     if (!capture_main_stderr(5, argv_extra, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("extra_args_exit", exit_code, 1) ||
         !expect_int("extra_args_app_run_called", app_run_called, 0) ||
@@ -128,8 +137,7 @@ int main(void) {
         return 1;
     }
 
-    app_run_called = 0;
-    stderr_text[0] = '\0';
+    reset_app_state(0, NULL, 0, 0, stderr_text);
     if (!capture_main_stderr(1, NULL, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("null_argv_exit", exit_code, 1) ||
         !expect_int("null_argv_app_run_called", app_run_called, 0) ||
@@ -139,8 +147,7 @@ int main(void) {
         return 1;
     }
 
-    app_run_called = 0;
-    stderr_text[0] = '\0';
+    reset_app_state(0, NULL, 0, 0, stderr_text);
     char *argv_zero_argc[] = {"openshop"};
     if (!capture_main_stderr(0, argv_zero_argc, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("zero_argc_exit", exit_code, 1) ||
@@ -151,8 +158,7 @@ int main(void) {
         return 1;
     }
 
-    app_run_called = 0;
-    stderr_text[0] = '\0';
+    reset_app_state(0, NULL, 0, 0, stderr_text);
     char *argv_empty_program[] = {""};
     if (!capture_main_stderr(1, argv_empty_program, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("empty_program_exit", exit_code, 1) ||
@@ -163,8 +169,7 @@ int main(void) {
         return 1;
     }
 
-    app_run_called = 0;
-    stderr_text[0] = '\0';
+    reset_app_state(0, NULL, 0, 0, stderr_text);
     char *argv_empty_input[] = {"openshop", ""};
     if (!capture_main_stderr(2, argv_empty_input, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("empty_input_exit", exit_code, 1) ||
@@ -175,8 +180,7 @@ int main(void) {
         return 1;
     }
 
-    app_run_called = 0;
-    stderr_text[0] = '\0';
+    reset_app_state(0, NULL, 0, 0, stderr_text);
     char *argv_bad_width_token[] = {"openshop", "art/scene.png", "12x", "480"};
     if (!capture_main_stderr(4, argv_bad_width_token, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("bad_width_token_exit", exit_code, 1) ||
@@ -187,12 +191,7 @@ int main(void) {
         return 1;
     }
 
-    app_run_result = 0;
-    app_run_called = 0;
-    last_input_path = NULL;
-    last_canvas_w = 123;
-    last_canvas_h = 456;
-    stderr_text[0] = '\0';
+    reset_app_state(0, NULL, 123, 456, stderr_text);
     char *argv_default[] = {"openshop"};
     if (!capture_main_stderr(1, argv_default, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("default_exit", exit_code, 0) ||
@@ -204,12 +203,7 @@ int main(void) {
         return 1;
     }
 
-    app_run_result = 7;
-    app_run_called = 0;
-    last_input_path = NULL;
-    last_canvas_w = 0;
-    last_canvas_h = 0;
-    stderr_text[0] = '\0';
+    reset_app_state(7, NULL, 0, 0, stderr_text);
     char *argv_size_only[] = {"openshop", "640", "480"};
     if (!capture_main_stderr(3, argv_size_only, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("valid_exit", exit_code, 7) ||
@@ -221,12 +215,7 @@ int main(void) {
         return 1;
     }
 
-    app_run_result = 0;
-    app_run_called = 0;
-    last_input_path = NULL;
-    last_canvas_w = 0;
-    last_canvas_h = 0;
-    stderr_text[0] = '\0';
+    reset_app_state(0, NULL, 0, 0, stderr_text);
     char *argv_input_size[] = {"openshop", "art/scene.png", "320", "240"};
     if (!capture_main_stderr(4, argv_input_size, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("input_exit", exit_code, 0) ||
@@ -238,12 +227,7 @@ int main(void) {
         return 1;
     }
 
-    app_run_result = 0;
-    app_run_called = 0;
-    last_input_path = NULL;
-    last_canvas_w = 0;
-    last_canvas_h = 0;
-    stderr_text[0] = '\0';
+    reset_app_state(0, NULL, 0, 0, stderr_text);
     char *argv_input_only[] = {"openshop", "art/input.png"};
     if (!capture_main_stderr(2, argv_input_only, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("input_only_exit", exit_code, 0) ||
@@ -255,12 +239,7 @@ int main(void) {
         return 1;
     }
 
-    app_run_result = 0;
-    app_run_called = 0;
-    last_input_path = NULL;
-    last_canvas_w = 0;
-    last_canvas_h = 0;
-    stderr_text[0] = '\0';
+    reset_app_state(0, NULL, 0, 0, stderr_text);
     char *argv_numeric_input[] = {"openshop", "640"};
     if (!capture_main_stderr(2, argv_numeric_input, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("numeric_input_exit", exit_code, 0) ||
