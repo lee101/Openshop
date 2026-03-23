@@ -28,9 +28,11 @@ static int expect_str(const char *label, const char *actual, const char *expecte
 int main(void) {
     CliOptions options = {0};
     char *argv_default[] = {"openshop"};
+    char *argv_custom_program[] = {"./bin/openshop-dev"};
     char usage[CLI_USAGE_BUFFER_SIZE] = {0};
-    char exact_usage[64] = {0};
+    char exact_usage[96] = {0};
     int usage_size = 0;
+    int custom_usage_size = 0;
 
     if (!expect_str("usage_suffix", cli_usage_suffix(),
                     "[input_path] [width height]\n"
@@ -58,6 +60,10 @@ int main(void) {
     if (!expect_int("usage_null_argv_size", cli_usage_size(NULL), usage_size)) {
         return 1;
     }
+    custom_usage_size = cli_usage_size(argv_custom_program);
+    if (!expect_int("usage_custom_size_greater", custom_usage_size > usage_size, 1)) {
+        return 1;
+    }
     if (!expect_int("usage_default_ok", format_cli_usage(usage, (int)sizeof(usage), argv_default), 1) ||
         !expect_str("usage_default_text", usage,
                     "Usage: openshop [input_path] [width height]\n"
@@ -83,6 +89,13 @@ int main(void) {
                     format_cli_usage(exact_usage, usage_size, argv_default), 1) ||
         !expect_str("usage_exact_buffer_text", exact_usage,
                     "Usage: openshop [input_path] [width height]\n"
+                    "       or: WIDTH HEIGHT\n")) {
+        return 1;
+    }
+    if (!expect_int("usage_custom_buffer_ok",
+                    format_cli_usage(exact_usage, custom_usage_size, argv_custom_program), 1) ||
+        !expect_str("usage_custom_buffer_text", exact_usage,
+                    "Usage: ./bin/openshop-dev [input_path] [width height]\n"
                     "       or: WIDTH HEIGHT\n")) {
         return 1;
     }
