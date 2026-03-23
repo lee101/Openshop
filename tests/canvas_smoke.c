@@ -1322,6 +1322,19 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_move_to(&stack, 0, 0)) {
+        fprintf(stderr, "move layer to same exact index should fail\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.active_layer != 0 || !stack.layers[0].locked || strcmp(stack.layers[0].name, "Background Copy") != 0 ||
+        stack.solo_index != 0 || stack.layers[0].visible || stack.layers[0].opacity_percent != 35) {
+        fprintf(stderr, "failed exact move-to should preserve bookkeeping\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_delete(&stack, 2) || stack.layer_count != 2) {
         fprintf(stderr, "cleanup move-to layer failed\n");
         canvas_free(&composite);
