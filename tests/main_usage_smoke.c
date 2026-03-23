@@ -278,6 +278,7 @@ struct invalid_argv_case {
 static const char *const empty_argv_tail_2[] = {NULL, NULL};
 static const char *const empty_argv_tail_3[] = {NULL, NULL, NULL};
 static const char *const empty_argv_tail_4[] = {NULL, NULL, NULL, NULL};
+static const char *const no_input_path = NULL;
 static const char *const no_size_tokens[] = {NULL, NULL};
 
 #define INVALID_NULL_ARGV_ONLY_CASE(label, argc_value, usage_text) \
@@ -311,9 +312,9 @@ struct success_case {
 #define SUCCESS_INPUT_CASE_EMPTY_STDERR(label, program, input, result, expected_exit) \
     SUCCESS_INPUT_CASE(label, program, input, result, expected_exit, empty_stderr)
 #define SUCCESS_STARTUP_CASE_EMPTY_STDERR(label, program, result, expected_exit) \
-    {label, startup_argc, program, NULL, no_size_tokens[0], no_size_tokens[1], result, expected_exit, NULL, no_input_canvas_w, no_input_canvas_h, empty_stderr}
+    {label, startup_argc, program, no_input_path, no_size_tokens[0], no_size_tokens[1], result, expected_exit, no_input_path, no_input_canvas_w, no_input_canvas_h, empty_stderr}
 #define SUCCESS_SIZE_ONLY_CASE(label, program, width, height, result, expected_exit, canvas_w, canvas_h, expected_stderr) \
-    {label, size_only_argc, program, width, height, NULL, result, expected_exit, NULL, canvas_w, canvas_h, expected_stderr}
+    {label, size_only_argc, program, width, height, no_input_path, result, expected_exit, no_input_path, canvas_w, canvas_h, expected_stderr}
 #define SUCCESS_SIZE_ONLY_CASE_EMPTY_STDERR(label, program, width, height, result, expected_exit, canvas_w, canvas_h) \
     SUCCESS_SIZE_ONLY_CASE(label, program, width, height, result, expected_exit, canvas_w, canvas_h, empty_stderr)
 #define SUCCESS_INPUT_SIZE_CASE(label, program, input, width, height, result, expected_exit, canvas_w, canvas_h, expected_stderr) \
