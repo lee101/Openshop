@@ -248,6 +248,14 @@ int main(void) {
         return 1;
     }
 
+    char *argv_custom_program_bad_size_only_height[] = {
+        (char *)custom_program_name, (char *)default_size_only_width, "48px"};
+    reset_app_state(0, NULL, 0, 0, stderr_text);
+    if (!capture_main_stderr(3, argv_custom_program_bad_size_only_height, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_invalid_run_with_usage("custom_program_bad_size_only_height", exit_code, stderr_text, custom_usage_text)) {
+        return 1;
+    }
+
     char *argv_missing_h[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width};
     reset_app_state(0, NULL, 0, 0, stderr_text);
     if (!capture_main_stderr(3, argv_missing_h, stderr_text, sizeof(stderr_text), &exit_code) ||
