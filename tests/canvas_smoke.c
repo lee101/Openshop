@@ -71,7 +71,7 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (stack.solo_index != -1 || !stack.layers[0].visible || !stack.layers[1].visible) {
+    if (stack.solo_index != -1 || stack.active_layer != 1 || !stack.layers[0].visible || !stack.layers[1].visible) {
         fprintf(stderr, "show all bookkeeping failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
