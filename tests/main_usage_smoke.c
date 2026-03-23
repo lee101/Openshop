@@ -210,23 +210,19 @@ static int expect_invalid_run_with_usage(const char *label_prefix, int exit_code
     return 1;
 }
 
-static int expect_invalid_main_run(const char *label_prefix, int argc, char **argv,
-                                   char *stderr_text, size_t stderr_size, int *exit_code) {
+static int expect_invalid_main_result(const char *label_prefix, int argc, char **argv,
+                                      char *stderr_text, size_t stderr_size, int *exit_code,
+                                      const char *expected_stderr) {
     reset_app_state(0, NULL, 0, 0, stderr_text);
     if (!capture_main_stderr(argc, argv, stderr_text, stderr_size, exit_code)) {
         return 0;
     }
-    return expect_invalid_run(label_prefix, *exit_code, stderr_text);
-}
 
-static int expect_invalid_main_run_with_usage(const char *label_prefix, int argc, char **argv,
-                                              char *stderr_text, size_t stderr_size,
-                                              int *exit_code, const char *expected_stderr) {
-    reset_app_state(0, NULL, 0, 0, stderr_text);
-    if (!capture_main_stderr(argc, argv, stderr_text, stderr_size, exit_code)) {
-        return 0;
+    if (expected_stderr) {
+        return expect_invalid_run_with_usage(label_prefix, *exit_code, stderr_text, expected_stderr);
     }
-    return expect_invalid_run_with_usage(label_prefix, *exit_code, stderr_text, expected_stderr);
+
+    return expect_invalid_run(label_prefix, *exit_code, stderr_text);
 }
 
 static int expect_successful_main_run(const char *label_prefix, int argc, char **argv,
@@ -245,12 +241,8 @@ static int expect_successful_main_run(const char *label_prefix, int argc, char *
 static int expect_invalid_main_case_run(const char *label_prefix, int argc, char **argv,
                                         char *stderr_text, size_t stderr_size, int *exit_code,
                                         const char *usage_text) {
-    if (usage_text) {
-        return expect_invalid_main_run_with_usage(label_prefix, argc, argv, stderr_text, stderr_size, exit_code,
-                                                  usage_text);
-    }
-
-    return expect_invalid_main_run(label_prefix, argc, argv, stderr_text, stderr_size, exit_code);
+    return expect_invalid_main_result(label_prefix, argc, argv, stderr_text, stderr_size, exit_code,
+                                      usage_text);
 }
 
 struct invalid_size_token_case {
