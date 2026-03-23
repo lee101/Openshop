@@ -47,9 +47,13 @@ const char *cli_program_name(char **argv) {
     return argv[0];
 }
 
+static int write_usage_text(char *buffer, size_t buffer_size, char **argv) {
+    return snprintf(buffer, buffer_size, "Usage: %s %s\n",
+                    cli_program_name(argv), cli_usage_suffix());
+}
+
 int cli_usage_size(char **argv) {
-    int written = snprintf(NULL, 0, "Usage: %s %s\n",
-                           cli_program_name(argv), cli_usage_suffix());
+    int written = write_usage_text(NULL, 0, argv);
     return written > 0 ? written + 1 : 0;
 }
 
@@ -65,8 +69,7 @@ int format_cli_usage(char *buffer, int buffer_size, char **argv) {
         return 0;
     }
 
-    written = snprintf(buffer, (size_t)buffer_size, "Usage: %s %s\n",
-                       cli_program_name(argv), cli_usage_suffix());
+    written = write_usage_text(buffer, (size_t)buffer_size, argv);
     return written > 0 && written < buffer_size;
 }
 
