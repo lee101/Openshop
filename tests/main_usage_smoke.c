@@ -486,119 +486,119 @@ int main(void) {
     char *argv_custom_program_extra[] = {
         (char *)custom_program_name, (char *)default_scene_path,
         (char *)default_size_only_width, (char *)default_size_only_height, "extra"};
-    if (!expect_invalid_main_run_with_usage("custom_program_extra_args", 5, argv_custom_program_extra,
-                                            stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_custom_invalid_main_run("custom_program_extra_args", 5, argv_custom_program_extra,
+                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
     char *argv_custom_program_bad_width[] = {
         (char *)custom_program_name, (char *)default_scene_path, (char *)bad_width_token, (char *)default_size_only_height};
-    if (!expect_invalid_main_run_with_usage("custom_program_bad_width", 4, argv_custom_program_bad_width,
-                                            stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_custom_invalid_main_run("custom_program_bad_width", 4, argv_custom_program_bad_width,
+                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
     char *argv_custom_program_negative_width[] = {
         (char *)custom_program_name, (char *)default_scene_path, (char *)negative_size_only_width, (char *)default_size_only_height};
-    if (!expect_invalid_main_run_with_usage("custom_program_negative_width", 4, argv_custom_program_negative_width,
-                                            stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_custom_invalid_main_run("custom_program_negative_width", 4, argv_custom_program_negative_width,
+                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
     char *argv_custom_program_overflow_width[] = {
         (char *)custom_program_name, (char *)default_scene_path, (char *)overflow_width_token, (char *)default_size_only_height};
-    if (!expect_invalid_main_run_with_usage("custom_program_overflow_width", 4, argv_custom_program_overflow_width,
-                                            stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_custom_invalid_main_run("custom_program_overflow_width", 4, argv_custom_program_overflow_width,
+                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
     char *argv_custom_program_bad_height[] = {
         (char *)custom_program_name, (char *)default_scene_path, (char *)default_size_only_width, (char *)bad_height_token};
-    if (!expect_invalid_main_run_with_usage("custom_program_bad_height", 4, argv_custom_program_bad_height,
-                                            stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_custom_invalid_main_run("custom_program_bad_height", 4, argv_custom_program_bad_height,
+                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
     char *argv_custom_program_negative_height[] = {
         (char *)custom_program_name, (char *)default_scene_path, (char *)default_size_only_width, (char *)negative_size_only_height};
-    if (!expect_invalid_main_run_with_usage("custom_program_negative_height", 4, argv_custom_program_negative_height,
-                                            stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_custom_invalid_main_run("custom_program_negative_height", 4, argv_custom_program_negative_height,
+                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
     char *argv_custom_program_null_height[] = {
         (char *)custom_program_name, (char *)default_scene_path, (char *)default_size_only_width, NULL};
-    if (!expect_invalid_main_run_with_usage("custom_program_null_height", 4, argv_custom_program_null_height,
-                                            stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_custom_invalid_main_run("custom_program_null_height", 4, argv_custom_program_null_height,
+                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
     char *argv_custom_program_null_width[] = {
         (char *)custom_program_name, (char *)default_scene_path, NULL, (char *)default_size_only_height};
-    if (!expect_invalid_main_run_with_usage("custom_program_null_width", 4, argv_custom_program_null_width,
-                                            stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_custom_invalid_main_run("custom_program_null_width", 4, argv_custom_program_null_width,
+                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
     char *argv_custom_program_overflow_height[] = {
         (char *)custom_program_name, (char *)default_scene_path,
         (char *)default_size_only_width, (char *)overflow_height_token};
-    if (!expect_invalid_main_run_with_usage("custom_program_overflow_height", 4, argv_custom_program_overflow_height,
-                                            stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_custom_invalid_main_run("custom_program_overflow_height", 4, argv_custom_program_overflow_height,
+                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
     char *argv_custom_program_leading_space_width[] = {
         (char *)custom_program_name, (char *)default_scene_path, (char *)leading_space_width_token, (char *)default_size_only_height};
-    if (!expect_invalid_main_run_with_usage("custom_program_leading_space_width", 4, argv_custom_program_leading_space_width,
-                                            stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_custom_invalid_main_run("custom_program_leading_space_width", 4, argv_custom_program_leading_space_width,
+                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
     char *argv_custom_program_trailing_newline_height[] = {
         (char *)custom_program_name, (char *)default_scene_path, (char *)default_size_only_width, (char *)trailing_newline_height_token};
-    if (!expect_invalid_main_run_with_usage("custom_program_trailing_newline_height", 4, argv_custom_program_trailing_newline_height,
-                                            stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_custom_invalid_main_run("custom_program_trailing_newline_height", 4, argv_custom_program_trailing_newline_height,
+                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
     char *argv_custom_program_leading_tab_height[] = {
         (char *)custom_program_name, (char *)default_scene_path, (char *)default_size_only_width, (char *)leading_tab_height_token};
-    if (!expect_invalid_main_run_with_usage("custom_program_leading_tab_height", 4, argv_custom_program_leading_tab_height,
-                                            stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_custom_invalid_main_run("custom_program_leading_tab_height", 4, argv_custom_program_leading_tab_height,
+                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
     char *argv_custom_program_trailing_space_width[] = {
         (char *)custom_program_name, (char *)default_scene_path, (char *)trailing_space_width_token, (char *)default_size_only_height};
-    if (!expect_invalid_main_run_with_usage("custom_program_trailing_space_width", 4, argv_custom_program_trailing_space_width,
-                                            stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_custom_invalid_main_run("custom_program_trailing_space_width", 4, argv_custom_program_trailing_space_width,
+                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
     char *argv_custom_program_zero_width[] = {
         (char *)custom_program_name, (char *)default_scene_path, (char *)zero_token, (char *)default_size_only_height};
-    if (!expect_invalid_main_run_with_usage("custom_program_zero_width", 4, argv_custom_program_zero_width,
-                                            stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_custom_invalid_main_run("custom_program_zero_width", 4, argv_custom_program_zero_width,
+                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
     char *argv_custom_program_zero_height[] = {
         (char *)custom_program_name, (char *)default_scene_path, (char *)default_size_only_width, (char *)zero_token};
-    if (!expect_invalid_main_run_with_usage("custom_program_zero_height", 4, argv_custom_program_zero_height,
-                                            stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_custom_invalid_main_run("custom_program_zero_height", 4, argv_custom_program_zero_height,
+                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
     char *argv_custom_program_empty_input[] = {(char *)custom_program_name, ""};
-    if (!expect_invalid_main_run_with_usage("custom_program_empty_input", 2, argv_custom_program_empty_input,
-                                            stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_custom_invalid_main_run("custom_program_empty_input", 2, argv_custom_program_empty_input,
+                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
     char *argv_custom_program_null_input[] = {(char *)custom_program_name, NULL};
-    if (!expect_invalid_main_run_with_usage("custom_program_null_input", 2, argv_custom_program_null_input,
-                                            stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_custom_invalid_main_run("custom_program_null_input", 2, argv_custom_program_null_input,
+                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
