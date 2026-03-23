@@ -1190,6 +1190,13 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (stack.active_layer != 1 || !stack.layers[1].locked || strcmp(stack.layers[1].name, "Background Copy") != 0 ||
+        stack.solo_index != 1 || stack.layers[1].visible || stack.layers[1].opacity_percent != 35) {
+        fprintf(stderr, "failed move beyond bounds should preserve bookkeeping\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_add(&stack, "Move Top", 0x00000000) != 2) {
         fprintf(stderr, "add extra layer for move-to failed\n");
         canvas_free(&composite);
