@@ -1025,6 +1025,39 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.active_layer = 1;
+    if (!layer_stack_toggle_solo(&stack, 1)) {
+        fprintf(stderr, "solo clear target failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    uint32_t clear_neighbor_pixel = canvas_get_pixel(&stack.layers[0].canvas, 8, 8);
+    if (!layer_stack_clear_layer(&stack, 1, 0xFFABCDEF)) {
+        fprintf(stderr, "clear unlocked layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("clear_layer_pixel", canvas_get_pixel(&stack.layers[1].canvas, 8, 8), 0xFFABCDEF) ||
+        !expect_pixel_eq("clear_layer_preserves_neighbor_pixel", canvas_get_pixel(&stack.layers[0].canvas, 8, 8), clear_neighbor_pixel)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.active_layer != 1 || stack.solo_index != 1 || stack.layers[1].visible != locked_layer_visible || stack.layers[1].locked ||
+        stack.layers[1].opacity_percent != locked_layer_opacity || strcmp(stack.layers[1].name, locked_layer_name) != 0) {
+        fprintf(stderr, "clear layer should preserve layer bookkeeping\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_solo(&stack, 1) || stack.solo_index != -1) {
+        fprintf(stderr, "clear solo after clear layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_add(&stack, "Lock Buddy", 0x00000000) < 0) {
         fprintf(stderr, "add extra layer for lock-others failed\n");
         canvas_free(&composite);
