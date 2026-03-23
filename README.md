@@ -81,9 +81,9 @@ make test-sdl
 - `Ctrl+Shift+G`: stamp visible image into a new top layer
 - `Ctrl+Shift+M`: flatten visible layers
 - `Ctrl+S`: save to the current session BMP path, or reuse the session PNG path if that is the only existing default output
-- `Ctrl+Shift+S`: save the composited image to `output.png`
+- `Ctrl+Shift+S`: save the composited image to the current session PNG path
 - `Ctrl+O`: load `input.bmp`, or fall back to `input.png` if the BMP is missing
-- `Ctrl+Shift+O`: load `input.png` into the active layer
+- `Ctrl+Shift+O`: load the current session PNG path into the active layer
 - `Ctrl+F`: tolerance-based fill from the cursor (exact `F` fill is unchanged)
 - `Ctrl+Shift+B`: apply unsharp-mask sharpening to the active layer
 - `Shift+S`: apply edge sharpening to the active layer
