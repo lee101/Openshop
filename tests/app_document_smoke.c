@@ -389,6 +389,82 @@ static int test_document_preview_state_survives_save_and_load_paths(void) {
     return 1;
 }
 
+static int test_document_failure_chain_preserves_pending_composite_flag(void) {
+    LayerStack stack;
+    Canvas composite = {0};
+    Canvas preview = {0};
+    AppDocumentState state = {.preview_active = 1, .needs_composite = 1};
+    DocumentStubState stub = {.save_result = 0, .load_result = 0, .restore_result = 0};
+    AppDocumentCallbacks callbacks = {
+        .save_canvas = stub_save,
+        .load_canvas = stub_load,
+        .restore_history = stub_restore,
+        .push_snapshot = stub_push,
+        .userdata = &stub,
+    };
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF) ||
+        !canvas_init(&composite, 4, 4) ||
+        !canvas_init(&preview, 4, 4) ||
+        layer_stack_add(&stack, "Top", 0x00000000) < 0) {
+        fprintf(stderr, "initialization failed\n");
+        layer_stack_free(&stack);
+        canvas_free(&composite);
+        canvas_free(&preview);
+        return 0;
+    }
+
+    stack.active_layer = 1;
+
+    if (app_document_apply(APP_DOCUMENT_ACTION_SAVE, &stack, &state, &preview, &composite, 0, &callbacks) ||
+        !expect_int_eq("chain_save_calls", stub.save_calls, 1) ||
+        stub.saved_canvas != &preview ||
+        !expect_int_eq("chain_save_needs_composite", state.needs_composite, 1) ||
+        !expect_int_eq("chain_save_preview_active", state.preview_active, 1)) {
+        layer_stack_free(&stack);
+        canvas_free(&composite);
+        canvas_free(&preview);
+        return 0;
+    }
+
+    if (app_document_apply(APP_DOCUMENT_ACTION_LOAD, &stack, &state, &preview, &composite, 0x01020304, &callbacks) ||
+        !expect_int_eq("chain_load_push_calls", stub.push_calls, 1) ||
+        !expect_int_eq("chain_load_calls", stub.load_calls, 1) ||
+        stub.loaded_canvas != &stack.layers[1].canvas ||
+        stub.loaded_clear_color != 0x01020304 ||
+        !expect_int_eq("chain_load_needs_composite", state.needs_composite, 1)) {
+        layer_stack_free(&stack);
+        canvas_free(&composite);
+        canvas_free(&preview);
+        return 0;
+    }
+
+    if (app_document_apply(APP_DOCUMENT_ACTION_UNDO, &stack, &state, &preview, &composite, 0, &callbacks) ||
+        !expect_int_eq("chain_restore_calls", stub.restore_calls, 1) ||
+        !expect_int_eq("chain_undo_needs_composite", state.needs_composite, 1)) {
+        layer_stack_free(&stack);
+        canvas_free(&composite);
+        canvas_free(&preview);
+        return 0;
+    }
+
+    stack.active_layer = -1;
+    if (app_document_apply(APP_DOCUMENT_ACTION_SHOW_ACTIVE, &stack, &state, &preview, &composite, 0, &callbacks) ||
+        !expect_int_eq("chain_show_push_calls", stub.push_calls, 2) ||
+        !expect_int_eq("chain_show_needs_composite", state.needs_composite, 1) ||
+        !expect_int_eq("chain_show_preview_active", state.preview_active, 1)) {
+        layer_stack_free(&stack);
+        canvas_free(&composite);
+        canvas_free(&preview);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    canvas_free(&composite);
+    canvas_free(&preview);
+    return 1;
+}
+
 int main(void) {
     if (!test_save_prefers_preview_canvas()) {
         return 1;
@@ -409,6 +485,9 @@ int main(void) {
         return 1;
     }
     if (!test_document_preview_state_survives_save_and_load_paths()) {
+        return 1;
+    }
+    if (!test_document_failure_chain_preserves_pending_composite_flag()) {
         return 1;
     }
     return 0;
