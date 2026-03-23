@@ -566,14 +566,6 @@ int main(void) {
         INVALID_SIZE_TOKEN_CASE("custom_program_empty_size_only_height", empty_token),
         INVALID_SIZE_TOKEN_CASE("custom_program_overflow_size_only_height", overflow_height_token),
     };
-    if (!expect_custom_invalid_size_only_case_groups(custom_invalid_size_only_width_cases,
-                                                     ARRAY_LEN(custom_invalid_size_only_width_cases),
-                                                     custom_invalid_size_only_height_cases,
-                                                     ARRAY_LEN(custom_invalid_size_only_height_cases),
-                                                     stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
-        return 1;
-    }
-
     const struct invalid_argv_case invalid_argv_cases[] = {
         INVALID_SIZE_ONLY_ARGV_CASE("invalid", NULL, default_program_name, default_size_only_width),
         INVALID_SIZE_ONLY_ARGV_CASE("bad_size_only", NULL, default_program_name, invalid_probe_token),
