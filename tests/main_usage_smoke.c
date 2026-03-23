@@ -104,6 +104,29 @@ int main(void) {
         return 1;
     }
 
+    app_run_called = 0;
+    stderr_text[0] = '\0';
+    if (!capture_main_stderr(1, NULL, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_int("null_argv_exit", exit_code, 1) ||
+        !expect_int("null_argv_app_run_called", app_run_called, 0) ||
+        !expect_str("null_argv_usage_text", stderr_text,
+                    "Usage: openshop [input_path] [width height]\n"
+                    "       or: WIDTH HEIGHT\n")) {
+        return 1;
+    }
+
+    app_run_called = 0;
+    stderr_text[0] = '\0';
+    char *argv_empty_program[] = {""};
+    if (!capture_main_stderr(1, argv_empty_program, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_int("empty_program_exit", exit_code, 1) ||
+        !expect_int("empty_program_app_run_called", app_run_called, 0) ||
+        !expect_str("empty_program_usage_text", stderr_text,
+                    "Usage: openshop [input_path] [width height]\n"
+                    "       or: WIDTH HEIGHT\n")) {
+        return 1;
+    }
+
     app_run_result = 7;
     app_run_called = 0;
     last_input_path = NULL;
