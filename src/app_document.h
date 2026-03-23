@@ -15,6 +15,11 @@ typedef enum {
 } AppDocumentAction;
 
 typedef struct {
+    int handled;
+    AppDocumentAction action;
+} AppDocumentCommand;
+
+typedef struct {
     int preview_active;
     int needs_composite;
 } AppDocumentState;
@@ -36,5 +41,7 @@ int app_document_apply(
     uint32_t active_clear_color,
     const AppDocumentCallbacks *callbacks
 );
+
+AppDocumentCommand app_document_command_for_key(int key, int ctrl, int shift);
 
 #endif

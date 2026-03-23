@@ -102,6 +102,28 @@ static int test_save_prefers_preview_canvas(void) {
     return 1;
 }
 
+static int test_document_command_for_key(void) {
+    AppDocumentCommand save = app_document_command_for_key('s', 1, 0);
+    AppDocumentCommand load = app_document_command_for_key('o', 1, 0);
+    AppDocumentCommand undo = app_document_command_for_key('z', 1, 0);
+    AppDocumentCommand redo = app_document_command_for_key('y', 1, 0);
+    AppDocumentCommand reset = app_document_command_for_key('0', 1, 0);
+    AppDocumentCommand show_all = app_document_command_for_key('a', 1, 0);
+    AppDocumentCommand show_active = app_document_command_for_key('r', 1, 1);
+    AppDocumentCommand none = app_document_command_for_key('q', 0, 0);
+
+    return expect_int_eq("save_handled", save.handled, 1) &&
+           expect_int_eq("save_action", save.action, APP_DOCUMENT_ACTION_SAVE) &&
+           expect_int_eq("load_action", load.action, APP_DOCUMENT_ACTION_LOAD) &&
+           expect_int_eq("undo_action", undo.action, APP_DOCUMENT_ACTION_UNDO) &&
+           expect_int_eq("redo_action", redo.action, APP_DOCUMENT_ACTION_REDO) &&
+           expect_int_eq("reset_action", reset.action, APP_DOCUMENT_ACTION_RESET_OPACITY) &&
+           expect_int_eq("show_all_action", show_all.action, APP_DOCUMENT_ACTION_SHOW_ALL) &&
+           expect_int_eq("show_active_action", show_active.action, APP_DOCUMENT_ACTION_SHOW_ACTIVE) &&
+           expect_int_eq("none_handled", none.handled, 0) &&
+           expect_int_eq("none_action", none.action, APP_DOCUMENT_ACTION_SAVE);
+}
+
 static int test_load_requires_unlocked_active_layer(void) {
     LayerStack stack;
     AppDocumentState state = {0};
@@ -977,6 +999,9 @@ static int test_document_preview_toggle_coexists_with_redo_and_show_failures(voi
 }
 
 int main(void) {
+    if (!test_document_command_for_key()) {
+        return 1;
+    }
     if (!test_save_prefers_preview_canvas()) {
         return 1;
     }

@@ -540,7 +540,8 @@ static int handle_document_shortcut(
     const Canvas *preview_canvas,
     const Canvas *composite
 ) {
-    int handled = 1;
+    AppDocumentCommand command = app_document_command_for_key((int)key, ctrl, shift);
+    int handled = command.handled;
     AppDocumentState state = {
         .preview_active = runtime ? runtime->preview_active : 0,
         .needs_composite = runtime ? runtime->needs_composite : 0,
@@ -553,7 +554,12 @@ static int handle_document_shortcut(
         .userdata = runtime,
     };
 
-    if (ctrl && key == SDLK_s) {
+    if (!handled) {
+        return 0;
+    }
+
+    switch (command.action) {
+    case APP_DOCUMENT_ACTION_SAVE:
         if (!app_document_apply(
                 APP_DOCUMENT_ACTION_SAVE,
                 layers,
@@ -564,7 +570,8 @@ static int handle_document_shortcut(
                 &callbacks)) {
             fprintf(stderr, "Failed to save output.bmp\n");
         }
-    } else if (ctrl && key == SDLK_o) {
+        break;
+    case APP_DOCUMENT_ACTION_LOAD: {
         Layer *active = layer_stack_active(layers);
         if (!active || active->locked) {
             fprintf(stderr, "Active layer is locked\n");
@@ -578,7 +585,9 @@ static int handle_document_shortcut(
                        &callbacks)) {
             fprintf(stderr, "Failed to load input.bmp\n");
         }
-    } else if (ctrl && key == SDLK_z) {
+        break;
+    }
+    case APP_DOCUMENT_ACTION_UNDO:
         if (app_document_apply(
                 APP_DOCUMENT_ACTION_UNDO,
                 layers,
@@ -589,7 +598,8 @@ static int handle_document_shortcut(
                 &callbacks)) {
             update_window_title_for_runtime(window, layers, runtime);
         }
-    } else if (ctrl && key == SDLK_y) {
+        break;
+    case APP_DOCUMENT_ACTION_REDO:
         if (app_document_apply(
                 APP_DOCUMENT_ACTION_REDO,
                 layers,
@@ -600,7 +610,8 @@ static int handle_document_shortcut(
                 &callbacks)) {
             update_window_title_for_runtime(window, layers, runtime);
         }
-    } else if (ctrl && key == SDLK_0) {
+        break;
+    case APP_DOCUMENT_ACTION_RESET_OPACITY:
         app_document_apply(
             APP_DOCUMENT_ACTION_RESET_OPACITY,
             layers,
@@ -611,7 +622,8 @@ static int handle_document_shortcut(
             &callbacks
         );
         update_window_title_for_runtime(window, layers, runtime);
-    } else if (ctrl && key == SDLK_a) {
+        break;
+    case APP_DOCUMENT_ACTION_SHOW_ALL:
         app_document_apply(
             APP_DOCUMENT_ACTION_SHOW_ALL,
             layers,
@@ -622,7 +634,8 @@ static int handle_document_shortcut(
             &callbacks
         );
         update_window_title_for_runtime(window, layers, runtime);
-    } else if (ctrl && shift && key == SDLK_r) {
+        break;
+    case APP_DOCUMENT_ACTION_SHOW_ACTIVE:
         app_document_apply(
             APP_DOCUMENT_ACTION_SHOW_ACTIVE,
             layers,
@@ -633,8 +646,9 @@ static int handle_document_shortcut(
             &callbacks
         );
         update_window_title_for_runtime(window, layers, runtime);
-    } else {
-        handled = 0;
+        break;
+    default:
+        break;
     }
 
     if (runtime) {

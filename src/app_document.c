@@ -1,5 +1,34 @@
 #include "app_document.h"
 
+AppDocumentCommand app_document_command_for_key(int key, int ctrl, int shift) {
+    AppDocumentCommand command = {0, APP_DOCUMENT_ACTION_SAVE};
+
+    if (ctrl && key == 's') {
+        command.handled = 1;
+        command.action = APP_DOCUMENT_ACTION_SAVE;
+    } else if (ctrl && key == 'o') {
+        command.handled = 1;
+        command.action = APP_DOCUMENT_ACTION_LOAD;
+    } else if (ctrl && key == 'z') {
+        command.handled = 1;
+        command.action = APP_DOCUMENT_ACTION_UNDO;
+    } else if (ctrl && key == 'y') {
+        command.handled = 1;
+        command.action = APP_DOCUMENT_ACTION_REDO;
+    } else if (ctrl && key == '0') {
+        command.handled = 1;
+        command.action = APP_DOCUMENT_ACTION_RESET_OPACITY;
+    } else if (ctrl && key == 'a') {
+        command.handled = 1;
+        command.action = APP_DOCUMENT_ACTION_SHOW_ALL;
+    } else if (ctrl && shift && key == 'r') {
+        command.handled = 1;
+        command.action = APP_DOCUMENT_ACTION_SHOW_ACTIVE;
+    }
+
+    return command;
+}
+
 int app_document_apply(
     AppDocumentAction action,
     LayerStack *layers,
