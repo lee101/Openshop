@@ -282,11 +282,12 @@ struct invalid_argv_case {
 static const char *const empty_argv_tail_2[] = {NULL, NULL};
 static const char *const empty_argv_tail_3[] = {NULL, NULL, NULL};
 static const char *const empty_argv_tail_4[] = {NULL, NULL, NULL, NULL};
+static const char *const empty_argv_tail_5[] = {NULL, NULL, NULL, NULL, NULL};
 static const char *const no_size_tokens[] = {NULL, NULL};
 static const char *const no_usage_text = NULL;
 
 #define INVALID_NULL_ARGV_ONLY_CASE(label, argc_value, usage_text) \
-    {label, argc_value, argv_is_null, usage_text, {empty_argv_tail_4[0], empty_argv_tail_4[1], empty_argv_tail_4[2], empty_argv_tail_4[3], NULL}}
+    {label, argc_value, argv_is_null, usage_text, {empty_argv_tail_5[0], empty_argv_tail_5[1], empty_argv_tail_5[2], empty_argv_tail_5[3], empty_argv_tail_5[4]}}
 #define INVALID_SIZE_ONLY_ARGV_CASE(label, usage_text, program, width) \
     {label, size_only_argc, argv_is_present, usage_text, {program, default_scene_path, width, empty_argv_tail_2[0], empty_argv_tail_2[1]}}
 #define INVALID_EXTRA_ARGV_CASE(label, usage_text, program) \
