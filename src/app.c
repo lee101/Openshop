@@ -1416,6 +1416,98 @@ static void cleanup_app_resources(
     SDL_Quit();
 }
 
+static int init_app_resources(
+    const char *input_path,
+    SDL_Window **window,
+    SDL_Renderer **renderer,
+    SDL_Texture **texture,
+    LayerStack *layers,
+    Canvas *composite
+) {
+    if (!window || !renderer || !texture || !layers || !composite) {
+        return 0;
+    }
+
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+        fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
+        return 0;
+    }
+
+    *window = SDL_CreateWindow(
+        "Openshop - Minimal Paint",
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        WINDOW_WIDTH,
+        WINDOW_HEIGHT,
+        SDL_WINDOW_SHOWN
+    );
+    if (!*window) {
+        fprintf(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
+        SDL_Quit();
+        return 0;
+    }
+
+    *renderer = SDL_CreateRenderer(*window, -1, SDL_RENDERER_ACCELERATED);
+    if (!*renderer) {
+        fprintf(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
+        SDL_DestroyWindow(*window);
+        *window = NULL;
+        SDL_Quit();
+        return 0;
+    }
+
+    *texture = SDL_CreateTexture(
+        *renderer,
+        SDL_PIXELFORMAT_ARGB8888,
+        SDL_TEXTUREACCESS_STREAMING,
+        CANVAS_WIDTH,
+        CANVAS_HEIGHT
+    );
+    if (!*texture) {
+        fprintf(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
+        SDL_DestroyRenderer(*renderer);
+        SDL_DestroyWindow(*window);
+        *renderer = NULL;
+        *window = NULL;
+        SDL_Quit();
+        return 0;
+    }
+
+    if (!layer_stack_init(layers, CANVAS_WIDTH, CANVAS_HEIGHT, COLOR_BG)) {
+        fprintf(stderr, "Layer stack init failed\n");
+        SDL_DestroyTexture(*texture);
+        SDL_DestroyRenderer(*renderer);
+        SDL_DestroyWindow(*window);
+        *texture = NULL;
+        *renderer = NULL;
+        *window = NULL;
+        SDL_Quit();
+        return 0;
+    }
+
+    if (!canvas_init(composite, CANVAS_WIDTH, CANVAS_HEIGHT)) {
+        fprintf(stderr, "Composite canvas init failed\n");
+        layer_stack_free(layers);
+        SDL_DestroyTexture(*texture);
+        SDL_DestroyRenderer(*renderer);
+        SDL_DestroyWindow(*window);
+        *texture = NULL;
+        *renderer = NULL;
+        *window = NULL;
+        SDL_Quit();
+        return 0;
+    }
+
+    if (input_path && input_path[0]) {
+        Layer *active = layer_stack_active(layers);
+        if (active && !canvas_load_bmp(&active->canvas, input_path, COLOR_BG)) {
+            fprintf(stderr, "Failed to load %s\n", input_path);
+        }
+    }
+    layer_stack_composite(layers, composite, COLOR_BG);
+    return 1;
+}
+
 static uint32_t active_layer_clear_color(const LayerStack *layers) {
     if (!layers) {
         return COLOR_BG;
@@ -1538,76 +1630,15 @@ static void draw_brush_line(Canvas *c, int x0, int y0, int x1, int y1, int radiu
 }
 
 int app_run(const char *input_path) {
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
-        return 1;
-    }
-
-    SDL_Window *window = SDL_CreateWindow(
-        "Openshop - Minimal Paint",
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
-        WINDOW_WIDTH,
-        WINDOW_HEIGHT,
-        SDL_WINDOW_SHOWN
-    );
-    if (!window) {
-        fprintf(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
-        SDL_Quit();
-        return 1;
-    }
-
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    if (!renderer) {
-        fprintf(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return 1;
-    }
-
-    SDL_Texture *texture = SDL_CreateTexture(
-        renderer,
-        SDL_PIXELFORMAT_ARGB8888,
-        SDL_TEXTUREACCESS_STREAMING,
-        CANVAS_WIDTH,
-        CANVAS_HEIGHT
-    );
-    if (!texture) {
-        fprintf(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return 1;
-    }
-
+    SDL_Window *window = NULL;
+    SDL_Renderer *renderer = NULL;
+    SDL_Texture *texture = NULL;
     LayerStack layers;
-    if (!layer_stack_init(&layers, CANVAS_WIDTH, CANVAS_HEIGHT, COLOR_BG)) {
-        fprintf(stderr, "Layer stack init failed\n");
-        SDL_DestroyTexture(texture);
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return 1;
-    }
-
     Canvas composite = {0};
-    if (!canvas_init(&composite, CANVAS_WIDTH, CANVAS_HEIGHT)) {
-        fprintf(stderr, "Composite canvas init failed\n");
-        layer_stack_free(&layers);
-        SDL_DestroyTexture(texture);
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
+    memset(&layers, 0, sizeof(layers));
+    if (!init_app_resources(input_path, &window, &renderer, &texture, &layers, &composite)) {
         return 1;
     }
-
-    if (input_path && input_path[0]) {
-        Layer *active = layer_stack_active(&layers);
-        if (active && !canvas_load_bmp(&active->canvas, input_path, COLOR_BG)) {
-            fprintf(stderr, "Failed to load %s\n", input_path);
-        }
-    }
-    layer_stack_composite(&layers, &composite, COLOR_BG);
 
     int running = 1;
     int drawing = 0;
