@@ -103,6 +103,32 @@ static int layer_stack_select_edge_filtered(LayerStack *stack, int want_visible,
     return -1;
 }
 
+static int layer_stack_hide_and_focus_direction(LayerStack *stack, int index, int direction) {
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    Layer *layer = &stack->layers[index];
+    if (!layer->visible || layer_stack_visible_count(stack) == 1) {
+        return 0;
+    }
+    layer->visible = 0;
+    if (stack->solo_index == index) {
+        stack->solo_index = -1;
+    }
+    for (int offset = 1; offset < stack->layer_count; offset++) {
+        int next = index + (direction * offset);
+        while (next < 0) {
+            next += stack->layer_count;
+        }
+        next %= stack->layer_count;
+        if (stack->layers[next].visible) {
+            stack->active_layer = next;
+            return 1;
+        }
+    }
+    return 1;
+}
+
 int layer_stack_init(LayerStack *stack, int width, int height, uint32_t background_color) {
     if (!stack || width <= 0 || height <= 0) {
         return 0;
@@ -358,25 +384,11 @@ int layer_stack_reveal_hidden(LayerStack *stack, int direction) {
 }
 
 int layer_stack_hide_and_advance(LayerStack *stack, int index) {
-    if (!stack || index < 0 || index >= stack->layer_count) {
-        return 0;
-    }
-    Layer *layer = &stack->layers[index];
-    if (!layer->visible || layer_stack_visible_count(stack) == 1) {
-        return 0;
-    }
-    layer->visible = 0;
-    if (stack->solo_index == index) {
-        stack->solo_index = -1;
-    }
-    for (int offset = 1; offset < stack->layer_count; offset++) {
-        int next = (index + offset) % stack->layer_count;
-        if (stack->layers[next].visible) {
-            stack->active_layer = next;
-            return 1;
-        }
-    }
-    return 1;
+    return layer_stack_hide_and_focus_direction(stack, index, 1);
+}
+
+int layer_stack_hide_and_retreat(LayerStack *stack, int index) {
+    return layer_stack_hide_and_focus_direction(stack, index, -1);
 }
 
 int layer_stack_toggle_visibility(LayerStack *stack, int index) {

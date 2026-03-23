@@ -200,6 +200,52 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_add(&stack, "Retreat", 0x00000000)) {
+        fprintf(stderr, "setup hide and retreat failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[2].visible = 1;
+    stack.active_layer = 2;
+    if (!layer_stack_hide_and_retreat(&stack, 2)) {
+        fprintf(stderr, "hide and retreat failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[2].visible || stack.active_layer != 1) {
+        fprintf(stderr, "hide and retreat bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[2].visible = 1;
+    stack.active_layer = 2;
+    if (!layer_stack_toggle_solo(&stack, 2) || !layer_stack_hide_and_retreat(&stack, 2)) {
+        fprintf(stderr, "hide and retreat from solo failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != -1 || stack.active_layer != 1) {
+        fprintf(stderr, "hide and retreat should clear solo and focus previous visible layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_show(&stack, 2)) {
+        fprintf(stderr, "restore retreat layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 2)) {
+        fprintf(stderr, "cleanup hide and retreat layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_toggle_visibility(&stack, 1)) {
         fprintf(stderr, "rehide top layer after hide and advance tests failed\n");
         canvas_free(&composite);
