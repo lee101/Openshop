@@ -245,6 +245,9 @@ struct invalid_input_size_case {
     const char *height_token;
 };
 
+#define INVALID_INPUT_WIDTH_CASE(label, width) {label, width, default_size_only_height}
+#define INVALID_INPUT_HEIGHT_CASE(label, height) {label, default_size_only_width, height}
+
 struct invalid_argv_case {
     const char *label_prefix;
     int argc;
@@ -450,20 +453,20 @@ int main(void) {
     }
 
     const struct invalid_input_size_case custom_invalid_input_size_cases[] = {
-        {"custom_program_bad_width", bad_width_token, default_size_only_height},
-        {"custom_program_negative_width", negative_size_only_width, default_size_only_height},
-        {"custom_program_overflow_width", overflow_width_token, default_size_only_height},
-        {"custom_program_bad_height", default_size_only_width, bad_height_token},
-        {"custom_program_negative_height", default_size_only_width, negative_size_only_height},
-        {"custom_program_null_height", default_size_only_width, NULL},
-        {"custom_program_null_width", NULL, default_size_only_height},
-        {"custom_program_overflow_height", default_size_only_width, overflow_height_token},
-        {"custom_program_leading_space_width", leading_space_width_token, default_size_only_height},
-        {"custom_program_trailing_newline_height", default_size_only_width, trailing_newline_height_token},
-        {"custom_program_leading_tab_height", default_size_only_width, leading_tab_height_token},
-        {"custom_program_trailing_space_width", trailing_space_width_token, default_size_only_height},
-        {"custom_program_zero_width", zero_token, default_size_only_height},
-        {"custom_program_zero_height", default_size_only_width, zero_token},
+        INVALID_INPUT_WIDTH_CASE("custom_program_bad_width", bad_width_token),
+        INVALID_INPUT_WIDTH_CASE("custom_program_negative_width", negative_size_only_width),
+        INVALID_INPUT_WIDTH_CASE("custom_program_overflow_width", overflow_width_token),
+        INVALID_INPUT_HEIGHT_CASE("custom_program_bad_height", bad_height_token),
+        INVALID_INPUT_HEIGHT_CASE("custom_program_negative_height", negative_size_only_height),
+        INVALID_INPUT_HEIGHT_CASE("custom_program_null_height", NULL),
+        INVALID_INPUT_WIDTH_CASE("custom_program_null_width", NULL),
+        INVALID_INPUT_HEIGHT_CASE("custom_program_overflow_height", overflow_height_token),
+        INVALID_INPUT_WIDTH_CASE("custom_program_leading_space_width", leading_space_width_token),
+        INVALID_INPUT_HEIGHT_CASE("custom_program_trailing_newline_height", trailing_newline_height_token),
+        INVALID_INPUT_HEIGHT_CASE("custom_program_leading_tab_height", leading_tab_height_token),
+        INVALID_INPUT_WIDTH_CASE("custom_program_trailing_space_width", trailing_space_width_token),
+        INVALID_INPUT_WIDTH_CASE("custom_program_zero_width", zero_token),
+        INVALID_INPUT_HEIGHT_CASE("custom_program_zero_height", zero_token),
     };
     if (!expect_invalid_input_size_cases(custom_invalid_input_size_cases,
                                          ARRAY_LEN(custom_invalid_input_size_cases),
@@ -475,19 +478,19 @@ int main(void) {
     const struct invalid_input_size_case invalid_input_size_cases[] = {
         {"bad_width_value", zero_token, invalid_probe_token},
         {"negative_width_value", negative_size_only_width, invalid_probe_token},
-        {"bad_width_token", bad_width_token, default_size_only_height},
-        {"bad_height_value", default_size_only_width, negative_input_size_height},
-        {"negative_height_value", default_size_only_width, negative_size_only_height},
-        {"empty_width", empty_token, default_size_only_height},
-        {"null_width", NULL, default_size_only_height},
-        {"null_height", default_size_only_width, NULL},
-        {"overflow_width", overflow_width_token, default_size_only_height},
-        {"bad_height_token", default_size_only_width, bad_height_token},
-        {"overflow_height", default_size_only_width, overflow_height_token},
-        {"leading_space_width", leading_space_width_token, default_size_only_height},
-        {"trailing_newline_height", default_size_only_width, trailing_newline_height_token},
-        {"leading_tab_height", default_size_only_width, leading_tab_height_token},
-        {"trailing_space_width", trailing_space_width_token, default_size_only_height},
+        INVALID_INPUT_WIDTH_CASE("bad_width_token", bad_width_token),
+        INVALID_INPUT_HEIGHT_CASE("bad_height_value", negative_input_size_height),
+        INVALID_INPUT_HEIGHT_CASE("negative_height_value", negative_size_only_height),
+        INVALID_INPUT_WIDTH_CASE("empty_width", empty_token),
+        INVALID_INPUT_WIDTH_CASE("null_width", NULL),
+        INVALID_INPUT_HEIGHT_CASE("null_height", NULL),
+        INVALID_INPUT_WIDTH_CASE("overflow_width", overflow_width_token),
+        INVALID_INPUT_HEIGHT_CASE("bad_height_token", bad_height_token),
+        INVALID_INPUT_HEIGHT_CASE("overflow_height", overflow_height_token),
+        INVALID_INPUT_WIDTH_CASE("leading_space_width", leading_space_width_token),
+        INVALID_INPUT_HEIGHT_CASE("trailing_newline_height", trailing_newline_height_token),
+        INVALID_INPUT_HEIGHT_CASE("leading_tab_height", leading_tab_height_token),
+        INVALID_INPUT_WIDTH_CASE("trailing_space_width", trailing_space_width_token),
     };
     if (!expect_invalid_input_size_cases(invalid_input_size_cases,
                                          ARRAY_LEN(invalid_input_size_cases),
