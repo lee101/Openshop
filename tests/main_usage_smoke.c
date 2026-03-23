@@ -334,7 +334,7 @@ struct success_case {
     SUCCESS_INPUT_SIZE_CASE(label, program, input, width, height, result, expected_exit, canvas_w, canvas_h, empty_stderr)
 
 static void fill_argv(char **dst, const char *const *src, size_t count) {
-    size_t i = 0;
+    size_t i;
 
     for (i = 0; i < count; i += 1) {
         dst[i] = (char *)src[i];
@@ -365,7 +365,7 @@ static int expect_invalid_size_only_cases(const struct invalid_size_token_case *
                                           enum size_only_argv_index variable_token_index,
                                           char *stderr_text, size_t stderr_size,
                                           int *exit_code, const char *custom_usage_text) {
-    size_t i = 0;
+    size_t i;
 
     for (i = 0; i < case_count; i += 1) {
         const char *src[] = {program_name, fixed_token, fixed_token};
@@ -436,7 +436,7 @@ static int expect_invalid_input_size_cases(const struct invalid_input_size_case 
                                            const char *program_name, const char *scene_token,
                                            char *stderr_text, size_t stderr_size, int *exit_code,
                                            const char *custom_usage_text) {
-    size_t i = 0;
+    size_t i;
 
     for (i = 0; i < case_count; i += 1) {
         const char *src[] = {program_name, scene_token, cases[i].width_token, cases[i].height_token};
@@ -471,7 +471,7 @@ static int expect_main_invalid_input_size_case_groups(const struct invalid_input
 
 static int expect_success_cases(const struct success_case *cases, size_t case_count,
                                 char *stderr_text, size_t stderr_size, int *exit_code) {
-    size_t i = 0;
+    size_t i;
 
     for (i = 0; i < case_count; i += 1) {
         const char *src[] = {cases[i].program_name, cases[i].input_token, cases[i].width_token, cases[i].height_token};
@@ -495,7 +495,7 @@ static int expect_success_cases(const struct success_case *cases, size_t case_co
 
 static int expect_invalid_argv_cases(const struct invalid_argv_case *cases, size_t case_count,
                                      char *stderr_text, size_t stderr_size, int *exit_code) {
-    size_t i = 0;
+    size_t i;
 
     for (i = 0; i < case_count; i += 1) {
         char *argv[ARRAY_LEN(cases[i].argv)] = {0};
