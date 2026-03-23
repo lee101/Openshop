@@ -246,6 +246,16 @@ int layer_stack_toggle_lock_others(LayerStack *stack, int active_index) {
     return 1;
 }
 
+int layer_stack_unlock_all(LayerStack *stack) {
+    if (!stack) {
+        return 0;
+    }
+    for (int i = 0; i < stack->layer_count; i++) {
+        stack->layers[i].locked = 0;
+    }
+    return 1;
+}
+
 int layer_stack_show_all(LayerStack *stack) {
     if (!stack) {
         return 0;
