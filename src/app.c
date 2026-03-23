@@ -1025,13 +1025,7 @@ static void handle_mouse_down(
         if (runtime->tool == TOOL_BRUSH || runtime->tool == TOOL_ERASER) {
             Layer *active = layer_stack_active(layers);
             if (active && !active->locked && active->canvas.pixels) {
-                push_snapshot(
-                    layers,
-                    runtime->undo_stack,
-                    &runtime->undo_count,
-                    runtime->redo_stack,
-                    &runtime->redo_count
-                );
+                push_runtime_snapshot(layers, runtime);
                 runtime->drawing = 1;
                 if (runtime->tool == TOOL_ERASER) {
                     erase_stamp(
@@ -1126,13 +1120,7 @@ static void handle_mouse_up(
     );
     Layer *active = layer_stack_active(layers);
     if (active && !active->locked && active->canvas.pixels) {
-        push_snapshot(
-            layers,
-            runtime->undo_stack,
-            &runtime->undo_count,
-            runtime->redo_stack,
-            &runtime->redo_count
-        );
+        push_runtime_snapshot(layers, runtime);
         draw_shape(
             &active->canvas,
             runtime->tool,
