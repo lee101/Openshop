@@ -435,6 +435,11 @@ static int expect_invalid_argv_cases(const struct invalid_argv_case *cases, size
     return 1;
 }
 
+static int expect_main_invalid_argv_cases(const struct invalid_argv_case *cases, size_t case_count,
+                                          char *stderr_text, size_t stderr_size, int *exit_code) {
+    return expect_invalid_argv_cases(cases, case_count, stderr_text, stderr_size, exit_code);
+}
+
 int main(void) {
     char stderr_text[main_smoke_buffer_size];
     char custom_usage_text[main_smoke_buffer_size];
@@ -500,9 +505,9 @@ int main(void) {
         INVALID_INPUT_ARGV_CASE("empty_input", NULL, default_program_name, empty_token),
         INVALID_INPUT_ARGV_CASE("null_input", NULL, default_program_name, NULL),
     };
-    if (!expect_invalid_argv_cases(invalid_argv_cases,
-                                   ARRAY_LEN(invalid_argv_cases),
-                                   stderr_text, sizeof(stderr_text), &exit_code)) {
+    if (!expect_main_invalid_argv_cases(invalid_argv_cases,
+                                        ARRAY_LEN(invalid_argv_cases),
+                                        stderr_text, sizeof(stderr_text), &exit_code)) {
         return 1;
     }
 
