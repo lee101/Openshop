@@ -72,6 +72,21 @@ int main(void) {
         return 1;
     }
 
+    char *argv_bad_width_token[] = {"openshop", "art/scene.png", "12x", "480"};
+    if (!expect_int("bad_width_token", parse_cli_args(4, argv_bad_width_token, &options), 0)) {
+        return 1;
+    }
+
+    char *argv_bad_height_token[] = {"openshop", "art/scene.png", "640", "48px"};
+    if (!expect_int("bad_height_token", parse_cli_args(4, argv_bad_height_token, &options), 0)) {
+        return 1;
+    }
+
+    char *argv_empty_width[] = {"openshop", "art/scene.png", "", "480"};
+    if (!expect_int("empty_width", parse_cli_args(4, argv_empty_width, &options), 0)) {
+        return 1;
+    }
+
     if (!expect_int("null_options", parse_cli_args(1, argv_default, NULL), 0)) {
         return 1;
     }
