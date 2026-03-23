@@ -1135,7 +1135,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (key == SDLK_PAGEUP) {
-                    int cycled = shift ? layer_stack_cycle_visible(&layers, 1) : layer_stack_cycle(&layers, 1);
+                    int cycled = ctrl ? layer_stack_cycle_unlocked(&layers, 1) : (shift ? layer_stack_cycle_visible(&layers, 1) : layer_stack_cycle(&layers, 1));
                     if (cycled >= 0) {
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
@@ -1143,7 +1143,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (key == SDLK_PAGEDOWN) {
-                    int cycled = shift ? layer_stack_cycle_visible(&layers, -1) : layer_stack_cycle(&layers, -1);
+                    int cycled = ctrl ? layer_stack_cycle_unlocked(&layers, -1) : (shift ? layer_stack_cycle_visible(&layers, -1) : layer_stack_cycle(&layers, -1));
                     if (cycled >= 0) {
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
