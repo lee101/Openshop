@@ -108,9 +108,9 @@ static int expect_str(const char *label, const char *actual, const char *expecte
 }
 
 static int capture_main_stderr(int argc, char **argv, char *buffer, size_t buffer_size, int *exit_code) {
-    FILE *tmp = NULL;
-    int saved_stderr = -1;
-    size_t bytes = 0;
+    FILE *tmp;
+    int saved_stderr;
+    size_t bytes;
 
     if (!buffer || buffer_size == 0 || !exit_code) {
         return 0;
