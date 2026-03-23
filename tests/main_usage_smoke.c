@@ -30,6 +30,7 @@ static const char *default_size_only_width = "640";
 static const char *default_size_only_height = "480";
 static const char *zero_token = "0";
 static const char *invalid_probe_size = "768";
+static const char *extra_arg_token = "extra";
 static const char *negative_size_only_width = "-640";
 static const char *negative_size_only_height = "-480";
 static const char *negative_input_size_height = "-1";
@@ -397,8 +398,8 @@ int main(void) {
         {"bad_size_only", 3, 0, NULL, {default_program_name, default_scene_path, invalid_probe_size, NULL, NULL}},
         {"custom_program_invalid", 3, 0, custom_usage_text, {custom_program_name, default_scene_path, invalid_probe_size, NULL, NULL}},
         {"missing_h", 3, 0, NULL, {default_program_name, default_scene_path, default_size_only_width, NULL, NULL}},
-        {"extra_args", 5, 0, NULL, {default_program_name, default_scene_path, default_size_only_width, default_size_only_height, "extra"}},
-        {"custom_program_extra_args", 5, 0, custom_usage_text, {custom_program_name, default_scene_path, default_size_only_width, default_size_only_height, "extra"}},
+        {"extra_args", 5, 0, NULL, {default_program_name, default_scene_path, default_size_only_width, default_size_only_height, extra_arg_token}},
+        {"custom_program_extra_args", 5, 0, custom_usage_text, {custom_program_name, default_scene_path, default_size_only_width, default_size_only_height, extra_arg_token}},
         {"custom_program_empty_input", 2, 0, custom_usage_text, {custom_program_name, empty_token, NULL, NULL, NULL}},
         {"custom_program_null_input", 2, 0, custom_usage_text, {custom_program_name, NULL, NULL, NULL, NULL}},
         {"null_argv", 1, 1, NULL, {NULL, NULL, NULL, NULL, NULL}},
