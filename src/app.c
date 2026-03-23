@@ -684,6 +684,46 @@ static int handle_layer_stack_shortcut(
     return handled;
 }
 
+static void push_current_snapshot(
+    const LayerStack *layers,
+    Snapshot *stack,
+    int *count
+) {
+    if (!layers || !stack || !count) {
+        return;
+    }
+
+    Snapshot current = {0};
+    if (!snapshot_from_layers(&current, layers)) {
+        snapshot_free(&current);
+        return;
+    }
+    if (*count == MAX_HISTORY) {
+        snapshot_free(&stack[0]);
+        memmove(&stack[0], &stack[1], sizeof(Snapshot) * (size_t)(MAX_HISTORY - 1));
+        *count = MAX_HISTORY - 1;
+    }
+    stack[(*count)++] = current;
+}
+
+static int restore_from_history(
+    LayerStack *layers,
+    Snapshot *from_stack,
+    int *from_count,
+    Snapshot *to_stack,
+    int *to_count
+) {
+    if (!layers || !from_stack || !from_count || !to_stack || !to_count || *from_count <= 0) {
+        return 0;
+    }
+
+    push_current_snapshot(layers, to_stack, to_count);
+    Snapshot restored = from_stack[--(*from_count)];
+    snapshot_apply(&restored, layers);
+    snapshot_free(&restored);
+    return 1;
+}
+
 static int handle_document_shortcut(
     SDL_Keycode key,
     int ctrl,
@@ -724,36 +764,12 @@ static int handle_document_shortcut(
             }
         }
     } else if (ctrl && key == SDLK_z) {
-        if (*undo_count > 0) {
-            Snapshot current = {0};
-            if (snapshot_from_layers(&current, layers)) {
-                if (*redo_count == MAX_HISTORY) {
-                    snapshot_free(&redo_stack[0]);
-                    memmove(&redo_stack[0], &redo_stack[1], sizeof(Snapshot) * (size_t)(MAX_HISTORY - 1));
-                    *redo_count = MAX_HISTORY - 1;
-                }
-                redo_stack[(*redo_count)++] = current;
-            }
-            Snapshot prev = undo_stack[--(*undo_count)];
-            snapshot_apply(&prev, layers);
-            snapshot_free(&prev);
+        if (restore_from_history(layers, undo_stack, undo_count, redo_stack, redo_count)) {
             *needs_composite = 1;
             update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
         }
     } else if (ctrl && key == SDLK_y) {
-        if (*redo_count > 0) {
-            Snapshot current = {0};
-            if (snapshot_from_layers(&current, layers)) {
-                if (*undo_count == MAX_HISTORY) {
-                    snapshot_free(&undo_stack[0]);
-                    memmove(&undo_stack[0], &undo_stack[1], sizeof(Snapshot) * (size_t)(MAX_HISTORY - 1));
-                    *undo_count = MAX_HISTORY - 1;
-                }
-                undo_stack[(*undo_count)++] = current;
-            }
-            Snapshot next = redo_stack[--(*redo_count)];
-            snapshot_apply(&next, layers);
-            snapshot_free(&next);
+        if (restore_from_history(layers, redo_stack, redo_count, undo_stack, undo_count)) {
             *needs_composite = 1;
             update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
         }
