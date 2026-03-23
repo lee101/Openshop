@@ -32,6 +32,7 @@ int layer_stack_add(LayerStack *stack, const char *name, uint32_t clear_color);
 int layer_stack_insert(LayerStack *stack, int index, const char *name, uint32_t clear_color);
 int layer_stack_cycle(LayerStack *stack, int direction);
 int layer_stack_cycle_visible(LayerStack *stack, int direction);
+int layer_stack_cycle_hidden(LayerStack *stack, int direction);
 int layer_stack_toggle_visibility(LayerStack *stack, int index);
 int layer_stack_toggle_lock(LayerStack *stack, int index);
 int layer_stack_show_all(LayerStack *stack);

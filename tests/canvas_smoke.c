@@ -254,6 +254,36 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.active_layer = 0;
+    if (layer_stack_cycle_hidden(&stack, 1) != 1 || stack.active_layer != 1) {
+        fprintf(stderr, "hidden layer cycling forward failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[0].visible = 0;
+    if (layer_stack_cycle_hidden(&stack, 1) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "hidden layer cycling wrap failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_cycle_hidden(&stack, -1) != 1 || stack.active_layer != 1) {
+        fprintf(stderr, "hidden layer cycling backward failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[0].visible = 1;
+    stack.layers[1].visible = 1;
+    stack.active_layer = 0;
+    if (layer_stack_cycle_hidden(&stack, 1) != -1 || stack.active_layer != 0) {
+        fprintf(stderr, "hidden layer cycling should fail when none are hidden\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[1].visible = 0;
     stack.layers[0].visible = 0;
     stack.layers[2].visible = 0;
     stack.active_layer = 0;

@@ -209,6 +209,27 @@ int layer_stack_cycle_visible(LayerStack *stack, int direction) {
     return -1;
 }
 
+int layer_stack_cycle_hidden(LayerStack *stack, int direction) {
+    if (!stack || stack->layer_count <= 0) {
+        return -1;
+    }
+    for (int offset = 1; offset <= stack->layer_count; offset++) {
+        int idx = stack->active_layer + (direction * offset);
+        while (idx < 0) {
+            idx += stack->layer_count;
+        }
+        idx %= stack->layer_count;
+        if (!stack->layers[idx].visible) {
+            stack->active_layer = idx;
+            return idx;
+        }
+    }
+    if (!stack->layers[stack->active_layer].visible) {
+        return stack->active_layer;
+    }
+    return -1;
+}
+
 int layer_stack_toggle_solo(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
