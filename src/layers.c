@@ -4,10 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int layer_stack_cycle_bool_field(LayerStack *stack, int direction, int want_value, int use_locked);
-static int layer_stack_select_bool_edge(LayerStack *stack, int want_value, int from_top, int use_locked);
 static int layer_stack_matches_bool_filter(int value, int required_value);
 static int layer_stack_reveal_target(LayerStack *stack, int target);
+static int layer_stack_cycle_combined_filter(LayerStack *stack, int direction, int required_hidden, int required_locked);
+static int layer_stack_select_combined_filter(LayerStack *stack, int from_top, int required_hidden, int required_locked);
 
 typedef enum {
     EDITABLE_ANY_VISIBILITY = 0,
@@ -72,11 +72,11 @@ static int ensure_layer_canvas(Layer *layer, int width, int height) {
 }
 
 static int layer_stack_cycle_filtered(LayerStack *stack, int direction, int want_visible) {
-    return layer_stack_cycle_bool_field(stack, direction, want_visible, 0);
+    return layer_stack_cycle_combined_filter(stack, direction, want_visible ? 0 : 1, -1);
 }
 
 static int layer_stack_select_edge_filtered(LayerStack *stack, int want_visible, int from_top) {
-    return layer_stack_select_bool_edge(stack, want_visible, from_top, 0);
+    return layer_stack_select_combined_filter(stack, from_top, want_visible ? 0 : 1, -1);
 }
 
 static int layer_stack_matches_combined_filter(const Layer *layer, int required_hidden, int required_locked) {
@@ -159,52 +159,6 @@ static int layer_stack_reveal_target(LayerStack *stack, int target) {
     stack->active_layer = target;
     stack->solo_index = -1;
     return 1;
-}
-
-static int layer_stack_cycle_bool_field(LayerStack *stack, int direction, int want_value, int use_locked) {
-    if (!stack || stack->layer_count <= 0) {
-        return -1;
-    }
-    for (int offset = 1; offset <= stack->layer_count; offset++) {
-        int idx = stack->active_layer + (direction * offset);
-        while (idx < 0) {
-            idx += stack->layer_count;
-        }
-        idx %= stack->layer_count;
-        int value = use_locked ? (stack->layers[idx].locked ? 1 : 0) : (stack->layers[idx].visible ? 1 : 0);
-        if (value == want_value) {
-            stack->active_layer = idx;
-            return idx;
-        }
-    }
-    if ((use_locked ? (stack->layers[stack->active_layer].locked ? 1 : 0) : (stack->layers[stack->active_layer].visible ? 1 : 0)) == want_value) {
-        return stack->active_layer;
-    }
-    return -1;
-}
-
-static int layer_stack_select_bool_edge(LayerStack *stack, int want_value, int from_top, int use_locked) {
-    if (!stack || stack->layer_count <= 0) {
-        return -1;
-    }
-    if (from_top) {
-        for (int i = stack->layer_count - 1; i >= 0; i--) {
-            int value = use_locked ? (stack->layers[i].locked ? 1 : 0) : (stack->layers[i].visible ? 1 : 0);
-            if (value == want_value) {
-                stack->active_layer = i;
-                return i;
-            }
-        }
-        return -1;
-    }
-    for (int i = 0; i < stack->layer_count; i++) {
-        int value = use_locked ? (stack->layers[i].locked ? 1 : 0) : (stack->layers[i].visible ? 1 : 0);
-        if (value == want_value) {
-            stack->active_layer = i;
-            return i;
-        }
-    }
-    return -1;
 }
 
 static int layer_stack_matches_editable(const Layer *layer, EditableVisibilityMode visibility_mode) {
@@ -485,11 +439,11 @@ int layer_stack_cycle_hidden(LayerStack *stack, int direction) {
 }
 
 int layer_stack_cycle_locked(LayerStack *stack, int direction) {
-    return layer_stack_cycle_bool_field(stack, direction, 1, 1);
+    return layer_stack_cycle_combined_filter(stack, direction, -1, 1);
 }
 
 int layer_stack_cycle_unlocked(LayerStack *stack, int direction) {
-    return layer_stack_cycle_bool_field(stack, direction, 0, 1);
+    return layer_stack_cycle_combined_filter(stack, direction, -1, 0);
 }
 
 int layer_stack_cycle_hidden_locked(LayerStack *stack, int direction) {
@@ -521,19 +475,19 @@ int layer_stack_select_top_hidden(LayerStack *stack) {
 }
 
 int layer_stack_select_bottom_locked(LayerStack *stack) {
-    return layer_stack_select_bool_edge(stack, 1, 0, 1);
+    return layer_stack_select_combined_filter(stack, 0, -1, 1);
 }
 
 int layer_stack_select_top_locked(LayerStack *stack) {
-    return layer_stack_select_bool_edge(stack, 1, 1, 1);
+    return layer_stack_select_combined_filter(stack, 1, -1, 1);
 }
 
 int layer_stack_select_bottom_unlocked(LayerStack *stack) {
-    return layer_stack_select_bool_edge(stack, 0, 0, 1);
+    return layer_stack_select_combined_filter(stack, 0, -1, 0);
 }
 
 int layer_stack_select_top_unlocked(LayerStack *stack) {
-    return layer_stack_select_bool_edge(stack, 0, 1, 1);
+    return layer_stack_select_combined_filter(stack, 1, -1, 0);
 }
 
 int layer_stack_select_bottom_hidden_locked(LayerStack *stack) {
