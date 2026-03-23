@@ -67,7 +67,7 @@ make test-sdl
 - `Ctrl+0`: reset active layer opacity to 100%
 - `Ctrl+A`: show all layers and clear solo mode
 - `Ctrl+Shift+R`: reveal the active layer without changing other visibility states
-- `Ctrl+Shift+H`: hide the active layer and jump to the next visible layer
+- `Ctrl+Shift+H`: hide the active layer and jump to the next visible unlocked layer when possible
 - `Ctrl+Shift+L`: toggle active layer lock
 - `Ctrl+Shift+K`: lock or unlock all non-active layers
 - `Ctrl+Shift+I`: hide or restore all non-active layers

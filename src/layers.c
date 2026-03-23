@@ -391,6 +391,13 @@ int layer_stack_hide_and_advance(LayerStack *stack, int index) {
     }
     for (int offset = 1; offset < stack->layer_count; offset++) {
         int next = (index + offset) % stack->layer_count;
+        if (stack->layers[next].visible && !stack->layers[next].locked) {
+            stack->active_layer = next;
+            return 1;
+        }
+    }
+    for (int offset = 1; offset < stack->layer_count; offset++) {
+        int next = (index + offset) % stack->layer_count;
         if (stack->layers[next].visible) {
             stack->active_layer = next;
             return 1;

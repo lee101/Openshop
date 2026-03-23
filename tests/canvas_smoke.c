@@ -145,6 +145,43 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_show(&stack, 1) || layer_stack_add(&stack, "Unlocked Visible", 0x00000000) != 2) {
+        fprintf(stderr, "setup hide and advance unlocked preference failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_lock(&stack, 0) || !stack.layers[0].locked) {
+        fprintf(stderr, "lock visible fallback layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.active_layer = 1;
+    if (!layer_stack_hide_and_advance(&stack, 1)) {
+        fprintf(stderr, "hide and advance with unlocked preference failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.active_layer != 2 || stack.layers[1].visible) {
+        fprintf(stderr, "hide and advance should prefer unlocked visible layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_unlock_all(&stack) || !layer_stack_delete(&stack, 2) || !layer_stack_show(&stack, 1)) {
+        fprintf(stderr, "cleanup hide and advance unlocked preference failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_visibility(&stack, 1)) {
+        fprintf(stderr, "rehide top layer after unlocked preference failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     if (layer_stack_toggle_visibility(&stack, 0)) {
         fprintf(stderr, "background should not hide when last visible\n");
