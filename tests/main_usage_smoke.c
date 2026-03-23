@@ -384,6 +384,13 @@ int main(void) {
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
+    char *argv_custom_program_numeric_input[] = {"./bin/openshop-dev", "640"};
+    if (!capture_main_stderr(2, argv_custom_program_numeric_input, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_successful_run("custom_program_numeric_input", exit_code, 0, "640", 0, 0, stderr_text, "")) {
+        return 1;
+    }
+
+    reset_app_state(0, NULL, 0, 0, stderr_text);
     char *argv_custom_program_size_only[] = {"./bin/openshop-dev", "800", "600"};
     if (!capture_main_stderr(3, argv_custom_program_size_only, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_successful_run("custom_program_size_only", exit_code, 0, NULL, 800, 600, stderr_text, "")) {
