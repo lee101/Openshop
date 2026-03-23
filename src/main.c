@@ -4,12 +4,9 @@
 
 int main(int argc, char **argv) {
     CliOptions options = {0};
-    char usage[CLI_USAGE_BUFFER_SIZE] = {0};
 
     if (!parse_cli_args(argc, argv, &options)) {
-        if (format_cli_usage(usage, (int)sizeof(usage), argv)) {
-            fputs(usage, stderr);
-        }
+        write_cli_usage(stderr, argv);
         return 1;
     }
 
