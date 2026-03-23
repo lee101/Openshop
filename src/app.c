@@ -1689,6 +1689,29 @@ typedef struct {
     Canvas preview_canvas;
 } AppRuntime;
 
+static void cleanup_app_runtime(
+    AppRuntime *runtime,
+    Canvas *composite,
+    LayerStack *layers,
+    SDL_Texture *texture,
+    SDL_Renderer *renderer,
+    SDL_Window *window
+) {
+    cleanup_app_resources(
+        runtime ? runtime->shape_base_pixels : NULL,
+        runtime ? runtime->preview_pixels : NULL,
+        composite,
+        layers,
+        runtime ? runtime->undo_stack : NULL,
+        runtime ? &runtime->undo_count : NULL,
+        runtime ? runtime->redo_stack : NULL,
+        runtime ? &runtime->redo_count : NULL,
+        texture,
+        renderer,
+        window
+    );
+}
+
 static uint32_t active_layer_clear_color(const LayerStack *layers) {
     if (!layers) {
         return COLOR_BG;
@@ -1836,19 +1859,7 @@ int app_run(const char *input_path) {
             &runtime.preview_canvas,
             runtime.undo_stack,
             runtime.redo_stack)) {
-        cleanup_app_resources(
-            runtime.shape_base_pixels,
-            runtime.preview_pixels,
-            &composite,
-            &layers,
-            runtime.undo_stack,
-            &runtime.undo_count,
-            runtime.redo_stack,
-            &runtime.redo_count,
-            texture,
-            renderer,
-            window
-        );
+        cleanup_app_runtime(&runtime, &composite, &layers, texture, renderer, window);
         return 1;
     }
     update_window_title(
@@ -1872,18 +1883,6 @@ int app_run(const char *input_path) {
         SDL_Delay(16);
     }
 
-    cleanup_app_resources(
-        runtime.shape_base_pixels,
-        runtime.preview_pixels,
-        &composite,
-        &layers,
-        runtime.undo_stack,
-        &runtime.undo_count,
-        runtime.redo_stack,
-        &runtime.redo_count,
-        texture,
-        renderer,
-        window
-    );
+    cleanup_app_runtime(&runtime, &composite, &layers, texture, renderer, window);
     return 0;
 }
