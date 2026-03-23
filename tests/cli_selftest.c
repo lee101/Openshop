@@ -28,7 +28,7 @@ static int expect_str(const char *label, const char *actual, const char *expecte
 int main(void) {
     CliOptions options = {0};
     char *argv_default[] = {"openshop"};
-    char usage[128] = {0};
+    char usage[CLI_USAGE_BUFFER_SIZE] = {0};
 
     if (!expect_str("usage_suffix", cli_usage_suffix(),
                     "[input_path] [width height]\n"

@@ -1,6 +1,10 @@
 #ifndef CLI_H
 #define CLI_H
 
+enum {
+    CLI_USAGE_BUFFER_SIZE = 128
+};
+
 typedef struct CliOptions {
     const char *input_path;
     int canvas_w;
