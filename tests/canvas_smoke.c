@@ -441,6 +441,34 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[0].visible = 1;
+    stack.layers[1].visible = 0;
+    stack.layers[2].visible = 0;
+    stack.layers[3].visible = 1;
+    if (!layer_stack_toggle_solo(&stack, 3)) {
+        fprintf(stderr, "toggle solo for visible edge selection failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_bottom_visible(&stack) != 0 || stack.active_layer != 0 || stack.solo_index != 3) {
+        fprintf(stderr, "visible edge selection should preserve solo state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_top_hidden(&stack) != 2 || stack.active_layer != 2 || stack.solo_index != 3) {
+        fprintf(stderr, "hidden edge selection should preserve solo state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_solo(&stack, 3) || stack.solo_index != -1) {
+        fprintf(stderr, "toggle solo off after edge selection failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_show_all(&stack)) {
         fprintf(stderr, "restore visibility after visible selection tests failed\n");
         canvas_free(&composite);
