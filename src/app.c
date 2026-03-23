@@ -1508,6 +1508,39 @@ static int init_app_resources(
     return 1;
 }
 
+static int init_app_session(
+    uint32_t **shape_base_pixels,
+    uint32_t **preview_pixels,
+    Canvas *preview_canvas,
+    Snapshot *undo_stack,
+    Snapshot *redo_stack
+) {
+    if (!shape_base_pixels || !preview_pixels || !preview_canvas || !undo_stack || !redo_stack) {
+        return 0;
+    }
+
+    *shape_base_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
+    *preview_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
+    if (!*shape_base_pixels || !*preview_pixels) {
+        fprintf(stderr, "Scratch buffer allocation failed\n");
+        free(*shape_base_pixels);
+        free(*preview_pixels);
+        *shape_base_pixels = NULL;
+        *preview_pixels = NULL;
+        preview_canvas->width = 0;
+        preview_canvas->height = 0;
+        preview_canvas->pixels = NULL;
+        return 0;
+    }
+
+    preview_canvas->width = CANVAS_WIDTH;
+    preview_canvas->height = CANVAS_HEIGHT;
+    preview_canvas->pixels = *preview_pixels;
+    memset(undo_stack, 0, sizeof(Snapshot) * MAX_HISTORY);
+    memset(redo_stack, 0, sizeof(Snapshot) * MAX_HISTORY);
+    return 1;
+}
+
 static uint32_t active_layer_clear_color(const LayerStack *layers) {
     if (!layers) {
         return COLOR_BG;
@@ -1659,11 +1692,25 @@ int app_run(const char *input_path) {
     int shape_start_y = 0;
     int preview_active = 0;
     int needs_composite = 0;
-    uint32_t *shape_base_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
-    uint32_t *preview_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
-    Canvas preview_canvas = {CANVAS_WIDTH, CANVAS_HEIGHT, preview_pixels};
-    memset(undo_stack, 0, sizeof(undo_stack));
-    memset(redo_stack, 0, sizeof(redo_stack));
+    uint32_t *shape_base_pixels = NULL;
+    uint32_t *preview_pixels = NULL;
+    Canvas preview_canvas = {0};
+    if (!init_app_session(&shape_base_pixels, &preview_pixels, &preview_canvas, undo_stack, redo_stack)) {
+        cleanup_app_resources(
+            shape_base_pixels,
+            preview_pixels,
+            &composite,
+            &layers,
+            undo_stack,
+            &undo_count,
+            redo_stack,
+            &redo_count,
+            texture,
+            renderer,
+            window
+        );
+        return 1;
+    }
     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
 
     while (running) {
