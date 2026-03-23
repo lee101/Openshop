@@ -47,10 +47,21 @@ const char *cli_program_name(char **argv) {
     return argv[0];
 }
 
+int cli_usage_size(char **argv) {
+    int written = snprintf(NULL, 0, "Usage: %s %s\n",
+                           cli_program_name(argv), cli_usage_suffix());
+    return written > 0 ? written + 1 : 0;
+}
+
 int format_cli_usage(char *buffer, int buffer_size, char **argv) {
     int written = 0;
+    int required = 0;
 
     if (!buffer || buffer_size <= 0) {
+        return 0;
+    }
+    required = cli_usage_size(argv);
+    if (required <= 0 || buffer_size < required) {
         return 0;
     }
 

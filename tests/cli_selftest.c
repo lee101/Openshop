@@ -29,6 +29,8 @@ int main(void) {
     CliOptions options = {0};
     char *argv_default[] = {"openshop"};
     char usage[CLI_USAGE_BUFFER_SIZE] = {0};
+    char exact_usage[64] = {0};
+    int usage_size = 0;
 
     if (!expect_str("usage_suffix", cli_usage_suffix(),
                     "[input_path] [width height]\n"
@@ -47,6 +49,13 @@ int main(void) {
     }
     char *argv_empty_program_name[] = {""};
     if (!expect_str("program_name_empty_slot", cli_program_name(argv_empty_program_name), "openshop")) {
+        return 1;
+    }
+    usage_size = cli_usage_size(argv_default);
+    if (!expect_int("usage_default_size_positive", usage_size > 0, 1)) {
+        return 1;
+    }
+    if (!expect_int("usage_null_argv_size", cli_usage_size(NULL), usage_size)) {
         return 1;
     }
     if (!expect_int("usage_default_ok", format_cli_usage(usage, (int)sizeof(usage), argv_default), 1) ||
@@ -68,6 +77,17 @@ int main(void) {
         return 1;
     }
     if (!expect_int("usage_tiny_buffer", format_cli_usage(usage, 8, argv_default), 0)) {
+        return 1;
+    }
+    if (!expect_int("usage_exact_buffer_ok",
+                    format_cli_usage(exact_usage, usage_size, argv_default), 1) ||
+        !expect_str("usage_exact_buffer_text", exact_usage,
+                    "Usage: openshop [input_path] [width height]\n"
+                    "       or: WIDTH HEIGHT\n")) {
+        return 1;
+    }
+    if (!expect_int("usage_short_buffer",
+                    format_cli_usage(exact_usage, usage_size - 1, argv_default), 0)) {
         return 1;
     }
 

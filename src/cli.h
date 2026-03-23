@@ -14,6 +14,7 @@ typedef struct CliOptions {
 int parse_cli_args(int argc, char **argv, CliOptions *options);
 const char *cli_program_name(char **argv);
 const char *cli_usage_suffix(void);
+int cli_usage_size(char **argv);
 int format_cli_usage(char *buffer, int buffer_size, char **argv);
 
 #endif
