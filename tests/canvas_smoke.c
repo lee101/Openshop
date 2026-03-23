@@ -781,13 +781,19 @@ static int test_layers_basic(void) {
         return 0;
     }
     stack.active_layer = 1;
+    if (!layer_stack_set_opacity(&stack, 1, 35)) {
+        fprintf(stderr, "setup lock-others state preservation failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_toggle_lock_others(&stack, 1)) {
         fprintf(stderr, "toggle lock others on failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
     }
-    if (stack.layers[1].locked || !stack.layers[0].locked || !stack.layers[2].locked) {
+    if (stack.layers[1].locked || !stack.layers[0].locked || !stack.layers[2].locked || stack.active_layer != 1 || stack.layers[1].opacity_percent != 35) {
         fprintf(stderr, "toggle lock others did not lock non-active layers\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
@@ -805,7 +811,15 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (stack.active_layer != 1 || stack.layers[1].opacity_percent != 35) {
+        fprintf(stderr, "toggle lock others should preserve active-layer state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[1].visible = 0;
+    stack.layers[1].locked = 1;
+    stack.layers[2].opacity_percent = 45;
     stack.solo_index = 2;
     if (!layer_stack_toggle_visibility_others(&stack, 2)) {
         fprintf(stderr, "toggle visibility others on failed\n");
@@ -813,7 +827,7 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (!stack.layers[2].visible || stack.layers[0].visible || stack.layers[1].visible || stack.solo_index != -1) {
+    if (!stack.layers[2].visible || stack.layers[0].visible || stack.layers[1].visible || stack.solo_index != -1 || stack.active_layer != 1 || !stack.layers[1].locked || stack.layers[2].opacity_percent != 45) {
         fprintf(stderr, "toggle visibility others did not isolate the active layer\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
@@ -831,6 +845,14 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (stack.active_layer != 1 || !stack.layers[1].locked || stack.layers[2].opacity_percent != 45) {
+        fprintf(stderr, "toggle visibility others should preserve non-visibility state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[1].locked = 0;
+    stack.layers[2].opacity_percent = 100;
     if (!layer_stack_delete(&stack, 2)) {
         fprintf(stderr, "cleanup lock-others layer failed\n");
         canvas_free(&composite);
