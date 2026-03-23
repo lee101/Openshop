@@ -7,6 +7,7 @@
 static int layer_stack_cycle_bool_field(LayerStack *stack, int direction, int want_value, int use_locked);
 static int layer_stack_select_bool_edge(LayerStack *stack, int want_value, int from_top, int use_locked);
 static int layer_stack_matches_bool_filter(int value, int required_value);
+static int layer_stack_reveal_target(LayerStack *stack, int target);
 
 typedef enum {
     EDITABLE_ANY_VISIBILITY = 0,
@@ -137,7 +138,11 @@ static int layer_stack_reveal_selected_combined_filter(LayerStack *stack, int fr
         return 0;
     }
     target = layer_stack_select_combined_filter(stack, from_top, required_hidden, required_locked);
-    if (target < 0) {
+    return layer_stack_reveal_target(stack, target);
+}
+
+static int layer_stack_reveal_target(LayerStack *stack, int target) {
+    if (!stack || target < 0 || target >= stack->layer_count) {
         return 0;
     }
     stack->layers[target].visible = 1;
@@ -648,13 +653,7 @@ int layer_stack_reveal_hidden(LayerStack *stack, int direction) {
         return 0;
     }
     int target = layer_stack_cycle_filtered(stack, direction, 0);
-    if (target < 0) {
-        return 0;
-    }
-    stack->layers[target].visible = 1;
-    stack->active_layer = target;
-    stack->solo_index = -1;
-    return 1;
+    return layer_stack_reveal_target(stack, target);
 }
 
 int layer_stack_reveal_hidden_locked(LayerStack *stack, int from_top) {
@@ -670,13 +669,7 @@ int layer_stack_reveal_editable(LayerStack *stack, int direction) {
         return 0;
     }
     int target = layer_stack_cycle_editable_filtered(stack, direction, EDITABLE_ANY_VISIBILITY);
-    if (target >= 0) {
-        stack->layers[target].visible = 1;
-        stack->active_layer = target;
-        stack->solo_index = -1;
-        return 1;
-    }
-    return 0;
+    return layer_stack_reveal_target(stack, target);
 }
 
 int layer_stack_reveal_hidden_editable(LayerStack *stack, int from_top) {
