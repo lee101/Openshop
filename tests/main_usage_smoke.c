@@ -280,6 +280,7 @@ static const char *const empty_argv_tail_3[] = {NULL, NULL, NULL};
 static const char *const empty_argv_tail_4[] = {NULL, NULL, NULL, NULL};
 static const char *const no_input_path = NULL;
 static const char *const no_size_tokens[] = {NULL, NULL};
+static const char *const no_usage_text = NULL;
 
 #define INVALID_NULL_ARGV_ONLY_CASE(label, argc_value, usage_text) \
     {label, argc_value, argv_is_null, usage_text, {empty_argv_tail_4[0], empty_argv_tail_4[1], empty_argv_tail_4[2], empty_argv_tail_4[3], NULL}}
@@ -535,20 +536,20 @@ int main(void) {
         INVALID_SIZE_TOKEN_CASE("custom_program_overflow_size_only_height", overflow_height_token),
     };
     const struct invalid_argv_case invalid_argv_cases[] = {
-        INVALID_SIZE_ONLY_ARGV_CASE("invalid", NULL, default_program_name, default_size_only_width),
-        INVALID_SIZE_ONLY_ARGV_CASE("bad_size_only", NULL, default_program_name, invalid_probe_token),
+        INVALID_SIZE_ONLY_ARGV_CASE("invalid", no_usage_text, default_program_name, default_size_only_width),
+        INVALID_SIZE_ONLY_ARGV_CASE("bad_size_only", no_usage_text, default_program_name, invalid_probe_token),
         INVALID_SIZE_ONLY_ARGV_CASE("custom_program_invalid", custom_usage_text, custom_program_name, invalid_probe_token),
-        INVALID_SIZE_ONLY_ARGV_CASE("missing_h", NULL, default_program_name, default_size_only_width),
-        INVALID_EXTRA_ARGV_CASE("extra_args", NULL, default_program_name),
+        INVALID_SIZE_ONLY_ARGV_CASE("missing_h", no_usage_text, default_program_name, default_size_only_width),
+        INVALID_EXTRA_ARGV_CASE("extra_args", no_usage_text, default_program_name),
         INVALID_EXTRA_ARGV_CASE("custom_program_extra_args", custom_usage_text, custom_program_name),
         INVALID_INPUT_ARGV_CASE("custom_program_empty_input", custom_usage_text, custom_program_name, empty_token),
         INVALID_INPUT_ARGV_CASE("custom_program_null_input", custom_usage_text, custom_program_name, NULL),
-        INVALID_NULL_ARGV_ONLY_CASE("null_argv", startup_argc, NULL),
-        INVALID_PROGRAM_ONLY_ARGV_CASE("null_program", startup_argc, NULL, NULL),
-        INVALID_PROGRAM_ONLY_ARGV_CASE("zero_argc", zero_argc, NULL, default_program_name),
-        INVALID_PROGRAM_ONLY_ARGV_CASE("empty_program", startup_argc, NULL, empty_token),
-        INVALID_INPUT_ARGV_CASE("empty_input", NULL, default_program_name, empty_token),
-        INVALID_INPUT_ARGV_CASE("null_input", NULL, default_program_name, NULL),
+        INVALID_NULL_ARGV_ONLY_CASE("null_argv", startup_argc, no_usage_text),
+        INVALID_PROGRAM_ONLY_ARGV_CASE("null_program", startup_argc, no_usage_text, NULL),
+        INVALID_PROGRAM_ONLY_ARGV_CASE("zero_argc", zero_argc, no_usage_text, default_program_name),
+        INVALID_PROGRAM_ONLY_ARGV_CASE("empty_program", startup_argc, no_usage_text, empty_token),
+        INVALID_INPUT_ARGV_CASE("empty_input", no_usage_text, default_program_name, empty_token),
+        INVALID_INPUT_ARGV_CASE("null_input", no_usage_text, default_program_name, NULL),
     };
     if (!expect_invalid_argv_cases(invalid_argv_cases,
                                    ARRAY_LEN(invalid_argv_cases),
