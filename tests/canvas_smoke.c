@@ -683,11 +683,36 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.active_layer = 2;
+    if (layer_stack_select_bottom_hidden_locked(&stack) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "select bottom hidden locked failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_top_hidden_locked(&stack) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "select top hidden locked failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[0].locked = 0;
     stack.layers[3].locked = 0;
     stack.active_layer = 2;
     if (layer_stack_cycle_hidden_locked(&stack, 1) != -1 || stack.active_layer != 2) {
         fprintf(stderr, "hidden locked layer cycling should fail when none are hidden and locked\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_bottom_hidden_locked(&stack) != -1 || stack.active_layer != 2) {
+        fprintf(stderr, "select bottom hidden locked should fail when none are hidden and locked\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_top_hidden_locked(&stack) != -1 || stack.active_layer != 2) {
+        fprintf(stderr, "select top hidden locked should fail when none are hidden and locked\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -719,11 +744,36 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.active_layer = 2;
+    if (layer_stack_select_bottom_hidden_unlocked(&stack) != 1 || stack.active_layer != 1) {
+        fprintf(stderr, "select bottom hidden unlocked failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_top_hidden_unlocked(&stack) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "select top hidden unlocked failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[1].locked = 1;
     stack.layers[3].locked = 1;
     stack.active_layer = 2;
     if (layer_stack_cycle_hidden_unlocked(&stack, 1) != -1 || stack.active_layer != 2) {
         fprintf(stderr, "hidden unlocked layer cycling should fail when none are hidden and unlocked\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_bottom_hidden_unlocked(&stack) != -1 || stack.active_layer != 2) {
+        fprintf(stderr, "select bottom hidden unlocked should fail when none are hidden and unlocked\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_top_hidden_unlocked(&stack) != -1 || stack.active_layer != 2) {
+        fprintf(stderr, "select top hidden unlocked should fail when none are hidden and unlocked\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
