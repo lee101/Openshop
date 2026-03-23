@@ -2056,6 +2056,32 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    canvas_free(&stack.layers[1].canvas);
+    if (stack.layers[1].canvas.pixels) {
+        fprintf(stderr, "free stamp target canvas failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_stamp_visible_into(&stack, 1, 0xFFFFFFFF)) {
+        fprintf(stderr, "stamp visible reallocation failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[1].canvas.pixels || stack.layers[1].canvas.width != stack.width || stack.layers[1].canvas.height != stack.height ||
+        !expect_pixel_eq("stamp_visible_reallocated_pixel", canvas_get_pixel(&stack.layers[1].canvas, 0, 0), 0xFF123456)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[1].visible || stack.layers[1].locked || stack.layers[1].opacity_percent != 100 || stack.solo_index != -1) {
+        fprintf(stderr, "stamp visible reallocation should preserve normalized target state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    canvas_clear(&stack.layers[1].canvas, 0xFF0D6740);
     if (!layer_stack_toggle_solo(&stack, 1) || !layer_stack_toggle_visibility(&stack, 1)) {
         fprintf(stderr, "prepare hidden solo stamp visible new failed\n");
         canvas_free(&composite);
