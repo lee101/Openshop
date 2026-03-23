@@ -818,6 +818,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    int locked_layer_active = stack.active_layer;
+    int locked_layer_visible = stack.layers[1].visible;
+    int locked_layer_opacity = stack.layers[1].opacity_percent;
+    char locked_layer_name[LAYER_NAME_MAX];
+    strncpy(locked_layer_name, stack.layers[1].name, LAYER_NAME_MAX - 1);
+    locked_layer_name[LAYER_NAME_MAX - 1] = '\0';
     uint32_t locked_layer_pixel = canvas_get_pixel(&stack.layers[1].canvas, 8, 8);
     if (layer_stack_clear_layer(&stack, 1, 0xFFABCDEF)) {
         fprintf(stderr, "clear should fail on locked layer\n");
@@ -850,6 +856,13 @@ static int test_layers_basic(void) {
         return 0;
     }
     if (!expect_pixel_eq("locked_operation_preserves_pixel", canvas_get_pixel(&stack.layers[1].canvas, 8, 8), locked_layer_pixel)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.active_layer != locked_layer_active || stack.layers[1].visible != locked_layer_visible ||
+        stack.layers[1].opacity_percent != locked_layer_opacity || strcmp(stack.layers[1].name, locked_layer_name) != 0) {
+        fprintf(stderr, "locked-operation failures should preserve layer bookkeeping\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
