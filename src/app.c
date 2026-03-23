@@ -1217,21 +1217,27 @@ int app_run(const char *input_path) {
 
                 if (ctrl && (key == SDLK_MINUS || key == SDLK_KP_MINUS)) {
                     Layer *active = layer_stack_active(&layers);
-                    if (active && try_adjust_active_layer_opacity(&layers, undo_stack, &undo_count, redo_stack,
-                                                                  &redo_count, active->opacity_percent - 10)) {
+                    if (refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                                brush_opacity,
+                                                active && try_adjust_active_layer_opacity(&layers, undo_stack,
+                                                                                          &undo_count, redo_stack,
+                                                                                          &redo_count,
+                                                                                          active->opacity_percent - 10))) {
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
                 if (ctrl && (key == SDLK_EQUALS || key == SDLK_KP_PLUS)) {
                     Layer *active = layer_stack_active(&layers);
-                    if (active && try_adjust_active_layer_opacity(&layers, undo_stack, &undo_count, redo_stack,
-                                                                  &redo_count, active->opacity_percent + 10)) {
+                    if (refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                                brush_opacity,
+                                                active && try_adjust_active_layer_opacity(&layers, undo_stack,
+                                                                                          &undo_count, redo_stack,
+                                                                                          &redo_count,
+                                                                                          active->opacity_percent + 10))) {
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
@@ -1305,17 +1311,21 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_z) {
-                    if (try_restore_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count)) {
+                    if (refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                                brush_opacity,
+                                                try_restore_snapshot(&layers, undo_stack, &undo_count, redo_stack,
+                                                                     &redo_count))) {
                         needs_composite = 1;
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                     break;
                 }
 
                 if (ctrl && key == SDLK_y) {
-                    if (try_restore_snapshot(&layers, redo_stack, &redo_count, undo_stack, &undo_count)) {
+                    if (refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                                brush_opacity,
+                                                try_restore_snapshot(&layers, redo_stack, &redo_count, undo_stack,
+                                                                     &undo_count))) {
                         needs_composite = 1;
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                     break;
                 }
@@ -1327,11 +1337,12 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_0) {
-                    if (try_adjust_active_layer_opacity(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                                                        100)) {
+                    if (refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                                brush_opacity,
+                                                try_adjust_active_layer_opacity(&layers, undo_stack, &undo_count,
+                                                                                redo_stack, &redo_count, 100))) {
                         needs_composite = 1;
                     }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
@@ -1610,16 +1621,14 @@ int app_run(const char *input_path) {
                 }
 
                 if (key == SDLK_PAGEUP) {
-                    if (layer_stack_cycle(&layers, 1) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_cycle(&layers, 1) >= 0);
                     break;
                 }
 
                 if (key == SDLK_PAGEDOWN) {
-                    if (layer_stack_cycle(&layers, -1) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_cycle(&layers, -1) >= 0);
                     break;
                 }
 
