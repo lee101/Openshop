@@ -317,6 +317,48 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[0].visible = 1;
+    stack.layers[1].visible = 1;
+    stack.layers[2].visible = 1;
+    stack.layers[3].visible = 1;
+    stack.layers[0].locked = 1;
+    stack.layers[1].locked = 0;
+    stack.layers[2].locked = 1;
+    stack.layers[3].locked = 0;
+    stack.active_layer = 3;
+    if (layer_stack_cycle_visible(&stack, 1) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "visible cycling precedence baseline failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.active_layer = 3;
+    if (layer_stack_cycle_unlocked(&stack, 1) != 1 || stack.active_layer != 1) {
+        fprintf(stderr, "unlocked cycling precedence baseline failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[1].visible = 0;
+    stack.active_layer = 3;
+    if (layer_stack_cycle_editable_visible(&stack, 1) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "editable visible cycling should stay on current slot when it is the only editable visible layer in wrap order\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_edge_visible(&stack, -1) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "visible edge selection precedence baseline failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_edge_editable_visible(&stack, -1) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "editable visible edge selection should skip locked and hidden layers\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[1].locked = 0;
     stack.layers[3].locked = 0;
     stack.layers[0].visible = 1;
