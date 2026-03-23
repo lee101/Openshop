@@ -259,6 +259,66 @@ static int test_effect_apply_success_and_failure_paths(void) {
     return 1;
 }
 
+static int test_effect_apply_preserves_existing_composite_flag_on_noops(void) {
+    LayerStack stack;
+    Canvas preview = {0};
+    Canvas composite = {0};
+    ToolEffectStubState stub = {
+        .transform_result = 1,
+        .flood_fill_result = 1,
+        .sampled_color = 0x0044AA11u,
+    };
+    AppToolEffectCallbacks callbacks = {
+        .push_snapshot = stub_push_snapshot,
+        .transform_layer = stub_transform_layer,
+        .flood_fill = stub_flood_fill,
+        .sample_canvas = stub_sample_canvas,
+        .userdata = &stub,
+    };
+    AppToolEffectState state = {
+        .tool = 3,
+        .brush_opacity = 40,
+        .brush_color_rgb = 0x001B1F24u,
+        .brush_color = 0x661B1F24u,
+        .preview_active = 0,
+        .needs_composite = 1,
+    };
+    AppToolEffectCommand fill = {.handled = 1, .action = APP_TOOL_EFFECT_FLOOD_FILL};
+    AppToolEffectCommand pick = {.handled = 1, .action = APP_TOOL_EFFECT_PICK_COLOR};
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF) ||
+        !canvas_init(&preview, 4, 4) ||
+        !canvas_init(&composite, 4, 4)) {
+        fprintf(stderr, "initialization failed\n");
+        layer_stack_free(&stack);
+        canvas_free(&preview);
+        canvas_free(&composite);
+        return 0;
+    }
+
+    if (!app_tool_effect_apply(pick, &stack, &state, &preview, &composite, 2, 2, 0x00000000u, &callbacks) ||
+        !expect_int_eq("effect_pick_preserve_needs_composite", state.needs_composite, 1)) {
+        layer_stack_free(&stack);
+        canvas_free(&preview);
+        canvas_free(&composite);
+        return 0;
+    }
+
+    if (app_tool_effect_apply(fill, &stack, &state, &preview, &composite, -1, 2, 0x00000000u, &callbacks) ||
+        !expect_int_eq("effect_noop_preserve_needs_composite", state.needs_composite, 1) ||
+        !expect_int_eq("effect_noop_push_count", stub.push_count, 0)) {
+        layer_stack_free(&stack);
+        canvas_free(&preview);
+        canvas_free(&composite);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    canvas_free(&preview);
+    canvas_free(&composite);
+    return 1;
+}
+
 int main(void) {
     if (!test_tool_and_palette_selection()) {
         return 1;
@@ -276,6 +336,9 @@ int main(void) {
         return 1;
     }
     if (!test_effect_apply_success_and_failure_paths()) {
+        return 1;
+    }
+    if (!test_effect_apply_preserves_existing_composite_flag_on_noops()) {
         return 1;
     }
     return 0;
