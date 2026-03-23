@@ -270,6 +270,26 @@ int main(void) {
         return 1;
     }
 
+    strcpy(pair.bmp, "");
+    strcpy(pair.png, "draft.png");
+    choice = resolve_routed_pair_choice(&pair, "input.bmp", "input.png", 0);
+    if (!expect_str("resolve_pair_missing_bmp", choice.path, "draft.png") ||
+        !expect_int("resolve_pair_missing_bmp_alternate", choice.used_alternate, 1)) {
+        return 1;
+    }
+
+    if (!touch_file("input.png")) {
+        fprintf(stderr, "touch fallback png failed\n");
+        return 1;
+    }
+    strcpy(pair.bmp, "draft.bmp");
+    strcpy(pair.png, "");
+    choice = resolve_routed_pair_choice(&pair, "input.bmp", "input.png", 1);
+    if (!expect_str("resolve_pair_missing_png", choice.path, "input.png") ||
+        !expect_int("resolve_pair_missing_png_alternate", choice.used_alternate, 0)) {
+        return 1;
+    }
+
     cleanup_artifacts();
     printf("path routing selftest ok\n");
     return 0;
