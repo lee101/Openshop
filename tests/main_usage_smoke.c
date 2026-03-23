@@ -266,6 +266,13 @@ struct invalid_scene_probe_case {
     int argc;
 };
 
+struct invalid_argv_case {
+    const char *label_prefix;
+    int argc;
+    int use_custom_usage;
+    char *argv[5];
+};
+
 struct simple_success_case {
     const char *label_prefix;
     char *program_name;
@@ -501,6 +508,28 @@ static int expect_custom_invalid_scene_probe_cases(const struct invalid_scene_pr
     return 1;
 }
 
+static int expect_invalid_argv_cases(const struct invalid_argv_case *cases, size_t case_count,
+                                     char *stderr_text, size_t stderr_size, int *exit_code,
+                                     const char *custom_usage_text) {
+    size_t i = 0;
+
+    for (i = 0; i < case_count; i += 1) {
+        if (cases[i].use_custom_usage) {
+            if (!expect_custom_invalid_main_run(cases[i].label_prefix, cases[i].argc, (char **)cases[i].argv,
+                                                stderr_text, stderr_size, exit_code, custom_usage_text)) {
+                return 0;
+            }
+            continue;
+        }
+
+        if (!expect_invalid_main_run(cases[i].label_prefix, cases[i].argc, (char **)cases[i].argv,
+                                     stderr_text, stderr_size, exit_code)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static int format_custom_usage_text(char *buffer, size_t buffer_size) {
     char *argv[] = {(char *)custom_program_name};
 
@@ -570,8 +599,16 @@ int main(void) {
         return 1;
     }
 
-    char *argv_missing_h[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width};
-    if (!expect_invalid_main_run("missing_h", 3, argv_missing_h, stderr_text, sizeof(stderr_text), &exit_code)) {
+    struct invalid_argv_case invalid_argv_cases[] = {
+        {"missing_h", 3, 0, {"openshop", (char *)default_scene_path, (char *)default_size_only_width, NULL, NULL}},
+        {"extra_args", 5, 0, {"openshop", (char *)default_scene_path, (char *)default_size_only_width, (char *)default_size_only_height, "extra"}},
+        {"custom_program_extra_args", 5, 1, {(char *)custom_program_name, (char *)default_scene_path, (char *)default_size_only_width, (char *)default_size_only_height, "extra"}},
+        {"custom_program_empty_input", 2, 1, {(char *)custom_program_name, "", NULL, NULL, NULL}},
+        {"custom_program_null_input", 2, 1, {(char *)custom_program_name, NULL, NULL, NULL, NULL}},
+    };
+    if (!expect_invalid_argv_cases(invalid_argv_cases,
+                                   sizeof(invalid_argv_cases) / sizeof(invalid_argv_cases[0]),
+                                   stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
@@ -607,19 +644,6 @@ int main(void) {
         return 1;
     }
 
-    char *argv_extra[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width, (char *)default_size_only_height, "extra"};
-    if (!expect_invalid_main_run("extra_args", 5, argv_extra, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_custom_program_extra[] = {
-        (char *)custom_program_name, (char *)default_scene_path,
-        (char *)default_size_only_width, (char *)default_size_only_height, "extra"};
-    if (!expect_custom_invalid_main_run("custom_program_extra_args", 5, argv_custom_program_extra,
-                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
-        return 1;
-    }
-
     struct invalid_input_size_case custom_invalid_input_size_cases[] = {
         {"custom_program_bad_width", (char *)bad_width_token, (char *)default_size_only_height},
         {"custom_program_negative_width", (char *)negative_size_only_width, (char *)default_size_only_height},
@@ -639,18 +663,6 @@ int main(void) {
     if (!expect_custom_invalid_input_size_cases(custom_invalid_input_size_cases,
                                                 sizeof(custom_invalid_input_size_cases) / sizeof(custom_invalid_input_size_cases[0]),
                                                 stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
-        return 1;
-    }
-
-    char *argv_custom_program_empty_input[] = {(char *)custom_program_name, ""};
-    if (!expect_custom_invalid_main_run("custom_program_empty_input", 2, argv_custom_program_empty_input,
-                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
-        return 1;
-    }
-
-    char *argv_custom_program_null_input[] = {(char *)custom_program_name, NULL};
-    if (!expect_custom_invalid_main_run("custom_program_null_input", 2, argv_custom_program_null_input,
-                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
