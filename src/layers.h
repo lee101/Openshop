@@ -41,6 +41,7 @@ int layer_stack_show_all(LayerStack *stack);
 int layer_stack_show(LayerStack *stack, int index);
 int layer_stack_isolate(LayerStack *stack, int index);
 int layer_stack_invert_visibility(LayerStack *stack, int preserve_index);
+int layer_stack_reveal_hidden(LayerStack *stack, int direction);
 int layer_stack_hide_and_advance(LayerStack *stack, int index);
 int layer_stack_visible_count(const LayerStack *stack);
 void layer_stack_composite(const LayerStack *stack, Canvas *dest, uint32_t background_color);

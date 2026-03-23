@@ -50,6 +50,7 @@ make test-sdl
 - `PageUp / PageDown`: cycle active layer
 - `Shift` + `PageUp / PageDown`: cycle between visible layers only
 - `Ctrl` + `PageUp / PageDown`: cycle between hidden layers only
+- `Ctrl` + `Shift` + `PageUp / PageDown`: reveal and focus the next hidden layer
 - `Ctrl` + `Home / End`: jump to the bottommost or topmost visible layer
 - `Ctrl+,`: insert a new transparent layer below the active layer
 - `Ctrl+N`: insert a new transparent layer above the active layer

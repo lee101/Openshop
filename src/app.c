@@ -1132,6 +1132,24 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (ctrl && shift && key == SDLK_PAGEUP) {
+                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                    if (layer_stack_reveal_hidden(&layers, 1)) {
+                        needs_composite = 1;
+                    }
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
+                if (ctrl && shift && key == SDLK_PAGEDOWN) {
+                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                    if (layer_stack_reveal_hidden(&layers, -1)) {
+                        needs_composite = 1;
+                    }
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
                 if (key == SDLK_PAGEUP) {
                     if (layer_stack_cycle(&layers, 1) >= 0) {
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);

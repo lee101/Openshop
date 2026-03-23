@@ -325,6 +325,44 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[0].visible = 1;
+    stack.layers[1].visible = 0;
+    stack.layers[2].visible = 0;
+    stack.layers[3].visible = 1;
+    stack.active_layer = 0;
+    stack.solo_index = 3;
+    if (!layer_stack_reveal_hidden(&stack, 1) || stack.active_layer != 1 || !stack.layers[1].visible) {
+        fprintf(stderr, "reveal hidden forward failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_reveal_hidden(&stack, 1) || stack.active_layer != 2 || !stack.layers[2].visible) {
+        fprintf(stderr, "reveal hidden forward wrap failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[1].visible = 0;
+    stack.active_layer = 2;
+    if (!layer_stack_reveal_hidden(&stack, -1) || stack.active_layer != 1 || !stack.layers[1].visible) {
+        fprintf(stderr, "reveal hidden backward failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != -1) {
+        fprintf(stderr, "reveal hidden should clear solo mode\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_reveal_hidden(&stack, 1)) {
+        fprintf(stderr, "reveal hidden should fail when no hidden layers remain\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_show_all(&stack)) {
         fprintf(stderr, "restore visibility after visible selection tests failed\n");
         canvas_free(&composite);

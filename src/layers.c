@@ -331,6 +331,20 @@ int layer_stack_invert_visibility(LayerStack *stack, int preserve_index) {
     return 1;
 }
 
+int layer_stack_reveal_hidden(LayerStack *stack, int direction) {
+    if (!stack || stack->layer_count <= 0) {
+        return 0;
+    }
+    int target = layer_stack_cycle_filtered(stack, direction, 0);
+    if (target < 0) {
+        return 0;
+    }
+    stack->layers[target].visible = 1;
+    stack->active_layer = target;
+    stack->solo_index = -1;
+    return 1;
+}
+
 int layer_stack_hide_and_advance(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
