@@ -20,8 +20,6 @@ static const int input_size_canvas_w = 320;
 static const int input_size_canvas_h = 240;
 static const int no_input_canvas_w = 0;
 static const int no_input_canvas_h = 0;
-static const int size_only_width_argv_index = 1;
-static const int size_only_height_argv_index = 2;
 static const int zero_argc = 0;
 static const int startup_argc = 1;
 static const int input_only_argc = 2;
@@ -257,6 +255,11 @@ struct invalid_size_token_case {
     const char *token;
 };
 
+enum size_only_argv_index {
+    size_only_width_argv_index = 1,
+    size_only_height_argv_index = 2,
+};
+
 #define INVALID_SIZE_TOKEN_CASE(label, token) {label, token}
 
 struct invalid_input_size_case {
@@ -338,7 +341,7 @@ static void fill_argv(char **dst, const char *const *src, size_t count) {
 }
 
 static void fill_argv_with_override(char **dst, const char *const *src, size_t count,
-                                    int override_index, const char *override_value) {
+                                    enum size_only_argv_index override_index, const char *override_value) {
     fill_argv(dst, src, count);
     dst[override_index] = (char *)override_value;
 }
@@ -358,7 +361,8 @@ static int build_custom_usage_text(char *usage_text, size_t usage_text_size) {
 
 static int expect_invalid_size_only_cases(const struct invalid_size_token_case *cases, size_t case_count,
                                           const char *program_name, const char *fixed_token,
-                                          int variable_token_index, char *stderr_text, size_t stderr_size,
+                                          enum size_only_argv_index variable_token_index,
+                                          char *stderr_text, size_t stderr_size,
                                           int *exit_code, const char *custom_usage_text) {
     size_t i = 0;
 
