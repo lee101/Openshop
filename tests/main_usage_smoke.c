@@ -273,32 +273,9 @@ struct invalid_argv_case {
     char *argv[5];
 };
 
-struct simple_success_case {
+struct success_case {
     const char *label_prefix;
-    char *program_name;
-    char *input_token;
-    int result;
-    int expected_exit_code;
-    const char *expected_input_path;
-    int expected_canvas_w;
-    int expected_canvas_h;
-    const char *expected_stderr;
-};
-
-struct size_only_success_case {
-    const char *label_prefix;
-    char *program_name;
-    char *width_token;
-    char *height_token;
-    int result;
-    int expected_exit_code;
-    int expected_canvas_w;
-    int expected_canvas_h;
-    const char *expected_stderr;
-};
-
-struct input_size_success_case {
-    const char *label_prefix;
+    int argc;
     char *program_name;
     char *input_token;
     char *width_token;
@@ -391,24 +368,6 @@ static int expect_invalid_input_size_cases(const struct invalid_input_size_case 
     return 1;
 }
 
-static int expect_simple_success_cases(const struct simple_success_case *cases, size_t case_count,
-                                       char *stderr_text, size_t stderr_size, int *exit_code) {
-    size_t i = 0;
-
-    for (i = 0; i < case_count; i += 1) {
-        char *argv[] = {cases[i].program_name, cases[i].input_token};
-        int argc = (cases[i].input_token != NULL) ? 2 : 1;
-
-        if (!expect_successful_main_run(cases[i].label_prefix, argc, argv, cases[i].result, stderr_text,
-                                        stderr_size, exit_code, cases[i].expected_exit_code,
-                                        cases[i].expected_input_path, cases[i].expected_canvas_w,
-                                        cases[i].expected_canvas_h, cases[i].expected_stderr)) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
 static int expect_invalid_edge_cases(const struct invalid_edge_case *cases, size_t case_count,
                                      char *stderr_text, size_t stderr_size, int *exit_code) {
     size_t i = 0;
@@ -425,31 +384,14 @@ static int expect_invalid_edge_cases(const struct invalid_edge_case *cases, size
     return 1;
 }
 
-static int expect_size_only_success_cases(const struct size_only_success_case *cases, size_t case_count,
-                                          char *stderr_text, size_t stderr_size, int *exit_code) {
-    size_t i = 0;
-
-    for (i = 0; i < case_count; i += 1) {
-        char *argv[] = {cases[i].program_name, cases[i].width_token, cases[i].height_token};
-
-        if (!expect_successful_main_run(cases[i].label_prefix, 3, argv, cases[i].result, stderr_text,
-                                        stderr_size, exit_code, cases[i].expected_exit_code, NULL,
-                                        cases[i].expected_canvas_w, cases[i].expected_canvas_h,
-                                        cases[i].expected_stderr)) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
-static int expect_input_size_success_cases(const struct input_size_success_case *cases, size_t case_count,
-                                           char *stderr_text, size_t stderr_size, int *exit_code) {
+static int expect_success_cases(const struct success_case *cases, size_t case_count,
+                                char *stderr_text, size_t stderr_size, int *exit_code) {
     size_t i = 0;
 
     for (i = 0; i < case_count; i += 1) {
         char *argv[] = {cases[i].program_name, cases[i].input_token, cases[i].width_token, cases[i].height_token};
 
-        if (!expect_successful_main_run(cases[i].label_prefix, 4, argv, cases[i].result, stderr_text,
+        if (!expect_successful_main_run(cases[i].label_prefix, cases[i].argc, argv, cases[i].result, stderr_text,
                                         stderr_size, exit_code, cases[i].expected_exit_code,
                                         cases[i].expected_input_path, cases[i].expected_canvas_w,
                                         cases[i].expected_canvas_h, cases[i].expected_stderr)) {
@@ -691,42 +633,26 @@ int main(void) {
         return 1;
     }
 
-    struct simple_success_case simple_success_cases[] = {
-        {"default", "openshop", NULL, 0, 0, NULL, 0, 0, ""},
-        {"custom_program_input", (char *)custom_program_name, (char *)custom_input_path, 0, 0, custom_input_path, 0, 0, ""},
-        {"custom_program_default", (char *)custom_program_name, NULL, 0, 0, NULL, 0, 0, ""},
-        {"custom_program_numeric_input", (char *)custom_program_name, (char *)custom_numeric_input, 0, 0, custom_numeric_input, 0, 0, ""},
-        {"custom_program_nonzero", (char *)custom_program_name, (char *)custom_input_path, 5, 5, custom_input_path, 0, 0, app_exit_code_5_stderr},
-        {"input_only", "openshop", (char *)default_input_path, 0, 0, default_input_path, 0, 0, ""},
-        {"numeric_input", "openshop", (char *)default_numeric_input, 0, 0, default_numeric_input, 0, 0, ""},
+    struct success_case success_cases[] = {
+        {"default", 1, "openshop", NULL, NULL, NULL, 0, 0, NULL, 0, 0, ""},
+        {"custom_program_input", 2, (char *)custom_program_name, (char *)custom_input_path, NULL, NULL, 0, 0, custom_input_path, 0, 0, ""},
+        {"custom_program_default", 1, (char *)custom_program_name, NULL, NULL, NULL, 0, 0, NULL, 0, 0, ""},
+        {"custom_program_numeric_input", 2, (char *)custom_program_name, (char *)custom_numeric_input, NULL, NULL, 0, 0, custom_numeric_input, 0, 0, ""},
+        {"custom_program_nonzero", 2, (char *)custom_program_name, (char *)custom_input_path, NULL, NULL, 5, 5, custom_input_path, 0, 0, app_exit_code_5_stderr},
+        {"input_only", 2, "openshop", (char *)default_input_path, NULL, NULL, 0, 0, default_input_path, 0, 0, ""},
+        {"numeric_input", 2, "openshop", (char *)default_numeric_input, NULL, NULL, 0, 0, default_numeric_input, 0, 0, ""},
+        {"size_only", 3, "openshop", (char *)default_size_only_width, (char *)default_size_only_height, NULL, 7, 7, NULL, 640, 480, app_exit_code_7_stderr},
+        {"plus_prefixed_size_only", 3, "openshop", (char *)default_plus_prefixed_size_only_width, (char *)default_size_only_height, NULL, 0, 0, NULL, 640, 480, ""},
+        {"custom_program_size_only", 3, (char *)custom_program_name, (char *)custom_size_only_width, (char *)custom_size_only_height, NULL, 0, 0, NULL, 800, 600, ""},
+        {"custom_program_plus_prefixed_size_only", 3, (char *)custom_program_name, (char *)custom_plus_prefixed_size_only_width, (char *)custom_size_only_height, NULL, 0, 0, NULL, 800, 600, ""},
+        {"custom_program_input_size", 4, (char *)custom_program_name, (char *)custom_input_path, (char *)custom_input_size_width, (char *)custom_input_size_height, 0, 0, custom_input_path, 320, 240, ""},
+        {"custom_program_plus_prefixed", 4, (char *)custom_program_name, (char *)custom_input_path, (char *)custom_plus_prefixed_input_size_width, (char *)custom_input_size_height, 0, 0, custom_input_path, 320, 240, ""},
+        {"input_size", 4, "openshop", (char *)default_scene_path, (char *)default_input_size_width, (char *)default_input_size_height, 0, 0, default_scene_path, 320, 240, ""},
+        {"plus_prefixed", 4, "openshop", (char *)default_scene_path, (char *)default_plus_prefixed_input_size_width, (char *)default_size_only_height, 0, 0, default_scene_path, 640, 480, ""},
     };
-    if (!expect_simple_success_cases(simple_success_cases,
-                                     sizeof(simple_success_cases) / sizeof(simple_success_cases[0]),
-                                     stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    struct size_only_success_case size_only_success_cases[] = {
-        {"size_only", "openshop", (char *)default_size_only_width, (char *)default_size_only_height, 7, 7, 640, 480, app_exit_code_7_stderr},
-        {"plus_prefixed_size_only", "openshop", (char *)default_plus_prefixed_size_only_width, (char *)default_size_only_height, 0, 0, 640, 480, ""},
-        {"custom_program_size_only", (char *)custom_program_name, (char *)custom_size_only_width, (char *)custom_size_only_height, 0, 0, 800, 600, ""},
-        {"custom_program_plus_prefixed_size_only", (char *)custom_program_name, (char *)custom_plus_prefixed_size_only_width, (char *)custom_size_only_height, 0, 0, 800, 600, ""},
-    };
-    if (!expect_size_only_success_cases(size_only_success_cases,
-                                        sizeof(size_only_success_cases) / sizeof(size_only_success_cases[0]),
-                                        stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    struct input_size_success_case input_size_success_cases[] = {
-        {"custom_program_input_size", (char *)custom_program_name, (char *)custom_input_path, (char *)custom_input_size_width, (char *)custom_input_size_height, 0, 0, custom_input_path, 320, 240, ""},
-        {"custom_program_plus_prefixed", (char *)custom_program_name, (char *)custom_input_path, (char *)custom_plus_prefixed_input_size_width, (char *)custom_input_size_height, 0, 0, custom_input_path, 320, 240, ""},
-        {"input_size", "openshop", (char *)default_scene_path, (char *)default_input_size_width, (char *)default_input_size_height, 0, 0, default_scene_path, 320, 240, ""},
-        {"plus_prefixed", "openshop", (char *)default_scene_path, (char *)default_plus_prefixed_input_size_width, (char *)default_size_only_height, 0, 0, default_scene_path, 640, 480, ""},
-    };
-    if (!expect_input_size_success_cases(input_size_success_cases,
-                                         sizeof(input_size_success_cases) / sizeof(input_size_success_cases[0]),
-                                         stderr_text, sizeof(stderr_text), &exit_code)) {
+    if (!expect_success_cases(success_cases,
+                              sizeof(success_cases) / sizeof(success_cases[0]),
+                              stderr_text, sizeof(stderr_text), &exit_code)) {
         return 1;
     }
 
