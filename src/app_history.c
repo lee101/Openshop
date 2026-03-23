@@ -15,9 +15,14 @@ static int app_history_default_canvas_init(Canvas *canvas, int width, int height
     return canvas_init(canvas, width, height);
 }
 
+static int app_history_default_layer_add(LayerStack *stack, const char *name, uint32_t clear_color) {
+    return layer_stack_add(stack, name, clear_color);
+}
+
 static AppHistoryMallocFn app_history_malloc_fn = app_history_default_malloc;
 static AppHistoryFreeFn app_history_free_fn = app_history_default_free;
 static AppHistoryCanvasInitFn app_history_canvas_init_fn = app_history_default_canvas_init;
+static AppHistoryLayerAddFn app_history_layer_add_fn = app_history_default_layer_add;
 
 void app_history_set_allocators(AppHistoryMallocFn malloc_fn, AppHistoryFreeFn free_fn) {
     app_history_malloc_fn = malloc_fn ? malloc_fn : app_history_default_malloc;
@@ -26,6 +31,10 @@ void app_history_set_allocators(AppHistoryMallocFn malloc_fn, AppHistoryFreeFn f
 
 void app_history_set_canvas_init(AppHistoryCanvasInitFn canvas_init_fn) {
     app_history_canvas_init_fn = canvas_init_fn ? canvas_init_fn : app_history_default_canvas_init;
+}
+
+void app_history_set_layer_add(AppHistoryLayerAddFn layer_add_fn) {
+    app_history_layer_add_fn = layer_add_fn ? layer_add_fn : app_history_default_layer_add;
 }
 
 void snapshot_free(Snapshot *snapshot) {
@@ -93,8 +102,22 @@ int snapshot_apply(const Snapshot *snapshot, LayerStack *stack) {
         return 0;
     }
 
+    int original_layer_count = stack->layer_count;
+    int original_active_layer = stack->active_layer;
+    int original_solo_index = stack->solo_index;
+
     while (stack->layer_count < snapshot->layer_count) {
-        if (layer_stack_add(stack, NULL, 0x00000000) < 0) {
+        if (app_history_layer_add_fn(stack, NULL, 0x00000000) < 0) {
+            while (stack->layer_count > original_layer_count) {
+                stack->layer_count--;
+                canvas_free(&stack->layers[stack->layer_count].canvas);
+                stack->layers[stack->layer_count].visible = 0;
+                stack->layers[stack->layer_count].locked = 0;
+                stack->layers[stack->layer_count].opacity_percent = 100;
+                stack->layers[stack->layer_count].name[0] = '\0';
+            }
+            stack->active_layer = original_active_layer;
+            stack->solo_index = original_solo_index;
             return 0;
         }
     }

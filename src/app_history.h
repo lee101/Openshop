@@ -22,6 +22,7 @@ typedef struct {
 typedef void *(*AppHistoryMallocFn)(size_t size);
 typedef void (*AppHistoryFreeFn)(void *ptr);
 typedef int (*AppHistoryCanvasInitFn)(Canvas *canvas, int width, int height);
+typedef int (*AppHistoryLayerAddFn)(LayerStack *stack, const char *name, uint32_t clear_color);
 
 void snapshot_free(Snapshot *snapshot);
 int snapshot_from_layers(Snapshot *snapshot, const LayerStack *stack);
@@ -31,5 +32,6 @@ void snapshot_push(const LayerStack *layers, Snapshot *stack, int *count, Snapsh
 int snapshot_restore(LayerStack *layers, Snapshot *from_stack, int *from_count, Snapshot *to_stack, int *to_count);
 void app_history_set_allocators(AppHistoryMallocFn malloc_fn, AppHistoryFreeFn free_fn);
 void app_history_set_canvas_init(AppHistoryCanvasInitFn canvas_init_fn);
+void app_history_set_layer_add(AppHistoryLayerAddFn layer_add_fn);
 
 #endif
