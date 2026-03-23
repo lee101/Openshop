@@ -1756,6 +1756,31 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_toggle_solo(&stack, 1) || !layer_stack_toggle_visibility(&stack, 1)) {
+        fprintf(stderr, "prepare hidden solo stamp source failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_stamp_visible_into(&stack, 0, 0xFFFFFFFF)) {
+        fprintf(stderr, "stamp visible into hidden solo target failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("stamp_hidden_solo_pixel", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFFBFFFBF) ||
+        !stack.layers[0].visible || stack.layers[0].locked || stack.layers[0].opacity_percent != 100 || stack.solo_index != 1) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_solo(&stack, 1) || stack.solo_index != -1 || !layer_stack_show(&stack, 1)) {
+        fprintf(stderr, "restore hidden solo stamp source failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    canvas_clear(&stack.layers[0].canvas, 0xFF123456);
     if (!layer_stack_stamp_visible_into(&stack, 1, 0xFFFFFFFF)) {
         fprintf(stderr, "stamp visible failed\n");
         canvas_free(&composite);
