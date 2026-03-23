@@ -147,6 +147,30 @@ int main(void) {
         return 1;
     }
     fclose(custom_usage_stream);
+    FILE *null_argv_usage_stream = tmpfile();
+    if (!expect_int("usage_null_argv_stream_open", null_argv_usage_stream != NULL, 1)) {
+        return 1;
+    }
+    if (!expect_int("usage_write_null_argv_ok", write_cli_usage(null_argv_usage_stream, NULL), 1) ||
+        !expect_stream_text("usage_write_null_argv_text", null_argv_usage_stream,
+                            "Usage: openshop [input_path] [width height]\n"
+                            "       or: WIDTH HEIGHT\n")) {
+        fclose(null_argv_usage_stream);
+        return 1;
+    }
+    fclose(null_argv_usage_stream);
+    FILE *empty_program_usage_stream = tmpfile();
+    if (!expect_int("usage_empty_program_stream_open", empty_program_usage_stream != NULL, 1)) {
+        return 1;
+    }
+    if (!expect_int("usage_write_empty_program_ok", write_cli_usage(empty_program_usage_stream, argv_empty_program_name), 1) ||
+        !expect_stream_text("usage_write_empty_program_text", empty_program_usage_stream,
+                            "Usage: openshop [input_path] [width height]\n"
+                            "       or: WIDTH HEIGHT\n")) {
+        fclose(empty_program_usage_stream);
+        return 1;
+    }
+    fclose(empty_program_usage_stream);
     FILE *append_usage_stream = tmpfile();
     if (!expect_int("usage_append_stream_open", append_usage_stream != NULL, 1)) {
         return 1;
@@ -162,6 +186,9 @@ int main(void) {
     }
     fclose(append_usage_stream);
     if (!expect_int("usage_write_null_stream", write_cli_usage(NULL, argv_default), 0)) {
+        return 1;
+    }
+    if (!expect_int("usage_write_null_stream_null_argv", write_cli_usage(NULL, NULL), 0)) {
         return 1;
     }
 
