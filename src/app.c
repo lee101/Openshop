@@ -467,6 +467,10 @@ static int handle_layer_navigation_shortcut(
     } else if (!ctrl && key == SDLK_END) {
         int selected = shift ? layer_stack_select_edge_visible(layers, 1) : layer_stack_select_edge(layers, 1);
         changed = selected >= 0;
+    } else if (ctrl && alt && key == SDLK_HOME) {
+        changed = layer_stack_select_edge_unlocked(layers, -1) >= 0;
+    } else if (ctrl && alt && key == SDLK_END) {
+        changed = layer_stack_select_edge_unlocked(layers, 1) >= 0;
     } else if (ctrl && shift && key == SDLK_HOME) {
         changed = layer_stack_select_edge_editable_visible(layers, -1) >= 0;
     } else if (ctrl && shift && key == SDLK_END) {

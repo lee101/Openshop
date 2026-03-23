@@ -50,6 +50,7 @@ make test-sdl
 - `PageUp / PageDown`: cycle active layer
 - `Home / End`: select bottom/top layer
 - `Shift` + `Home / End`: select bottommost/topmost visible layer
+- `Ctrl+Alt` + `Home / End`: select bottommost/topmost unlocked layer
 - `Ctrl+Shift` + `Home / End`: select bottommost/topmost visible unlocked layer
 - `Shift` + `PageUp / PageDown`: cycle visible layers only
 - `Ctrl` + `PageUp / PageDown`: cycle unlocked layers only
