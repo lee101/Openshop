@@ -1058,8 +1058,14 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (stack.layers[1].opacity_percent != 100) {
-        fprintf(stderr, "duplicate opacity reset unexpectedly\n");
+    if (!layer_stack_set_opacity(&stack, 1, 35) || !layer_stack_toggle_visibility(&stack, 1)) {
+        fprintf(stderr, "prepare duplicated layer state failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[1].opacity_percent != 35 || stack.layers[1].visible) {
+        fprintf(stderr, "duplicate layer state setup did not stick\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -1093,6 +1099,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (stack.layers[0].visible || stack.layers[0].opacity_percent != 35) {
+        fprintf(stderr, "move layer down should preserve visibility and opacity\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_move(&stack, 0, 1) || stack.active_layer != 1) {
         fprintf(stderr, "move layer up failed\n");
         canvas_free(&composite);
@@ -1101,6 +1113,12 @@ static int test_layers_basic(void) {
     }
     if (!stack.layers[1].locked) {
         fprintf(stderr, "lock flag did not move with layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[1].visible || stack.layers[1].opacity_percent != 35) {
+        fprintf(stderr, "move layer up should preserve visibility and opacity\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -1129,6 +1147,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (stack.layers[2].visible || stack.layers[2].opacity_percent != 35) {
+        fprintf(stderr, "move layer to top should preserve visibility and opacity\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (stack.solo_index != 2) {
         fprintf(stderr, "solo index did not follow move-to top\n");
         canvas_free(&composite);
@@ -1143,6 +1167,12 @@ static int test_layers_basic(void) {
     }
     if (!stack.layers[0].locked || strcmp(stack.layers[0].name, "Background Copy") != 0) {
         fprintf(stderr, "move layer to bottom bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[0].visible || stack.layers[0].opacity_percent != 35) {
+        fprintf(stderr, "move layer to bottom should preserve visibility and opacity\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
