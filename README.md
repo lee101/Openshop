@@ -20,7 +20,7 @@ make test-sdl
 
 ## Run
 ```bash
-./openshop [optional_input.bmp|optional_input.png]
+./openshop [optional_input_path] [width height]
 ```
 
 ## Controls
