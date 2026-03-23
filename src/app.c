@@ -375,7 +375,7 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     if (key == SDLK_ESCAPE || key == SDLK_LSHIFT || key == SDLK_RSHIFT) {
         return 0;
     }
-    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_u || key == SDLK_v || key == SDLK_m || key == SDLK_d || key == SDLK_e || key == SDLK_g || key == SDLK_h || key == SDLK_l || key == SDLK_a || key == SDLK_r || key == SDLK_0 || key == SDLK_COMMA || key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET || key == SDLK_MINUS || key == SDLK_KP_MINUS || key == SDLK_EQUALS || key == SDLK_KP_PLUS || key == SDLK_SLASH || key == SDLK_1 || key == SDLK_2 || key == SDLK_3 || key == SDLK_4 || key == SDLK_5 || key == SDLK_6 || key == SDLK_7 || key == SDLK_8)) {
+    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_u || key == SDLK_v || key == SDLK_m || key == SDLK_d || key == SDLK_e || key == SDLK_g || key == SDLK_h || key == SDLK_l || key == SDLK_a || key == SDLK_r || key == SDLK_b || key == SDLK_f || key == SDLK_0 || key == SDLK_COMMA || key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET || key == SDLK_MINUS || key == SDLK_KP_MINUS || key == SDLK_EQUALS || key == SDLK_KP_PLUS || key == SDLK_SLASH || key == SDLK_1 || key == SDLK_2 || key == SDLK_3 || key == SDLK_4 || key == SDLK_5 || key == SDLK_6 || key == SDLK_7 || key == SDLK_8)) {
         return 1;
     }
     switch (key) {
@@ -407,6 +407,12 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     case SDLK_x:
     case SDLK_f:
     case SDLK_i:
+    case SDLK_q:
+    case SDLK_w:
+    case SDLK_g:
+    case SDLK_s:
+    case SDLK_z:
+    case SDLK_n:
     case SDLK_UP:
     case SDLK_DOWN:
     case SDLK_LEFT:
@@ -1086,6 +1092,65 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (ctrl && key == SDLK_f) {
+                    int mx = 0;
+                    int my = 0;
+                    SDL_GetMouseState(&mx, &my);
+                    if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
+                        Layer *active = layer_stack_active(&layers);
+                        if (active && !active->locked) {
+                            push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        }
+                        if (!active || active->locked ||
+                            !canvas_flood_fill_tol(&active->canvas, mx, my, brush_color, 30)) {
+                            fprintf(stderr, "Tolerance fill failed\n");
+                        } else {
+                            needs_composite = 1;
+                        }
+                    }
+                    break;
+                }
+
+                if (ctrl && shift && key == SDLK_b) {
+                    Layer *active = layer_stack_active(&layers);
+                    if (active && !active->locked && active->canvas.pixels) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        canvas_sharpen(&active->canvas);
+                        needs_composite = 1;
+                    }
+                    break;
+                }
+
+                if (ctrl && key == SDLK_b) {
+                    Layer *active = layer_stack_active(&layers);
+                    if (active && !active->locked && active->canvas.pixels) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        canvas_blur(&active->canvas, 2);
+                        needs_composite = 1;
+                    }
+                    break;
+                }
+
+                if (ctrl && shift && (key == SDLK_UP || key == SDLK_DOWN)) {
+                    Layer *active = layer_stack_active(&layers);
+                    if (active && !active->locked && active->canvas.pixels) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        canvas_adjust_brightness(&active->canvas, (key == SDLK_UP) ? 20 : -20);
+                        needs_composite = 1;
+                    }
+                    break;
+                }
+
+                if (ctrl && shift && (key == SDLK_LEFT || key == SDLK_RIGHT)) {
+                    Layer *active = layer_stack_active(&layers);
+                    if (active && !active->locked && active->canvas.pixels) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        canvas_adjust_contrast(&active->canvas, (key == SDLK_RIGHT) ? 20 : -20);
+                        needs_composite = 1;
+                    }
+                    break;
+                }
+
                 if (key == SDLK_UP || key == SDLK_DOWN || key == SDLK_LEFT || key == SDLK_RIGHT) {
                     int step = shift ? 10 : 1;
                     int dx = 0;
@@ -1228,6 +1293,36 @@ int app_run(const char *input_path) {
                         }
                         brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
                         tool = TOOL_BRUSH;
+                    }
+                } else if (key == SDLK_q) {
+                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_rotate_90_cw)) {
+                        needs_composite = 1;
+                    }
+                } else if (key == SDLK_w) {
+                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_rotate_90_ccw)) {
+                        needs_composite = 1;
+                    }
+                } else if (key == SDLK_g) {
+                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_grayscale)) {
+                        needs_composite = 1;
+                    }
+                } else if (key == SDLK_s) {
+                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_sepia)) {
+                        needs_composite = 1;
+                    }
+                } else if (key == SDLK_z) {
+                    Layer *active = layer_stack_active(&layers);
+                    if (active && !active->locked && active->canvas.pixels) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        canvas_posterize(&active->canvas, 4);
+                        needs_composite = 1;
+                    }
+                } else if (key == SDLK_n) {
+                    Layer *active = layer_stack_active(&layers);
+                    if (active && !active->locked && active->canvas.pixels) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        canvas_threshold(&active->canvas, 128);
+                        needs_composite = 1;
                     }
                 }
 

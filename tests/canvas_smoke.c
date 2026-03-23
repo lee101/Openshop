@@ -842,6 +842,326 @@ int main(void) {
         return 1;
     }
 
+    /* --- canvas_rotate_90_cw: square 2x2 ---
+       Input layout (row-major, W=H=2):
+         (0,0)=0xFF000001  (1,0)=0xFF000002
+         (0,1)=0xFF000003  (1,1)=0xFF000004
+       Expected after 90° CW (dest(dx,dy) <- src(dy, H-1-dx)):
+         (0,0)=src(0,1)=0xFF000003  (1,0)=src(0,0)=0xFF000001
+         (0,1)=src(1,1)=0xFF000004  (1,1)=src(1,0)=0xFF000002  */
+    Canvas rot_cw;
+    if (!canvas_init(&rot_cw, 2, 2)) {
+        fprintf(stderr, "rot_cw init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&rot_cw, 0, 0, 0xFF000001);
+    canvas_set_pixel_raw(&rot_cw, 1, 0, 0xFF000002);
+    canvas_set_pixel_raw(&rot_cw, 0, 1, 0xFF000003);
+    canvas_set_pixel_raw(&rot_cw, 1, 1, 0xFF000004);
+    canvas_rotate_90_cw(&rot_cw);
+    if (!expect_pixel_eq("rot_cw_00", canvas_get_pixel(&rot_cw, 0, 0), 0xFF000003) ||
+        !expect_pixel_eq("rot_cw_10", canvas_get_pixel(&rot_cw, 1, 0), 0xFF000001) ||
+        !expect_pixel_eq("rot_cw_01", canvas_get_pixel(&rot_cw, 0, 1), 0xFF000004) ||
+        !expect_pixel_eq("rot_cw_11", canvas_get_pixel(&rot_cw, 1, 1), 0xFF000002)) {
+        canvas_free(&rot_cw);
+        return 1;
+    }
+    canvas_free(&rot_cw);
+
+    /* --- canvas_rotate_90_ccw: square 2x2 ---
+       Input layout (W=H=2):
+         (0,0)=0xFF000001  (1,0)=0xFF000002
+         (0,1)=0xFF000003  (1,1)=0xFF000004
+       Expected after 90° CCW (dest(dx,dy) <- src(W-1-dy, dx)):
+         (0,0)=src(W-1-0,0)=src(1,0)=0xFF000002
+         (1,0)=src(W-1-0,1)=src(1,1)=0xFF000004
+         (0,1)=src(W-1-1,0)=src(0,0)=0xFF000001
+         (1,1)=src(W-1-1,1)=src(0,1)=0xFF000003  */
+    Canvas rot_ccw;
+    if (!canvas_init(&rot_ccw, 2, 2)) {
+        fprintf(stderr, "rot_ccw init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&rot_ccw, 0, 0, 0xFF000001);
+    canvas_set_pixel_raw(&rot_ccw, 1, 0, 0xFF000002);
+    canvas_set_pixel_raw(&rot_ccw, 0, 1, 0xFF000003);
+    canvas_set_pixel_raw(&rot_ccw, 1, 1, 0xFF000004);
+    canvas_rotate_90_ccw(&rot_ccw);
+    if (!expect_pixel_eq("rot_ccw_00", canvas_get_pixel(&rot_ccw, 0, 0), 0xFF000002) ||
+        !expect_pixel_eq("rot_ccw_10", canvas_get_pixel(&rot_ccw, 1, 0), 0xFF000004) ||
+        !expect_pixel_eq("rot_ccw_01", canvas_get_pixel(&rot_ccw, 0, 1), 0xFF000001) ||
+        !expect_pixel_eq("rot_ccw_11", canvas_get_pixel(&rot_ccw, 1, 1), 0xFF000003)) {
+        canvas_free(&rot_ccw);
+        return 1;
+    }
+    canvas_free(&rot_ccw);
+
+    /* --- canvas_grayscale: red pixel -> gray ---
+       Input: 0xFF804020 (r=0x80, g=0x40, b=0x20)
+       gray = (77*0x80 + 150*0x40 + 29*0x20) >> 8
+            = (77*128 + 150*64 + 29*32) >> 8
+            = (9856 + 9600 + 928) >> 8
+            = 20384 >> 8 = 79 = 0x4F
+       Expected: 0xFF4F4F4F */
+    Canvas gray_c;
+    if (!canvas_init(&gray_c, 1, 1)) {
+        fprintf(stderr, "gray canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&gray_c, 0, 0, 0xFF804020);
+    canvas_grayscale(&gray_c);
+    {
+        uint32_t gp = canvas_get_pixel(&gray_c, 0, 0);
+        uint8_t ga = (uint8_t)((gp >> 24) & 0xFF);
+        uint8_t gr = (uint8_t)((gp >> 16) & 0xFF);
+        uint8_t gg = (uint8_t)((gp >> 8) & 0xFF);
+        uint8_t gb = (uint8_t)(gp & 0xFF);
+        if (ga != 0xFF || gr != gg || gg != gb) {
+            fprintf(stderr, "grayscale R!=G or G!=B or alpha changed: 0x%08X\n", gp);
+            canvas_free(&gray_c);
+            return 1;
+        }
+    }
+    canvas_free(&gray_c);
+
+    /* --- canvas_sepia: pure red pixel warm-tones ---
+       Input: 0xFFFF0000 (r=255, g=0, b=0)
+       out_r = (255*50 + 0 + 0) >> 7 = 12750 >> 7 = 99
+       out_g = (255*45) >> 7 = 11475 >> 7 = 89
+       out_b = (255*35) >> 7 = 8925 >> 7 = 69
+       Expected: 0xFF63593F (approximately warm brown) */
+    Canvas sepia_c;
+    if (!canvas_init(&sepia_c, 1, 1)) {
+        fprintf(stderr, "sepia canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&sepia_c, 0, 0, 0xFFFF0000);
+    canvas_sepia(&sepia_c);
+    {
+        uint32_t sp = canvas_get_pixel(&sepia_c, 0, 0);
+        uint8_t sa = (uint8_t)((sp >> 24) & 0xFF);
+        uint8_t sr = (uint8_t)((sp >> 16) & 0xFF);
+        uint8_t sg = (uint8_t)((sp >> 8) & 0xFF);
+        uint8_t sb = (uint8_t)(sp & 0xFF);
+        /* sepia should be warm: R > G > B, alpha preserved */
+        if (sa != 0xFF || sr <= sg || sg <= sb) {
+            fprintf(stderr, "sepia warm tone failed (R>G>B expected): 0x%08X\n", sp);
+            canvas_free(&sepia_c);
+            return 1;
+        }
+    }
+    canvas_free(&sepia_c);
+
+    /* --- canvas_adjust_brightness ---
+       Input: 0xFF808080 (mid-gray). delta = +20 -> each channel clamped to 128+20=148=0x94
+       Expected: 0xFF949494 */
+    Canvas bright_c;
+    if (!canvas_init(&bright_c, 1, 1)) {
+        fprintf(stderr, "brightness canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&bright_c, 0, 0, 0xFF808080);
+    canvas_adjust_brightness(&bright_c, 20);
+    if (!expect_pixel_eq("brightness_up", canvas_get_pixel(&bright_c, 0, 0), 0xFF949494)) {
+        canvas_free(&bright_c);
+        return 1;
+    }
+    /* Darken back: 0x94 - 20 = 0x80; should round-trip */
+    canvas_adjust_brightness(&bright_c, -20);
+    if (!expect_pixel_eq("brightness_down", canvas_get_pixel(&bright_c, 0, 0), 0xFF808080)) {
+        canvas_free(&bright_c);
+        return 1;
+    }
+    /* Clamp test: brighten a near-white pixel; channels must not exceed 255 */
+    canvas_set_pixel_raw(&bright_c, 0, 0, 0xFFF0F0F0);
+    canvas_adjust_brightness(&bright_c, 50);
+    {
+        uint32_t cp = canvas_get_pixel(&bright_c, 0, 0);
+        if ((cp & 0x00FFFFFF) != 0x00FFFFFF) {
+            fprintf(stderr, "brightness clamp failed: 0x%08X\n", cp);
+            canvas_free(&bright_c);
+            return 1;
+        }
+    }
+    canvas_free(&bright_c);
+
+    /* --- canvas_adjust_contrast ---
+       Input: 0xFF808080 (128,128,128 = midpoint). Contrast at midpoint is invariant.
+       Expected: unchanged for any delta */
+    Canvas contrast_c;
+    if (!canvas_init(&contrast_c, 1, 1)) {
+        fprintf(stderr, "contrast canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&contrast_c, 0, 0, 0xFF808080);
+    canvas_adjust_contrast(&contrast_c, 50);
+    if (!expect_pixel_eq("contrast_midpoint_invariant", canvas_get_pixel(&contrast_c, 0, 0), 0xFF808080)) {
+        canvas_free(&contrast_c);
+        return 1;
+    }
+    /* A bright channel (200) with +100 delta (factor=200) should move away from 128 */
+    canvas_set_pixel_raw(&contrast_c, 0, 0, 0xFFC8C8C8); /* 200 per channel */
+    canvas_adjust_contrast(&contrast_c, 100);
+    {
+        uint32_t cp = canvas_get_pixel(&contrast_c, 0, 0);
+        uint8_t cr = (uint8_t)((cp >> 16) & 0xFF);
+        /* (200-128)*200/100+128 = 72*2+128 = 272 -> clamped to 255 */
+        if (cr != 255) {
+            fprintf(stderr, "contrast bright channel failed: got %d want 255\n", (int)cr);
+            canvas_free(&contrast_c);
+            return 1;
+        }
+    }
+    canvas_free(&contrast_c);
+
+    /* --- canvas_posterize: 2 levels (black/white) ---
+       Input: 0xFF804020 (r=128, g=64, b=32)
+       levels=2: r: 128*2/256=1 -> 1*255/1=255=0xFF
+                 g: 64*2/256=0  -> 0*255/1=0=0x00
+                 b: 32*2/256=0  -> 0=0x00
+       Expected: 0xFFFF0000 */
+    Canvas post_c;
+    if (!canvas_init(&post_c, 1, 1)) {
+        fprintf(stderr, "posterize canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&post_c, 0, 0, 0xFF804020);
+    canvas_posterize(&post_c, 2);
+    if (!expect_pixel_eq("posterize_2lev", canvas_get_pixel(&post_c, 0, 0), 0xFFFF0000)) {
+        canvas_free(&post_c);
+        return 1;
+    }
+    /* A fully white pixel must remain white for any levels count. */
+    canvas_set_pixel_raw(&post_c, 0, 0, 0xFFFFFFFF);
+    canvas_posterize(&post_c, 4);
+    if (!expect_pixel_eq("posterize_white_invariant", canvas_get_pixel(&post_c, 0, 0), 0xFFFFFFFF)) {
+        canvas_free(&post_c);
+        return 1;
+    }
+    canvas_free(&post_c);
+
+    /* --- canvas_threshold ---
+       A bright pixel (lum > 128) -> white; a dark pixel (lum < 128) -> black. */
+    Canvas thresh_c;
+    if (!canvas_init(&thresh_c, 1, 1)) {
+        fprintf(stderr, "threshold canvas init failed\n");
+        return 1;
+    }
+    /* White pixel: lum=255 >= 128 -> 0xFFFFFFFF */
+    canvas_set_pixel_raw(&thresh_c, 0, 0, 0xFFFFFFFF);
+    canvas_threshold(&thresh_c, 128);
+    if (!expect_pixel_eq("threshold_white", canvas_get_pixel(&thresh_c, 0, 0), 0xFFFFFFFF)) {
+        canvas_free(&thresh_c);
+        return 1;
+    }
+    /* Dark pixel: 0xFF101010, lum=(77*16+150*16+29*16)>>8=(256*16)>>8=16 < 128 -> 0xFF000000 */
+    canvas_set_pixel_raw(&thresh_c, 0, 0, 0xFF101010);
+    canvas_threshold(&thresh_c, 128);
+    if (!expect_pixel_eq("threshold_black", canvas_get_pixel(&thresh_c, 0, 0), 0xFF000000)) {
+        canvas_free(&thresh_c);
+        return 1;
+    }
+    canvas_free(&thresh_c);
+
+    /* --- canvas_blur: 3x1 row, radius=1 ---
+       Row: [0xFF000000, 0xFFFF0000, 0xFF000000]
+       For center pixel (1,0) the 3x1 neighbourhood averages to:
+         a=(0+255+0)/3=85, r=(0+255+0)/3=85, g=0, b=0 -> 0x55550000
+       For edge pixels (0,0) and (2,0), neighbourhood is 2 wide:
+         a=(0+255)/2=127, r=(0+255)/2=127 -> 0x7F7F0000 */
+    Canvas blur_c;
+    if (!canvas_init(&blur_c, 3, 1)) {
+        fprintf(stderr, "blur canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&blur_c, 0, 0, 0xFF000000);
+    canvas_set_pixel_raw(&blur_c, 1, 0, 0xFFFF0000);
+    canvas_set_pixel_raw(&blur_c, 2, 0, 0xFF000000);
+    canvas_blur(&blur_c, 1);
+    {
+        uint32_t center = canvas_get_pixel(&blur_c, 1, 0);
+        uint8_t cr = (uint8_t)((center >> 16) & 0xFF);
+        uint8_t cg = (uint8_t)((center >> 8) & 0xFF);
+        /* center red channel should be ~85 (255/3), green must stay 0 */
+        if (cr != 85 || cg != 0) {
+            fprintf(stderr, "blur center failed: 0x%08X (want r=85 g=0)\n", center);
+            canvas_free(&blur_c);
+            return 1;
+        }
+    }
+    /* A uniform canvas must be unchanged by blur. */
+    canvas_clear(&blur_c, 0xFF123456);
+    canvas_blur(&blur_c, 1);
+    if (!expect_pixel_eq("blur_uniform_invariant", canvas_get_pixel(&blur_c, 1, 0), 0xFF123456)) {
+        canvas_free(&blur_c);
+        return 1;
+    }
+    canvas_free(&blur_c);
+
+    /* --- canvas_sharpen: uniform canvas must stay unchanged ---
+       Kernel: 5*c - top - bot - left - right.
+       When all neighbours equal c, result = 5*c - 4*c = c. */
+    Canvas sharp_c;
+    if (!canvas_init(&sharp_c, 3, 3)) {
+        fprintf(stderr, "sharpen canvas init failed\n");
+        return 1;
+    }
+    canvas_clear(&sharp_c, 0xFF808080);
+    canvas_sharpen(&sharp_c);
+    if (!expect_pixel_eq("sharpen_uniform_center", canvas_get_pixel(&sharp_c, 1, 1), 0xFF808080) ||
+        !expect_pixel_eq("sharpen_uniform_edge",   canvas_get_pixel(&sharp_c, 0, 0), 0xFF808080)) {
+        canvas_free(&sharp_c);
+        return 1;
+    }
+    /* A single bright pixel on a dark canvas should become brighter at its location. */
+    canvas_clear(&sharp_c, 0xFF000000);
+    canvas_set_pixel_raw(&sharp_c, 1, 1, 0xFF808080); /* mid-gray centre */
+    canvas_sharpen(&sharp_c);
+    {
+        uint32_t sp = canvas_get_pixel(&sharp_c, 1, 1);
+        uint8_t sr = (uint8_t)((sp >> 16) & 0xFF);
+        /* 5*0x80 - 4*0 = 640 -> clamped to 255 */
+        if (sr != 0xFF) {
+            fprintf(stderr, "sharpen isolated pixel failed: r=0x%02X want 0xFF\n", (unsigned)sr);
+            canvas_free(&sharp_c);
+            return 1;
+        }
+    }
+    canvas_free(&sharp_c);
+
+    /* --- canvas_flood_fill_tol ---
+       3x3 canvas: centre column is slightly off-white (0xFFFEFEFE),
+       rest is pure white (0xFFFFFFFF). tolerance=5 should fill all;
+       tolerance=0 should fill only exact matches. */
+    Canvas tol_c;
+    if (!canvas_init(&tol_c, 3, 3)) {
+        fprintf(stderr, "tol fill canvas init failed\n");
+        return 1;
+    }
+    canvas_clear(&tol_c, 0xFFFFFFFF);
+    canvas_set_pixel_raw(&tol_c, 1, 0, 0xFFFEFEFE);
+    canvas_set_pixel_raw(&tol_c, 1, 1, 0xFFFEFEFE);
+    canvas_set_pixel_raw(&tol_c, 1, 2, 0xFFFEFEFE);
+    /* Fill from (0,0) with tolerance=5: off-white (dist=sqrt(3)<5) should also be filled. */
+    canvas_flood_fill_tol(&tol_c, 0, 0, 0xFF000000, 5);
+    if (!expect_pixel_eq("tol_fill_exact",  canvas_get_pixel(&tol_c, 0, 0), 0xFF000000) ||
+        !expect_pixel_eq("tol_fill_approx", canvas_get_pixel(&tol_c, 1, 1), 0xFF000000)) {
+        canvas_free(&tol_c);
+        return 1;
+    }
+    /* Reset and verify that tolerance=0 does NOT cross to the near-white column. */
+    canvas_clear(&tol_c, 0xFFFFFFFF);
+    canvas_set_pixel_raw(&tol_c, 1, 0, 0xFFFEFEFE);
+    canvas_set_pixel_raw(&tol_c, 1, 1, 0xFFFEFEFE);
+    canvas_set_pixel_raw(&tol_c, 1, 2, 0xFFFEFEFE);
+    canvas_flood_fill_tol(&tol_c, 0, 0, 0xFF000000, 0);
+    if (!expect_pixel_eq("tol0_fill_exact",  canvas_get_pixel(&tol_c, 0, 0), 0xFF000000) ||
+        !expect_pixel_eq("tol0_no_spill",    canvas_get_pixel(&tol_c, 1, 1), 0xFFFEFEFE)) {
+        canvas_free(&tol_c);
+        return 1;
+    }
+    canvas_free(&tol_c);
+
     printf("ok\n");
     return 0;
 }

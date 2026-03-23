@@ -255,6 +255,91 @@ int canvas_flood_fill(Canvas *c, int x, int y, uint32_t new_color) {
     return 1;
 }
 
+static int color_within_tolerance(uint32_t a, uint32_t b, int tol) {
+    int dr = (int)((a >> 16) & 0xFF) - (int)((b >> 16) & 0xFF);
+    int dg = (int)((a >>  8) & 0xFF) - (int)((b >>  8) & 0xFF);
+    int db = (int)( a        & 0xFF) - (int)( b        & 0xFF);
+    int da = (int)((a >> 24) & 0xFF) - (int)((b >> 24) & 0xFF);
+    return dr*dr + dg*dg + db*db + da*da <= tol * tol * 4;
+}
+
+int canvas_flood_fill_tol(Canvas *c, int x, int y, uint32_t new_color, int tolerance) {
+    if (!c || !c->pixels) {
+        return 0;
+    }
+    if (x < 0 || y < 0 || x >= c->width || y >= c->height) {
+        return 0;
+    }
+    if (tolerance <= 0) {
+        return canvas_flood_fill(c, x, y, new_color);
+    }
+    uint32_t target = canvas_get_pixel(c, x, y);
+    if (target == new_color) {
+        return 1;
+    }
+
+    /* Visited bitmap to avoid re-enqueueing already-set pixels. */
+    size_t total = (size_t)c->width * (size_t)c->height;
+    uint8_t *visited = (uint8_t *)calloc(total, 1);
+    if (!visited) {
+        return 0;
+    }
+
+    size_t capacity = 1024;
+    size_t count = 0;
+    FillPoint *stk = (FillPoint *)malloc(capacity * sizeof(FillPoint));
+    if (!stk) {
+        free(visited);
+        return 0;
+    }
+
+    stk[count++] = (FillPoint){x, y};
+    visited[(size_t)y * (size_t)c->width + (size_t)x] = 1;
+
+    while (count > 0) {
+        FillPoint p = stk[--count];
+        if (p.x < 0 || p.y < 0 || p.x >= c->width || p.y >= c->height) {
+            continue;
+        }
+        uint32_t cur = canvas_get_pixel(c, p.x, p.y);
+        if (!color_within_tolerance(cur, target, tolerance)) {
+            continue;
+        }
+        canvas_set_pixel_raw(c, p.x, p.y, new_color);
+
+        if (count + 4 >= capacity) {
+            size_t new_cap = capacity * 2;
+            FillPoint *next = (FillPoint *)realloc(stk, new_cap * sizeof(FillPoint));
+            if (!next) {
+                free(stk);
+                free(visited);
+                return 0;
+            }
+            stk = next;
+            capacity = new_cap;
+        }
+
+        int nx, ny;
+        FillPoint neighbours[4] = {
+            {p.x+1, p.y}, {p.x-1, p.y}, {p.x, p.y+1}, {p.x, p.y-1}
+        };
+        for (int i = 0; i < 4; i++) {
+            nx = neighbours[i].x;
+            ny = neighbours[i].y;
+            if (nx < 0 || ny < 0 || nx >= c->width || ny >= c->height) continue;
+            size_t idx = (size_t)ny * (size_t)c->width + (size_t)nx;
+            if (!visited[idx]) {
+                visited[idx] = 1;
+                stk[count++] = neighbours[i];
+            }
+        }
+    }
+
+    free(stk);
+    free(visited);
+    return 1;
+}
+
 void canvas_flip_horizontal(Canvas *c) {
     if (!c || !c->pixels || c->width <= 1 || c->height <= 0) {
         return;
@@ -355,6 +440,266 @@ void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color) {
         }
     }
 
+    memcpy(c->pixels, copy, count * sizeof(uint32_t));
+    free(copy);
+}
+
+void canvas_rotate_90_cw(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    int W = c->width;
+    int H = c->height;
+    size_t count = (size_t)W * (size_t)H;
+    uint32_t *copy = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!copy) {
+        return;
+    }
+    /* For a true 90° CW rotation the output is H wide and W tall.
+       We keep the same W×H frame: dest(dx,dy) <- src(dy, H-1-dx).
+       Pixels outside the rotated image bounds are set transparent. */
+    for (int dy = 0; dy < H; dy++) {
+        for (int dx = 0; dx < W; dx++) {
+            if (dx < H && dy < W) {
+                int src_x = dy;
+                int src_y = H - 1 - dx;
+                copy[(size_t)dy * (size_t)W + (size_t)dx] =
+                    c->pixels[(size_t)src_y * (size_t)W + (size_t)src_x];
+            } else {
+                copy[(size_t)dy * (size_t)W + (size_t)dx] = 0;
+            }
+        }
+    }
+    memcpy(c->pixels, copy, count * sizeof(uint32_t));
+    free(copy);
+}
+
+void canvas_rotate_90_ccw(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    int W = c->width;
+    int H = c->height;
+    size_t count = (size_t)W * (size_t)H;
+    uint32_t *copy = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!copy) {
+        return;
+    }
+    /* For a true 90° CCW rotation the output is H wide and W tall.
+       We keep the same W×H frame: dest(dx,dy) <- src(W-1-dy, dx).
+       Pixels outside the rotated image bounds are set transparent. */
+    for (int dy = 0; dy < H; dy++) {
+        for (int dx = 0; dx < W; dx++) {
+            if (dx < H && dy < W) {
+                int src_x = W - 1 - dy;
+                int src_y = dx;
+                copy[(size_t)dy * (size_t)W + (size_t)dx] =
+                    c->pixels[(size_t)src_y * (size_t)W + (size_t)src_x];
+            } else {
+                copy[(size_t)dy * (size_t)W + (size_t)dx] = 0;
+            }
+        }
+    }
+    memcpy(c->pixels, copy, count * sizeof(uint32_t));
+    free(copy);
+}
+
+void canvas_grayscale(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        /* Rec. 601 luminance weights: 0.299*R + 0.587*G + 0.114*B */
+        uint8_t gray = (uint8_t)((77 * (unsigned)r + 150 * (unsigned)g + 29 * (unsigned)b) >> 8);
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)gray << 16) | ((uint32_t)gray << 8) | (uint32_t)gray;
+    }
+}
+
+void canvas_sepia(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        /* Standard sepia tone matrix (scaled by 128 to avoid floats). */
+        int out_r = ((int)r * 50 + (int)g * 98 + (int)b * 24) >> 7;
+        int out_g = ((int)r * 45 + (int)g * 88 + (int)b * 22) >> 7;
+        int out_b = ((int)r * 35 + (int)g * 68 + (int)b * 17) >> 7;
+        if (out_r > 255) out_r = 255;
+        if (out_g > 255) out_g = 255;
+        if (out_b > 255) out_b = 255;
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)out_r << 16) |
+                       ((uint32_t)out_g << 8) | (uint32_t)out_b;
+    }
+}
+
+static int clamp_u8(int v) {
+    if (v < 0) return 0;
+    if (v > 255) return 255;
+    return v;
+}
+
+void canvas_adjust_brightness(Canvas *c, int delta) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0 || delta == 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        int r = clamp_u8((int)((p >> 16) & 0xFF) + delta);
+        int g = clamp_u8((int)((p >> 8) & 0xFF) + delta);
+        int b = clamp_u8((int)(p & 0xFF) + delta);
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+    }
+}
+
+void canvas_adjust_contrast(Canvas *c, int delta) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0 || delta == 0) {
+        return;
+    }
+    /* factor_percent = 100 + delta: >100 increases contrast, <100 reduces it. */
+    int factor = 100 + delta;
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        int r = clamp_u8(((int)((p >> 16) & 0xFF) - 128) * factor / 100 + 128);
+        int g = clamp_u8(((int)((p >> 8) & 0xFF) - 128) * factor / 100 + 128);
+        int b = clamp_u8(((int)(p & 0xFF) - 128) * factor / 100 + 128);
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+    }
+}
+
+void canvas_posterize(Canvas *c, int levels) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    if (levels < 2) levels = 2;
+    if (levels > 255) levels = 255;
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        /* Quantise each channel to `levels` distinct values. */
+        r = (uint8_t)((r * levels / 256) * 255 / (levels - 1));
+        g = (uint8_t)((g * levels / 256) * 255 / (levels - 1));
+        b = (uint8_t)((b * levels / 256) * 255 / (levels - 1));
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+    }
+}
+
+void canvas_threshold(Canvas *c, uint8_t thresh) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        /* Luminance-based threshold: pixel becomes black or white. */
+        uint8_t lum = (uint8_t)((77 * (unsigned)r + 150 * (unsigned)g + 29 * (unsigned)b) >> 8);
+        uint8_t out = (lum >= thresh) ? 0xFF : 0x00;
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)out << 16) | ((uint32_t)out << 8) | (uint32_t)out;
+    }
+}
+
+void canvas_blur(Canvas *c, int radius) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0 || radius <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    uint32_t *copy = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!copy) {
+        return;
+    }
+    int W = c->width;
+    int H = c->height;
+    for (int y = 0; y < H; y++) {
+        int y0 = y - radius < 0 ? 0 : y - radius;
+        int y1 = y + radius >= H ? H - 1 : y + radius;
+        for (int x = 0; x < W; x++) {
+            int x0 = x - radius < 0 ? 0 : x - radius;
+            int x1 = x + radius >= W ? W - 1 : x + radius;
+            unsigned long sum_a = 0, sum_r = 0, sum_g = 0, sum_b = 0;
+            int n = 0;
+            for (int sy = y0; sy <= y1; sy++) {
+                for (int sx = x0; sx <= x1; sx++) {
+                    uint32_t p = c->pixels[(size_t)sy * (size_t)W + (size_t)sx];
+                    sum_a += (p >> 24) & 0xFF;
+                    sum_r += (p >> 16) & 0xFF;
+                    sum_g += (p >> 8) & 0xFF;
+                    sum_b += p & 0xFF;
+                    n++;
+                }
+            }
+            copy[(size_t)y * (size_t)W + (size_t)x] =
+                (uint32_t)((sum_a / (unsigned)n) << 24) |
+                (uint32_t)((sum_r / (unsigned)n) << 16) |
+                (uint32_t)((sum_g / (unsigned)n) << 8) |
+                (uint32_t)(sum_b / (unsigned)n);
+        }
+    }
+    memcpy(c->pixels, copy, count * sizeof(uint32_t));
+    free(copy);
+}
+
+void canvas_sharpen(Canvas *c) {
+    /* 3x3 sharpen kernel:  0 -1  0
+                           -1  5 -1
+                            0 -1  0  */
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    int W = c->width;
+    int H = c->height;
+    size_t count = (size_t)W * (size_t)H;
+    uint32_t *copy = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!copy) {
+        return;
+    }
+    for (int y = 0; y < H; y++) {
+        for (int x = 0; x < W; x++) {
+            uint32_t p  = c->pixels[(size_t)y * (size_t)W + (size_t)x];
+            uint32_t pu = y > 0   ? c->pixels[(size_t)(y-1) * (size_t)W + (size_t)x] : p;
+            uint32_t pd = y < H-1 ? c->pixels[(size_t)(y+1) * (size_t)W + (size_t)x] : p;
+            uint32_t pl = x > 0   ? c->pixels[(size_t)y * (size_t)W + (size_t)(x-1)] : p;
+            uint32_t pr = x < W-1 ? c->pixels[(size_t)y * (size_t)W + (size_t)(x+1)] : p;
+            uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+            int channels[3];
+            for (int ch = 0; ch < 3; ch++) {
+                int shift = (2 - ch) * 8;
+                int vc  = (int)((p  >> shift) & 0xFF);
+                int vup = (int)((pu >> shift) & 0xFF);
+                int vdn = (int)((pd >> shift) & 0xFF);
+                int vlt = (int)((pl >> shift) & 0xFF);
+                int vrt = (int)((pr >> shift) & 0xFF);
+                channels[ch] = clamp_u8(5 * vc - vup - vdn - vlt - vrt);
+            }
+            copy[(size_t)y * (size_t)W + (size_t)x] =
+                ((uint32_t)a << 24) |
+                ((uint32_t)channels[0] << 16) |
+                ((uint32_t)channels[1] << 8) |
+                (uint32_t)channels[2];
+        }
+    }
     memcpy(c->pixels, copy, count * sizeof(uint32_t));
     free(copy);
 }
