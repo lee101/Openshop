@@ -259,18 +259,16 @@ struct invalid_argv_case {
     const char *argv[5];
 };
 
-#define INVALID_ARGV_CASE(label, argc_value, usage_text, arg0, arg1, arg2, arg3, arg4) \
-    {label, argc_value, 0, usage_text, {arg0, arg1, arg2, arg3, arg4}}
 #define INVALID_NULL_ARGV_ONLY_CASE(label, argc_value, usage_text) \
     {label, argc_value, 1, usage_text, {NULL, NULL, NULL, NULL, NULL}}
 #define INVALID_SIZE_ONLY_ARGV_CASE(label, usage_text, program, width) \
-    INVALID_ARGV_CASE(label, 3, usage_text, program, default_scene_path, width, NULL, NULL)
+    {label, 3, 0, usage_text, {program, default_scene_path, width, NULL, NULL}}
 #define INVALID_EXTRA_ARGV_CASE(label, usage_text, program) \
-    INVALID_ARGV_CASE(label, 5, usage_text, program, default_scene_path, default_size_only_width, default_size_only_height, extra_arg_token)
+    {label, 5, 0, usage_text, {program, default_scene_path, default_size_only_width, default_size_only_height, extra_arg_token}}
 #define INVALID_INPUT_ARGV_CASE(label, usage_text, program, input) \
-    INVALID_ARGV_CASE(label, 2, usage_text, program, input, NULL, NULL, NULL)
+    {label, 2, 0, usage_text, {program, input, NULL, NULL, NULL}}
 #define INVALID_PROGRAM_ONLY_ARGV_CASE(label, argc_value, usage_text, program) \
-    INVALID_ARGV_CASE(label, argc_value, usage_text, program, NULL, NULL, NULL, NULL)
+    {label, argc_value, 0, usage_text, {program, NULL, NULL, NULL, NULL}}
 
 struct success_case {
     const char *label_prefix;
