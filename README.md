@@ -61,6 +61,7 @@ make test-sdl
 - `Ctrl+G`: edge-detect the active layer (Sobel grayscale)
 - `Ctrl+K`: emboss the active layer
 - `Ctrl+Shift+P`: pixelate the active layer
+- `Ctrl+Shift+[ / Ctrl+Shift+]`: pixelate block size down/up
 - `Ctrl+Shift+, / Ctrl+Shift+.`: tolerance fill down/up
 - `Ctrl+A`: show all layers and clear solo mode
 - `Ctrl+Shift+R`: reveal the active layer without changing other visibility states

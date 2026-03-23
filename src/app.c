@@ -17,6 +17,10 @@
 #define FILL_TOLERANCE_STEP 5
 #define FILL_TOLERANCE_MIN 0
 #define FILL_TOLERANCE_MAX 255
+#define PIXELATE_BLOCK_DEFAULT 8
+#define PIXELATE_BLOCK_STEP 2
+#define PIXELATE_BLOCK_MIN 2
+#define PIXELATE_BLOCK_MAX 64
 
 static const uint32_t COLOR_BG = 0xFFFFFFFF;     // white
 static const uint32_t COLOR_BRUSH = 0xFF1B1F24;  // near-black
@@ -28,6 +32,7 @@ static const uint32_t COLOR_YELLOW = 0xFFFDD835;
 static const uint32_t COLOR_PURPLE = 0xFF8E24AA;
 static const int CHECKER_SIZE = 16;
 static int g_fill_tolerance = FILL_TOLERANCE_DEFAULT;
+static int g_pixelate_block_size = PIXELATE_BLOCK_DEFAULT;
 
 typedef enum {
     TOOL_BRUSH,
@@ -255,12 +260,13 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
     snprintf(
         title,
         sizeof(title),
-        "Openshop - %s (%s) | size %d | brush %d%% | fill tol %d | layer %d/%d %s [%s%s %d%%]%s | visible %d/%d | #%08X",
+        "Openshop - %s (%s) | size %d | brush %d%% | fill tol %d | pixel %d | layer %d/%d %s [%s%s %d%%]%s | visible %d/%d | #%08X",
         tool_label(tool),
         brush_shape_label(brush_shape),
         radius,
         opacity_percent,
         g_fill_tolerance,
+        g_pixelate_block_size,
         layers->active_layer + 1,
         layers->layer_count,
         layer_name,
@@ -283,6 +289,16 @@ static int clamp_fill_tolerance(int tolerance) {
         return FILL_TOLERANCE_MAX;
     }
     return tolerance;
+}
+
+static int clamp_pixelate_block_size(int block_size) {
+    if (block_size < PIXELATE_BLOCK_MIN) {
+        return PIXELATE_BLOCK_MIN;
+    }
+    if (block_size > PIXELATE_BLOCK_MAX) {
+        return PIXELATE_BLOCK_MAX;
+    }
+    return block_size;
 }
 
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
@@ -664,6 +680,7 @@ int app_run(const char *input_path) {
     int brush_radius = 6;
     int brush_opacity = 100;
     int fill_tolerance = FILL_TOLERANCE_DEFAULT;
+    int pixelate_block_size = PIXELATE_BLOCK_DEFAULT;
     uint32_t brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
     uint32_t brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
     BrushShape brush_shape = BRUSH_SHAPE_ROUND;
@@ -683,6 +700,7 @@ int app_run(const char *input_path) {
     memset(undo_stack, 0, sizeof(undo_stack));
     memset(redo_stack, 0, sizeof(redo_stack));
     g_fill_tolerance = fill_tolerance;
+    g_pixelate_block_size = pixelate_block_size;
     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
 
     while (running) {
@@ -920,6 +938,20 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (ctrl && shift && key == SDLK_LEFTBRACKET) {
+                    pixelate_block_size = clamp_pixelate_block_size(pixelate_block_size - PIXELATE_BLOCK_STEP);
+                    g_pixelate_block_size = pixelate_block_size;
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
+                if (ctrl && shift && key == SDLK_RIGHTBRACKET) {
+                    pixelate_block_size = clamp_pixelate_block_size(pixelate_block_size + PIXELATE_BLOCK_STEP);
+                    g_pixelate_block_size = pixelate_block_size;
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
                 if (ctrl && key == SDLK_LEFTBRACKET) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_move(&layers, layers.active_layer, -1)) {
@@ -1022,7 +1054,8 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && shift && key == SDLK_p) {
-                    if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_pixelate, 8)) {
+                    if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            canvas_pixelate, pixelate_block_size)) {
                         needs_composite = 1;
                     }
                     break;
