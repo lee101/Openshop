@@ -610,6 +610,11 @@ int main(void) {
         return 1;
     }
 
+    char *argv_negative_width_value[] = {"openshop", (char *)default_scene_path, (char *)negative_size_only_width, "768"};
+    if (!expect_invalid_main_run("negative_width_value", 4, argv_negative_width_value, stderr_text, sizeof(stderr_text), &exit_code)) {
+        return 1;
+    }
+
     char *argv_bad_width_token_argv[] = {"openshop", (char *)default_scene_path, (char *)bad_width_token, "480"};
     if (!expect_invalid_main_run("bad_width_token", 4, argv_bad_width_token_argv, stderr_text, sizeof(stderr_text), &exit_code)) {
         return 1;
