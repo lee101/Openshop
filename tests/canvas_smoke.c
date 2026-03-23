@@ -875,6 +875,35 @@ static int test_layers_basic(void) {
     stack.layers[1].locked = 0;
     stack.layers[2].locked = 0;
     stack.layers[3].locked = 0;
+    stack.active_layer = 2;
+    if (!layer_stack_lock_and_retreat(&stack, 2)) {
+        fprintf(stderr, "lock and retreat failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[2].locked || stack.active_layer != 1) {
+        fprintf(stderr, "lock and retreat should jump to previous unlocked layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_lock_and_retreat(&stack, 1)) {
+        fprintf(stderr, "second lock and retreat failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[1].locked || stack.active_layer != 0) {
+        fprintf(stderr, "lock and retreat should continue scanning backward\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[0].locked = 0;
+    stack.layers[1].locked = 0;
+    stack.layers[2].locked = 0;
+    stack.layers[3].locked = 0;
     stack.layers[0].locked = 1;
     stack.layers[2].locked = 1;
     if (!layer_stack_unlock_all(&stack)) {

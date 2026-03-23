@@ -79,6 +79,7 @@ make test-sdl
 - `Ctrl+Shift+J`: hide the active layer and jump to the previous visible layer
 - `Ctrl+Shift+L`: toggle active layer lock
 - `Alt+L`: lock the active layer and jump to the next unlocked layer
+- `Alt+Shift+L`: lock the active layer and jump to the previous unlocked layer
 - `Alt+U`: unlock all layers
 - `Ctrl+Alt+L`: show only locked layers
 - `Ctrl+Alt+U`: show only unlocked layers
