@@ -1,5 +1,6 @@
 #include "../src/canvas.h"
 #include "../src/layers.h"
+#include "../src/status_text.h"
 #include "../src/title_hints.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -235,6 +236,25 @@ static int test_layers_basic(void) {
             layer_stack_free(&stack);
             return 0;
         }
+    }
+    if (strcmp(status_text_action_error(STATUS_LOCK_TOGGLE), "Could not toggle layer lock") != 0 ||
+        strcmp(status_text_action_error(STATUS_LOCK_AND_ADVANCE), "Could not lock layer and advance") != 0 ||
+        strcmp(status_text_action_error(STATUS_LOCK_AND_RETREAT), "Could not lock layer and retreat") != 0 ||
+        strcmp(status_text_action_error(STATUS_UNLOCK_ALL), "Could not unlock all layers") != 0 ||
+        strcmp(status_text_action_error(STATUS_SHOW_UNLOCKED_ONLY), "Could not show unlocked layers only") != 0 ||
+        strcmp(status_text_action_error(STATUS_SHOW_LOCKED_ONLY), "Could not show locked layers only") != 0 ||
+        strcmp(status_text_action_error(STATUS_SHOW_HIDDEN_LOCKED_ONLY), "Could not show hidden locked layers only") != 0 ||
+        strcmp(status_text_action_error(STATUS_SHOW_HIDDEN_UNLOCKED_ONLY), "Could not show hidden unlocked layers only") != 0) {
+        fprintf(stderr, "status text action mapping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(status_text_action_error((StatusTextAction)999), "Action failed") != 0) {
+        fprintf(stderr, "status text fallback failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
     }
     stack.layers[0].visible = 1;
     stack.layers[0].locked = 0;

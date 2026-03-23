@@ -2,6 +2,7 @@
 #include "canvas.h"
 #include "image_io.h"
 #include "layers.h"
+#include "status_text.h"
 #include "title_hints.h"
 
 #include <SDL2/SDL.h>
@@ -796,7 +797,7 @@ int app_run(const char *input_path) {
                 if (ctrl && shift && key == SDLK_l) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_toggle_lock(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Could not toggle layer lock\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_LOCK_TOGGLE));
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
@@ -805,7 +806,7 @@ int app_run(const char *input_path) {
                 if (alt && key == SDLK_l) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_lock_and_advance(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Could not lock layer and advance\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_LOCK_AND_ADVANCE));
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
@@ -814,7 +815,7 @@ int app_run(const char *input_path) {
                 if (alt && shift && key == SDLK_l) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_lock_and_retreat(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Could not lock layer and retreat\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_LOCK_AND_RETREAT));
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
@@ -823,7 +824,7 @@ int app_run(const char *input_path) {
                 if (alt && key == SDLK_u) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_unlock_all(&layers)) {
-                        fprintf(stderr, "Could not unlock all layers\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_UNLOCK_ALL));
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
@@ -832,7 +833,7 @@ int app_run(const char *input_path) {
                 if (ctrl && alt && key == SDLK_u) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_show_unlocked_only(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Could not show unlocked layers only\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_SHOW_UNLOCKED_ONLY));
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
@@ -841,7 +842,7 @@ int app_run(const char *input_path) {
                 if (ctrl && alt && key == SDLK_l) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_show_locked_only(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Could not show locked layers only\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_SHOW_LOCKED_ONLY));
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
@@ -850,7 +851,7 @@ int app_run(const char *input_path) {
                 if (ctrl && alt && shift && key == SDLK_i) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_show_hidden_locked_only(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Could not show hidden locked layers only\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_SHOW_HIDDEN_LOCKED_ONLY));
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
@@ -859,7 +860,7 @@ int app_run(const char *input_path) {
                 if (ctrl && alt && shift && key == SDLK_u) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_show_hidden_unlocked_only(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Could not show hidden unlocked layers only\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_SHOW_HIDDEN_UNLOCKED_ONLY));
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
