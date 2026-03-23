@@ -108,6 +108,36 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_toggle_solo(&stack, 0)) {
+        fprintf(stderr, "solo background layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_visibility(&stack, 1)) {
+        fprintf(stderr, "hide top layer for solo-preserving show failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_show(&stack, 1) || !stack.layers[1].visible || stack.solo_index != 0) {
+        fprintf(stderr, "show should preserve solo state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    layer_stack_composite(&stack, &composite, 0xFFFFFFFF);
+    if (!expect_pixel_eq("show_preserves_solo_composite", canvas_get_pixel(&composite, 8, 8), 0xFFFFFFFF)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_solo(&stack, 0) || stack.solo_index != -1) {
+        fprintf(stderr, "clear solo after show preservation failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_toggle_visibility(&stack, 1)) {
         fprintf(stderr, "rehide top layer after show active failed\n");
         canvas_free(&composite);
