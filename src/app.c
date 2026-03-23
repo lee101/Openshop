@@ -504,6 +504,34 @@ static int canvas_load_path_auto(Canvas *c, const char *path, uint32_t backgroun
     return canvas_load_bmp(c, path, background_color);
 }
 
+static int canvas_load_default_input(Canvas *c, int prefer_png, uint32_t background_color, const char **loaded_path) {
+    if (!c) {
+        return 0;
+    }
+    if (prefer_png) {
+        if (canvas_load_png(c, "input.png", background_color)) {
+            if (loaded_path) {
+                *loaded_path = "input.png";
+            }
+            return 1;
+        }
+        return 0;
+    }
+    if (canvas_load_bmp(c, "input.bmp", background_color)) {
+        if (loaded_path) {
+            *loaded_path = "input.bmp";
+        }
+        return 1;
+    }
+    if (canvas_load_png(c, "input.png", background_color)) {
+        if (loaded_path) {
+            *loaded_path = "input.png";
+        }
+        return 1;
+    }
+    return 0;
+}
+
 static void hue_rotate_30(Canvas *c) {
     canvas_hue_rotate(c, 30);
 }
@@ -1167,16 +1195,13 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
                     }
                     Snapshot before = {0};
                     int loaded = 0;
+                    const char *loaded_path = shift ? "input.png" : "input.bmp";
                     if (prepare_snapshot(&layers, &before)) {
-                        if (shift) {
-                            loaded = canvas_load_png(&active->canvas, "input.png", active_layer_clear_color(&layers));
-                        } else {
-                            loaded = canvas_load_bmp(&active->canvas, "input.bmp", active_layer_clear_color(&layers));
-                        }
+                        loaded = canvas_load_default_input(&active->canvas, shift, active_layer_clear_color(&layers), &loaded_path);
                     }
                     if (!loaded) {
                         snapshot_free(&before);
-                        fprintf(stderr, "Failed to load %s\n", shift ? "input.png" : "input.bmp");
+                        fprintf(stderr, "Failed to load %s\n", loaded_path);
                     } else {
                         push_snapshot_entry(before, undo_stack, &undo_count, redo_stack, &redo_count);
                         needs_composite = 1;

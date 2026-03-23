@@ -82,7 +82,7 @@ make test-sdl
 - `Ctrl+Shift+M`: flatten visible layers
 - `Ctrl+S`: save the composited image to `output.bmp`
 - `Ctrl+Shift+S`: save the composited image to `output.png`
-- `Ctrl+O`: load `input.bmp` into the active layer
+- `Ctrl+O`: load `input.bmp`, or fall back to `input.png` if the BMP is missing
 - `Ctrl+Shift+O`: load `input.png` into the active layer
 - `Ctrl+F`: tolerance-based fill from the cursor (exact `F` fill is unchanged)
 - `Ctrl+Shift+B`: apply unsharp-mask sharpening to the active layer
