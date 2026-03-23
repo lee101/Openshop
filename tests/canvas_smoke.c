@@ -363,6 +363,50 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[0].visible = 1;
+    stack.layers[1].visible = 0;
+    stack.layers[0].locked = 1;
+    stack.layers[1].locked = 0;
+    stack.active_layer = 1;
+    stack.layers[0].opacity_percent = 30;
+    stack.layers[1].opacity_percent = 75;
+    strncpy(stack.layers[0].name, "Visible Locked", LAYER_NAME_MAX - 1);
+    stack.layers[0].name[LAYER_NAME_MAX - 1] = '\0';
+    strncpy(stack.layers[1].name, "Hidden Unlocked", LAYER_NAME_MAX - 1);
+    stack.layers[1].name[LAYER_NAME_MAX - 1] = '\0';
+    if (!layer_stack_show_hidden_unlocked_only(&stack, 1)) {
+        fprintf(stderr, "show hidden unlocked only failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[0].opacity_percent != 30 || stack.layers[1].opacity_percent != 75 ||
+        strcmp(stack.layers[0].name, "Visible Locked") != 0 ||
+        strcmp(stack.layers[1].name, "Hidden Unlocked") != 0) {
+        fprintf(stderr, "show hidden unlocked only should preserve opacity and names\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != -1 || stack.active_layer != 1 || stack.layers[0].visible || !stack.layers[1].visible) {
+        fprintf(stderr, "show hidden unlocked only bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[1].locked = 1;
+    if (!layer_stack_show_hidden_unlocked_only(&stack, 1)) {
+        fprintf(stderr, "show hidden unlocked only fallback failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[1].visible) {
+        fprintf(stderr, "show hidden unlocked only should keep the active layer visible when no hidden unlocked layers exist\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[0].locked = 0;
     stack.layers[1].locked = 0;
     stack.layers[0].visible = 1;
