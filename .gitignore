@@ -6,4 +6,5 @@ image_selftest
 image_io_smoke
 path_routing_selftest
 png_selftest
+cli_selftest
 test-artifacts/
