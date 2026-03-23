@@ -263,6 +263,8 @@ struct invalid_argv_case {
     {label, argc_value, 0, usage_text, {arg0, arg1, arg2, arg3, arg4}}
 #define INVALID_NULL_ARGV_CASE(label, argc_value, usage_text, arg0, arg1, arg2, arg3, arg4) \
     {label, argc_value, 1, usage_text, {arg0, arg1, arg2, arg3, arg4}}
+#define INVALID_NULL_ARGV_ONLY_CASE(label, argc_value, usage_text) \
+    INVALID_NULL_ARGV_CASE(label, argc_value, usage_text, NULL, NULL, NULL, NULL, NULL)
 #define INVALID_SIZE_ONLY_ARGV_CASE(label, usage_text, program, width) \
     INVALID_ARGV_CASE(label, 3, usage_text, program, default_scene_path, width, NULL, NULL)
 #define INVALID_EXTRA_ARGV_CASE(label, usage_text, program) \
@@ -438,7 +440,7 @@ int main(void) {
         INVALID_EXTRA_ARGV_CASE("custom_program_extra_args", custom_usage_text, custom_program_name),
         INVALID_INPUT_ARGV_CASE("custom_program_empty_input", custom_usage_text, custom_program_name, empty_token),
         INVALID_INPUT_ARGV_CASE("custom_program_null_input", custom_usage_text, custom_program_name, NULL),
-        INVALID_NULL_ARGV_CASE("null_argv", 1, NULL, NULL, NULL, NULL, NULL, NULL),
+        INVALID_NULL_ARGV_ONLY_CASE("null_argv", 1, NULL),
         INVALID_PROGRAM_ONLY_ARGV_CASE("null_program", 1, NULL, NULL),
         INVALID_PROGRAM_ONLY_ARGV_CASE("zero_argc", 0, NULL, default_program_name),
         INVALID_PROGRAM_ONLY_ARGV_CASE("empty_program", 1, NULL, empty_token),
