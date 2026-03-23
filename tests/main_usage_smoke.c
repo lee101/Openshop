@@ -41,10 +41,9 @@ static const char *leading_space_width_token = " 640";
 static const char *trailing_space_width_token = "640 ";
 static const char *trailing_newline_height_token = "480\n";
 static const char *leading_tab_height_token = "\t480";
-static const char *default_plus_prefixed_size_only_width = "+640";
+static const char *default_plus_prefixed_width_token = "+640";
 static const char *input_size_width_token = "320";
 static const char *input_size_height_token = "240";
-static const char *default_plus_prefixed_input_size_width = "+640";
 static const char *custom_size_only_width = "800";
 static const char *custom_size_only_height = "600";
 static const char *custom_plus_prefixed_size_only_width = "+800";
@@ -505,13 +504,13 @@ int main(void) {
         {"input_only", 2, default_program_name, default_input_path, NULL, NULL, 0, 0, default_input_path, 0, 0, empty_stderr},
         {"numeric_input", 2, default_program_name, numeric_input_token, NULL, NULL, 0, 0, numeric_input_token, 0, 0, empty_stderr},
         {"size_only", 3, default_program_name, default_size_only_width, default_size_only_height, NULL, app_exit_code_7, app_exit_code_7, NULL, default_size_only_canvas_w, default_size_only_canvas_h, app_exit_code_7_stderr},
-        {"plus_prefixed_size_only", 3, default_program_name, default_plus_prefixed_size_only_width, default_size_only_height, NULL, 0, 0, NULL, default_size_only_canvas_w, default_size_only_canvas_h, empty_stderr},
+        {"plus_prefixed_size_only", 3, default_program_name, default_plus_prefixed_width_token, default_size_only_height, NULL, 0, 0, NULL, default_size_only_canvas_w, default_size_only_canvas_h, empty_stderr},
         {"custom_program_size_only", 3, custom_program_name, custom_size_only_width, custom_size_only_height, NULL, 0, 0, NULL, custom_size_only_canvas_w, custom_size_only_canvas_h, empty_stderr},
         {"custom_program_plus_prefixed_size_only", 3, custom_program_name, custom_plus_prefixed_size_only_width, custom_size_only_height, NULL, 0, 0, NULL, custom_size_only_canvas_w, custom_size_only_canvas_h, empty_stderr},
         {"custom_program_input_size", 4, custom_program_name, custom_input_path, input_size_width_token, input_size_height_token, 0, 0, custom_input_path, input_size_canvas_w, input_size_canvas_h, empty_stderr},
         {"custom_program_plus_prefixed", 4, custom_program_name, custom_input_path, custom_plus_prefixed_input_size_width, input_size_height_token, 0, 0, custom_input_path, input_size_canvas_w, input_size_canvas_h, empty_stderr},
         {"input_size", 4, default_program_name, default_scene_path, input_size_width_token, input_size_height_token, 0, 0, default_scene_path, input_size_canvas_w, input_size_canvas_h, empty_stderr},
-        {"plus_prefixed", 4, default_program_name, default_scene_path, default_plus_prefixed_input_size_width, default_size_only_height, 0, 0, default_scene_path, default_size_only_canvas_w, default_size_only_canvas_h, empty_stderr},
+        {"plus_prefixed", 4, default_program_name, default_scene_path, default_plus_prefixed_width_token, default_size_only_height, 0, 0, default_scene_path, default_size_only_canvas_w, default_size_only_canvas_h, empty_stderr},
     };
     if (!expect_success_cases(success_cases,
                               ARRAY_LEN(success_cases),
