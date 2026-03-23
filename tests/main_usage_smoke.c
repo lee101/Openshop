@@ -283,38 +283,16 @@ struct success_case {
     const char *expected_stderr;
 };
 
-static int expect_invalid_size_only_height_cases(const struct invalid_size_token_case *cases, size_t case_count,
-                                                 const char *program_name, const char *width_token,
-                                                 char *stderr_text, size_t stderr_size, int *exit_code,
-                                                 const char *custom_usage_text) {
+static int expect_invalid_size_only_cases(const struct invalid_size_token_case *cases, size_t case_count,
+                                          const char *program_name, const char *fixed_token,
+                                          int variable_token_index, char *stderr_text, size_t stderr_size,
+                                          int *exit_code, const char *custom_usage_text) {
     size_t i = 0;
 
     for (i = 0; i < case_count; i += 1) {
-        char *argv[] = {(char *)program_name, (char *)width_token, (char *)cases[i].token};
+        char *argv[] = {(char *)program_name, (char *)fixed_token, (char *)fixed_token};
 
-        if (custom_usage_text) {
-            if (!expect_custom_invalid_main_run(cases[i].label_prefix, 3, argv, stderr_text, stderr_size, exit_code,
-                                                custom_usage_text)) {
-                return 0;
-            }
-            continue;
-        }
-
-        if (!expect_invalid_main_run(cases[i].label_prefix, 3, argv, stderr_text, stderr_size, exit_code)) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
-static int expect_invalid_size_only_width_cases(const struct invalid_size_token_case *cases, size_t case_count,
-                                                const char *program_name, const char *height_token,
-                                                char *stderr_text, size_t stderr_size, int *exit_code,
-                                                const char *custom_usage_text) {
-    size_t i = 0;
-
-    for (i = 0; i < case_count; i += 1) {
-        char *argv[] = {(char *)program_name, (char *)cases[i].token, (char *)height_token};
+        argv[variable_token_index] = (char *)cases[i].token;
 
         if (custom_usage_text) {
             if (!expect_custom_invalid_main_run(cases[i].label_prefix, 3, argv, stderr_text, stderr_size, exit_code,
@@ -428,10 +406,10 @@ int main(void) {
         {"custom_program_negative_size_only_width", negative_size_only_width},
         {"custom_program_overflow_size_only_width", overflow_width_token},
     };
-    if (!expect_invalid_size_only_width_cases(custom_invalid_size_only_width_cases,
-                                              ARRAY_LEN(custom_invalid_size_only_width_cases),
-                                              custom_program_name, default_size_only_height,
-                                              stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_invalid_size_only_cases(custom_invalid_size_only_width_cases,
+                                        ARRAY_LEN(custom_invalid_size_only_width_cases),
+                                        custom_program_name, default_size_only_height, 1,
+                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
@@ -445,10 +423,10 @@ int main(void) {
         {"custom_program_empty_size_only_height", ""},
         {"custom_program_overflow_size_only_height", overflow_height_token},
     };
-    if (!expect_invalid_size_only_height_cases(custom_invalid_size_only_height_cases,
-                                               ARRAY_LEN(custom_invalid_size_only_height_cases),
-                                               custom_program_name, default_size_only_width,
-                                               stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_invalid_size_only_cases(custom_invalid_size_only_height_cases,
+                                        ARRAY_LEN(custom_invalid_size_only_height_cases),
+                                        custom_program_name, default_size_only_width, 2,
+                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
@@ -484,10 +462,10 @@ int main(void) {
         {"trailing_newline_size_only_height", trailing_newline_height_token},
         {"leading_tab_size_only_height", leading_tab_height_token},
     };
-    if (!expect_invalid_size_only_height_cases(invalid_size_only_height_cases,
-                                               ARRAY_LEN(invalid_size_only_height_cases),
-                                               "openshop", default_size_only_width,
-                                               stderr_text, sizeof(stderr_text), &exit_code, NULL)) {
+    if (!expect_invalid_size_only_cases(invalid_size_only_height_cases,
+                                        ARRAY_LEN(invalid_size_only_height_cases),
+                                        "openshop", default_size_only_width, 2,
+                                        stderr_text, sizeof(stderr_text), &exit_code, NULL)) {
         return 1;
     }
 
@@ -501,10 +479,10 @@ int main(void) {
         {"leading_space_size_only_width", leading_space_width_token},
         {"trailing_space_size_only_width", trailing_space_width_token},
     };
-    if (!expect_invalid_size_only_width_cases(invalid_size_only_width_cases,
-                                              ARRAY_LEN(invalid_size_only_width_cases),
-                                              "openshop", default_size_only_height,
-                                              stderr_text, sizeof(stderr_text), &exit_code, NULL)) {
+    if (!expect_invalid_size_only_cases(invalid_size_only_width_cases,
+                                        ARRAY_LEN(invalid_size_only_width_cases),
+                                        "openshop", default_size_only_height, 1,
+                                        stderr_text, sizeof(stderr_text), &exit_code, NULL)) {
         return 1;
     }
 
