@@ -952,6 +952,34 @@ int main(void) {
     }
     canvas_free(&sepia_c);
 
+    /* --- canvas_adjust_saturation ---
+       Input: 0xFF804020 (128,64,32), gray=79.
+       delta=+100 doubles the distance from gray, delta=-100 collapses to gray. */
+    Canvas sat_c;
+    if (!canvas_init(&sat_c, 1, 1)) {
+        fprintf(stderr, "saturation canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&sat_c, 0, 0, 0xFF804020);
+    canvas_adjust_saturation(&sat_c, 100);
+    if (!expect_pixel_eq("saturation_up", canvas_get_pixel(&sat_c, 0, 0), 0xFFB13100)) {
+        canvas_free(&sat_c);
+        return 1;
+    }
+    canvas_set_pixel_raw(&sat_c, 0, 0, 0xFF804020);
+    canvas_adjust_saturation(&sat_c, -100);
+    if (!expect_pixel_eq("saturation_down_to_gray", canvas_get_pixel(&sat_c, 0, 0), 0xFF4F4F4F)) {
+        canvas_free(&sat_c);
+        return 1;
+    }
+    canvas_set_pixel_raw(&sat_c, 0, 0, 0xFF808080);
+    canvas_adjust_saturation(&sat_c, 100);
+    if (!expect_pixel_eq("saturation_gray_invariant", canvas_get_pixel(&sat_c, 0, 0), 0xFF808080)) {
+        canvas_free(&sat_c);
+        return 1;
+    }
+    canvas_free(&sat_c);
+
     /* --- canvas_adjust_brightness ---
        Input: 0xFF808080 (mid-gray). delta = +20 -> each channel clamped to 128+20=148=0x94
        Expected: 0xFF949494 */

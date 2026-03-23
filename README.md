@@ -65,6 +65,7 @@ make test-sdl
 - `Ctrl+Shift+, / Ctrl+Shift+.`: tolerance fill down/up
 - `Alt+[ / Alt+]`: posterize level down/up
 - `Alt+, / Alt+.`: threshold down/up
+- `Alt+Left / Alt+Right`: saturation amount down/up
 - `Alt+V / Alt+B`: blur radius down/up
 - `Alt+Down / Alt+Up`: brightness/contrast adjustment size down/up
 - `Alt+0`: reset all filter settings to defaults
@@ -85,7 +86,7 @@ make test-sdl
 - `Ctrl+S`: save the composited image to `output.bmp`
 - `Ctrl+O`: load `input.bmp` into the active layer
 - `Q / W`: rotate the active layer 90 degrees clockwise / counter-clockwise
-- `G / S`: grayscale / sepia the active layer
+- `G / S / Y`: grayscale / sepia / saturation-adjust the active layer
 - `Z / N`: posterize / threshold the active layer using the current settings
 - `Ctrl+Z` / `Ctrl+Y`: undo / redo (layer-aware)
 - `Esc`: quit
