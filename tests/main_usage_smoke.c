@@ -242,19 +242,12 @@ static int expect_successful_main_run(const char *label_prefix, int argc, char *
                                  expected_canvas_w, expected_canvas_h, stderr_text, expected_stderr);
 }
 
-static int expect_custom_invalid_main_run(const char *label_prefix, int argc, char **argv,
-                                          char *stderr_text, size_t stderr_size,
-                                          int *exit_code, const char *custom_usage_text) {
-    return expect_invalid_main_run_with_usage(label_prefix, argc, argv, stderr_text, stderr_size, exit_code,
-                                              custom_usage_text);
-}
-
 static int expect_invalid_main_case_run(const char *label_prefix, int argc, char **argv,
                                         char *stderr_text, size_t stderr_size, int *exit_code,
                                         const char *usage_text) {
     if (usage_text) {
-        return expect_custom_invalid_main_run(label_prefix, argc, argv, stderr_text, stderr_size, exit_code,
-                                              usage_text);
+        return expect_invalid_main_run_with_usage(label_prefix, argc, argv, stderr_text, stderr_size, exit_code,
+                                                  usage_text);
     }
 
     return expect_invalid_main_run(label_prefix, argc, argv, stderr_text, stderr_size, exit_code);
