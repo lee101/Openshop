@@ -2,6 +2,7 @@
 #include "canvas.h"
 #include "image_io.h"
 #include "layers.h"
+#include "path_routing.h"
 
 #include <SDL2/SDL.h>
 #include <stdio.h>
@@ -474,20 +475,6 @@ static int active_layer_editable(const LayerStack *layers) {
     return active && !active->locked && active->canvas.pixels;
 }
 
-static int path_has_extension_ci(const char *path, const char *ext) {
-    size_t path_len = 0;
-    size_t ext_len = 0;
-    if (!path || !ext) {
-        return 0;
-    }
-    path_len = strlen(path);
-    ext_len = strlen(ext);
-    if (path_len < ext_len) {
-        return 0;
-    }
-    return SDL_strcasecmp(path + path_len - ext_len, ext) == 0;
-}
-
 static int canvas_load_path_auto(Canvas *c, const char *path, uint32_t background_color) {
     if (!c || !path || !path[0]) {
         return 0;
@@ -505,27 +492,24 @@ static int canvas_load_path_auto(Canvas *c, const char *path, uint32_t backgroun
 }
 
 static int canvas_load_default_input(Canvas *c, int prefer_png, uint32_t background_color, const char **loaded_path) {
+    int bmp_exists = path_exists("input.bmp");
+    int png_exists = path_exists("input.png");
+    const char *path = default_input_path(prefer_png, bmp_exists, png_exists);
     if (!c) {
         return 0;
     }
-    if (prefer_png) {
-        if (canvas_load_png(c, "input.png", background_color)) {
+    if (path_has_extension_ci(path, ".png")) {
+        if (canvas_load_png(c, path, background_color)) {
             if (loaded_path) {
-                *loaded_path = "input.png";
+                *loaded_path = path;
             }
             return 1;
         }
         return 0;
     }
-    if (canvas_load_bmp(c, "input.bmp", background_color)) {
+    if (canvas_load_bmp(c, path, background_color)) {
         if (loaded_path) {
-            *loaded_path = "input.bmp";
-        }
-        return 1;
-    }
-    if (canvas_load_png(c, "input.png", background_color)) {
-        if (loaded_path) {
-            *loaded_path = "input.png";
+            *loaded_path = path;
         }
         return 1;
     }
@@ -546,25 +530,19 @@ static int path_exists(const char *path) {
 }
 
 static int canvas_save_default_output(const Canvas *c, int prefer_png, const char **saved_path) {
+    int bmp_exists = path_exists("output.bmp");
+    int png_exists = path_exists("output.png");
+    const char *path = default_output_path(prefer_png, bmp_exists, png_exists);
     if (!c) {
         return 0;
     }
-    if (prefer_png) {
-        if (saved_path) {
-            *saved_path = "output.png";
-        }
-        return canvas_save_png(c, "output.png");
-    }
-    if (path_exists("output.bmp") || !path_exists("output.png")) {
-        if (saved_path) {
-            *saved_path = "output.bmp";
-        }
-        return canvas_save_bmp(c, "output.bmp");
-    }
     if (saved_path) {
-        *saved_path = "output.png";
+        *saved_path = path;
     }
-    return canvas_save_png(c, "output.png");
+    if (path_has_extension_ci(path, ".png")) {
+        return canvas_save_png(c, path);
+    }
+    return canvas_save_bmp(c, path);
 }
 
 static void hue_rotate_30(Canvas *c) {

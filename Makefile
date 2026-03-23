@@ -9,7 +9,7 @@ CFLAGS += $(shell sdl2-config --cflags)
 LDFLAGS += $(shell sdl2-config --libs)
 endif
 
-SRC = src/main.c src/app.c src/canvas.c src/image_io.c src/png_io.c src/layers.c
+SRC = src/main.c src/app.c src/canvas.c src/image_io.c src/png_io.c src/path_routing.c src/layers.c
 OBJ = $(SRC:.c=.o)
 BIN = openshop
 
@@ -19,6 +19,8 @@ IMAGE_TEST_BIN = image_selftest
 IMAGE_TEST_SRC = tests/image_selftest.c src/canvas.c
 PNG_TEST_BIN = png_selftest
 PNG_TEST_SRC = tests/png_selftest.c src/canvas.c src/png_io.c
+PATH_TEST_BIN = path_routing_selftest
+PATH_TEST_SRC = tests/path_routing_selftest.c src/path_routing.c
 SDL_TEST_BIN = image_io_smoke
 SDL_TEST_SRC = tests/image_io_smoke.c src/canvas.c src/image_io.c
 
@@ -40,10 +42,11 @@ $(BIN): check-sdl2 $(OBJ)
 
 src/app.o: check-sdl2
 
-test: $(TEST_BIN) $(IMAGE_TEST_BIN) $(PNG_TEST_BIN)
+test: $(TEST_BIN) $(IMAGE_TEST_BIN) $(PNG_TEST_BIN) $(PATH_TEST_BIN)
 	./$(TEST_BIN)
 	./$(IMAGE_TEST_BIN)
 	./$(PNG_TEST_BIN)
+	./$(PATH_TEST_BIN)
 
 test-sdl: check-sdl2 $(SDL_TEST_BIN)
 	./$(SDL_TEST_BIN)
@@ -57,10 +60,13 @@ $(IMAGE_TEST_BIN): $(IMAGE_TEST_SRC)
 $(PNG_TEST_BIN): $(PNG_TEST_SRC)
 	$(CC) -std=c11 -O2 -Wall -Wextra $(PNG_TEST_SRC) -o $(PNG_TEST_BIN) -lm
 
+$(PATH_TEST_BIN): $(PATH_TEST_SRC)
+	$(CC) -std=c11 -O2 -Wall -Wextra $(PATH_TEST_SRC) -o $(PATH_TEST_BIN)
+
 $(SDL_TEST_BIN): check-sdl2 $(SDL_TEST_SRC)
 	$(CC) $(CFLAGS) $(SDL_TEST_SRC) -o $(SDL_TEST_BIN) $(LDFLAGS) -lm
 
 clean:
-	rm -f $(OBJ) $(BIN) $(TEST_BIN) $(IMAGE_TEST_BIN) $(PNG_TEST_BIN) $(SDL_TEST_BIN)
+	rm -f $(OBJ) $(BIN) $(TEST_BIN) $(IMAGE_TEST_BIN) $(PNG_TEST_BIN) $(PATH_TEST_BIN) $(SDL_TEST_BIN)
 
 .PHONY: all clean test test-sdl
