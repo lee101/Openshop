@@ -827,6 +827,24 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    layer_stack_composite(&stack, &composite, 0xFFFFFFFF);
+    if (!expect_pixel_eq("opacity_zero_hides_layer", canvas_get_pixel(&composite, 0, 0), 0xFF0000FF)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_set_opacity(&stack, 1, 100) || stack.layers[1].opacity_percent != 100) {
+        fprintf(stderr, "opacity restore after clamp low failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    layer_stack_composite(&stack, &composite, 0xFFFFFFFF);
+    if (!expect_pixel_eq("opacity_full_restores_layer", canvas_get_pixel(&composite, 0, 0), 0xFF00807F)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_set_opacity(&stack, 1, 50)) {
         fprintf(stderr, "restore opacity after reset failed\n");
         canvas_free(&composite);
