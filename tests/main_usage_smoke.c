@@ -261,10 +261,8 @@ struct invalid_argv_case {
 
 #define INVALID_ARGV_CASE(label, argc_value, usage_text, arg0, arg1, arg2, arg3, arg4) \
     {label, argc_value, 0, usage_text, {arg0, arg1, arg2, arg3, arg4}}
-#define INVALID_NULL_ARGV_CASE(label, argc_value, usage_text, arg0, arg1, arg2, arg3, arg4) \
-    {label, argc_value, 1, usage_text, {arg0, arg1, arg2, arg3, arg4}}
 #define INVALID_NULL_ARGV_ONLY_CASE(label, argc_value, usage_text) \
-    INVALID_NULL_ARGV_CASE(label, argc_value, usage_text, NULL, NULL, NULL, NULL, NULL)
+    {label, argc_value, 1, usage_text, {NULL, NULL, NULL, NULL, NULL}}
 #define INVALID_SIZE_ONLY_ARGV_CASE(label, usage_text, program, width) \
     INVALID_ARGV_CASE(label, 3, usage_text, program, default_scene_path, width, NULL, NULL)
 #define INVALID_EXTRA_ARGV_CASE(label, usage_text, program) \
