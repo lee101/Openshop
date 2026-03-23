@@ -303,6 +303,16 @@ static int test_layers_basic(void) {
             return 0;
         }
     }
+    {
+        char status_message[128];
+        format_status_text_file_load("input.bmp", status_message, sizeof(status_message));
+        if (strcmp(status_message, "Failed to load input.bmp") != 0) {
+            fprintf(stderr, "file load status text formatting failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
     stack.layers[0].visible = 1;
     stack.layers[0].locked = 0;
     stack.layers[0].opacity_percent = 100;

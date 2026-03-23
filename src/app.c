@@ -686,7 +686,8 @@ int app_run(const char *input_path) {
     if (input_path && input_path[0]) {
         Layer *active = layer_stack_active(&layers);
         if (active && !canvas_load_bmp(&active->canvas, input_path, COLOR_BG)) {
-            fprintf(stderr, "Failed to load %s\n", input_path);
+            format_status_text_file_load(input_path, status_message, sizeof(status_message));
+            fprintf(stderr, "%s\n", status_message);
         }
     }
     layer_stack_composite(&layers, &composite, COLOR_BG);

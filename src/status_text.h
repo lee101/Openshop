@@ -35,5 +35,6 @@ const char *status_text_action_error(StatusTextAction action);
 void format_status_text_max_layers(int max_layers, char *buffer, size_t buffer_size);
 void format_status_text_startup(const char *label, char *buffer, size_t buffer_size);
 void format_status_text_sdl(const char *label, const char *detail, char *buffer, size_t buffer_size);
+void format_status_text_file_load(const char *path, char *buffer, size_t buffer_size);
 
 #endif

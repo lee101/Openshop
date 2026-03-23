@@ -79,3 +79,10 @@ void format_status_text_sdl(const char *label, const char *detail, char *buffer,
     }
     snprintf(buffer, buffer_size, "%s failed: %s", label ? label : "SDL", detail ? detail : "");
 }
+
+void format_status_text_file_load(const char *path, char *buffer, size_t buffer_size) {
+    if (!buffer || buffer_size == 0) {
+        return;
+    }
+    snprintf(buffer, buffer_size, "Failed to load %s", path ? path : "");
+}
