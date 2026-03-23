@@ -405,6 +405,27 @@ static int expect_default_invalid_size_only_case_groups(const struct invalid_siz
                                                         stderr_text, stderr_size, exit_code);
 }
 
+static int expect_main_invalid_size_only_case_groups(const struct invalid_size_token_case *custom_width_cases,
+                                                     size_t custom_width_case_count,
+                                                     const struct invalid_size_token_case *custom_height_cases,
+                                                     size_t custom_height_case_count,
+                                                     const struct invalid_size_token_case *default_height_cases,
+                                                     size_t default_height_case_count,
+                                                     const struct invalid_size_token_case *default_width_cases,
+                                                     size_t default_width_case_count,
+                                                     char *stderr_text, size_t stderr_size, int *exit_code,
+                                                     const char *custom_usage_text) {
+    if (!expect_custom_invalid_size_only_case_groups(custom_width_cases, custom_width_case_count,
+                                                     custom_height_cases, custom_height_case_count,
+                                                     stderr_text, stderr_size, exit_code, custom_usage_text)) {
+        return 0;
+    }
+
+    return expect_default_invalid_size_only_case_groups(default_height_cases, default_height_case_count,
+                                                        default_width_cases, default_width_case_count,
+                                                        stderr_text, stderr_size, exit_code);
+}
+
 static int expect_invalid_input_size_cases(const struct invalid_input_size_case *cases, size_t case_count,
                                            const char *program_name, const char *scene_token,
                                            char *stderr_text, size_t stderr_size, int *exit_code,
@@ -595,11 +616,15 @@ int main(void) {
         INVALID_SIZE_TOKEN_CASE("leading_space_size_only_width", leading_space_width_token),
         INVALID_SIZE_TOKEN_CASE("trailing_space_size_only_width", trailing_space_width_token),
     };
-    if (!expect_default_invalid_size_only_case_groups(invalid_size_only_height_cases,
-                                                      ARRAY_LEN(invalid_size_only_height_cases),
-                                                      invalid_size_only_width_cases,
-                                                      ARRAY_LEN(invalid_size_only_width_cases),
-                                                      stderr_text, sizeof(stderr_text), &exit_code)) {
+    if (!expect_main_invalid_size_only_case_groups(custom_invalid_size_only_width_cases,
+                                                   ARRAY_LEN(custom_invalid_size_only_width_cases),
+                                                   custom_invalid_size_only_height_cases,
+                                                   ARRAY_LEN(custom_invalid_size_only_height_cases),
+                                                   invalid_size_only_height_cases,
+                                                   ARRAY_LEN(invalid_size_only_height_cases),
+                                                   invalid_size_only_width_cases,
+                                                   ARRAY_LEN(invalid_size_only_width_cases),
+                                                   stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
