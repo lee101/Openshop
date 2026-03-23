@@ -1,4 +1,5 @@
 #include "app.h"
+#include "app_document.h"
 #include "app_history.h"
 #include "canvas.h"
 #include "image_io.h"
@@ -47,6 +48,10 @@ static void push_runtime_snapshot(const LayerStack *layers, AppRuntime *runtime)
 static int restore_runtime_history(LayerStack *layers, AppRuntime *runtime, int redo_to_undo);
 static int apply_runtime_canvas_transform(LayerStack *layers, AppRuntime *runtime, void (*transform)(Canvas *));
 static int apply_runtime_canvas_translation(LayerStack *layers, AppRuntime *runtime, int dx, int dy);
+static int save_document_canvas(const Canvas *canvas, const char *path, void *userdata);
+static int load_document_canvas(Canvas *canvas, const char *path, uint32_t clear_color, void *userdata);
+static int restore_document_history(LayerStack *layers, int redo_to_undo, void *userdata);
+static void push_document_snapshot(const LayerStack *layers, void *userdata);
 
 static uint32_t compose_brush_color(uint32_t rgb_color, int opacity_percent) {
     if (opacity_percent < 1) {
@@ -564,57 +569,104 @@ static int handle_document_shortcut(
     const Canvas *composite
 ) {
     int handled = 1;
+    AppDocumentState state = {
+        .preview_active = runtime ? runtime->preview_active : 0,
+        .needs_composite = runtime ? runtime->needs_composite : 0,
+    };
+    AppDocumentCallbacks callbacks = {
+        .save_canvas = save_document_canvas,
+        .load_canvas = load_document_canvas,
+        .restore_history = restore_document_history,
+        .push_snapshot = push_document_snapshot,
+        .userdata = runtime,
+    };
 
     if (ctrl && key == SDLK_s) {
-        const Canvas *save_canvas =
-            (runtime->preview_active && preview_canvas && preview_canvas->pixels) ? preview_canvas : composite;
-        if (!canvas_save_bmp(save_canvas, "output.bmp")) {
+        if (!app_document_apply(
+                APP_DOCUMENT_ACTION_SAVE,
+                layers,
+                &state,
+                preview_canvas,
+                composite,
+                active_layer_clear_color(layers),
+                &callbacks)) {
             fprintf(stderr, "Failed to save output.bmp\n");
         }
     } else if (ctrl && key == SDLK_o) {
         Layer *active = layer_stack_active(layers);
         if (!active || active->locked) {
             fprintf(stderr, "Active layer is locked\n");
-        } else {
-            push_runtime_snapshot(layers, runtime);
-            if (!canvas_load_bmp(&active->canvas, "input.bmp", active_layer_clear_color(layers))) {
-                fprintf(stderr, "Failed to load input.bmp\n");
-            } else {
-                runtime->needs_composite = 1;
-            }
+        } else if (!app_document_apply(
+                       APP_DOCUMENT_ACTION_LOAD,
+                       layers,
+                       &state,
+                       preview_canvas,
+                       composite,
+                       active_layer_clear_color(layers),
+                       &callbacks)) {
+            fprintf(stderr, "Failed to load input.bmp\n");
         }
     } else if (ctrl && key == SDLK_z) {
-        if (restore_runtime_history(layers, runtime, 0)) {
-            runtime->needs_composite = 1;
+        if (app_document_apply(
+                APP_DOCUMENT_ACTION_UNDO,
+                layers,
+                &state,
+                preview_canvas,
+                composite,
+                active_layer_clear_color(layers),
+                &callbacks)) {
             update_window_title_for_runtime(window, layers, runtime);
         }
     } else if (ctrl && key == SDLK_y) {
-        if (restore_runtime_history(layers, runtime, 1)) {
-            runtime->needs_composite = 1;
+        if (app_document_apply(
+                APP_DOCUMENT_ACTION_REDO,
+                layers,
+                &state,
+                preview_canvas,
+                composite,
+                active_layer_clear_color(layers),
+                &callbacks)) {
             update_window_title_for_runtime(window, layers, runtime);
         }
     } else if (ctrl && key == SDLK_0) {
-        Layer *active = layer_stack_active(layers);
-        if (active && active->opacity_percent != 100) {
-            push_runtime_snapshot(layers, runtime);
-            layer_stack_set_opacity(layers, layers->active_layer, 100);
-            runtime->needs_composite = 1;
-        }
+        app_document_apply(
+            APP_DOCUMENT_ACTION_RESET_OPACITY,
+            layers,
+            &state,
+            preview_canvas,
+            composite,
+            active_layer_clear_color(layers),
+            &callbacks
+        );
         update_window_title_for_runtime(window, layers, runtime);
     } else if (ctrl && key == SDLK_a) {
-        push_runtime_snapshot(layers, runtime);
-        if (layer_stack_show_all(layers)) {
-            runtime->needs_composite = 1;
-        }
+        app_document_apply(
+            APP_DOCUMENT_ACTION_SHOW_ALL,
+            layers,
+            &state,
+            preview_canvas,
+            composite,
+            active_layer_clear_color(layers),
+            &callbacks
+        );
         update_window_title_for_runtime(window, layers, runtime);
     } else if (ctrl && shift && key == SDLK_r) {
-        push_runtime_snapshot(layers, runtime);
-        if (layer_stack_show(layers, layers->active_layer)) {
-            runtime->needs_composite = 1;
-        }
+        app_document_apply(
+            APP_DOCUMENT_ACTION_SHOW_ACTIVE,
+            layers,
+            &state,
+            preview_canvas,
+            composite,
+            active_layer_clear_color(layers),
+            &callbacks
+        );
         update_window_title_for_runtime(window, layers, runtime);
     } else {
         handled = 0;
+    }
+
+    if (runtime) {
+        runtime->needs_composite = state.needs_composite;
     }
 
     return handled;
@@ -1436,6 +1488,26 @@ static void push_runtime_snapshot(const LayerStack *layers, AppRuntime *runtime)
         return;
     }
     snapshot_push(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
+}
+
+static int save_document_canvas(const Canvas *canvas, const char *path, void *userdata) {
+    (void)userdata;
+    return canvas_save_bmp(canvas, path);
+}
+
+static int load_document_canvas(Canvas *canvas, const char *path, uint32_t clear_color, void *userdata) {
+    (void)userdata;
+    return canvas_load_bmp(canvas, path, clear_color);
+}
+
+static int restore_document_history(LayerStack *layers, int redo_to_undo, void *userdata) {
+    AppRuntime *runtime = (AppRuntime *)userdata;
+    return restore_runtime_history(layers, runtime, redo_to_undo);
+}
+
+static void push_document_snapshot(const LayerStack *layers, void *userdata) {
+    AppRuntime *runtime = (AppRuntime *)userdata;
+    push_runtime_snapshot(layers, runtime);
 }
 
 static int restore_runtime_history(LayerStack *layers, AppRuntime *runtime, int redo_to_undo) {
