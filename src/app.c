@@ -485,6 +485,9 @@ static int canvas_load_default_input(
 ) {
     RoutedPath choice = resolve_routed_pair_choice(paths, "input.bmp", "input.png", prefer_png);
     const char *path = choice.path;
+    if (loaded_path) {
+        *loaded_path = path;
+    }
     if (!c) {
         return 0;
     }
@@ -492,9 +495,6 @@ static int canvas_load_default_input(
         *used_alternate = choice.used_alternate;
     }
     if (canvas_load_auto(c, path, background_color)) {
-        if (loaded_path) {
-            *loaded_path = path;
-        }
         return 1;
     }
     return 0;
