@@ -21,8 +21,7 @@ static const char *default_scene_path = "art/scene.png";
 static const char *default_input_path = "art/input.png";
 static const char *custom_program_name = "./bin/openshop-dev";
 static const char *custom_input_path = "art/custom.png";
-static const char *custom_numeric_input = "640";
-static const char *default_numeric_input = "640";
+static const char *numeric_input_token = "640";
 static const char *default_size_only_width = "640";
 static const char *default_size_only_height = "480";
 static const char *zero_token = "0";
@@ -499,10 +498,10 @@ int main(void) {
         {"default", 1, default_program_name, NULL, NULL, NULL, 0, 0, NULL, 0, 0, ""},
         {"custom_program_input", 2, custom_program_name, custom_input_path, NULL, NULL, 0, 0, custom_input_path, 0, 0, ""},
         {"custom_program_default", 1, custom_program_name, NULL, NULL, NULL, 0, 0, NULL, 0, 0, ""},
-        {"custom_program_numeric_input", 2, custom_program_name, custom_numeric_input, NULL, NULL, 0, 0, custom_numeric_input, 0, 0, ""},
+        {"custom_program_numeric_input", 2, custom_program_name, numeric_input_token, NULL, NULL, 0, 0, numeric_input_token, 0, 0, ""},
         {"custom_program_nonzero", 2, custom_program_name, custom_input_path, NULL, NULL, 5, 5, custom_input_path, 0, 0, app_exit_code_5_stderr},
         {"input_only", 2, default_program_name, default_input_path, NULL, NULL, 0, 0, default_input_path, 0, 0, ""},
-        {"numeric_input", 2, default_program_name, default_numeric_input, NULL, NULL, 0, 0, default_numeric_input, 0, 0, ""},
+        {"numeric_input", 2, default_program_name, numeric_input_token, NULL, NULL, 0, 0, numeric_input_token, 0, 0, ""},
         {"size_only", 3, default_program_name, default_size_only_width, default_size_only_height, NULL, 7, 7, NULL, default_size_only_canvas_w, default_size_only_canvas_h, app_exit_code_7_stderr},
         {"plus_prefixed_size_only", 3, default_program_name, default_plus_prefixed_size_only_width, default_size_only_height, NULL, 0, 0, NULL, default_size_only_canvas_w, default_size_only_canvas_h, ""},
         {"custom_program_size_only", 3, custom_program_name, custom_size_only_width, custom_size_only_height, NULL, 0, 0, NULL, custom_size_only_canvas_w, custom_size_only_canvas_h, ""},
