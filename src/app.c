@@ -673,6 +673,14 @@ static int layer_stack_show_all_action(LayerStack *stack, int index) {
     return layer_stack_show_all(stack);
 }
 
+static int layer_stack_move_down_action(LayerStack *stack, int index) {
+    return layer_stack_move(stack, index, -1);
+}
+
+static int layer_stack_move_up_action(LayerStack *stack, int index) {
+    return layer_stack_move(stack, index, 1);
+}
+
 static void erase_stamp(Canvas *c, int cx, int cy, int radius, uint32_t clear_color, BrushShape shape) {
     if (!c || !c->pixels || radius <= 0) {
         return;
@@ -1155,24 +1163,22 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_LEFTBRACKET) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_move(&layers, layers.active_layer, -1)) {
-                        fprintf(stderr, "Layer is already at the bottom\n");
-                    } else {
+                    if (apply_layer_stack_action(
+                            window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            layer_stack_move_down_action, layers.active_layer, "Layer is already at the bottom",
+                            tool, brush_shape, brush_radius, brush_color, brush_opacity)) {
                         needs_composite = 1;
                     }
-                    refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
                 if (ctrl && key == SDLK_RIGHTBRACKET) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_move(&layers, layers.active_layer, 1)) {
-                        fprintf(stderr, "Layer is already at the top\n");
-                    } else {
+                    if (apply_layer_stack_action(
+                            window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            layer_stack_move_up_action, layers.active_layer, "Layer is already at the top",
+                            tool, brush_shape, brush_radius, brush_color, brush_opacity)) {
                         needs_composite = 1;
                     }
-                    refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
@@ -1295,24 +1301,24 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_m) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_merge_down(&layers, layers.active_layer)) {
-                        fprintf(stderr, "No lower layer to merge into, or one of the layers is locked\n");
-                    } else {
+                    if (apply_layer_stack_action(
+                            window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            layer_stack_merge_down, layers.active_layer,
+                            "No lower layer to merge into, or one of the layers is locked",
+                            tool, brush_shape, brush_radius, brush_color, brush_opacity)) {
                         needs_composite = 1;
                     }
-                    refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
                 if (ctrl && key == SDLK_u) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_merge_up(&layers, layers.active_layer)) {
-                        fprintf(stderr, "No upper layer to merge into, or one of the layers is locked\n");
-                    } else {
+                    if (apply_layer_stack_action(
+                            window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            layer_stack_merge_up, layers.active_layer,
+                            "No upper layer to merge into, or one of the layers is locked",
+                            tool, brush_shape, brush_radius, brush_color, brush_opacity)) {
                         needs_composite = 1;
                     }
-                    refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
