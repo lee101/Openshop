@@ -186,6 +186,30 @@ static int layer_stack_hide_and_focus_direction(LayerStack *stack, int index, in
     return 1;
 }
 
+static int layer_stack_lock_and_focus_direction(LayerStack *stack, int index, int direction) {
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    stack->layers[index].locked = 1;
+    if (stack->layer_count == 1) {
+        stack->active_layer = index;
+        return 1;
+    }
+    for (int offset = 1; offset < stack->layer_count; offset++) {
+        int next = index + (direction * offset);
+        while (next < 0) {
+            next += stack->layer_count;
+        }
+        next %= stack->layer_count;
+        if (!stack->layers[next].locked) {
+            stack->active_layer = next;
+            return 1;
+        }
+    }
+    stack->active_layer = index;
+    return 1;
+}
+
 typedef enum {
     VISIBILITY_REMAP_INVERT = 0,
     VISIBILITY_REMAP_SHOW_HIDDEN,
@@ -583,47 +607,11 @@ int layer_stack_hide_and_retreat(LayerStack *stack, int index) {
 }
 
 int layer_stack_lock_and_advance(LayerStack *stack, int index) {
-    if (!stack || index < 0 || index >= stack->layer_count) {
-        return 0;
-    }
-    stack->layers[index].locked = 1;
-    if (stack->layer_count == 1) {
-        stack->active_layer = index;
-        return 1;
-    }
-    for (int offset = 1; offset < stack->layer_count; offset++) {
-        int next = (index + offset) % stack->layer_count;
-        if (!stack->layers[next].locked) {
-            stack->active_layer = next;
-            return 1;
-        }
-    }
-    stack->active_layer = index;
-    return 1;
+    return layer_stack_lock_and_focus_direction(stack, index, 1);
 }
 
 int layer_stack_lock_and_retreat(LayerStack *stack, int index) {
-    if (!stack || index < 0 || index >= stack->layer_count) {
-        return 0;
-    }
-    stack->layers[index].locked = 1;
-    if (stack->layer_count == 1) {
-        stack->active_layer = index;
-        return 1;
-    }
-    for (int offset = 1; offset < stack->layer_count; offset++) {
-        int next = index - offset;
-        while (next < 0) {
-            next += stack->layer_count;
-        }
-        next %= stack->layer_count;
-        if (!stack->layers[next].locked) {
-            stack->active_layer = next;
-            return 1;
-        }
-    }
-    stack->active_layer = index;
-    return 1;
+    return layer_stack_lock_and_focus_direction(stack, index, -1);
 }
 
 int layer_stack_toggle_visibility(LayerStack *stack, int index) {
