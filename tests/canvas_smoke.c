@@ -1051,6 +1051,24 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_set_opacity(&stack, 1, 35)) {
+        fprintf(stderr, "set clear-layer opacity failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    layer_stack_composite(&stack, &composite, 0xFFFFFFFF);
+    if (!expect_pixel_eq("clear_layer_composite_opacity", canvas_get_pixel(&composite, 8, 8), 0xFFE2EEF9)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_set_opacity(&stack, 1, locked_layer_opacity)) {
+        fprintf(stderr, "restore clear-layer opacity failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (stack.active_layer != 1 || stack.solo_index != 1 || stack.layers[1].visible != locked_layer_visible || stack.layers[1].locked ||
         stack.layers[1].opacity_percent != locked_layer_opacity || strcmp(stack.layers[1].name, locked_layer_name) != 0) {
         fprintf(stderr, "clear layer should preserve layer bookkeeping\n");
