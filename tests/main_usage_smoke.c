@@ -407,6 +407,11 @@ static int expect_success_cases(const struct success_case *cases, size_t case_co
     return 1;
 }
 
+static int expect_main_success_cases(const struct success_case *cases, size_t case_count,
+                                     char *stderr_text, size_t stderr_size, int *exit_code) {
+    return expect_success_cases(cases, case_count, stderr_text, stderr_size, exit_code);
+}
+
 static int expect_invalid_argv_cases(const struct invalid_argv_case *cases, size_t case_count,
                                      char *stderr_text, size_t stderr_size, int *exit_code) {
     size_t i = 0;
@@ -597,9 +602,9 @@ int main(void) {
         SUCCESS_INPUT_SIZE_CASE_EMPTY_STDERR("input_size", default_program_name, default_scene_path, input_size_width_token, input_size_height_token, 0, 0, input_size_canvas_w, input_size_canvas_h),
         SUCCESS_INPUT_SIZE_CASE_EMPTY_STDERR("plus_prefixed", default_program_name, default_scene_path, default_plus_prefixed_width_token, default_size_only_height, 0, 0, default_size_only_canvas_w, default_size_only_canvas_h),
     };
-    if (!expect_success_cases(success_cases,
-                              ARRAY_LEN(success_cases),
-                              stderr_text, sizeof(stderr_text), &exit_code)) {
+    if (!expect_main_success_cases(success_cases,
+                                   ARRAY_LEN(success_cases),
+                                   stderr_text, sizeof(stderr_text), &exit_code)) {
         return 1;
     }
 
