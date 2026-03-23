@@ -507,6 +507,13 @@ int main(void) {
         return 1;
     }
 
+    char *argv_custom_program_negative_height[] = {
+        (char *)custom_program_name, (char *)default_scene_path, (char *)default_size_only_width, (char *)negative_size_only_height};
+    if (!expect_invalid_main_run_with_usage("custom_program_negative_height", 4, argv_custom_program_negative_height,
+                                            stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+        return 1;
+    }
+
     char *argv_custom_program_null_height[] = {
         (char *)custom_program_name, (char *)default_scene_path, (char *)default_size_only_width, NULL};
     if (!expect_invalid_main_run_with_usage("custom_program_null_height", 4, argv_custom_program_null_height,
