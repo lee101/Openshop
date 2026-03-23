@@ -578,6 +578,31 @@ static int try_commit_shape(LayerStack *layers,
     return 1;
 }
 
+static int try_sample_canvas_color(const Canvas *sample, int x, int y,
+                                   uint32_t *brush_color_rgb, uint32_t *brush_color,
+                                   int *brush_opacity, Tool *tool) {
+    uint32_t sampled_color;
+    int sampled_alpha;
+
+    if (!sample || !brush_color_rgb || !brush_color || !brush_opacity || !tool) {
+        return 0;
+    }
+    if (x < 0 || y < 0 || x >= sample->width || y >= sample->height) {
+        return 0;
+    }
+
+    sampled_color = canvas_get_pixel(sample, x, y);
+    *brush_color_rgb = sampled_color & 0x00FFFFFF;
+    sampled_alpha = (int)((sampled_color >> 24) & 0xFF);
+    *brush_opacity = (sampled_alpha * 100 + 127) / 255;
+    if (*brush_opacity < 1) {
+        *brush_opacity = 1;
+    }
+    *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+    *tool = TOOL_BRUSH;
+    return 1;
+}
+
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
     switch (shape) {
     case BRUSH_SHAPE_ROUND:
@@ -1001,17 +1026,8 @@ int app_run(const char *input_path) {
                     }
                     int x = e.button.x;
                     int y = e.button.y;
-                    if (x >= 0 && y >= 0 && x < CANVAS_WIDTH && y < CANVAS_HEIGHT) {
-                        const Canvas *sample = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
-                        brush_color = canvas_get_pixel(sample, x, y);
-                        brush_color_rgb = brush_color & 0x00FFFFFF;
-                        int sampled_alpha = (int)((brush_color >> 24) & 0xFF);
-                        brush_opacity = (sampled_alpha * 100 + 127) / 255;
-                        if (brush_opacity < 1) {
-                            brush_opacity = 1;
-                        }
-                        brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                        tool = TOOL_BRUSH;
+                    const Canvas *sample = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
+                    if (try_sample_canvas_color(sample, x, y, &brush_color_rgb, &brush_color, &brush_opacity, &tool)) {
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                 }
@@ -1760,18 +1776,8 @@ int app_run(const char *input_path) {
                     int mx = 0;
                     int my = 0;
                     SDL_GetMouseState(&mx, &my);
-                    if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
-                        const Canvas *sample = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
-                        brush_color = canvas_get_pixel(sample, mx, my);
-                        brush_color_rgb = brush_color & 0x00FFFFFF;
-                        int sampled_alpha = (int)((brush_color >> 24) & 0xFF);
-                        brush_opacity = (sampled_alpha * 100 + 127) / 255;
-                        if (brush_opacity < 1) {
-                            brush_opacity = 1;
-                        }
-                        brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                        tool = TOOL_BRUSH;
-                    }
+                    const Canvas *sample = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
+                    try_sample_canvas_color(sample, mx, my, &brush_color_rgb, &brush_color, &brush_opacity, &tool);
                 }
 
                 update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
