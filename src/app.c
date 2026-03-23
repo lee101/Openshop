@@ -31,6 +31,10 @@
 #define BLUR_RADIUS_DEFAULT 2
 #define BLUR_RADIUS_MIN 1
 #define BLUR_RADIUS_MAX 8
+#define BRIGHTNESS_DEFAULT 20
+#define BRIGHTNESS_STEP 5
+#define BRIGHTNESS_MIN -255
+#define BRIGHTNESS_MAX 255
 #define FILTER_ADJUST_DEFAULT 20
 #define FILTER_ADJUST_STEP 5
 #define FILTER_ADJUST_MIN 5
@@ -94,6 +98,7 @@ typedef struct {
     int posterize_levels;
     int threshold_value;
     int blur_radius;
+    int brightness_delta;
     int filter_adjust_step;
     int contrast_delta;
     int saturation_delta;
@@ -107,6 +112,7 @@ static FilterSettings default_filter_settings(void) {
         POSTERIZE_LEVELS_DEFAULT,
         THRESHOLD_DEFAULT,
         BLUR_RADIUS_DEFAULT,
+        BRIGHTNESS_DEFAULT,
         FILTER_ADJUST_DEFAULT,
         CONTRAST_DEFAULT,
         SATURATION_DEFAULT,
@@ -313,7 +319,7 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
     snprintf(
         title,
         sizeof(title),
-        "Openshop - %s (%s) | size %d | brush %d%% | fill tol %d | pixel %d | post %d | thresh %d | blur %d | adjust %d | contrast %d | sat %d | hue %d | layer %d/%d %s [%s%s %d%%]%s | visible %d/%d | #%08X",
+        "Openshop - %s (%s) | size %d | brush %d%% | fill tol %d | pixel %d | post %d | thresh %d | blur %d | bright %d | adjust %d | contrast %d | sat %d | hue %d | layer %d/%d %s [%s%s %d%%]%s | visible %d/%d | #%08X",
         tool_label(tool),
         brush_shape_label(brush_shape),
         radius,
@@ -323,6 +329,7 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
         g_filter_settings.posterize_levels,
         g_filter_settings.threshold_value,
         g_filter_settings.blur_radius,
+        g_filter_settings.brightness_delta,
         g_filter_settings.filter_adjust_step,
         g_filter_settings.contrast_delta,
         g_filter_settings.saturation_delta,
@@ -417,6 +424,16 @@ static int clamp_blur_radius(int radius) {
         return BLUR_RADIUS_MAX;
     }
     return radius;
+}
+
+static int clamp_brightness_delta(int delta) {
+    if (delta < BRIGHTNESS_MIN) {
+        return BRIGHTNESS_MIN;
+    }
+    if (delta > BRIGHTNESS_MAX) {
+        return BRIGHTNESS_MAX;
+    }
+    return delta;
 }
 
 static int clamp_filter_adjust_step(int step) {
@@ -1201,6 +1218,20 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (alt && key == SDLK_u) {
+                    settings.brightness_delta = clamp_brightness_delta(settings.brightness_delta - BRIGHTNESS_STEP);
+                    apply_filter_settings_and_refresh_title(
+                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
+                if (alt && key == SDLK_i) {
+                    settings.brightness_delta = clamp_brightness_delta(settings.brightness_delta + BRIGHTNESS_STEP);
+                    apply_filter_settings_and_refresh_title(
+                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
                 if (alt && key == SDLK_UP) {
                     settings.filter_adjust_step = clamp_filter_adjust_step(settings.filter_adjust_step + FILTER_ADJUST_STEP);
                     apply_filter_settings_and_refresh_title(
@@ -1841,6 +1872,11 @@ int app_run(const char *input_path) {
                 } else if (key == SDLK_y) {
                     if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
                             canvas_adjust_saturation, settings.saturation_delta)) {
+                        needs_composite = 1;
+                    }
+                } else if (key == SDLK_u) {
+                    if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            canvas_adjust_brightness, settings.brightness_delta)) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_k) {

@@ -1050,6 +1050,12 @@ int main(void) {
             return 1;
         }
     }
+    canvas_set_pixel_raw(&bright_c, 0, 0, 0x80010203);
+    canvas_adjust_brightness(&bright_c, -10);
+    if (!expect_pixel_eq("brightness_alpha_preserved", canvas_get_pixel(&bright_c, 0, 0), 0x80000000)) {
+        canvas_free(&bright_c);
+        return 1;
+    }
     canvas_free(&bright_c);
 
     /* --- canvas_adjust_contrast ---
@@ -1111,6 +1117,12 @@ int main(void) {
         canvas_free(&post_c);
         return 1;
     }
+    canvas_set_pixel_raw(&post_c, 0, 0, 0x80804020);
+    canvas_posterize(&post_c, 2);
+    if (!expect_pixel_eq("posterize_alpha_preserved", canvas_get_pixel(&post_c, 0, 0), 0x80FF0000)) {
+        canvas_free(&post_c);
+        return 1;
+    }
     canvas_free(&post_c);
 
     /* --- canvas_threshold ---
@@ -1131,6 +1143,12 @@ int main(void) {
     canvas_set_pixel_raw(&thresh_c, 0, 0, 0xFF101010);
     canvas_threshold(&thresh_c, 128);
     if (!expect_pixel_eq("threshold_black", canvas_get_pixel(&thresh_c, 0, 0), 0xFF000000)) {
+        canvas_free(&thresh_c);
+        return 1;
+    }
+    canvas_set_pixel_raw(&thresh_c, 0, 0, 0x8080A0C0);
+    canvas_threshold(&thresh_c, 128);
+    if (!expect_pixel_eq("threshold_alpha_preserved", canvas_get_pixel(&thresh_c, 0, 0), 0x80FFFFFF)) {
         canvas_free(&thresh_c);
         return 1;
     }

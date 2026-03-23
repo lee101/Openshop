@@ -71,6 +71,7 @@ make test-sdl
 - `Alt+[ / Alt+]`: posterize level down/up
 - `Alt+, / Alt+.`: threshold down/up
 - `Alt+H / Alt+L`: contrast amount down/up
+- `Alt+U / Alt+I`: brightness amount down/up
 - `Alt+Left / Alt+Right`: saturation amount down/up
 - `Alt+J / Alt+K`: hue-shift amount down/up
 - `Alt+V / Alt+B`: blur radius down/up
@@ -93,7 +94,7 @@ make test-sdl
 - `Ctrl+S`: save the composited image to `output.bmp`
 - `Ctrl+O`: load `input.bmp` into the active layer
 - `Q / W`: rotate the active layer 90 degrees clockwise / counter-clockwise
-- `G / S / M / Y / K`: grayscale / sepia / hue-shift / saturation-adjust / contrast-adjust the active layer
+- `G / S / M / Y / U / K`: grayscale / sepia / hue-shift / saturation-adjust / brightness-adjust / contrast-adjust the active layer
 - `Z / N`: posterize / threshold the active layer using the current settings
 - `Ctrl+Z` / `Ctrl+Y`: undo / redo (layer-aware)
 - `Esc`: quit

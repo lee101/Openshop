@@ -240,6 +240,7 @@ int main(void) {
     canvas_set_pixel(&c, 48, 36, 0x8040FF80);
     canvas_shift_hue(&c, 90);
     canvas_adjust_saturation(&c, -35);
+    canvas_adjust_brightness(&c, -10);
     canvas_adjust_contrast(&c, -20);
     canvas_adjust_brightness(&c, 12);
     canvas_posterize(&c, 5);
@@ -252,7 +253,7 @@ int main(void) {
     }
 
     uint64_t filter_hash = fnv1a64(c.pixels, (size_t)c.width * (size_t)c.height);
-    const uint64_t expected_filter_hash = 0x743580E1EA7E64A9ULL;
+    const uint64_t expected_filter_hash = 0x814EA0DDAF595352ULL;
     if (filter_hash != expected_filter_hash) {
         fprintf(stderr, "filter stack hash mismatch expected=0x%016llX actual=0x%016llX\n",
                 (unsigned long long)expected_filter_hash,
