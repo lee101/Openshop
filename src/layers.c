@@ -143,7 +143,14 @@ static int layer_stack_hide_and_focus_direction(LayerStack *stack, int index, in
     return 1;
 }
 
-static int layer_stack_flip_visibility(LayerStack *stack, int preserve_index) {
+typedef enum {
+    VISIBILITY_REMAP_INVERT = 0,
+    VISIBILITY_REMAP_SHOW_HIDDEN,
+    VISIBILITY_REMAP_SHOW_LOCKED,
+    VISIBILITY_REMAP_SHOW_UNLOCKED
+} VisibilityRemapMode;
+
+static int layer_stack_remap_visibility(LayerStack *stack, int preserve_index, VisibilityRemapMode mode) {
     if (!stack || stack->layer_count <= 0) {
         return 0;
     }
@@ -153,55 +160,26 @@ static int layer_stack_flip_visibility(LayerStack *stack, int preserve_index) {
 
     int visible_count = 0;
     for (int i = 0; i < stack->layer_count; i++) {
-        int next_visible = stack->layers[i].visible ? 0 : 1;
+        int next_visible = 0;
+        switch (mode) {
+        case VISIBILITY_REMAP_INVERT:
+        case VISIBILITY_REMAP_SHOW_HIDDEN:
+            next_visible = stack->layers[i].visible ? 0 : 1;
+            break;
+        case VISIBILITY_REMAP_SHOW_LOCKED:
+            next_visible = stack->layers[i].locked ? 1 : 0;
+            break;
+        case VISIBILITY_REMAP_SHOW_UNLOCKED:
+            next_visible = stack->layers[i].locked ? 0 : 1;
+            break;
+        default:
+            next_visible = stack->layers[i].visible ? 0 : 1;
+            break;
+        }
         stack->layers[i].visible = next_visible;
         visible_count += next_visible;
     }
 
-    if (visible_count == 0) {
-        stack->layers[preserve_index].visible = 1;
-    }
-    stack->active_layer = preserve_index;
-    stack->solo_index = -1;
-    return 1;
-}
-
-static int layer_stack_filter_visibility(LayerStack *stack, int preserve_index, int keep_unlocked) {
-    if (!stack || stack->layer_count <= 0) {
-        return 0;
-    }
-    if (preserve_index < 0 || preserve_index >= stack->layer_count) {
-        preserve_index = stack->active_layer;
-    }
-
-    int visible_count = 0;
-    for (int i = 0; i < stack->layer_count; i++) {
-        int next_visible = keep_unlocked ? (stack->layers[i].locked ? 0 : 1) : (stack->layers[i].visible ? 0 : 1);
-        stack->layers[i].visible = next_visible;
-        visible_count += next_visible;
-    }
-    if (visible_count == 0) {
-        stack->layers[preserve_index].visible = 1;
-    }
-    stack->active_layer = preserve_index;
-    stack->solo_index = -1;
-    return 1;
-}
-
-static int layer_stack_filter_lock_visibility(LayerStack *stack, int preserve_index, int show_locked) {
-    if (!stack || stack->layer_count <= 0) {
-        return 0;
-    }
-    if (preserve_index < 0 || preserve_index >= stack->layer_count) {
-        preserve_index = stack->active_layer;
-    }
-
-    int visible_count = 0;
-    for (int i = 0; i < stack->layer_count; i++) {
-        int next_visible = show_locked ? (stack->layers[i].locked ? 1 : 0) : (stack->layers[i].locked ? 0 : 1);
-        stack->layers[i].visible = next_visible;
-        visible_count += next_visible;
-    }
     if (visible_count == 0) {
         stack->layers[preserve_index].visible = 1;
     }
@@ -461,19 +439,19 @@ int layer_stack_isolate(LayerStack *stack, int index) {
 }
 
 int layer_stack_invert_visibility(LayerStack *stack, int preserve_index) {
-    return layer_stack_flip_visibility(stack, preserve_index);
+    return layer_stack_remap_visibility(stack, preserve_index, VISIBILITY_REMAP_INVERT);
 }
 
 int layer_stack_show_hidden_only(LayerStack *stack, int preserve_index) {
-    return layer_stack_filter_visibility(stack, preserve_index, 0);
+    return layer_stack_remap_visibility(stack, preserve_index, VISIBILITY_REMAP_SHOW_HIDDEN);
 }
 
 int layer_stack_show_locked_only(LayerStack *stack, int preserve_index) {
-    return layer_stack_filter_lock_visibility(stack, preserve_index, 1);
+    return layer_stack_remap_visibility(stack, preserve_index, VISIBILITY_REMAP_SHOW_LOCKED);
 }
 
 int layer_stack_show_unlocked_only(LayerStack *stack, int preserve_index) {
-    return layer_stack_filter_lock_visibility(stack, preserve_index, 0);
+    return layer_stack_remap_visibility(stack, preserve_index, VISIBILITY_REMAP_SHOW_UNLOCKED);
 }
 
 int layer_stack_reveal_hidden(LayerStack *stack, int direction) {
