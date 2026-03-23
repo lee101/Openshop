@@ -818,6 +818,7 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    int locked_layer_locked = stack.layers[1].locked;
     int locked_layer_active = stack.active_layer;
     int locked_layer_visible = stack.layers[1].visible;
     int locked_layer_opacity = stack.layers[1].opacity_percent;
@@ -860,7 +861,8 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (stack.active_layer != locked_layer_active || stack.layers[1].visible != locked_layer_visible ||
+    if (stack.active_layer != locked_layer_active || stack.layers[1].locked != locked_layer_locked ||
+        stack.layers[1].visible != locked_layer_visible ||
         stack.layers[1].opacity_percent != locked_layer_opacity || strcmp(stack.layers[1].name, locked_layer_name) != 0) {
         fprintf(stderr, "locked-operation failures should preserve layer bookkeeping\n");
         canvas_free(&composite);
