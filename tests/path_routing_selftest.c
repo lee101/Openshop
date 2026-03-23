@@ -188,6 +188,12 @@ int main(void) {
         return 1;
     }
 
+    init_routed_path_pair(&pair, NULL, long_seed);
+    if (!expect_str("pair_oversized_fallback_bmp", pair.bmp, "") ||
+        !expect_str("pair_oversized_fallback_png", pair.png, "")) {
+        return 1;
+    }
+
     if (!expect_str("generic_prefer_png", default_routed_path("draft.bmp", "draft.png", 1, 1, 1), "draft.png") ||
         !expect_str("generic_prefer_bmp_existing", default_routed_path("draft.bmp", "draft.png", 0, 1, 1), "draft.bmp") ||
         !expect_str("generic_fallback_png", default_routed_path("draft.bmp", "draft.png", 0, 0, 1), "draft.png") ||

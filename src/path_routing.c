@@ -92,8 +92,11 @@ void init_routed_path_pair(RoutedPathPair *paths, const char *seed_path, const c
         paths->png[0] = '\0';
         return;
     }
-    snprintf(paths->bmp, sizeof(paths->bmp), "%s.bmp", fallback_stem);
-    snprintf(paths->png, sizeof(paths->png), "%s.png", fallback_stem);
+    if (snprintf(paths->bmp, sizeof(paths->bmp), "%s.bmp", fallback_stem) >= (int)sizeof(paths->bmp) ||
+        snprintf(paths->png, sizeof(paths->png), "%s.png", fallback_stem) >= (int)sizeof(paths->png)) {
+        paths->bmp[0] = '\0';
+        paths->png[0] = '\0';
+    }
 }
 
 const char *default_routed_path(
