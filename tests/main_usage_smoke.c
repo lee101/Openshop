@@ -34,6 +34,7 @@ static const int app_run_not_called = 0;
 static const int app_run_called_once = 1;
 static const int app_exit_code_7 = 7;
 static const int app_exit_code_5 = 5;
+static char **const default_usage_argv = NULL;
 static const char *empty_token = "";
 static const char *empty_stderr = "";
 static const char *const no_input_path = NULL;
@@ -206,7 +207,7 @@ static int expect_invalid_run(const char *label_prefix, int exit_code, const cha
     if (!expect_int(label, app_run_called, app_run_not_called)) {
         return 0;
     }
-    if (!format_cli_usage(expected_usage_text, sizeof(expected_usage_text), NULL)) {
+    if (!format_cli_usage(expected_usage_text, sizeof(expected_usage_text), default_usage_argv)) {
         fprintf(stderr, "%s_usage_build: failed to format usage text\n", label_prefix);
         return 0;
     }
