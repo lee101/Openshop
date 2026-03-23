@@ -637,6 +637,27 @@ static int apply_canvas_transform_int(
     return 1;
 }
 
+static int apply_canvas_transform_u8(
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    void (*transform)(Canvas *, uint8_t),
+    uint8_t value
+) {
+    if (!layers || !transform) {
+        return 0;
+    }
+    Layer *active = layer_stack_active(layers);
+    if (!active || active->locked || !active->canvas.pixels) {
+        return 0;
+    }
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    transform(&active->canvas, value);
+    return 1;
+}
+
 static int apply_canvas_translation(
     LayerStack *layers,
     Snapshot *undo_stack,
@@ -1761,7 +1782,7 @@ int app_run(const char *input_path) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_n) {
-                    if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                    if (apply_canvas_transform_u8(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
                             canvas_threshold, settings.threshold_value)) {
                         needs_composite = 1;
                     }
