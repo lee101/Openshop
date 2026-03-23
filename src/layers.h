@@ -35,6 +35,8 @@ int layer_stack_cycle_visible(LayerStack *stack, int direction);
 int layer_stack_cycle_hidden(LayerStack *stack, int direction);
 int layer_stack_select_bottom_visible(LayerStack *stack);
 int layer_stack_select_top_visible(LayerStack *stack);
+int layer_stack_select_bottom_hidden(LayerStack *stack);
+int layer_stack_select_top_hidden(LayerStack *stack);
 int layer_stack_toggle_visibility(LayerStack *stack, int index);
 int layer_stack_toggle_lock(LayerStack *stack, int index);
 int layer_stack_show_all(LayerStack *stack);

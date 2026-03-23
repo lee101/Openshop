@@ -243,6 +243,32 @@ int layer_stack_select_top_visible(LayerStack *stack) {
     return -1;
 }
 
+int layer_stack_select_bottom_hidden(LayerStack *stack) {
+    if (!stack || stack->layer_count <= 0) {
+        return -1;
+    }
+    for (int i = 0; i < stack->layer_count; i++) {
+        if (!stack->layers[i].visible) {
+            stack->active_layer = i;
+            return i;
+        }
+    }
+    return -1;
+}
+
+int layer_stack_select_top_hidden(LayerStack *stack) {
+    if (!stack || stack->layer_count <= 0) {
+        return -1;
+    }
+    for (int i = stack->layer_count - 1; i >= 0; i--) {
+        if (!stack->layers[i].visible) {
+            stack->active_layer = i;
+            return i;
+        }
+    }
+    return -1;
+}
+
 int layer_stack_toggle_solo(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
