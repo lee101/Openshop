@@ -453,6 +453,26 @@ int layer_stack_hide_and_retreat(LayerStack *stack, int index) {
     return layer_stack_hide_and_focus_direction(stack, index, -1);
 }
 
+int layer_stack_lock_and_advance(LayerStack *stack, int index) {
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    stack->layers[index].locked = 1;
+    if (stack->layer_count == 1) {
+        stack->active_layer = index;
+        return 1;
+    }
+    for (int offset = 1; offset < stack->layer_count; offset++) {
+        int next = (index + offset) % stack->layer_count;
+        if (!stack->layers[next].locked) {
+            stack->active_layer = next;
+            return 1;
+        }
+    }
+    stack->active_layer = index;
+    return 1;
+}
+
 int layer_stack_toggle_visibility(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
