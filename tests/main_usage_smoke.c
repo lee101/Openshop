@@ -270,6 +270,14 @@ struct simple_success_case {
     const char *expected_stderr;
 };
 
+struct invalid_edge_case {
+    const char *label_prefix;
+    int argc;
+    int use_null_argv;
+    char *program_name;
+    char *input_token;
+};
+
 static int expect_invalid_size_only_height_cases(const struct invalid_size_token_case *cases, size_t case_count,
                                                  char *stderr_text, size_t stderr_size, int *exit_code) {
     size_t i = 0;
@@ -372,6 +380,22 @@ static int expect_simple_success_cases(const struct simple_success_case *cases, 
                                         stderr_size, exit_code, cases[i].expected_exit_code,
                                         cases[i].expected_input_path, cases[i].expected_canvas_w,
                                         cases[i].expected_canvas_h, cases[i].expected_stderr)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int expect_invalid_edge_cases(const struct invalid_edge_case *cases, size_t case_count,
+                                     char *stderr_text, size_t stderr_size, int *exit_code) {
+    size_t i = 0;
+
+    for (i = 0; i < case_count; i += 1) {
+        char *argv[] = {cases[i].program_name, cases[i].input_token};
+        char **argv_ptr = cases[i].use_null_argv ? NULL : argv;
+
+        if (!expect_invalid_main_run(cases[i].label_prefix, cases[i].argc, argv_ptr, stderr_text, stderr_size,
+                                     exit_code)) {
             return 0;
         }
     }
@@ -528,32 +552,17 @@ int main(void) {
         return 1;
     }
 
-    if (!expect_invalid_main_run("null_argv", 1, NULL, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_null_program[] = {NULL};
-    if (!expect_invalid_main_run("null_program", 1, argv_null_program, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_zero_argc[] = {"openshop"};
-    if (!expect_invalid_main_run("zero_argc", 0, argv_zero_argc, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_empty_program[] = {""};
-    if (!expect_invalid_main_run("empty_program", 1, argv_empty_program, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_empty_input[] = {"openshop", ""};
-    if (!expect_invalid_main_run("empty_input", 2, argv_empty_input, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_null_input[] = {"openshop", NULL};
-    if (!expect_invalid_main_run("null_input", 2, argv_null_input, stderr_text, sizeof(stderr_text), &exit_code)) {
+    struct invalid_edge_case invalid_edge_cases[] = {
+        {"null_argv", 1, 1, NULL, NULL},
+        {"null_program", 1, 0, NULL, NULL},
+        {"zero_argc", 0, 0, "openshop", NULL},
+        {"empty_program", 1, 0, "", NULL},
+        {"empty_input", 2, 0, "openshop", ""},
+        {"null_input", 2, 0, "openshop", NULL},
+    };
+    if (!expect_invalid_edge_cases(invalid_edge_cases,
+                                   sizeof(invalid_edge_cases) / sizeof(invalid_edge_cases[0]),
+                                   stderr_text, sizeof(stderr_text), &exit_code)) {
         return 1;
     }
 
