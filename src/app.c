@@ -239,6 +239,35 @@ static BrushShape cycle_brush_shape(BrushShape shape, int direction) {
     return (BrushShape)idx;
 }
 
+static const char *hidden_layer_hint(const LayerStack *layers) {
+    if (!layers) {
+        return "";
+    }
+
+    int hidden_locked = 0;
+    int hidden_unlocked = 0;
+    for (int i = 0; i < layers->layer_count; i++) {
+        if (!layers->layers[i].visible) {
+            if (layers->layers[i].locked) {
+                hidden_locked++;
+            } else {
+                hidden_unlocked++;
+            }
+        }
+    }
+
+    if (hidden_locked > 0 && hidden_unlocked > 0) {
+        return " | hints hu C-A-;/' hl C-S-,/.";
+    }
+    if (hidden_unlocked > 0) {
+        return " | hint hu C-A-;/'";
+    }
+    if (hidden_locked > 0) {
+        return " | hint hl C-S-,/.";
+    }
+    return "";
+}
+
 static void update_window_title(SDL_Window *window, const LayerStack *layers, Tool tool, BrushShape brush_shape, int radius, uint32_t color, int opacity_percent) {
     if (!window || !layers) {
         return;
@@ -253,11 +282,12 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
         }
     }
     int hidden_layers = layers->layer_count - visible_layers;
-    char title[320];
+    const char *hint = hidden_layer_hint(layers);
+    char title[384];
     snprintf(
         title,
         sizeof(title),
-        "Openshop - %s (%s) | size %d | brush %d%% | layer %d/%d %s [%s%s %d%%]%s | vis %d hid %d lock %d solo %s | #%08X",
+        "Openshop - %s (%s) | size %d | brush %d%% | layer %d/%d %s [%s%s %d%%]%s | vis %d hid %d lock %d solo %s | #%08X%s",
         tool_label(tool),
         brush_shape_label(brush_shape),
         radius,
@@ -273,7 +303,8 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
         hidden_layers,
         locked_layers,
         layers->solo_index >= 0 ? "on" : "off",
-        color
+        color,
+        hint
     );
     SDL_SetWindowTitle(window, title);
 }

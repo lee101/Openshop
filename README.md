@@ -23,6 +23,8 @@ make test-sdl
 ./openshop [optional_input.bmp]
 ```
 
+The window title also shows a compact hidden-layer hint when hidden locked or hidden unlocked reveal shortcuts are available.
+
 ## Controls
 - `Left Mouse`: draw on the active layer
 - `Right Mouse` / `I`: eyedropper (pick visible color)
