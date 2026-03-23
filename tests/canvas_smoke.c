@@ -188,6 +188,19 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_set_opacity(&stack, -1, 25)) {
+        fprintf(stderr, "set opacity should fail on invalid source index\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.active_layer != 0 || stack.solo_index != -1 || stack.layers[0].visible != 1 || stack.layers[1].visible != 1 ||
+        stack.layers[0].opacity_percent != 100 || stack.layers[1].opacity_percent != 100) {
+        fprintf(stderr, "invalid set opacity should preserve stack bookkeeping\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_toggle_visibility(&stack, 1)) {
         fprintf(stderr, "rehide top layer after show active failed\n");
         canvas_free(&composite);
