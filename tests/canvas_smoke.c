@@ -717,8 +717,20 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_duplicate(&stack, 1, "Overflow Duplicate") != -1) {
+        fprintf(stderr, "duplicate should fail at max layers\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_duplicate_below(&stack, 1, "Overflow Duplicate Below") != -1) {
+        fprintf(stderr, "duplicate below should fail at max layers\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (stack.layer_count != MAX_LAYERS || stack.active_layer != MAX_LAYERS - 1 || stack.solo_index != 1) {
-        fprintf(stderr, "failed add/insert should preserve full stack bookkeeping\n");
+        fprintf(stderr, "failed add/insert/duplicate should preserve full stack bookkeeping\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
