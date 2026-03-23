@@ -275,16 +275,20 @@ struct invalid_argv_case {
     const char *argv[5];
 };
 
+static const char *const empty_argv_tail_2[] = {NULL, NULL};
+static const char *const empty_argv_tail_3[] = {NULL, NULL, NULL};
+static const char *const empty_argv_tail_4[] = {NULL, NULL, NULL, NULL};
+
 #define INVALID_NULL_ARGV_ONLY_CASE(label, argc_value, usage_text) \
-    {label, argc_value, argv_is_null, usage_text, {NULL, NULL, NULL, NULL, NULL}}
+    {label, argc_value, argv_is_null, usage_text, {empty_argv_tail_4[0], empty_argv_tail_4[1], empty_argv_tail_4[2], empty_argv_tail_4[3], NULL}}
 #define INVALID_SIZE_ONLY_ARGV_CASE(label, usage_text, program, width) \
-    {label, size_only_argc, argv_is_present, usage_text, {program, default_scene_path, width, NULL, NULL}}
+    {label, size_only_argc, argv_is_present, usage_text, {program, default_scene_path, width, empty_argv_tail_2[0], empty_argv_tail_2[1]}}
 #define INVALID_EXTRA_ARGV_CASE(label, usage_text, program) \
     {label, extra_argv_argc, argv_is_present, usage_text, {program, default_scene_path, default_size_only_width, default_size_only_height, extra_arg_token}}
 #define INVALID_INPUT_ARGV_CASE(label, usage_text, program, input) \
-    {label, input_only_argc, argv_is_present, usage_text, {program, input, NULL, NULL, NULL}}
+    {label, input_only_argc, argv_is_present, usage_text, {program, input, empty_argv_tail_3[0], empty_argv_tail_3[1], empty_argv_tail_3[2]}}
 #define INVALID_PROGRAM_ONLY_ARGV_CASE(label, argc_value, usage_text, program) \
-    {label, argc_value, argv_is_present, usage_text, {program, NULL, NULL, NULL, NULL}}
+    {label, argc_value, argv_is_present, usage_text, {program, empty_argv_tail_4[0], empty_argv_tail_4[1], empty_argv_tail_4[2], empty_argv_tail_4[3]}}
 
 struct success_case {
     const char *label_prefix;
