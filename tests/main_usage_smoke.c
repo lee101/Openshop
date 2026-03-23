@@ -252,6 +252,12 @@ struct invalid_size_token_case {
     char *token;
 };
 
+struct invalid_input_size_case {
+    const char *label_prefix;
+    char *width_token;
+    char *height_token;
+};
+
 static int expect_invalid_size_only_height_cases(const struct invalid_size_token_case *cases, size_t case_count,
                                                  char *stderr_text, size_t stderr_size, int *exit_code) {
     size_t i = 0;
@@ -306,6 +312,20 @@ static int expect_custom_invalid_size_only_width_cases(const struct invalid_size
 
         if (!expect_custom_invalid_main_run(cases[i].label_prefix, 3, argv, stderr_text, stderr_size, exit_code,
                                             custom_usage_text)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int expect_invalid_input_size_cases(const struct invalid_input_size_case *cases, size_t case_count,
+                                           char *stderr_text, size_t stderr_size, int *exit_code) {
+    size_t i = 0;
+
+    for (i = 0; i < case_count; i += 1) {
+        char *argv[] = {"openshop", (char *)default_scene_path, cases[i].width_token, cases[i].height_token};
+
+        if (!expect_invalid_main_run(cases[i].label_prefix, 4, argv, stderr_text, stderr_size, exit_code)) {
             return 0;
         }
     }
@@ -568,78 +588,26 @@ int main(void) {
         return 1;
     }
 
-    char *argv_bad_width_value[] = {"openshop", (char *)default_scene_path, (char *)zero_token, (char *)invalid_probe_size};
-    if (!expect_invalid_main_run("bad_width_value", 4, argv_bad_width_value, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_negative_width_value[] = {"openshop", (char *)default_scene_path, (char *)negative_size_only_width, (char *)invalid_probe_size};
-    if (!expect_invalid_main_run("negative_width_value", 4, argv_negative_width_value, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_bad_width_token_argv[] = {"openshop", (char *)default_scene_path, (char *)bad_width_token, (char *)default_size_only_height};
-    if (!expect_invalid_main_run("bad_width_token", 4, argv_bad_width_token_argv, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_bad_height_value[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width, (char *)negative_input_size_height};
-    if (!expect_invalid_main_run("bad_height_value", 4, argv_bad_height_value, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_negative_height_value[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width, (char *)negative_size_only_height};
-    if (!expect_invalid_main_run("negative_height_value", 4, argv_negative_height_value, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_empty_width[] = {"openshop", (char *)default_scene_path, "", (char *)default_size_only_height};
-    if (!expect_invalid_main_run("empty_width", 4, argv_empty_width, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_null_width[] = {"openshop", (char *)default_scene_path, NULL, (char *)default_size_only_height};
-    if (!expect_invalid_main_run("null_width", 4, argv_null_width, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_null_height[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width, NULL};
-    if (!expect_invalid_main_run("null_height", 4, argv_null_height, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_overflow_width[] = {"openshop", (char *)default_scene_path, (char *)overflow_width_token, (char *)default_size_only_height};
-    if (!expect_invalid_main_run("overflow_width", 4, argv_overflow_width, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_bad_height_token_argv[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width, (char *)bad_height_token};
-    if (!expect_invalid_main_run("bad_height_token", 4, argv_bad_height_token_argv, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_overflow_height[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width, (char *)overflow_height_token};
-    if (!expect_invalid_main_run("overflow_height", 4, argv_overflow_height, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_leading_space_width[] = {"openshop", (char *)default_scene_path, (char *)leading_space_width_token, (char *)default_size_only_height};
-    if (!expect_invalid_main_run("leading_space_width", 4, argv_leading_space_width, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_trailing_newline_height[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width, (char *)trailing_newline_height_token};
-    if (!expect_invalid_main_run("trailing_newline_height", 4, argv_trailing_newline_height, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_leading_tab_height[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width, (char *)leading_tab_height_token};
-    if (!expect_invalid_main_run("leading_tab_height", 4, argv_leading_tab_height, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_trailing_space_width[] = {"openshop", (char *)default_scene_path, (char *)trailing_space_width_token, (char *)default_size_only_height};
-    if (!expect_invalid_main_run("trailing_space_width", 4, argv_trailing_space_width, stderr_text, sizeof(stderr_text), &exit_code)) {
+    struct invalid_input_size_case invalid_input_size_cases[] = {
+        {"bad_width_value", (char *)zero_token, (char *)invalid_probe_size},
+        {"negative_width_value", (char *)negative_size_only_width, (char *)invalid_probe_size},
+        {"bad_width_token", (char *)bad_width_token, (char *)default_size_only_height},
+        {"bad_height_value", (char *)default_size_only_width, (char *)negative_input_size_height},
+        {"negative_height_value", (char *)default_size_only_width, (char *)negative_size_only_height},
+        {"empty_width", "", (char *)default_size_only_height},
+        {"null_width", NULL, (char *)default_size_only_height},
+        {"null_height", (char *)default_size_only_width, NULL},
+        {"overflow_width", (char *)overflow_width_token, (char *)default_size_only_height},
+        {"bad_height_token", (char *)default_size_only_width, (char *)bad_height_token},
+        {"overflow_height", (char *)default_size_only_width, (char *)overflow_height_token},
+        {"leading_space_width", (char *)leading_space_width_token, (char *)default_size_only_height},
+        {"trailing_newline_height", (char *)default_size_only_width, (char *)trailing_newline_height_token},
+        {"leading_tab_height", (char *)default_size_only_width, (char *)leading_tab_height_token},
+        {"trailing_space_width", (char *)trailing_space_width_token, (char *)default_size_only_height},
+    };
+    if (!expect_invalid_input_size_cases(invalid_input_size_cases,
+                                         sizeof(invalid_input_size_cases) / sizeof(invalid_input_size_cases[0]),
+                                         stderr_text, sizeof(stderr_text), &exit_code)) {
         return 1;
     }
 
