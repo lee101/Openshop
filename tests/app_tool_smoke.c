@@ -378,6 +378,38 @@ static int test_pick_sample_preview_and_fallback_behavior(void) {
     return 1;
 }
 
+static int test_pick_sample_rejects_missing_sources(void) {
+    AppToolEffectState state = {
+        .tool = 4,
+        .brush_opacity = 75,
+        .brush_color_rgb = 0x00AABBCCu,
+        .brush_color = 0xBFAABBCCu,
+        .preview_active = 1,
+        .needs_composite = 1,
+    };
+    ToolEffectStubState stub = {
+        .sampled_color = 0xFFFFFFFFu,
+    };
+    AppToolEffectCallbacks callbacks = {
+        .push_snapshot = stub_push_snapshot,
+        .transform_layer = stub_transform_layer,
+        .flood_fill = stub_flood_fill,
+        .sample_canvas = stub_sample_canvas,
+        .userdata = &stub,
+    };
+
+    if (app_tool_pick_sample(&state, NULL, NULL, 1, 1, 4, 4, &callbacks) ||
+        !expect_int_eq("pick_missing_source_tool", state.tool, 4) ||
+        !expect_int_eq("pick_missing_source_opacity", state.brush_opacity, 75) ||
+        !expect_uint_eq("pick_missing_source_rgb", state.brush_color_rgb, 0x00AABBCCu) ||
+        !expect_uint_eq("pick_missing_source_color", state.brush_color, 0xBFAABBCCu) ||
+        !expect_int_eq("pick_missing_source_needs_composite", state.needs_composite, 1)) {
+        return 0;
+    }
+
+    return 1;
+}
+
 int main(void) {
     if (!test_tool_and_palette_selection()) {
         return 1;
@@ -401,6 +433,9 @@ int main(void) {
         return 1;
     }
     if (!test_pick_sample_preview_and_fallback_behavior()) {
+        return 1;
+    }
+    if (!test_pick_sample_rejects_missing_sources()) {
         return 1;
     }
     return 0;
