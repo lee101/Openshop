@@ -537,6 +537,31 @@ static int try_select_layer_index(LayerStack *layers, int target) {
     return 1;
 }
 
+static int try_restore_snapshot(LayerStack *layers,
+                                Snapshot *source_stack, int *source_count,
+                                Snapshot *target_stack, int *target_count) {
+    Snapshot current = {0};
+    Snapshot restored;
+
+    if (!layers || !source_stack || !source_count || !target_stack || !target_count || *source_count <= 0) {
+        return 0;
+    }
+
+    if (snapshot_from_layers(&current, layers)) {
+        if (*target_count == MAX_HISTORY) {
+            snapshot_free(&target_stack[0]);
+            memmove(&target_stack[0], &target_stack[1], sizeof(Snapshot) * (size_t)(MAX_HISTORY - 1));
+            *target_count = MAX_HISTORY - 1;
+        }
+        target_stack[(*target_count)++] = current;
+    }
+
+    restored = source_stack[--(*source_count)];
+    snapshot_apply(&restored, layers);
+    snapshot_free(&restored);
+    return 1;
+}
+
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
     switch (shape) {
     case BRUSH_SHAPE_ROUND:
@@ -1280,19 +1305,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_z) {
-                    if (undo_count > 0) {
-                        Snapshot current = {0};
-                        if (snapshot_from_layers(&current, &layers)) {
-                            if (redo_count == MAX_HISTORY) {
-                                snapshot_free(&redo_stack[0]);
-                                memmove(&redo_stack[0], &redo_stack[1], sizeof(Snapshot) * (size_t)(MAX_HISTORY - 1));
-                                redo_count = MAX_HISTORY - 1;
-                            }
-                            redo_stack[redo_count++] = current;
-                        }
-                        Snapshot prev = undo_stack[--undo_count];
-                        snapshot_apply(&prev, &layers);
-                        snapshot_free(&prev);
+                    if (try_restore_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count)) {
                         needs_composite = 1;
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
@@ -1300,19 +1313,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_y) {
-                    if (redo_count > 0) {
-                        Snapshot current = {0};
-                        if (snapshot_from_layers(&current, &layers)) {
-                            if (undo_count == MAX_HISTORY) {
-                                snapshot_free(&undo_stack[0]);
-                                memmove(&undo_stack[0], &undo_stack[1], sizeof(Snapshot) * (size_t)(MAX_HISTORY - 1));
-                                undo_count = MAX_HISTORY - 1;
-                            }
-                            undo_stack[undo_count++] = current;
-                        }
-                        Snapshot next = redo_stack[--redo_count];
-                        snapshot_apply(&next, &layers);
-                        snapshot_free(&next);
+                    if (try_restore_snapshot(&layers, redo_stack, &redo_count, undo_stack, &undo_count)) {
                         needs_composite = 1;
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
