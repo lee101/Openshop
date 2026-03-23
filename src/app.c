@@ -562,6 +562,22 @@ static int try_restore_snapshot(LayerStack *layers,
     return 1;
 }
 
+static int try_commit_shape(LayerStack *layers,
+                            Snapshot *undo_stack, int *undo_count,
+                            Snapshot *redo_stack, int *redo_count,
+                            Tool tool, int shape_start_x, int shape_start_y,
+                            int end_x, int end_y, int brush_radius, uint32_t brush_color) {
+    Layer *active = layer_stack_active(layers);
+
+    if (!active || active->locked || !active->canvas.pixels) {
+        return 0;
+    }
+
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    draw_shape(&active->canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
+    return 1;
+}
+
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
     switch (shape) {
     case BRUSH_SHAPE_ROUND:
@@ -1009,10 +1025,9 @@ int app_run(const char *input_path) {
                         int end_x = e.button.x;
                         int end_y = e.button.y;
                         constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
-                        Layer *active = layer_stack_active(&layers);
-                        if (active && !active->locked && active->canvas.pixels) {
-                            push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                            draw_shape(&active->canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
+                        if (try_commit_shape(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                             tool, shape_start_x, shape_start_y, end_x, end_y,
+                                             brush_radius, brush_color)) {
                             needs_composite = 1;
                         }
                         cancel_shape_preview(&shaping, &preview_active);
