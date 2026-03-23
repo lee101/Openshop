@@ -478,15 +478,7 @@ static int handle_layer_navigation_shortcut(
     }
 
     if (handled && changed) {
-        update_window_title(
-            window,
-            layers,
-            runtime->tool,
-            runtime->brush_shape,
-            runtime->brush_radius,
-            runtime->brush_color,
-            runtime->brush_opacity
-        );
+        update_window_title_for_runtime(window, layers, runtime);
     }
     return handled;
 }
@@ -685,15 +677,7 @@ static int handle_layer_stack_shortcut(
     }
 
     if (handled) {
-        update_window_title(
-            window,
-            layers,
-            runtime->tool,
-            runtime->brush_shape,
-            runtime->brush_radius,
-            runtime->brush_color,
-            runtime->brush_opacity
-        );
+        update_window_title_for_runtime(window, layers, runtime);
     }
     return handled;
 }
@@ -771,12 +755,12 @@ static int handle_document_shortcut(
     } else if (ctrl && key == SDLK_z) {
         if (restore_from_history(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count)) {
             runtime->needs_composite = 1;
-            update_window_title(window, layers, runtime->tool, runtime->brush_shape, runtime->brush_radius, runtime->brush_color, runtime->brush_opacity);
+            update_window_title_for_runtime(window, layers, runtime);
         }
     } else if (ctrl && key == SDLK_y) {
         if (restore_from_history(layers, runtime->redo_stack, &runtime->redo_count, runtime->undo_stack, &runtime->undo_count)) {
             runtime->needs_composite = 1;
-            update_window_title(window, layers, runtime->tool, runtime->brush_shape, runtime->brush_radius, runtime->brush_color, runtime->brush_opacity);
+            update_window_title_for_runtime(window, layers, runtime);
         }
     } else if (ctrl && key == SDLK_0) {
         Layer *active = layer_stack_active(layers);
@@ -785,19 +769,19 @@ static int handle_document_shortcut(
             layer_stack_set_opacity(layers, layers->active_layer, 100);
             runtime->needs_composite = 1;
         }
-        update_window_title(window, layers, runtime->tool, runtime->brush_shape, runtime->brush_radius, runtime->brush_color, runtime->brush_opacity);
+        update_window_title_for_runtime(window, layers, runtime);
     } else if (ctrl && key == SDLK_a) {
         push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (layer_stack_show_all(layers)) {
             runtime->needs_composite = 1;
         }
-        update_window_title(window, layers, runtime->tool, runtime->brush_shape, runtime->brush_radius, runtime->brush_color, runtime->brush_opacity);
+        update_window_title_for_runtime(window, layers, runtime);
     } else if (ctrl && shift && key == SDLK_r) {
         push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (layer_stack_show(layers, layers->active_layer)) {
             runtime->needs_composite = 1;
         }
-        update_window_title(window, layers, runtime->tool, runtime->brush_shape, runtime->brush_radius, runtime->brush_color, runtime->brush_opacity);
+        update_window_title_for_runtime(window, layers, runtime);
     } else {
         handled = 0;
     }
@@ -1101,15 +1085,7 @@ static void handle_mouse_down(
         &runtime->brush_color_rgb,
         &runtime->brush_opacity
     );
-    update_window_title(
-        window,
-        layers,
-        runtime->tool,
-        runtime->brush_shape,
-        runtime->brush_radius,
-        runtime->brush_color,
-        runtime->brush_opacity
-    );
+    update_window_title_for_runtime(window, layers, runtime);
 }
 
 static void handle_mouse_up(
@@ -1322,15 +1298,7 @@ static void handle_keydown_shortcut(
         composite
     );
 
-    update_window_title(
-        window,
-        layers,
-        runtime->tool,
-        runtime->brush_shape,
-        runtime->brush_radius,
-        runtime->brush_color,
-        runtime->brush_opacity
-    );
+    update_window_title_for_runtime(window, layers, runtime);
 }
 
 static void process_app_events(
@@ -1629,6 +1597,21 @@ struct AppRuntime {
     Canvas preview_canvas;
 };
 
+static void update_window_title_for_runtime(SDL_Window *window, const LayerStack *layers, const AppRuntime *runtime) {
+    if (!runtime) {
+        return;
+    }
+    update_window_title(
+        window,
+        layers,
+        runtime->tool,
+        runtime->brush_shape,
+        runtime->brush_radius,
+        runtime->brush_color,
+        runtime->brush_opacity
+    );
+}
+
 static void cleanup_app_runtime(
     AppRuntime *runtime,
     Canvas *composite,
@@ -1802,15 +1785,7 @@ int app_run(const char *input_path) {
         cleanup_app_runtime(&runtime, &composite, &layers, texture, renderer, window);
         return 1;
     }
-    update_window_title(
-        window,
-        &layers,
-        runtime.tool,
-        runtime.brush_shape,
-        runtime.brush_radius,
-        runtime.brush_color,
-        runtime.brush_opacity
-    );
+    update_window_title_for_runtime(window, &layers, &runtime);
 
     while (runtime.running) {
         process_app_events(
