@@ -438,6 +438,21 @@ static int expect_default_invalid_input_size_cases(const struct invalid_input_si
                                            stderr_text, stderr_size, exit_code, NULL);
 }
 
+static int expect_main_invalid_input_size_case_groups(const struct invalid_input_size_case *custom_cases,
+                                                      size_t custom_case_count,
+                                                      const struct invalid_input_size_case *default_cases,
+                                                      size_t default_case_count,
+                                                      char *stderr_text, size_t stderr_size, int *exit_code,
+                                                      const char *custom_usage_text) {
+    if (!expect_custom_invalid_input_size_cases(custom_cases, custom_case_count,
+                                                stderr_text, stderr_size, exit_code, custom_usage_text)) {
+        return 0;
+    }
+
+    return expect_default_invalid_input_size_cases(default_cases, default_case_count,
+                                                   stderr_text, stderr_size, exit_code);
+}
+
 static int expect_success_cases(const struct success_case *cases, size_t case_count,
                                 char *stderr_text, size_t stderr_size, int *exit_code) {
     size_t i = 0;
@@ -604,12 +619,6 @@ int main(void) {
         INVALID_INPUT_WIDTH_CASE("custom_program_zero_width", zero_token),
         INVALID_INPUT_HEIGHT_CASE("custom_program_zero_height", zero_token),
     };
-    if (!expect_custom_invalid_input_size_cases(custom_invalid_input_size_cases,
-                                                ARRAY_LEN(custom_invalid_input_size_cases),
-                                                stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
-        return 1;
-    }
-
     const struct invalid_input_size_case invalid_input_size_cases[] = {
         INVALID_INPUT_WIDTH_VALUE_CASE("bad_width_value", zero_token),
         INVALID_INPUT_WIDTH_VALUE_CASE("negative_width_value", negative_size_only_width),
@@ -627,9 +636,11 @@ int main(void) {
         INVALID_INPUT_HEIGHT_CASE("leading_tab_height", leading_tab_height_token),
         INVALID_INPUT_WIDTH_CASE("trailing_space_width", trailing_space_width_token),
     };
-    if (!expect_default_invalid_input_size_cases(invalid_input_size_cases,
-                                                 ARRAY_LEN(invalid_input_size_cases),
-                                                 stderr_text, sizeof(stderr_text), &exit_code)) {
+    if (!expect_main_invalid_input_size_case_groups(custom_invalid_input_size_cases,
+                                                    ARRAY_LEN(custom_invalid_input_size_cases),
+                                                    invalid_input_size_cases,
+                                                    ARRAY_LEN(invalid_input_size_cases),
+                                                    stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
