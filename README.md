@@ -100,7 +100,8 @@ make test-sdl
 - Transparent regions render over a checkerboard preview in the editor.
 - Format routing:
   Startup input uses the path you pass on the CLI and auto-detects BMP vs PNG by extension, with a BMP fallback for unknown extensions.
-  `Ctrl+O` prefers `input.bmp`, falls back to `input.png`, and `Ctrl+Shift+O` always targets `input.png`.
+  Launching with a startup file also seeds the default `Ctrl+O` pair from that file stem, so `./openshop art/scene.png` reloads `art/scene.bmp` or `art/scene.png`.
+  `Ctrl+O` prefers the session BMP path, falls back to the session PNG path, and `Ctrl+Shift+O` always targets the session PNG path.
   `Ctrl+S` prefers `output.bmp` unless only `output.png` already exists, and `Ctrl+Shift+S` always targets `output.png`.
   Default load/save status messages note when the PNG alternate path was used.
 - `make test-sdl` exercises SDL-backed image I/O routing when SDL2 development tools are installed.

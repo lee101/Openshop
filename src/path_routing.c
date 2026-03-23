@@ -1,8 +1,8 @@
 #include "path_routing.h"
 
 #include <ctype.h>
-#include <stdio.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <string.h>
 
 int path_has_extension_ci(const char *path, const char *ext) {
@@ -35,6 +35,47 @@ int path_exists(const char *path) {
         return 0;
     }
     fclose(f);
+    return 1;
+}
+
+int build_routed_paths(
+    const char *seed_path,
+    char *bmp_path,
+    size_t bmp_size,
+    char *png_path,
+    size_t png_size
+) {
+    const char *name = NULL;
+    const char *ext = NULL;
+    const char *slash = NULL;
+    const char *backslash = NULL;
+    size_t stem_len = 0;
+
+    if (!seed_path || !seed_path[0] || !bmp_path || !png_path || bmp_size == 0 || png_size == 0) {
+        return 0;
+    }
+
+    slash = strrchr(seed_path, '/');
+    backslash = strrchr(seed_path, '\\');
+    name = slash;
+    if (!name || (backslash && backslash > name)) {
+        name = backslash;
+    }
+    name = name ? name + 1 : seed_path;
+
+    ext = strrchr(name, '.');
+    if (ext && ext != name) {
+        stem_len = (size_t)(ext - seed_path);
+    } else {
+        stem_len = strlen(seed_path);
+    }
+
+    if (snprintf(bmp_path, bmp_size, "%.*s.bmp", (int)stem_len, seed_path) >= (int)bmp_size) {
+        return 0;
+    }
+    if (snprintf(png_path, png_size, "%.*s.png", (int)stem_len, seed_path) >= (int)png_size) {
+        return 0;
+    }
     return 1;
 }
 

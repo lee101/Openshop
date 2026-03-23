@@ -38,6 +38,11 @@ typedef enum {
     TOOL_FILLED_ELLIPSE
 } Tool;
 
+typedef struct DefaultInputPaths {
+    char bmp[ROUTED_PATH_MAX];
+    char png[ROUTED_PATH_MAX];
+} DefaultInputPaths;
+
 typedef enum {
     BRUSH_SHAPE_ROUND = 0,
     BRUSH_SHAPE_SQUARE,
@@ -475,14 +480,29 @@ static int active_layer_editable(const LayerStack *layers) {
     return active && !active->locked && active->canvas.pixels;
 }
 
+static void init_default_input_paths(DefaultInputPaths *paths, const char *seed_path) {
+    if (!paths) {
+        return;
+    }
+    if (seed_path && seed_path[0] &&
+        build_routed_paths(seed_path, paths->bmp, sizeof(paths->bmp), paths->png, sizeof(paths->png))) {
+        return;
+    }
+    snprintf(paths->bmp, sizeof(paths->bmp), "input.bmp");
+    snprintf(paths->png, sizeof(paths->png), "input.png");
+}
+
 static int canvas_load_default_input(
     Canvas *c,
+    const DefaultInputPaths *paths,
     int prefer_png,
     uint32_t background_color,
     const char **loaded_path,
     int *used_alternate
 ) {
-    RoutedPath choice = resolve_default_input_choice(prefer_png);
+    const char *bmp_path = (paths && paths->bmp[0]) ? paths->bmp : "input.bmp";
+    const char *png_path = (paths && paths->png[0]) ? paths->png : "input.png";
+    RoutedPath choice = resolve_routed_choice(bmp_path, png_path, prefer_png);
     const char *path = choice.path;
     if (!c) {
         return 0;
@@ -739,6 +759,7 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
     int needs_composite = 0;
     int rename_active = 0;
     char rename_buffer[LAYER_NAME_MAX] = {0};
+    DefaultInputPaths default_input_paths = {{0}};
     int zoom_level = 0; /* 0=1x, 1=2x, 2=4x, 3=8x */
     int view_x = 0;
     int view_y = 0;
@@ -747,6 +768,7 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
     Canvas preview_canvas = {canvas_w, canvas_h, preview_pixels};
     memset(undo_stack, 0, sizeof(undo_stack));
     memset(redo_stack, 0, sizeof(redo_stack));
+    init_default_input_paths(&default_input_paths, input_path);
     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
 
     while (running) {
@@ -1190,6 +1212,7 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
                     if (prepare_snapshot(&layers, &before)) {
                         loaded = canvas_load_default_input(
                             &active->canvas,
+                            &default_input_paths,
                             shift,
                             active_layer_clear_color(&layers),
                             &loaded_path,

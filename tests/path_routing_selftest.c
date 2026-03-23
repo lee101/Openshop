@@ -55,6 +55,8 @@ static int expect_str(const char *label, const char *actual, const char *expecte
 
 int main(void) {
     RoutedPath choice = {0};
+    char bmp_path[ROUTED_PATH_MAX] = {0};
+    char png_path[ROUTED_PATH_MAX] = {0};
 
     if (!expect_int("ext_png_upper", path_has_extension_ci("art/IMAGE.PNG", ".png"), 1) ||
         !expect_int("ext_bmp_mixed", path_has_extension_ci("scene.BmP", ".bmp"), 1) ||
@@ -74,6 +76,30 @@ int main(void) {
         !expect_str("output_prefer_bmp_existing", default_output_path(0, 1, 1), "output.bmp") ||
         !expect_str("output_reuse_png", default_output_path(0, 0, 1), "output.png") ||
         !expect_str("output_default_bmp", default_output_path(0, 0, 0), "output.bmp")) {
+        return 1;
+    }
+
+    if (!build_routed_paths("shots/scene.png", bmp_path, sizeof(bmp_path), png_path, sizeof(png_path)) ||
+        !expect_str("build_from_png_bmp", bmp_path, "shots/scene.bmp") ||
+        !expect_str("build_from_png_png", png_path, "shots/scene.png")) {
+        return 1;
+    }
+
+    if (!build_routed_paths("shots/scene.bmp", bmp_path, sizeof(bmp_path), png_path, sizeof(png_path)) ||
+        !expect_str("build_from_bmp_bmp", bmp_path, "shots/scene.bmp") ||
+        !expect_str("build_from_bmp_png", png_path, "shots/scene.png")) {
+        return 1;
+    }
+
+    if (!build_routed_paths("shots/scene", bmp_path, sizeof(bmp_path), png_path, sizeof(png_path)) ||
+        !expect_str("build_no_ext_bmp", bmp_path, "shots/scene.bmp") ||
+        !expect_str("build_no_ext_png", png_path, "shots/scene.png")) {
+        return 1;
+    }
+
+    if (!build_routed_paths("shots/archive.data", bmp_path, sizeof(bmp_path), png_path, sizeof(png_path)) ||
+        !expect_str("build_unknown_ext_bmp", bmp_path, "shots/archive.bmp") ||
+        !expect_str("build_unknown_ext_png", png_path, "shots/archive.png")) {
         return 1;
     }
 
