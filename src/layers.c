@@ -240,6 +240,18 @@ int layer_stack_show(LayerStack *stack, int index) {
     return 1;
 }
 
+int layer_stack_isolate(LayerStack *stack, int index) {
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    for (int i = 0; i < stack->layer_count; i++) {
+        stack->layers[i].visible = (i == index) ? 1 : 0;
+    }
+    stack->active_layer = index;
+    stack->solo_index = -1;
+    return 1;
+}
+
 int layer_stack_hide_and_advance(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;

@@ -96,6 +96,30 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_isolate(&stack, 1)) {
+        fprintf(stderr, "isolate active layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != -1 || !stack.layers[1].visible || stack.layers[0].visible) {
+        fprintf(stderr, "isolate active layer bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    layer_stack_composite(&stack, &composite, 0xFFFFFFFF);
+    if (!expect_pixel_eq("isolated_active_layer", canvas_get_pixel(&composite, 8, 8), 0xFFBF7F7F)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_show_all(&stack)) {
+        fprintf(stderr, "restore layers after isolate failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_show(&stack, 1)) {
         fprintf(stderr, "restore top layer for hide-and-advance failed\n");
         canvas_free(&composite);
