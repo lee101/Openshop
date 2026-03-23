@@ -174,11 +174,54 @@ static int test_snapshot_restore_moves_history_between_stacks(void) {
     return 1;
 }
 
+static int test_snapshot_push_caps_history_and_clears_redo(void) {
+    LayerStack stack;
+    Snapshot undo_stack[MAX_HISTORY];
+    Snapshot redo_stack[MAX_HISTORY];
+    int undo_count = 0;
+    int redo_count = 0;
+
+    memset(undo_stack, 0, sizeof(undo_stack));
+    memset(redo_stack, 0, sizeof(redo_stack));
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "layer_stack_init failed\n");
+        return 0;
+    }
+
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF000001);
+    snapshot_push(&stack, redo_stack, &redo_count, NULL, NULL);
+
+    for (int i = 0; i < MAX_HISTORY + 2; i++) {
+        canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF000100u + (uint32_t)i);
+        stack.active_layer = i % stack.layer_count;
+        snapshot_push(&stack, undo_stack, &undo_count, redo_stack, &redo_count);
+    }
+
+    if (!expect_int_eq("cap_undo_count", undo_count, MAX_HISTORY) ||
+        !expect_int_eq("cap_redo_cleared", redo_count, 0) ||
+        !expect_pixel_eq("cap_oldest_dropped", undo_stack[0].pixels[0], 0xFF000102) ||
+        !expect_pixel_eq("cap_newest_kept", undo_stack[MAX_HISTORY - 1].pixels[0], 0xFF000115)) {
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 int main(void) {
     if (!test_snapshot_apply_restores_lazy_canvas()) {
         return 1;
     }
     if (!test_snapshot_restore_moves_history_between_stacks()) {
+        return 1;
+    }
+    if (!test_snapshot_push_caps_history_and_clears_redo()) {
         return 1;
     }
     return 0;
