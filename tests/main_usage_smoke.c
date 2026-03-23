@@ -405,6 +405,13 @@ int main(void) {
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
+    char *argv_custom_program_default[] = {(char *)custom_program_name};
+    if (!capture_main_stderr(1, argv_custom_program_default, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_successful_run("custom_program_default", exit_code, 0, NULL, 0, 0, stderr_text, "")) {
+        return 1;
+    }
+
+    reset_app_state(0, NULL, 0, 0, stderr_text);
     char *argv_custom_program_numeric_input[] = {(char *)custom_program_name, "640"};
     if (!capture_main_stderr(2, argv_custom_program_numeric_input, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_successful_run("custom_program_numeric_input", exit_code, 0, "640", 0, 0, stderr_text, "")) {
