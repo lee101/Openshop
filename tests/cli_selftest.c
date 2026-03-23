@@ -173,6 +173,14 @@ int main(void) {
     if (!expect_int("leading_tab_height", parse_cli_args(4, argv_leading_tab_height, &options), 0)) {
         return 1;
     }
+    char *argv_trailing_space_width[] = {"openshop", "art/scene.png", "640 ", "480"};
+    if (!expect_int("trailing_space_width", parse_cli_args(4, argv_trailing_space_width, &options), 0)) {
+        return 1;
+    }
+    char *argv_trailing_newline_height[] = {"openshop", "art/scene.png", "640", "480\n"};
+    if (!expect_int("trailing_newline_height", parse_cli_args(4, argv_trailing_newline_height, &options), 0)) {
+        return 1;
+    }
 
     char *argv_plus_prefixed[] = {"openshop", "art/scene.png", "+640", "480"};
     if (!expect_int("plus_prefixed", parse_cli_args(4, argv_plus_prefixed, &options), 1) ||
