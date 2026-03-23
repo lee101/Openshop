@@ -818,6 +818,7 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    uint32_t locked_layer_pixel = canvas_get_pixel(&stack.layers[1].canvas, 8, 8);
     if (layer_stack_clear_layer(&stack, 1, 0xFFABCDEF)) {
         fprintf(stderr, "clear should fail on locked layer\n");
         canvas_free(&composite);
@@ -844,6 +845,11 @@ static int test_layers_basic(void) {
     }
     if (layer_stack_flatten(&stack, 0xFFFFFFFF)) {
         fprintf(stderr, "flatten should fail when any layer is locked\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("locked_operation_preserves_pixel", canvas_get_pixel(&stack.layers[1].canvas, 8, 8), locked_layer_pixel)) {
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
