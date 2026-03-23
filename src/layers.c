@@ -680,17 +680,7 @@ int layer_stack_reveal_editable(LayerStack *stack, int direction) {
 }
 
 int layer_stack_reveal_hidden_editable(LayerStack *stack, int from_top) {
-    if (!stack || stack->layer_count <= 0) {
-        return 0;
-    }
-    int target = layer_stack_select_editable_edge(stack, from_top, EDITABLE_HIDDEN_ONLY);
-    if (target >= 0) {
-        stack->layers[target].visible = 1;
-        stack->active_layer = target;
-        stack->solo_index = -1;
-        return 1;
-    }
-    return 0;
+    return layer_stack_reveal_hidden_unlocked(stack, from_top);
 }
 
 int layer_stack_hide_and_advance(LayerStack *stack, int index) {
