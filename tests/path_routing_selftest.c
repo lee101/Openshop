@@ -7,7 +7,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <unistd.h>
 
 static int mkdir_if_missing(const char *path) {
     if (mkdir(path, 0777) == 0) {
@@ -53,6 +52,8 @@ static int expect_str(const char *label, const char *actual, const char *expecte
 }
 
 int main(void) {
+    RoutedPath choice = {0};
+
     if (!expect_int("ext_png_upper", path_has_extension_ci("art/IMAGE.PNG", ".png"), 1) ||
         !expect_int("ext_bmp_mixed", path_has_extension_ci("scene.BmP", ".bmp"), 1) ||
         !expect_int("ext_short", path_has_extension_ci("png", ".png"), 0) ||
@@ -85,9 +86,16 @@ int main(void) {
 
     cleanup_artifacts();
 
+    choice = resolve_default_input_choice(0);
     if (!expect_int("path_exists_missing", path_exists("input.bmp"), 0) ||
-        !expect_str("resolve_input_default_bmp", resolve_default_input_path(0), "input.bmp") ||
-        !expect_str("resolve_output_default_bmp", resolve_default_output_path(0), "output.bmp")) {
+        !expect_str("resolve_input_default_bmp", choice.path, "input.bmp") ||
+        !expect_int("resolve_input_default_bmp_alternate", choice.used_alternate, 0)) {
+        return 1;
+    }
+
+    choice = resolve_default_output_choice(0);
+    if (!expect_str("resolve_output_default_bmp", choice.path, "output.bmp") ||
+        !expect_int("resolve_output_default_bmp_alternate", choice.used_alternate, 0)) {
         return 1;
     }
 
@@ -95,9 +103,16 @@ int main(void) {
         fprintf(stderr, "touch png failed\n");
         return 1;
     }
+    choice = resolve_default_input_choice(0);
     if (!expect_int("path_exists_png", path_exists("input.png"), 1) ||
-        !expect_str("resolve_input_fallback_png", resolve_default_input_path(0), "input.png") ||
-        !expect_str("resolve_output_reuse_png", resolve_default_output_path(0), "output.png")) {
+        !expect_str("resolve_input_fallback_png", choice.path, "input.png") ||
+        !expect_int("resolve_input_fallback_png_alternate", choice.used_alternate, 1)) {
+        return 1;
+    }
+
+    choice = resolve_default_output_choice(0);
+    if (!expect_str("resolve_output_reuse_png", choice.path, "output.png") ||
+        !expect_int("resolve_output_reuse_png_alternate", choice.used_alternate, 1)) {
         return 1;
     }
 
@@ -105,10 +120,27 @@ int main(void) {
         fprintf(stderr, "touch bmp failed\n");
         return 1;
     }
-    if (!expect_str("resolve_input_prefer_bmp", resolve_default_input_path(0), "input.bmp") ||
-        !expect_str("resolve_output_prefer_bmp", resolve_default_output_path(0), "output.bmp") ||
-        !expect_str("resolve_input_prefer_png", resolve_default_input_path(1), "input.png") ||
-        !expect_str("resolve_output_prefer_png", resolve_default_output_path(1), "output.png")) {
+    choice = resolve_default_input_choice(0);
+    if (!expect_str("resolve_input_prefer_bmp", choice.path, "input.bmp") ||
+        !expect_int("resolve_input_prefer_bmp_alternate", choice.used_alternate, 0)) {
+        return 1;
+    }
+
+    choice = resolve_default_output_choice(0);
+    if (!expect_str("resolve_output_prefer_bmp", choice.path, "output.bmp") ||
+        !expect_int("resolve_output_prefer_bmp_alternate", choice.used_alternate, 0)) {
+        return 1;
+    }
+
+    choice = resolve_default_input_choice(1);
+    if (!expect_str("resolve_input_prefer_png", choice.path, "input.png") ||
+        !expect_int("resolve_input_prefer_png_alternate", choice.used_alternate, 0)) {
+        return 1;
+    }
+
+    choice = resolve_default_output_choice(1);
+    if (!expect_str("resolve_output_prefer_png", choice.path, "output.png") ||
+        !expect_int("resolve_output_prefer_png_alternate", choice.used_alternate, 0)) {
         return 1;
     }
 

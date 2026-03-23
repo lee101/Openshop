@@ -475,10 +475,20 @@ static int active_layer_editable(const LayerStack *layers) {
     return active && !active->locked && active->canvas.pixels;
 }
 
-static int canvas_load_default_input(Canvas *c, int prefer_png, uint32_t background_color, const char **loaded_path) {
-    const char *path = resolve_default_input_path(prefer_png);
+static int canvas_load_default_input(
+    Canvas *c,
+    int prefer_png,
+    uint32_t background_color,
+    const char **loaded_path,
+    int *used_alternate
+) {
+    RoutedPath choice = resolve_default_input_choice(prefer_png);
+    const char *path = choice.path;
     if (!c) {
         return 0;
+    }
+    if (used_alternate) {
+        *used_alternate = choice.used_alternate;
     }
     if (canvas_load_auto(c, path, background_color)) {
         if (loaded_path) {
@@ -489,10 +499,14 @@ static int canvas_load_default_input(Canvas *c, int prefer_png, uint32_t backgro
     return 0;
 }
 
-static int canvas_save_default_output(const Canvas *c, int prefer_png, const char **saved_path) {
-    const char *path = resolve_default_output_path(prefer_png);
+static int canvas_save_default_output(const Canvas *c, int prefer_png, const char **saved_path, int *used_alternate) {
+    RoutedPath choice = resolve_default_output_choice(prefer_png);
+    const char *path = choice.path;
     if (!c) {
         return 0;
+    }
+    if (used_alternate) {
+        *used_alternate = choice.used_alternate;
     }
     if (saved_path) {
         *saved_path = path;
@@ -1148,8 +1162,11 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
                 if (ctrl && key == SDLK_s) {
                     const Canvas *save_canvas = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
                     const char *saved_path = shift ? "output.png" : "output.bmp";
-                    if (!canvas_save_default_output(save_canvas, shift, &saved_path)) {
+                    int used_alternate = 0;
+                    if (!canvas_save_default_output(save_canvas, shift, &saved_path, &used_alternate)) {
                         fprintf(stderr, "Failed to save %s\n", saved_path);
+                    } else if (used_alternate) {
+                        fprintf(stderr, "Saved %s (reused fallback default)\n", saved_path);
                     } else {
                         fprintf(stderr, "Saved %s\n", saved_path);
                     }
@@ -1165,14 +1182,25 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
                     Snapshot before = {0};
                     int loaded = 0;
                     const char *loaded_path = shift ? "input.png" : "input.bmp";
+                    int used_alternate = 0;
                     if (prepare_snapshot(&layers, &before)) {
-                        loaded = canvas_load_default_input(&active->canvas, shift, active_layer_clear_color(&layers), &loaded_path);
+                        loaded = canvas_load_default_input(
+                            &active->canvas,
+                            shift,
+                            active_layer_clear_color(&layers),
+                            &loaded_path,
+                            &used_alternate
+                        );
                     }
                     if (!loaded) {
                         snapshot_free(&before);
                         fprintf(stderr, "Failed to load %s\n", loaded_path);
                     } else {
-                        fprintf(stderr, "Loaded %s\n", loaded_path);
+                        if (used_alternate) {
+                            fprintf(stderr, "Loaded %s (fallback default)\n", loaded_path);
+                        } else {
+                            fprintf(stderr, "Loaded %s\n", loaded_path);
+                        }
                         push_snapshot_entry(before, undo_stack, &undo_count, redo_stack, &redo_count);
                         needs_composite = 1;
                     }

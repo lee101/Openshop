@@ -102,6 +102,7 @@ make test-sdl
   Startup input uses the path you pass on the CLI and auto-detects BMP vs PNG by extension, with a BMP fallback for unknown extensions.
   `Ctrl+O` prefers `input.bmp`, falls back to `input.png`, and `Ctrl+Shift+O` always targets `input.png`.
   `Ctrl+S` prefers `output.bmp` unless only `output.png` already exists, and `Ctrl+Shift+S` always targets `output.png`.
+  Default load/save status messages note when the PNG alternate path was used.
 - `make test-sdl` exercises SDL-backed image I/O routing when SDL2 development tools are installed.
 
 ## Self-test Images

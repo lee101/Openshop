@@ -58,10 +58,32 @@ const char *default_output_path(int prefer_png, int bmp_exists, int png_exists) 
     return "output.png";
 }
 
+RoutedPath resolve_default_input_choice(int prefer_png) {
+    int bmp_exists = path_exists("input.bmp");
+    int png_exists = path_exists("input.png");
+    RoutedPath choice = {default_input_path(prefer_png, bmp_exists, png_exists), 0};
+
+    if (!prefer_png && !bmp_exists && png_exists) {
+        choice.used_alternate = 1;
+    }
+    return choice;
+}
+
+RoutedPath resolve_default_output_choice(int prefer_png) {
+    int bmp_exists = path_exists("output.bmp");
+    int png_exists = path_exists("output.png");
+    RoutedPath choice = {default_output_path(prefer_png, bmp_exists, png_exists), 0};
+
+    if (!prefer_png && !bmp_exists && png_exists) {
+        choice.used_alternate = 1;
+    }
+    return choice;
+}
+
 const char *resolve_default_input_path(int prefer_png) {
-    return default_input_path(prefer_png, path_exists("input.bmp"), path_exists("input.png"));
+    return resolve_default_input_choice(prefer_png).path;
 }
 
 const char *resolve_default_output_path(int prefer_png) {
-    return default_output_path(prefer_png, path_exists("output.bmp"), path_exists("output.png"));
+    return resolve_default_output_choice(prefer_png).path;
 }
