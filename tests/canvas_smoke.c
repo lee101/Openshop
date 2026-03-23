@@ -211,6 +211,34 @@ static int test_layers_basic(void) {
             return 0;
         }
     }
+    stack.layers[0].visible = 0;
+    stack.layers[0].locked = 1;
+    stack.layers[0].opacity_percent = 55;
+    stack.layers[1].locked = 0;
+    stack.active_layer = 0;
+    {
+        char title[384];
+        format_window_title(&stack, "Line", "Diamond", 7, 0xFF112233, 65, title, sizeof(title));
+        if (strcmp(title, "Openshop - Line (Diamond) | size 7 | brush 65% | layer 1/2 Background [hidden, locked 55%] | vis 0 hid 2 lock 1 solo off | #FF112233 | hints hu C-A-;/' hl C-S-,/.") != 0) {
+            fprintf(stderr, "window title formatting failed for mixed hidden hint state\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    {
+        char title[384];
+        format_window_title(&stack, NULL, NULL, 2, 0xFF445566, 90, title, sizeof(title));
+        if (strcmp(title, "Openshop - Tool (Brush) | size 2 | brush 90% | layer 1/2 Background [hidden, locked 55%] | vis 0 hid 2 lock 1 solo off | #FF445566 | hints hu C-A-;/' hl C-S-,/.") != 0) {
+            fprintf(stderr, "window title formatting failed for default tool and brush labels\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    stack.layers[0].visible = 1;
+    stack.layers[0].locked = 0;
+    stack.layers[0].opacity_percent = 100;
     stack.layers[1].visible = 1;
     stack.layers[1].locked = 0;
     stack.layers[1].opacity_percent = 100;
