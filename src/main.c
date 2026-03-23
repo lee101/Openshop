@@ -4,9 +4,12 @@
 
 int main(int argc, char **argv) {
     CliOptions options = {0};
+    char usage[128] = {0};
 
     if (!parse_cli_args(argc, argv, &options)) {
-        fprintf(stderr, "Usage: %s %s\n", cli_program_name(argv), cli_usage_suffix());
+        if (format_cli_usage(usage, (int)sizeof(usage), argv)) {
+            fputs(usage, stderr);
+        }
         return 1;
     }
 

@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #define CLI_DEFAULT_PROGRAM_NAME "openshop"
@@ -44,6 +45,18 @@ const char *cli_program_name(char **argv) {
         return CLI_DEFAULT_PROGRAM_NAME;
     }
     return argv[0];
+}
+
+int format_cli_usage(char *buffer, int buffer_size, char **argv) {
+    int written = 0;
+
+    if (!buffer || buffer_size <= 0) {
+        return 0;
+    }
+
+    written = snprintf(buffer, (size_t)buffer_size, "Usage: %s %s\n",
+                       cli_program_name(argv), cli_usage_suffix());
+    return written > 0 && written < buffer_size;
 }
 
 int parse_cli_args(int argc, char **argv, CliOptions *options) {

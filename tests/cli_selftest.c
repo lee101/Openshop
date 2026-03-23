@@ -28,6 +28,7 @@ static int expect_str(const char *label, const char *actual, const char *expecte
 int main(void) {
     CliOptions options = {0};
     char *argv_default[] = {"openshop"};
+    char usage[128] = {0};
 
     if (!expect_str("usage_suffix", cli_usage_suffix(),
                     "[input_path] [width height]\n"
@@ -46,6 +47,27 @@ int main(void) {
     }
     char *argv_empty_program_name[] = {""};
     if (!expect_str("program_name_empty_slot", cli_program_name(argv_empty_program_name), "openshop")) {
+        return 1;
+    }
+    if (!expect_int("usage_default_ok", format_cli_usage(usage, (int)sizeof(usage), argv_default), 1) ||
+        !expect_str("usage_default_text", usage,
+                    "Usage: openshop [input_path] [width height]\n"
+                    "       or: WIDTH HEIGHT\n")) {
+        return 1;
+    }
+    if (!expect_int("usage_null_argv_ok", format_cli_usage(usage, (int)sizeof(usage), NULL), 1) ||
+        !expect_str("usage_null_argv_text", usage,
+                    "Usage: openshop [input_path] [width height]\n"
+                    "       or: WIDTH HEIGHT\n")) {
+        return 1;
+    }
+    if (!expect_int("usage_null_buffer", format_cli_usage(NULL, (int)sizeof(usage), argv_default), 0)) {
+        return 1;
+    }
+    if (!expect_int("usage_zero_size", format_cli_usage(usage, 0, argv_default), 0)) {
+        return 1;
+    }
+    if (!expect_int("usage_tiny_buffer", format_cli_usage(usage, 8, argv_default), 0)) {
         return 1;
     }
 
