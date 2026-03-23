@@ -273,6 +273,30 @@ int layer_stack_isolate(LayerStack *stack, int index) {
     return 1;
 }
 
+int layer_stack_invert_visibility(LayerStack *stack, int preserve_index) {
+    if (!stack || stack->layer_count <= 0) {
+        return 0;
+    }
+    if (preserve_index < 0 || preserve_index >= stack->layer_count) {
+        preserve_index = stack->active_layer;
+    }
+
+    int visible_count = 0;
+    for (int i = 0; i < stack->layer_count; i++) {
+        stack->layers[i].visible = stack->layers[i].visible ? 0 : 1;
+        if (stack->layers[i].visible) {
+            visible_count++;
+        }
+    }
+
+    if (visible_count == 0) {
+        stack->layers[preserve_index].visible = 1;
+    }
+    stack->active_layer = preserve_index;
+    stack->solo_index = -1;
+    return 1;
+}
+
 int layer_stack_hide_and_advance(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;

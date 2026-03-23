@@ -120,6 +120,43 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.active_layer = 1;
+    if (!layer_stack_invert_visibility(&stack, 1)) {
+        fprintf(stderr, "invert visibility failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != -1 || stack.active_layer != 1 || stack.layers[0].visible || !stack.layers[1].visible) {
+        fprintf(stderr, "invert visibility bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    layer_stack_composite(&stack, &composite, 0xFFFFFFFF);
+    if (!expect_pixel_eq("inverted_visibility_composite", canvas_get_pixel(&composite, 8, 8), 0xFFBF7F7F)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_invert_visibility(&stack, 1)) {
+        fprintf(stderr, "invert visibility restore failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[0].visible || stack.layers[1].visible) {
+        fprintf(stderr, "invert visibility restore state failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_show(&stack, 1)) {
+        fprintf(stderr, "restore top layer after invert visibility failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_show(&stack, 1)) {
         fprintf(stderr, "restore top layer for hide-and-advance failed\n");
         canvas_free(&composite);
