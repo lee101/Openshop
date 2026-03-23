@@ -11,6 +11,10 @@ static int last_canvas_h = 0;
 static int app_run_result = 0;
 static const char *custom_program_name = "./bin/openshop-dev";
 static const char *custom_input_path = "art/custom.png";
+static const char *custom_size_only_width = "800";
+static const char *custom_size_only_height = "600";
+static const char *custom_input_size_width = "320";
+static const char *custom_input_size_height = "240";
 static const char *expected_usage_text =
     "Usage: openshop [input_path] [width height]\n"
     "       or: WIDTH HEIGHT\n";
@@ -416,28 +420,33 @@ int main(void) {
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_custom_program_size_only[] = {(char *)custom_program_name, "800", "600"};
+    char *argv_custom_program_size_only[] = {
+        (char *)custom_program_name, (char *)custom_size_only_width, (char *)custom_size_only_height};
     if (!capture_main_stderr(3, argv_custom_program_size_only, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_successful_run("custom_program_size_only", exit_code, 0, NULL, 800, 600, stderr_text, "")) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_custom_program_plus_prefixed_size_only[] = {(char *)custom_program_name, "+800", "600"};
+    char *argv_custom_program_plus_prefixed_size_only[] = {
+        (char *)custom_program_name, "+800", (char *)custom_size_only_height};
     if (!capture_main_stderr(3, argv_custom_program_plus_prefixed_size_only, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_successful_run("custom_program_plus_prefixed_size_only", exit_code, 0, NULL, 800, 600, stderr_text, "")) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_custom_program_input_size[] = {(char *)custom_program_name, (char *)custom_input_path, "320", "240"};
+    char *argv_custom_program_input_size[] = {
+        (char *)custom_program_name, (char *)custom_input_path,
+        (char *)custom_input_size_width, (char *)custom_input_size_height};
     if (!capture_main_stderr(4, argv_custom_program_input_size, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_successful_run("custom_program_input_size", exit_code, 0, custom_input_path, 320, 240, stderr_text, "")) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_custom_program_plus_prefixed[] = {(char *)custom_program_name, (char *)custom_input_path, "+320", "240"};
+    char *argv_custom_program_plus_prefixed[] = {
+        (char *)custom_program_name, (char *)custom_input_path, "+320", (char *)custom_input_size_height};
     if (!capture_main_stderr(4, argv_custom_program_plus_prefixed, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_successful_run("custom_program_plus_prefixed", exit_code, 0, custom_input_path, 320, 240, stderr_text, "")) {
         return 1;
