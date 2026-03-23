@@ -386,7 +386,7 @@ int main(void) {
         return 1;
     }
 
-    struct invalid_size_token_case custom_invalid_size_only_width_cases[] = {
+    const struct invalid_size_token_case custom_invalid_size_only_width_cases[] = {
         {"custom_program_null_size_only_width", NULL},
         {"custom_program_empty_size_only_width", ""},
         {"custom_program_bad_size_only_width", bad_width_token},
@@ -403,7 +403,7 @@ int main(void) {
         return 1;
     }
 
-    struct invalid_size_token_case custom_invalid_size_only_height_cases[] = {
+    const struct invalid_size_token_case custom_invalid_size_only_height_cases[] = {
         {"custom_program_null_size_only_height", NULL},
         {"custom_program_bad_size_only_height", bad_height_token},
         {"custom_program_zero_size_only_height", zero_token},
@@ -420,7 +420,7 @@ int main(void) {
         return 1;
     }
 
-    struct invalid_argv_case invalid_argv_cases[] = {
+    const struct invalid_argv_case invalid_argv_cases[] = {
         {"invalid", 3, 0, NULL, {"openshop", default_scene_path, default_size_only_width, NULL, NULL}},
         {"bad_size_only", 3, 0, NULL, {"openshop", default_scene_path, invalid_probe_size, NULL, NULL}},
         {"custom_program_invalid", 3, 0, custom_usage_text, {custom_program_name, default_scene_path, invalid_probe_size, NULL, NULL}},
@@ -442,7 +442,7 @@ int main(void) {
         return 1;
     }
 
-    struct invalid_size_token_case invalid_size_only_height_cases[] = {
+    const struct invalid_size_token_case invalid_size_only_height_cases[] = {
         {"null_size_only_height", NULL},
         {"empty_size_only_height", ""},
         {"zero_size_only_height", zero_token},
@@ -459,7 +459,7 @@ int main(void) {
         return 1;
     }
 
-    struct invalid_size_token_case invalid_size_only_width_cases[] = {
+    const struct invalid_size_token_case invalid_size_only_width_cases[] = {
         {"null_size_only_width", NULL},
         {"empty_size_only_width", ""},
         {"zero_size_only_width", zero_token},
@@ -476,7 +476,7 @@ int main(void) {
         return 1;
     }
 
-    struct invalid_input_size_case custom_invalid_input_size_cases[] = {
+    const struct invalid_input_size_case custom_invalid_input_size_cases[] = {
         {"custom_program_bad_width", bad_width_token, default_size_only_height},
         {"custom_program_negative_width", negative_size_only_width, default_size_only_height},
         {"custom_program_overflow_width", overflow_width_token, default_size_only_height},
@@ -499,7 +499,7 @@ int main(void) {
         return 1;
     }
 
-    struct invalid_input_size_case invalid_input_size_cases[] = {
+    const struct invalid_input_size_case invalid_input_size_cases[] = {
         {"bad_width_value", zero_token, invalid_probe_size},
         {"negative_width_value", negative_size_only_width, invalid_probe_size},
         {"bad_width_token", bad_width_token, default_size_only_height},
@@ -523,7 +523,7 @@ int main(void) {
         return 1;
     }
 
-    struct success_case success_cases[] = {
+    const struct success_case success_cases[] = {
         {"default", 1, "openshop", NULL, NULL, NULL, 0, 0, NULL, 0, 0, ""},
         {"custom_program_input", 2, custom_program_name, custom_input_path, NULL, NULL, 0, 0, custom_input_path, 0, 0, ""},
         {"custom_program_default", 1, custom_program_name, NULL, NULL, NULL, 0, 0, NULL, 0, 0, ""},
