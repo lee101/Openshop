@@ -295,6 +295,27 @@ static int action_show_hidden_unlocked_only(LayerStack *layers, int index) {
     return layer_stack_show_hidden_unlocked_only(layers, index);
 }
 
+static int action_show_all_layers(LayerStack *layers, int index) {
+    (void)index;
+    return layer_stack_show_all(layers);
+}
+
+static int action_show_active_layer(LayerStack *layers, int index) {
+    return layer_stack_show(layers, index);
+}
+
+static int action_isolate_active_layer(LayerStack *layers, int index) {
+    return layer_stack_isolate(layers, index);
+}
+
+static int action_invert_active_layer_visibility(LayerStack *layers, int index) {
+    return layer_stack_invert_visibility(layers, index);
+}
+
+static int action_show_hidden_only(LayerStack *layers, int index) {
+    return layer_stack_show_hidden_only(layers, index);
+}
+
 static int action_flatten_layers(LayerStack *layers, int index) {
     (void)index;
     return layer_stack_flatten(layers, COLOR_BG);
@@ -444,6 +465,20 @@ static void run_directional_layer_action(SDL_Window *window, LayerStack *layers,
                                          int *needs_composite, LayerDirectionalActionFn action, int arg) {
     push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
     if (action(layers, arg)) {
+        *needs_composite = 1;
+    }
+    update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+}
+
+static void run_indexed_layer_action_silent(SDL_Window *window, LayerStack *layers,
+                                            Snapshot *undo_stack, int *undo_count,
+                                            Snapshot *redo_stack, int *redo_count,
+                                            Tool tool, BrushShape brush_shape,
+                                            int brush_radius, uint32_t brush_color, int brush_opacity,
+                                            int *needs_composite, LayerIndexedActionFn action,
+                                            int mark_composite) {
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    if (action(layers, layers->active_layer) && mark_composite) {
         *needs_composite = 1;
     }
     update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1286,47 +1321,38 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_a) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (layer_stack_show_all(&layers)) {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    run_indexed_layer_action_silent(window, &layers, undo_stack, &undo_count, redo_stack,
+                                                    &redo_count, tool, brush_shape, brush_radius, brush_color,
+                                                    brush_opacity, &needs_composite, action_show_all_layers, 1);
                     break;
                 }
 
                 if (ctrl && shift && key == SDLK_r) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (layer_stack_show(&layers, layers.active_layer)) {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    run_indexed_layer_action_silent(window, &layers, undo_stack, &undo_count, redo_stack,
+                                                    &redo_count, tool, brush_shape, brush_radius, brush_color,
+                                                    brush_opacity, &needs_composite, action_show_active_layer, 1);
                     break;
                 }
 
                 if (ctrl && shift && key == SDLK_SLASH) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (layer_stack_isolate(&layers, layers.active_layer)) {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    run_indexed_layer_action_silent(window, &layers, undo_stack, &undo_count, redo_stack,
+                                                    &redo_count, tool, brush_shape, brush_radius, brush_color,
+                                                    brush_opacity, &needs_composite, action_isolate_active_layer, 1);
                     break;
                 }
 
                 if (ctrl && shift && key == SDLK_i) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (layer_stack_invert_visibility(&layers, layers.active_layer)) {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    run_indexed_layer_action_silent(window, &layers, undo_stack, &undo_count, redo_stack,
+                                                    &redo_count, tool, brush_shape, brush_radius, brush_color,
+                                                    brush_opacity, &needs_composite,
+                                                    action_invert_active_layer_visibility, 1);
                     break;
                 }
 
                 if (ctrl && alt && key == SDLK_i) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (layer_stack_show_hidden_only(&layers, layers.active_layer)) {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    run_indexed_layer_action_silent(window, &layers, undo_stack, &undo_count, redo_stack,
+                                                    &redo_count, tool, brush_shape, brush_radius, brush_color,
+                                                    brush_opacity, &needs_composite, action_show_hidden_only, 1);
                     break;
                 }
 
