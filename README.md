@@ -80,7 +80,7 @@ make test-sdl
 - `Ctrl+Shift+E`: stamp visible image into active layer
 - `Ctrl+Shift+G`: stamp visible image into a new top layer
 - `Ctrl+Shift+M`: flatten visible layers
-- `Ctrl+S`: save to `output.bmp`, or reuse `output.png` if that is the only existing default output
+- `Ctrl+S`: save to the current session BMP path, or reuse the session PNG path if that is the only existing default output
 - `Ctrl+Shift+S`: save the composited image to `output.png`
 - `Ctrl+O`: load `input.bmp`, or fall back to `input.png` if the BMP is missing
 - `Ctrl+Shift+O`: load `input.png` into the active layer
@@ -102,7 +102,8 @@ make test-sdl
   Startup input uses the path you pass on the CLI and auto-detects BMP vs PNG by extension, with a BMP fallback for unknown extensions.
   Launching with a startup file also seeds the default `Ctrl+O` pair from that file stem, so `./openshop art/scene.png` reloads `art/scene.bmp` or `art/scene.png`.
   `Ctrl+O` prefers the session BMP path, falls back to the session PNG path, and `Ctrl+Shift+O` always targets the session PNG path.
-  `Ctrl+S` prefers `output.bmp` unless only `output.png` already exists, and `Ctrl+Shift+S` always targets `output.png`.
+  A successful startup load or `Ctrl+O` also seeds the default `Ctrl+S` pair from that loaded file stem; otherwise the session save pair stays `output.bmp` / `output.png`.
+  `Ctrl+S` prefers the session BMP path unless only the session PNG path already exists, and `Ctrl+Shift+S` always targets the session PNG path.
   Default load/save status messages note when the PNG alternate path was used.
 - `make test-sdl` exercises SDL-backed image I/O routing when SDL2 development tools are installed.
 

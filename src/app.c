@@ -38,10 +38,10 @@ typedef enum {
     TOOL_FILLED_ELLIPSE
 } Tool;
 
-typedef struct DefaultInputPaths {
+typedef struct DefaultPathPair {
     char bmp[ROUTED_PATH_MAX];
     char png[ROUTED_PATH_MAX];
-} DefaultInputPaths;
+} DefaultPathPair;
 
 typedef enum {
     BRUSH_SHAPE_ROUND = 0,
@@ -480,7 +480,7 @@ static int active_layer_editable(const LayerStack *layers) {
     return active && !active->locked && active->canvas.pixels;
 }
 
-static void init_default_input_paths(DefaultInputPaths *paths, const char *seed_path) {
+static void init_default_path_pair(DefaultPathPair *paths, const char *seed_path, const char *fallback_stem) {
     if (!paths) {
         return;
     }
@@ -488,13 +488,13 @@ static void init_default_input_paths(DefaultInputPaths *paths, const char *seed_
         build_routed_paths(seed_path, paths->bmp, sizeof(paths->bmp), paths->png, sizeof(paths->png))) {
         return;
     }
-    snprintf(paths->bmp, sizeof(paths->bmp), "input.bmp");
-    snprintf(paths->png, sizeof(paths->png), "input.png");
+    snprintf(paths->bmp, sizeof(paths->bmp), "%s.bmp", fallback_stem);
+    snprintf(paths->png, sizeof(paths->png), "%s.png", fallback_stem);
 }
 
 static int canvas_load_default_input(
     Canvas *c,
-    const DefaultInputPaths *paths,
+    const DefaultPathPair *paths,
     int prefer_png,
     uint32_t background_color,
     const char **loaded_path,
@@ -519,8 +519,16 @@ static int canvas_load_default_input(
     return 0;
 }
 
-static int canvas_save_default_output(const Canvas *c, int prefer_png, const char **saved_path, int *used_alternate) {
-    RoutedPath choice = resolve_default_output_choice(prefer_png);
+static int canvas_save_default_output(
+    const Canvas *c,
+    const DefaultPathPair *paths,
+    int prefer_png,
+    const char **saved_path,
+    int *used_alternate
+) {
+    const char *bmp_path = (paths && paths->bmp[0]) ? paths->bmp : "output.bmp";
+    const char *png_path = (paths && paths->png[0]) ? paths->png : "output.png";
+    RoutedPath choice = resolve_routed_choice(bmp_path, png_path, prefer_png);
     const char *path = choice.path;
     if (!c) {
         return 0;
@@ -728,12 +736,18 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
         return 1;
     }
 
+    DefaultPathPair default_input_paths = {{0}};
+    DefaultPathPair default_output_paths = {{0}};
+    init_default_path_pair(&default_input_paths, input_path, "input");
+    init_default_path_pair(&default_output_paths, NULL, "output");
+
     if (input_path && input_path[0]) {
         Layer *active = layer_stack_active(&layers);
         if (active && !canvas_load_auto(&active->canvas, input_path, COLOR_BG)) {
             fprintf(stderr, "Failed to load %s\n", input_path);
         } else if (active) {
             fprintf(stderr, "Loaded %s\n", input_path);
+            init_default_path_pair(&default_output_paths, input_path, "output");
         }
     }
     layer_stack_composite(&layers, &composite, COLOR_BG);
@@ -759,7 +773,6 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
     int needs_composite = 0;
     int rename_active = 0;
     char rename_buffer[LAYER_NAME_MAX] = {0};
-    DefaultInputPaths default_input_paths = {{0}};
     int zoom_level = 0; /* 0=1x, 1=2x, 2=4x, 3=8x */
     int view_x = 0;
     int view_y = 0;
@@ -768,7 +781,6 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
     Canvas preview_canvas = {canvas_w, canvas_h, preview_pixels};
     memset(undo_stack, 0, sizeof(undo_stack));
     memset(redo_stack, 0, sizeof(redo_stack));
-    init_default_input_paths(&default_input_paths, input_path);
     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
 
     while (running) {
@@ -1185,7 +1197,12 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
                     const Canvas *save_canvas = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
                     const char *saved_path = shift ? "output.png" : "output.bmp";
                     int used_alternate = 0;
-                    if (!canvas_save_default_output(save_canvas, shift, &saved_path, &used_alternate)) {
+                    if (!canvas_save_default_output(
+                            save_canvas,
+                            &default_output_paths,
+                            shift,
+                            &saved_path,
+                            &used_alternate)) {
                         if (used_alternate) {
                             fprintf(stderr, "Failed to save %s (fallback default)\n", saved_path);
                         } else {
@@ -1232,6 +1249,7 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
                         } else {
                             fprintf(stderr, "Loaded %s\n", loaded_path);
                         }
+                        init_default_path_pair(&default_output_paths, loaded_path, "output");
                         push_snapshot_entry(before, undo_stack, &undo_count, redo_stack, &redo_count);
                         needs_composite = 1;
                     }
