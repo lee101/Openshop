@@ -469,32 +469,21 @@ static int expect_invalid_input_size_cases(const struct invalid_input_size_case 
     return 1;
 }
 
-static int expect_custom_invalid_input_size_cases(const struct invalid_input_size_case *cases, size_t case_count,
-                                                  char *stderr_text, size_t stderr_size, int *exit_code,
-                                                  const char *custom_usage_text) {
-    return expect_invalid_input_size_cases(cases, case_count, custom_program_name, default_scene_path,
-                                           stderr_text, stderr_size, exit_code, custom_usage_text);
-}
-
-static int expect_default_invalid_input_size_cases(const struct invalid_input_size_case *cases, size_t case_count,
-                                                   char *stderr_text, size_t stderr_size, int *exit_code) {
-    return expect_invalid_input_size_cases(cases, case_count, default_program_name, default_scene_path,
-                                           stderr_text, stderr_size, exit_code, NULL);
-}
-
 static int expect_main_invalid_input_size_case_groups(const struct invalid_input_size_case *custom_cases,
                                                       size_t custom_case_count,
                                                       const struct invalid_input_size_case *default_cases,
                                                       size_t default_case_count,
                                                       char *stderr_text, size_t stderr_size, int *exit_code,
                                                       const char *custom_usage_text) {
-    if (!expect_custom_invalid_input_size_cases(custom_cases, custom_case_count,
-                                                stderr_text, stderr_size, exit_code, custom_usage_text)) {
+    if (!expect_invalid_input_size_cases(custom_cases, custom_case_count,
+                                         custom_program_name, default_scene_path,
+                                         stderr_text, stderr_size, exit_code, custom_usage_text)) {
         return 0;
     }
 
-    return expect_default_invalid_input_size_cases(default_cases, default_case_count,
-                                                   stderr_text, stderr_size, exit_code);
+    return expect_invalid_input_size_cases(default_cases, default_case_count,
+                                           default_program_name, default_scene_path,
+                                           stderr_text, stderr_size, exit_code, NULL);
 }
 
 static int expect_success_cases(const struct success_case *cases, size_t case_count,
