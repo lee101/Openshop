@@ -370,6 +370,19 @@ static int expect_invalid_input_size_cases(const struct invalid_input_size_case 
     return 1;
 }
 
+static int expect_custom_invalid_input_size_cases(const struct invalid_input_size_case *cases, size_t case_count,
+                                                  char *stderr_text, size_t stderr_size, int *exit_code,
+                                                  const char *custom_usage_text) {
+    return expect_invalid_input_size_cases(cases, case_count, custom_program_name, default_scene_path,
+                                           stderr_text, stderr_size, exit_code, custom_usage_text);
+}
+
+static int expect_default_invalid_input_size_cases(const struct invalid_input_size_case *cases, size_t case_count,
+                                                   char *stderr_text, size_t stderr_size, int *exit_code) {
+    return expect_invalid_input_size_cases(cases, case_count, default_program_name, default_scene_path,
+                                           stderr_text, stderr_size, exit_code, NULL);
+}
+
 static int expect_success_cases(const struct success_case *cases, size_t case_count,
                                 char *stderr_text, size_t stderr_size, int *exit_code) {
     size_t i = 0;
@@ -538,10 +551,9 @@ int main(void) {
         INVALID_INPUT_WIDTH_CASE("custom_program_zero_width", zero_token),
         INVALID_INPUT_HEIGHT_CASE("custom_program_zero_height", zero_token),
     };
-    if (!expect_invalid_input_size_cases(custom_invalid_input_size_cases,
-                                         ARRAY_LEN(custom_invalid_input_size_cases),
-                                         custom_program_name, default_scene_path,
-                                         stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_custom_invalid_input_size_cases(custom_invalid_input_size_cases,
+                                                ARRAY_LEN(custom_invalid_input_size_cases),
+                                                stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
@@ -562,10 +574,9 @@ int main(void) {
         INVALID_INPUT_HEIGHT_CASE("leading_tab_height", leading_tab_height_token),
         INVALID_INPUT_WIDTH_CASE("trailing_space_width", trailing_space_width_token),
     };
-    if (!expect_invalid_input_size_cases(invalid_input_size_cases,
-                                         ARRAY_LEN(invalid_input_size_cases),
-                                         default_program_name, default_scene_path,
-                                         stderr_text, sizeof(stderr_text), &exit_code, NULL)) {
+    if (!expect_default_invalid_input_size_cases(invalid_input_size_cases,
+                                                 ARRAY_LEN(invalid_input_size_cases),
+                                                 stderr_text, sizeof(stderr_text), &exit_code)) {
         return 1;
     }
 
