@@ -103,6 +103,24 @@ int main(void) {
         return 1;
     }
 
+    if (!build_routed_paths("shots/v1.2/scene.final.PNG", bmp_path, sizeof(bmp_path), png_path, sizeof(png_path)) ||
+        !expect_str("build_dotted_dir_bmp", bmp_path, "shots/v1.2/scene.final.bmp") ||
+        !expect_str("build_dotted_dir_png", png_path, "shots/v1.2/scene.final.png")) {
+        return 1;
+    }
+
+    if (!build_routed_paths("C:\\art\\scene.BmP", bmp_path, sizeof(bmp_path), png_path, sizeof(png_path)) ||
+        !expect_str("build_windows_bmp", bmp_path, "C:\\art\\scene.bmp") ||
+        !expect_str("build_windows_png", png_path, "C:\\art\\scene.png")) {
+        return 1;
+    }
+
+    if (!build_routed_paths(".hiddenfile", bmp_path, sizeof(bmp_path), png_path, sizeof(png_path)) ||
+        !expect_str("build_hidden_bmp", bmp_path, ".hiddenfile.bmp") ||
+        !expect_str("build_hidden_png", png_path, ".hiddenfile.png")) {
+        return 1;
+    }
+
     if (!expect_str("generic_prefer_png", default_routed_path("draft.bmp", "draft.png", 1, 1, 1), "draft.png") ||
         !expect_str("generic_prefer_bmp_existing", default_routed_path("draft.bmp", "draft.png", 0, 1, 1), "draft.bmp") ||
         !expect_str("generic_fallback_png", default_routed_path("draft.bmp", "draft.png", 0, 0, 1), "draft.png") ||
