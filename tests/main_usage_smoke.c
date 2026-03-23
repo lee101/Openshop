@@ -392,10 +392,10 @@ static int expect_main_invalid_size_only_case_groups(const struct invalid_size_t
                                                      size_t custom_width_case_count,
                                                      const struct invalid_size_token_case *custom_height_cases,
                                                      size_t custom_height_case_count,
-                                                     const struct invalid_size_token_case *default_height_cases,
-                                                     size_t default_height_case_count,
                                                      const struct invalid_size_token_case *default_width_cases,
                                                      size_t default_width_case_count,
+                                                     const struct invalid_size_token_case *default_height_cases,
+                                                     size_t default_height_case_count,
                                                      char *stderr_text, size_t stderr_size, int *exit_code,
                                                      const char *custom_usage_text) {
     if (!expect_invalid_size_only_width_cases(custom_width_cases, custom_width_case_count,
@@ -581,10 +581,10 @@ int main(void) {
                                                    ARRAY_LEN(custom_invalid_size_only_width_cases),
                                                    custom_invalid_size_only_height_cases,
                                                    ARRAY_LEN(custom_invalid_size_only_height_cases),
-                                                   invalid_size_only_height_cases,
-                                                   ARRAY_LEN(invalid_size_only_height_cases),
                                                    invalid_size_only_width_cases,
                                                    ARRAY_LEN(invalid_size_only_width_cases),
+                                                   invalid_size_only_height_cases,
+                                                   ARRAY_LEN(invalid_size_only_height_cases),
                                                    stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
