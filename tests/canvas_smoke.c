@@ -704,6 +704,9 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[MAX_LAYERS - 1].visible = 0;
+    stack.layers[MAX_LAYERS - 1].locked = 1;
+    stack.layers[MAX_LAYERS - 1].opacity_percent = 35;
     stack.solo_index = 1;
     if (layer_stack_add(&stack, "Overflow Add", 0x00000000) != -1) {
         fprintf(stderr, "add should fail at max layers\n");
@@ -735,6 +738,14 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (stack.layers[MAX_LAYERS - 1].visible || !stack.layers[MAX_LAYERS - 1].locked ||
+        stack.layers[MAX_LAYERS - 1].opacity_percent != 35) {
+        fprintf(stderr, "failed add/insert/duplicate should preserve top layer state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[MAX_LAYERS - 1].locked = 0;
     stack.solo_index = -1;
     while (stack.layer_count > 2) {
         if (!layer_stack_delete(&stack, stack.layer_count - 1)) {
