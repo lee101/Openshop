@@ -82,6 +82,23 @@ static int test_effect_shortcut_mapping(void) {
            expect_int_eq("none_action", none.action, APP_TOOL_EFFECT_NONE);
 }
 
+static int test_tool_and_effect_decoders_stay_partitioned(void) {
+    AppToolCommand eraser_tool = app_tool_command_for_key('e', 0, 0, 6, 100, 0x001B1F24u);
+    AppToolCommand fill_tool = app_tool_command_for_key('f', 0, 0, 6, 100, 0x001B1F24u);
+    AppToolCommand pick_tool = app_tool_command_for_key('i', 0, 0, 6, 100, 0x001B1F24u);
+    AppToolEffectCommand eraser_effect = app_tool_effect_command_for_key('e');
+    AppToolEffectCommand fill_effect = app_tool_effect_command_for_key('f');
+    AppToolEffectCommand pick_effect = app_tool_effect_command_for_key('i');
+
+    return expect_int_eq("eraser_tool_handled", eraser_tool.handled, 1) &&
+           expect_int_eq("eraser_tool_value", eraser_tool.tool, 1) &&
+           expect_int_eq("fill_tool_handled", fill_tool.handled, 0) &&
+           expect_int_eq("pick_tool_handled", pick_tool.handled, 0) &&
+           expect_int_eq("eraser_effect_handled", eraser_effect.handled, 0) &&
+           expect_int_eq("fill_effect_action", fill_effect.action, APP_TOOL_EFFECT_FLOOD_FILL) &&
+           expect_int_eq("pick_effect_action", pick_effect.action, APP_TOOL_EFFECT_PICK_COLOR);
+}
+
 int main(void) {
     if (!test_tool_and_palette_selection()) {
         return 1;
@@ -93,6 +110,9 @@ int main(void) {
         return 1;
     }
     if (!test_effect_shortcut_mapping()) {
+        return 1;
+    }
+    if (!test_tool_and_effect_decoders_stay_partitioned()) {
         return 1;
     }
     return 0;
