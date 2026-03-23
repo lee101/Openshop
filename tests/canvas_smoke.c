@@ -127,6 +127,27 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[0].locked = 1;
+    stack.layers[1].locked = 0;
+    if (!layer_stack_invert_visibility(&stack, 1)) {
+        fprintf(stderr, "invert visibility with locks failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[0].locked || stack.layers[1].locked) {
+        fprintf(stderr, "invert visibility should preserve lock state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_invert_visibility(&stack, 1)) {
+        fprintf(stderr, "invert visibility lock restore failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[0].locked = 0;
     if (stack.solo_index != -1 || stack.active_layer != 1 || stack.layers[0].visible || !stack.layers[1].visible) {
         fprintf(stderr, "invert visibility bookkeeping failed\n");
         canvas_free(&composite);
@@ -160,8 +181,16 @@ static int test_layers_basic(void) {
     stack.layers[0].visible = 1;
     stack.layers[1].visible = 0;
     stack.active_layer = 1;
+    stack.layers[0].locked = 1;
+    stack.layers[1].locked = 0;
     if (!layer_stack_show_hidden_only(&stack, 1)) {
         fprintf(stderr, "show hidden only failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[0].locked || stack.layers[1].locked) {
+        fprintf(stderr, "show hidden only should preserve lock state\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -190,6 +219,7 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[0].locked = 0;
     if (!layer_stack_show(&stack, 1)) {
         fprintf(stderr, "restore top layer for hide-and-advance failed\n");
         canvas_free(&composite);
