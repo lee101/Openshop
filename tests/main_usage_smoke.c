@@ -270,6 +270,18 @@ struct simple_success_case {
     const char *expected_stderr;
 };
 
+struct size_only_success_case {
+    const char *label_prefix;
+    char *program_name;
+    char *width_token;
+    char *height_token;
+    int result;
+    int expected_exit_code;
+    int expected_canvas_w;
+    int expected_canvas_h;
+    const char *expected_stderr;
+};
+
 struct invalid_edge_case {
     const char *label_prefix;
     int argc;
@@ -396,6 +408,23 @@ static int expect_invalid_edge_cases(const struct invalid_edge_case *cases, size
 
         if (!expect_invalid_main_run(cases[i].label_prefix, cases[i].argc, argv_ptr, stderr_text, stderr_size,
                                      exit_code)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int expect_size_only_success_cases(const struct size_only_success_case *cases, size_t case_count,
+                                          char *stderr_text, size_t stderr_size, int *exit_code) {
+    size_t i = 0;
+
+    for (i = 0; i < case_count; i += 1) {
+        char *argv[] = {cases[i].program_name, cases[i].width_token, cases[i].height_token};
+
+        if (!expect_successful_main_run(cases[i].label_prefix, 3, argv, cases[i].result, stderr_text,
+                                        stderr_size, exit_code, cases[i].expected_exit_code, NULL,
+                                        cases[i].expected_canvas_w, cases[i].expected_canvas_h,
+                                        cases[i].expected_stderr)) {
             return 0;
         }
     }
@@ -604,29 +633,15 @@ int main(void) {
         return 1;
     }
 
-    char *argv_size_only[] = {"openshop", (char *)default_size_only_width, (char *)default_size_only_height};
-    if (!expect_successful_main_run("size_only", 3, argv_size_only, 7, stderr_text, sizeof(stderr_text), &exit_code,
-                                    7, NULL, 640, 480, app_exit_code_7_stderr)) {
-        return 1;
-    }
-
-    char *argv_plus_prefixed_size_only[] = {"openshop", (char *)default_plus_prefixed_size_only_width, (char *)default_size_only_height};
-    if (!expect_successful_main_run("plus_prefixed_size_only", 3, argv_plus_prefixed_size_only, 0, stderr_text, sizeof(stderr_text),
-                                    &exit_code, 0, NULL, 640, 480, "")) {
-        return 1;
-    }
-
-    char *argv_custom_program_size_only[] = {
-        (char *)custom_program_name, (char *)custom_size_only_width, (char *)custom_size_only_height};
-    if (!expect_successful_main_run("custom_program_size_only", 3, argv_custom_program_size_only, 0, stderr_text, sizeof(stderr_text),
-                                    &exit_code, 0, NULL, 800, 600, "")) {
-        return 1;
-    }
-
-    char *argv_custom_program_plus_prefixed_size_only[] = {
-        (char *)custom_program_name, (char *)custom_plus_prefixed_size_only_width, (char *)custom_size_only_height};
-    if (!expect_successful_main_run("custom_program_plus_prefixed_size_only", 3, argv_custom_program_plus_prefixed_size_only,
-                                    0, stderr_text, sizeof(stderr_text), &exit_code, 0, NULL, 800, 600, "")) {
+    struct size_only_success_case size_only_success_cases[] = {
+        {"size_only", "openshop", (char *)default_size_only_width, (char *)default_size_only_height, 7, 7, 640, 480, app_exit_code_7_stderr},
+        {"plus_prefixed_size_only", "openshop", (char *)default_plus_prefixed_size_only_width, (char *)default_size_only_height, 0, 0, 640, 480, ""},
+        {"custom_program_size_only", (char *)custom_program_name, (char *)custom_size_only_width, (char *)custom_size_only_height, 0, 0, 800, 600, ""},
+        {"custom_program_plus_prefixed_size_only", (char *)custom_program_name, (char *)custom_plus_prefixed_size_only_width, (char *)custom_size_only_height, 0, 0, 800, 600, ""},
+    };
+    if (!expect_size_only_success_cases(size_only_success_cases,
+                                        sizeof(size_only_success_cases) / sizeof(size_only_success_cases[0]),
+                                        stderr_text, sizeof(stderr_text), &exit_code)) {
         return 1;
     }
 
