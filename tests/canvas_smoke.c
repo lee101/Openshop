@@ -313,6 +313,16 @@ static int test_layers_basic(void) {
             return 0;
         }
     }
+    {
+        char status_message[128];
+        format_status_text_file_save("output.bmp", status_message, sizeof(status_message));
+        if (strcmp(status_message, "Failed to save output.bmp") != 0) {
+            fprintf(stderr, "file save status text formatting failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
     stack.layers[0].visible = 1;
     stack.layers[0].locked = 0;
     stack.layers[0].opacity_percent = 100;

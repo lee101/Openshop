@@ -86,3 +86,10 @@ void format_status_text_file_load(const char *path, char *buffer, size_t buffer_
     }
     snprintf(buffer, buffer_size, "Failed to load %s", path ? path : "");
 }
+
+void format_status_text_file_save(const char *path, char *buffer, size_t buffer_size) {
+    if (!buffer || buffer_size == 0) {
+        return;
+    }
+    snprintf(buffer, buffer_size, "Failed to save %s", path ? path : "");
+}

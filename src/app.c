@@ -1058,9 +1058,11 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_s) {
+                    char status_message[128];
                     const Canvas *save_canvas = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
                     if (!canvas_save_bmp(save_canvas, "output.bmp")) {
-                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_SAVE_OUTPUT_BMP));
+                        format_status_text_file_save("output.bmp", status_message, sizeof(status_message));
+                        fprintf(stderr, "%s\n", status_message);
                     }
                     break;
                 }
