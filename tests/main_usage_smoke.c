@@ -11,10 +11,13 @@ static int last_canvas_h = 0;
 static int app_run_result = 0;
 static const char *custom_program_name = "./bin/openshop-dev";
 static const char *custom_input_path = "art/custom.png";
+static const char *custom_numeric_input = "640";
 static const char *custom_size_only_width = "800";
 static const char *custom_size_only_height = "600";
+static const char *custom_plus_prefixed_size_only_width = "+800";
 static const char *custom_input_size_width = "320";
 static const char *custom_input_size_height = "240";
+static const char *custom_plus_prefixed_input_size_width = "+320";
 static const char *expected_usage_text =
     "Usage: openshop [input_path] [width height]\n"
     "       or: WIDTH HEIGHT\n";
@@ -412,9 +415,9 @@ int main(void) {
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_custom_program_numeric_input[] = {(char *)custom_program_name, "640"};
+    char *argv_custom_program_numeric_input[] = {(char *)custom_program_name, (char *)custom_numeric_input};
     if (!capture_main_stderr(2, argv_custom_program_numeric_input, stderr_text, sizeof(stderr_text), &exit_code) ||
-        !expect_successful_run("custom_program_numeric_input", exit_code, 0, "640", 0, 0, stderr_text, "")) {
+        !expect_successful_run("custom_program_numeric_input", exit_code, 0, custom_numeric_input, 0, 0, stderr_text, "")) {
         return 1;
     }
 
@@ -436,7 +439,7 @@ int main(void) {
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
     char *argv_custom_program_plus_prefixed_size_only[] = {
-        (char *)custom_program_name, "+800", (char *)custom_size_only_height};
+        (char *)custom_program_name, (char *)custom_plus_prefixed_size_only_width, (char *)custom_size_only_height};
     if (!capture_main_stderr(3, argv_custom_program_plus_prefixed_size_only, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_successful_run("custom_program_plus_prefixed_size_only", exit_code, 0, NULL, 800, 600, stderr_text, "")) {
         return 1;
@@ -453,7 +456,8 @@ int main(void) {
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
     char *argv_custom_program_plus_prefixed[] = {
-        (char *)custom_program_name, (char *)custom_input_path, "+320", (char *)custom_input_size_height};
+        (char *)custom_program_name, (char *)custom_input_path,
+        (char *)custom_plus_prefixed_input_size_width, (char *)custom_input_size_height};
     if (!capture_main_stderr(4, argv_custom_program_plus_prefixed, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_successful_run("custom_program_plus_prefixed", exit_code, 0, custom_input_path, 320, 240, stderr_text, "")) {
         return 1;
