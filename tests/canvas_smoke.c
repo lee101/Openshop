@@ -1171,6 +1171,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (stack.solo_index != -1) {
+        fprintf(stderr, "reveal hidden locked from top should clear solo mode\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[0].locked = 0;
     stack.layers[3].locked = 0;
     stack.layers[0].visible = 0;
@@ -1227,6 +1233,12 @@ static int test_layers_basic(void) {
     }
     if (stack.layers[3].opacity_percent != 75 || strcmp(stack.layers[3].name, "Top Hidden Unlocked") != 0) {
         fprintf(stderr, "reveal hidden unlocked from top should preserve metadata\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != -1) {
+        fprintf(stderr, "reveal hidden unlocked from top should clear solo mode\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
