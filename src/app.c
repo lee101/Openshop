@@ -475,22 +475,6 @@ static int active_layer_editable(const LayerStack *layers) {
     return active && !active->locked && active->canvas.pixels;
 }
 
-static int canvas_load_path_auto(Canvas *c, const char *path, uint32_t background_color) {
-    if (!c || !path || !path[0]) {
-        return 0;
-    }
-    if (path_has_extension_ci(path, ".png")) {
-        return canvas_load_png(c, path, background_color);
-    }
-    if (path_has_extension_ci(path, ".bmp")) {
-        return canvas_load_bmp(c, path, background_color);
-    }
-    if (canvas_load_png(c, path, background_color)) {
-        return 1;
-    }
-    return canvas_load_bmp(c, path, background_color);
-}
-
 static int canvas_load_default_input(Canvas *c, int prefer_png, uint32_t background_color, const char **loaded_path) {
     int bmp_exists = path_exists("input.bmp");
     int png_exists = path_exists("input.png");
@@ -498,16 +482,7 @@ static int canvas_load_default_input(Canvas *c, int prefer_png, uint32_t backgro
     if (!c) {
         return 0;
     }
-    if (path_has_extension_ci(path, ".png")) {
-        if (canvas_load_png(c, path, background_color)) {
-            if (loaded_path) {
-                *loaded_path = path;
-            }
-            return 1;
-        }
-        return 0;
-    }
-    if (canvas_load_bmp(c, path, background_color)) {
+    if (canvas_load_auto(c, path, background_color)) {
         if (loaded_path) {
             *loaded_path = path;
         }
@@ -539,10 +514,7 @@ static int canvas_save_default_output(const Canvas *c, int prefer_png, const cha
     if (saved_path) {
         *saved_path = path;
     }
-    if (path_has_extension_ci(path, ".png")) {
-        return canvas_save_png(c, path);
-    }
-    return canvas_save_bmp(c, path);
+    return canvas_save_auto(c, path);
 }
 
 static void hue_rotate_30(Canvas *c) {
@@ -741,7 +713,7 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
 
     if (input_path && input_path[0]) {
         Layer *active = layer_stack_active(&layers);
-        if (active && !canvas_load_path_auto(&active->canvas, input_path, COLOR_BG)) {
+        if (active && !canvas_load_auto(&active->canvas, input_path, COLOR_BG)) {
             fprintf(stderr, "Failed to load %s\n", input_path);
         }
     }

@@ -1,4 +1,5 @@
 #include "image_io.h"
+#include "path_routing.h"
 
 #include <SDL2/SDL.h>
 #include <string.h>
@@ -52,4 +53,30 @@ int canvas_save_bmp(const Canvas *c, const char *path) {
     int ok = SDL_SaveBMP(surface, path) == 0;
     SDL_FreeSurface(surface);
     return ok;
+}
+
+int canvas_load_auto(Canvas *c, const char *path, uint32_t background_color) {
+    if (!c || !path || !path[0]) {
+        return 0;
+    }
+    if (path_has_extension_ci(path, ".png")) {
+        return canvas_load_png(c, path, background_color);
+    }
+    if (path_has_extension_ci(path, ".bmp")) {
+        return canvas_load_bmp(c, path, background_color);
+    }
+    if (canvas_load_png(c, path, background_color)) {
+        return 1;
+    }
+    return canvas_load_bmp(c, path, background_color);
+}
+
+int canvas_save_auto(const Canvas *c, const char *path) {
+    if (!c || !path || !path[0]) {
+        return 0;
+    }
+    if (path_has_extension_ci(path, ".png")) {
+        return canvas_save_png(c, path);
+    }
+    return canvas_save_bmp(c, path);
 }
