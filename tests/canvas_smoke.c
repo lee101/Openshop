@@ -684,6 +684,7 @@ static int test_layers_basic(void) {
         return 0;
     }
     stack.active_layer = 2;
+    stack.solo_index = 2;
     if (layer_stack_select_bottom_hidden_locked(&stack) != 0 || stack.active_layer != 0) {
         fprintf(stderr, "select bottom hidden locked failed\n");
         canvas_free(&composite);
@@ -696,9 +697,16 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (stack.solo_index != 2) {
+        fprintf(stderr, "hidden locked selection should preserve solo state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[0].locked = 0;
     stack.layers[3].locked = 0;
     stack.active_layer = 2;
+    stack.solo_index = -1;
     if (layer_stack_cycle_hidden_locked(&stack, 1) != -1 || stack.active_layer != 2) {
         fprintf(stderr, "hidden locked layer cycling should fail when none are hidden and locked\n");
         canvas_free(&composite);
@@ -745,6 +753,7 @@ static int test_layers_basic(void) {
         return 0;
     }
     stack.active_layer = 2;
+    stack.solo_index = 0;
     if (layer_stack_select_bottom_hidden_unlocked(&stack) != 1 || stack.active_layer != 1) {
         fprintf(stderr, "select bottom hidden unlocked failed\n");
         canvas_free(&composite);
@@ -757,9 +766,16 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (stack.solo_index != 0) {
+        fprintf(stderr, "hidden unlocked selection should preserve solo state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[1].locked = 1;
     stack.layers[3].locked = 1;
     stack.active_layer = 2;
+    stack.solo_index = -1;
     if (layer_stack_cycle_hidden_unlocked(&stack, 1) != -1 || stack.active_layer != 2) {
         fprintf(stderr, "hidden unlocked layer cycling should fail when none are hidden and unlocked\n");
         canvas_free(&composite);
