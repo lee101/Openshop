@@ -682,6 +682,106 @@ static int handle_layer_stack_shortcut(
     return handled;
 }
 
+static int handle_document_shortcut(
+    SDL_Keycode key,
+    int ctrl,
+    int shift,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite,
+    SDL_Window *window,
+    Tool tool,
+    BrushShape brush_shape,
+    int brush_radius,
+    uint32_t brush_color,
+    int brush_opacity,
+    const Canvas *preview_canvas,
+    int preview_active,
+    const Canvas *composite
+) {
+    int handled = 1;
+
+    if (ctrl && key == SDLK_s) {
+        const Canvas *save_canvas = (preview_active && preview_canvas && preview_canvas->pixels) ? preview_canvas : composite;
+        if (!canvas_save_bmp(save_canvas, "output.bmp")) {
+            fprintf(stderr, "Failed to save output.bmp\n");
+        }
+    } else if (ctrl && key == SDLK_o) {
+        Layer *active = layer_stack_active(layers);
+        if (!active || active->locked) {
+            fprintf(stderr, "Active layer is locked\n");
+        } else {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            if (!canvas_load_bmp(&active->canvas, "input.bmp", active_layer_clear_color(layers))) {
+                fprintf(stderr, "Failed to load input.bmp\n");
+            } else {
+                *needs_composite = 1;
+            }
+        }
+    } else if (ctrl && key == SDLK_z) {
+        if (*undo_count > 0) {
+            Snapshot current = {0};
+            if (snapshot_from_layers(&current, layers)) {
+                if (*redo_count == MAX_HISTORY) {
+                    snapshot_free(&redo_stack[0]);
+                    memmove(&redo_stack[0], &redo_stack[1], sizeof(Snapshot) * (size_t)(MAX_HISTORY - 1));
+                    *redo_count = MAX_HISTORY - 1;
+                }
+                redo_stack[(*redo_count)++] = current;
+            }
+            Snapshot prev = undo_stack[--(*undo_count)];
+            snapshot_apply(&prev, layers);
+            snapshot_free(&prev);
+            *needs_composite = 1;
+            update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+        }
+    } else if (ctrl && key == SDLK_y) {
+        if (*redo_count > 0) {
+            Snapshot current = {0};
+            if (snapshot_from_layers(&current, layers)) {
+                if (*undo_count == MAX_HISTORY) {
+                    snapshot_free(&undo_stack[0]);
+                    memmove(&undo_stack[0], &undo_stack[1], sizeof(Snapshot) * (size_t)(MAX_HISTORY - 1));
+                    *undo_count = MAX_HISTORY - 1;
+                }
+                undo_stack[(*undo_count)++] = current;
+            }
+            Snapshot next = redo_stack[--(*redo_count)];
+            snapshot_apply(&next, layers);
+            snapshot_free(&next);
+            *needs_composite = 1;
+            update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+        }
+    } else if (ctrl && key == SDLK_0) {
+        Layer *active = layer_stack_active(layers);
+        if (active && active->opacity_percent != 100) {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            layer_stack_set_opacity(layers, layers->active_layer, 100);
+            *needs_composite = 1;
+        }
+        update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+    } else if (ctrl && key == SDLK_a) {
+        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        if (layer_stack_show_all(layers)) {
+            *needs_composite = 1;
+        }
+        update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+    } else if (ctrl && shift && key == SDLK_r) {
+        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        if (layer_stack_show(layers, layers->active_layer)) {
+            *needs_composite = 1;
+        }
+        update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+    } else {
+        handled = 0;
+    }
+
+    return handled;
+}
+
 static uint32_t active_layer_clear_color(const LayerStack *layers) {
     if (!layers) {
         return COLOR_BG;
@@ -1055,95 +1155,25 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (ctrl && key == SDLK_s) {
-                    const Canvas *save_canvas = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
-                    if (!canvas_save_bmp(save_canvas, "output.bmp")) {
-                        fprintf(stderr, "Failed to save output.bmp\n");
-                    }
-                    break;
-                }
-
-                if (ctrl && key == SDLK_o) {
-                    Layer *active = layer_stack_active(&layers);
-                    if (!active || active->locked) {
-                        fprintf(stderr, "Active layer is locked\n");
-                        break;
-                    }
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!canvas_load_bmp(&active->canvas, "input.bmp", active_layer_clear_color(&layers))) {
-                        fprintf(stderr, "Failed to load input.bmp\n");
-                    } else {
-                        needs_composite = 1;
-                    }
-                    break;
-                }
-
-                if (ctrl && key == SDLK_z) {
-                    if (undo_count > 0) {
-                        Snapshot current = {0};
-                        if (snapshot_from_layers(&current, &layers)) {
-                            if (redo_count == MAX_HISTORY) {
-                                snapshot_free(&redo_stack[0]);
-                                memmove(&redo_stack[0], &redo_stack[1], sizeof(Snapshot) * (size_t)(MAX_HISTORY - 1));
-                                redo_count = MAX_HISTORY - 1;
-                            }
-                            redo_stack[redo_count++] = current;
-                        }
-                        Snapshot prev = undo_stack[--undo_count];
-                        snapshot_apply(&prev, &layers);
-                        snapshot_free(&prev);
-                        needs_composite = 1;
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
-                    break;
-                }
-
-                if (ctrl && key == SDLK_y) {
-                    if (redo_count > 0) {
-                        Snapshot current = {0};
-                        if (snapshot_from_layers(&current, &layers)) {
-                            if (undo_count == MAX_HISTORY) {
-                                snapshot_free(&undo_stack[0]);
-                                memmove(&undo_stack[0], &undo_stack[1], sizeof(Snapshot) * (size_t)(MAX_HISTORY - 1));
-                                undo_count = MAX_HISTORY - 1;
-                            }
-                            undo_stack[undo_count++] = current;
-                        }
-                        Snapshot next = redo_stack[--redo_count];
-                        snapshot_apply(&next, &layers);
-                        snapshot_free(&next);
-                        needs_composite = 1;
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
-                    break;
-                }
-
-                if (ctrl && key == SDLK_0) {
-                    Layer *active = layer_stack_active(&layers);
-                    if (active && active->opacity_percent != 100) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        layer_stack_set_opacity(&layers, layers.active_layer, 100);
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (ctrl && key == SDLK_a) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (layer_stack_show_all(&layers)) {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (ctrl && shift && key == SDLK_r) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (layer_stack_show(&layers, layers.active_layer)) {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                if (handle_document_shortcut(
+                        key,
+                        ctrl,
+                        shift,
+                        &layers,
+                        undo_stack,
+                        &undo_count,
+                        redo_stack,
+                        &redo_count,
+                        &needs_composite,
+                        window,
+                        tool,
+                        brush_shape,
+                        brush_radius,
+                        brush_color,
+                        brush_opacity,
+                        &preview_canvas,
+                        preview_active,
+                        &composite)) {
                     break;
                 }
 
