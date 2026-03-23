@@ -1,5 +1,6 @@
 #include "../src/canvas.h"
 #include "../src/layers.h"
+#include "../src/title_hints.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -53,6 +54,28 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    {
+        char hint[40];
+        format_hidden_layer_hint(&stack, hint, sizeof(hint));
+        if (strcmp(hint, " | hint hu C-A-;/'") != 0) {
+            fprintf(stderr, "hidden unlocked hint formatting failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    stack.layers[1].locked = 1;
+    {
+        char hint[40];
+        format_hidden_layer_hint(&stack, hint, sizeof(hint));
+        if (strcmp(hint, " | hint hl C-S-,/.") != 0) {
+            fprintf(stderr, "hidden locked hint formatting failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    stack.layers[1].locked = 0;
     if (!layer_stack_toggle_solo(&stack, 1)) {
         fprintf(stderr, "solo hidden layer failed\n");
         canvas_free(&composite);
@@ -96,6 +119,32 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[0].visible = 0;
+    stack.layers[0].locked = 1;
+    stack.layers[1].visible = 0;
+    stack.layers[1].locked = 0;
+    {
+        char hint[40];
+        format_hidden_layer_hint(&stack, hint, sizeof(hint));
+        if (strcmp(hint, " | hints hu C-A-;/' hl C-S-,/.") != 0) {
+            fprintf(stderr, "mixed hidden hint formatting failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    stack.layers[0].visible = 1;
+    stack.layers[0].locked = 0;
+    {
+        char hint[40];
+        format_hidden_layer_hint(&stack, hint, sizeof(hint));
+        if (strcmp(hint, " | hint hu C-A-;/'") != 0) {
+            fprintf(stderr, "hidden hint reset formatting failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
     if (!layer_stack_isolate(&stack, 1)) {
         fprintf(stderr, "isolate active layer failed\n");
         canvas_free(&composite);
@@ -119,6 +168,16 @@ static int test_layers_basic(void) {
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
+    }
+    {
+        char hint[40];
+        format_hidden_layer_hint(&stack, hint, sizeof(hint));
+        if (hint[0] != '\0') {
+            fprintf(stderr, "visible-only stack should not emit hidden hint\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
     }
     stack.active_layer = 1;
     if (!layer_stack_invert_visibility(&stack, 1)) {

@@ -2,6 +2,7 @@
 #include "canvas.h"
 #include "image_io.h"
 #include "layers.h"
+#include "title_hints.h"
 
 #include <SDL2/SDL.h>
 #include <stdio.h>
@@ -239,35 +240,6 @@ static BrushShape cycle_brush_shape(BrushShape shape, int direction) {
     return (BrushShape)idx;
 }
 
-static const char *hidden_layer_hint(const LayerStack *layers) {
-    if (!layers) {
-        return "";
-    }
-
-    int hidden_locked = 0;
-    int hidden_unlocked = 0;
-    for (int i = 0; i < layers->layer_count; i++) {
-        if (!layers->layers[i].visible) {
-            if (layers->layers[i].locked) {
-                hidden_locked++;
-            } else {
-                hidden_unlocked++;
-            }
-        }
-    }
-
-    if (hidden_locked > 0 && hidden_unlocked > 0) {
-        return " | hints hu C-A-;/' hl C-S-,/.";
-    }
-    if (hidden_unlocked > 0) {
-        return " | hint hu C-A-;/'";
-    }
-    if (hidden_locked > 0) {
-        return " | hint hl C-S-,/.";
-    }
-    return "";
-}
-
 static void update_window_title(SDL_Window *window, const LayerStack *layers, Tool tool, BrushShape brush_shape, int radius, uint32_t color, int opacity_percent) {
     if (!window || !layers) {
         return;
@@ -282,8 +254,9 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
         }
     }
     int hidden_layers = layers->layer_count - visible_layers;
-    const char *hint = hidden_layer_hint(layers);
+    char hint[40];
     char title[384];
+    format_hidden_layer_hint(layers, hint, sizeof(hint));
     snprintf(
         title,
         sizeof(title),
