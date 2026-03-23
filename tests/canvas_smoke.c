@@ -446,6 +446,20 @@ static int test_layers_basic(void) {
     stack.layers[1].locked = 0;
     stack.layers[2].locked = 0;
     stack.layers[3].locked = 0;
+    stack.layers[0].locked = 1;
+    stack.layers[2].locked = 1;
+    if (!layer_stack_unlock_all(&stack)) {
+        fprintf(stderr, "unlock all failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[0].locked || stack.layers[1].locked || stack.layers[2].locked || stack.layers[3].locked) {
+        fprintf(stderr, "unlock all should clear every layer lock\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[1].visible = 0;
     stack.layers[0].visible = 0;
     stack.layers[2].visible = 0;

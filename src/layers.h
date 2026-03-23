@@ -42,6 +42,7 @@ int layer_stack_select_bottom_locked(LayerStack *stack);
 int layer_stack_select_top_locked(LayerStack *stack);
 int layer_stack_toggle_visibility(LayerStack *stack, int index);
 int layer_stack_toggle_lock(LayerStack *stack, int index);
+int layer_stack_unlock_all(LayerStack *stack);
 int layer_stack_show_all(LayerStack *stack);
 int layer_stack_show(LayerStack *stack, int index);
 int layer_stack_isolate(LayerStack *stack, int index);

@@ -836,6 +836,15 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (alt && key == SDLK_u) {
+                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                    if (!layer_stack_unlock_all(&layers)) {
+                        fprintf(stderr, "Could not unlock all layers\n");
+                    }
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
                 if (ctrl && shift && key == SDLK_m) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_flatten(&layers, COLOR_BG)) {
