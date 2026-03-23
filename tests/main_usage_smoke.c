@@ -229,6 +229,13 @@ int main(void) {
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
+    char *argv_null_program[] = {NULL};
+    if (!capture_main_stderr(1, argv_null_program, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_invalid_run("null_program", exit_code, stderr_text)) {
+        return 1;
+    }
+
+    reset_app_state(0, NULL, 0, 0, stderr_text);
     char *argv_zero_argc[] = {"openshop"};
     if (!capture_main_stderr(0, argv_zero_argc, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("zero_argc", exit_code, stderr_text)) {
