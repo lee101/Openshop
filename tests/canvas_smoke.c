@@ -293,8 +293,40 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[0].visible = 1;
+    stack.layers[1].visible = 0;
+    stack.layers[2].visible = 0;
+    stack.layers[3].visible = 1;
+    stack.active_layer = 1;
+    if (layer_stack_select_bottom_visible(&stack) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "select bottom visible failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_top_visible(&stack) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "select top visible failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[0].visible = 0;
+    stack.layers[3].visible = 0;
+    stack.active_layer = 2;
+    if (layer_stack_select_bottom_visible(&stack) != -1 || stack.active_layer != 2) {
+        fprintf(stderr, "select bottom visible should fail when no layers are visible\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_top_visible(&stack) != -1 || stack.active_layer != 2) {
+        fprintf(stderr, "select top visible should fail when no layers are visible\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_show_all(&stack)) {
-        fprintf(stderr, "restore visibility after visible cycling failed\n");
+        fprintf(stderr, "restore visibility after visible selection tests failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;

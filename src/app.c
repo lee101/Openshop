@@ -1118,6 +1118,20 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (ctrl && key == SDLK_HOME) {
+                    if (layer_stack_select_bottom_visible(&layers) >= 0) {
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    }
+                    break;
+                }
+
+                if (ctrl && key == SDLK_END) {
+                    if (layer_stack_select_top_visible(&layers) >= 0) {
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    }
+                    break;
+                }
+
                 if (key == SDLK_PAGEUP) {
                     if (layer_stack_cycle(&layers, 1) >= 0) {
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
