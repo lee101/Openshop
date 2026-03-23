@@ -509,14 +509,14 @@ static int canvas_save_default_output(
 ) {
     RoutedPath choice = resolve_routed_pair_choice(paths, "output.bmp", "output.png", prefer_png);
     const char *path = choice.path;
+    if (saved_path) {
+        *saved_path = path;
+    }
     if (!c) {
         return 0;
     }
     if (used_alternate) {
         *used_alternate = choice.used_alternate;
-    }
-    if (saved_path) {
-        *saved_path = path;
     }
     return canvas_save_auto(c, path);
 }
