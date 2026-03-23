@@ -1377,6 +1377,45 @@ static void render_frame(
     SDL_RenderPresent(renderer);
 }
 
+static void cleanup_app_resources(
+    uint32_t *shape_base_pixels,
+    uint32_t *preview_pixels,
+    Canvas *composite,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    SDL_Texture *texture,
+    SDL_Renderer *renderer,
+    SDL_Window *window
+) {
+    free(shape_base_pixels);
+    free(preview_pixels);
+    if (composite) {
+        canvas_free(composite);
+    }
+    if (layers) {
+        layer_stack_free(layers);
+    }
+    if (undo_stack && undo_count) {
+        stack_clear(undo_stack, undo_count);
+    }
+    if (redo_stack && redo_count) {
+        stack_clear(redo_stack, redo_count);
+    }
+    if (texture) {
+        SDL_DestroyTexture(texture);
+    }
+    if (renderer) {
+        SDL_DestroyRenderer(renderer);
+    }
+    if (window) {
+        SDL_DestroyWindow(window);
+    }
+    SDL_Quit();
+}
+
 static uint32_t active_layer_clear_color(const LayerStack *layers) {
     if (!layers) {
         return COLOR_BG;
@@ -1711,15 +1750,18 @@ int app_run(const char *input_path) {
         SDL_Delay(16);
     }
 
-    free(shape_base_pixels);
-    free(preview_pixels);
-    canvas_free(&composite);
-    layer_stack_free(&layers);
-    stack_clear(undo_stack, &undo_count);
-    stack_clear(redo_stack, &redo_count);
-    SDL_DestroyTexture(texture);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
+    cleanup_app_resources(
+        shape_base_pixels,
+        preview_pixels,
+        &composite,
+        &layers,
+        undo_stack,
+        &undo_count,
+        redo_stack,
+        &redo_count,
+        texture,
+        renderer,
+        window
+    );
     return 0;
 }
