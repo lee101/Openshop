@@ -90,6 +90,18 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_show(&stack, 1)) {
+        fprintf(stderr, "show active layer should report no-op when already visible\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_show_all(&stack)) {
+        fprintf(stderr, "show all should be a no-op when nothing changes\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_toggle_visibility(&stack, 1)) {
         fprintf(stderr, "rehide top layer after show active failed\n");
         canvas_free(&composite);
@@ -346,6 +358,42 @@ static int test_layers_basic(void) {
     canvas_clear(&stack.layers[1].canvas, 0x8000FF00);
     if (!layer_stack_set_opacity(&stack, 1, 50)) {
         fprintf(stderr, "set opacity failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 1, "Foreground Ink")) {
+        fprintf(stderr, "rename layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[1].name, "Foreground Ink") != 0) {
+        fprintf(stderr, "rename layer text mismatch\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_rename(&stack, 1, "Foreground Ink")) {
+        fprintf(stderr, "rename should report no-op when name is unchanged\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 1, "")) {
+        fprintf(stderr, "rename fallback failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[1].name, "Layer 2") != 0) {
+        fprintf(stderr, "rename fallback name mismatch\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 1, "Foreground Ink")) {
+        fprintf(stderr, "restore renamed layer failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;

@@ -4,6 +4,18 @@
 #include <stdlib.h>
 #include <string.h>
 
+static void layer_set_name(Layer *layer, int index, const char *name) {
+    if (!layer) {
+        return;
+    }
+    if (name && name[0]) {
+        strncpy(layer->name, name, LAYER_NAME_MAX - 1);
+        layer->name[LAYER_NAME_MAX - 1] = '\0';
+        return;
+    }
+    snprintf(layer->name, LAYER_NAME_MAX, "Layer %d", index + 1);
+}
+
 static uint8_t blend_channel(uint8_t src, uint8_t dst, uint8_t src_alpha) {
     int inv = 255 - src_alpha;
     int value = src * src_alpha + dst * inv + 127;
@@ -159,12 +171,7 @@ int layer_stack_insert(LayerStack *stack, int index, const char *name, uint32_t 
     layer->visible = 1;
     layer->locked = 0;
     layer->opacity_percent = 100;
-    if (name && name[0]) {
-        strncpy(layer->name, name, LAYER_NAME_MAX - 1);
-        layer->name[LAYER_NAME_MAX - 1] = '\0';
-    } else {
-        snprintf(layer->name, LAYER_NAME_MAX, "Layer %d", index + 1);
-    }
+    layer_set_name(layer, index, name);
 
     stack->layer_count++;
     stack->active_layer = index;
@@ -225,15 +232,22 @@ int layer_stack_show_all(LayerStack *stack) {
     if (!stack) {
         return 0;
     }
+    int changed = (stack->solo_index != -1);
     for (int i = 0; i < stack->layer_count; i++) {
+        if (!stack->layers[i].visible) {
+            changed = 1;
+        }
         stack->layers[i].visible = 1;
     }
     stack->solo_index = -1;
-    return 1;
+    return changed;
 }
 
 int layer_stack_show(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    if (stack->layers[index].visible) {
         return 0;
     }
     stack->layers[index].visible = 1;
@@ -298,6 +312,22 @@ int layer_stack_set_opacity(LayerStack *stack, int index, int opacity_percent) {
         opacity_percent = 100;
     }
     stack->layers[index].opacity_percent = opacity_percent;
+    return 1;
+}
+
+int layer_stack_rename(LayerStack *stack, int index, const char *name) {
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    char next_name[LAYER_NAME_MAX];
+    Layer temp = {0};
+    layer_set_name(&temp, index, name);
+    strncpy(next_name, temp.name, sizeof(next_name) - 1);
+    next_name[sizeof(next_name) - 1] = '\0';
+    if (strncmp(stack->layers[index].name, next_name, LAYER_NAME_MAX) == 0) {
+        return 0;
+    }
+    memcpy(stack->layers[index].name, next_name, sizeof(next_name));
     return 1;
 }
 
