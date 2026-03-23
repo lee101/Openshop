@@ -588,19 +588,67 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_add(&stack, "Move Top", 0x00000000) != 2) {
+        fprintf(stderr, "add extra layer for move-to failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_move_to(&stack, 1, 2) || stack.active_layer != 2) {
+        fprintf(stderr, "move layer to top failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[2].locked || strcmp(stack.layers[2].name, "Background Copy") != 0) {
+        fprintf(stderr, "move layer to top bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != 2) {
+        fprintf(stderr, "solo index did not follow move-to top\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_move_to(&stack, 2, 0) || stack.active_layer != 0) {
+        fprintf(stderr, "move layer to bottom failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[0].locked || strcmp(stack.layers[0].name, "Background Copy") != 0) {
+        fprintf(stderr, "move layer to bottom bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != 0) {
+        fprintf(stderr, "solo index did not follow move-to bottom\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 2) || stack.layer_count != 2) {
+        fprintf(stderr, "cleanup move-to layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     canvas_set_pixel(&stack.layers[1].canvas, 0, 0, 0xFFFF00FF);
     if (!expect_pixel_eq("duplicate_independent", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF0040BF)) {
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
     }
-    if (!layer_stack_toggle_lock(&stack, 1) || stack.layers[1].locked) {
+    if (!layer_stack_toggle_lock(&stack, 0) || stack.layers[0].locked) {
         fprintf(stderr, "unlock duplicated layer failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
     }
-    if (!layer_stack_delete(&stack, 1)) {
+    if (!layer_stack_delete(&stack, 0)) {
         fprintf(stderr, "delete duplicated layer failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
