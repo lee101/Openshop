@@ -124,6 +124,20 @@ static int test_document_command_for_key(void) {
            expect_int_eq("none_action", none.action, APP_DOCUMENT_ACTION_SAVE);
 }
 
+static int test_document_command_precedence(void) {
+    AppDocumentCommand shifted_show_active = app_document_command_for_key('r', 1, 1);
+    AppDocumentCommand plain_r = app_document_command_for_key('r', 1, 0);
+    AppDocumentCommand shifted_save = app_document_command_for_key('s', 1, 1);
+    AppDocumentCommand shifted_show_all = app_document_command_for_key('a', 1, 1);
+
+    return expect_int_eq("shifted_show_active_handled", shifted_show_active.handled, 1) &&
+           expect_int_eq("shifted_show_active_action", shifted_show_active.action, APP_DOCUMENT_ACTION_SHOW_ACTIVE) &&
+           expect_int_eq("plain_r_handled", plain_r.handled, 0) &&
+           expect_int_eq("plain_r_action", plain_r.action, APP_DOCUMENT_ACTION_SAVE) &&
+           expect_int_eq("shifted_save_action", shifted_save.action, APP_DOCUMENT_ACTION_SAVE) &&
+           expect_int_eq("shifted_show_all_action", shifted_show_all.action, APP_DOCUMENT_ACTION_SHOW_ALL);
+}
+
 static int test_load_requires_unlocked_active_layer(void) {
     LayerStack stack;
     AppDocumentState state = {0};
@@ -1000,6 +1014,9 @@ static int test_document_preview_toggle_coexists_with_redo_and_show_failures(voi
 
 int main(void) {
     if (!test_document_command_for_key()) {
+        return 1;
+    }
+    if (!test_document_command_precedence()) {
         return 1;
     }
     if (!test_save_prefers_preview_canvas()) {
