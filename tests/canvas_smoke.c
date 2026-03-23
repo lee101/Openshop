@@ -59,6 +59,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_toggle_lock(&stack, 1) || !layer_stack_set_opacity(&stack, 1, 40)) {
+        fprintf(stderr, "prepare show all state preservation failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_show_all(&stack)) {
         fprintf(stderr, "show all failed\n");
         canvas_free(&composite);
@@ -71,9 +77,21 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!stack.layers[1].locked || stack.layers[1].opacity_percent != 40) {
+        fprintf(stderr, "show all should preserve non-visibility layer state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     layer_stack_composite(&stack, &composite, 0xFFFFFFFF);
     if ((canvas_get_pixel(&composite, 8, 8) & 0x00FFFFFF) == 0x00FFFFFF) {
         fprintf(stderr, "show all did not restore visible composite\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_lock(&stack, 1) || !layer_stack_set_opacity(&stack, 1, 100)) {
+        fprintf(stderr, "restore show all preserved state failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
