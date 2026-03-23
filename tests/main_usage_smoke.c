@@ -9,6 +9,9 @@ static const char *last_input_path = NULL;
 static int last_canvas_w = 0;
 static int last_canvas_h = 0;
 static int app_run_result = 0;
+static const char *expected_usage_text =
+    "Usage: openshop [input_path] [width height]\n"
+    "       or: WIDTH HEIGHT\n";
 
 int app_run(const char *input_path, int canvas_w, int canvas_h) {
     app_run_called += 1;
@@ -109,9 +112,7 @@ int main(void) {
     if (!capture_main_stderr(3, argv_invalid, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("invalid_exit", exit_code, 1) ||
         !expect_int("invalid_app_run_called", app_run_called, 0) ||
-        !expect_str("invalid_usage_text", stderr_text,
-                    "Usage: openshop [input_path] [width height]\n"
-                    "       or: WIDTH HEIGHT\n")) {
+        !expect_str("invalid_usage_text", stderr_text, expected_usage_text)) {
         return 1;
     }
 
@@ -120,9 +121,7 @@ int main(void) {
     if (!capture_main_stderr(3, argv_bad_size_only, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("bad_size_only_exit", exit_code, 1) ||
         !expect_int("bad_size_only_app_run_called", app_run_called, 0) ||
-        !expect_str("bad_size_only_usage_text", stderr_text,
-                    "Usage: openshop [input_path] [width height]\n"
-                    "       or: WIDTH HEIGHT\n")) {
+        !expect_str("bad_size_only_usage_text", stderr_text, expected_usage_text)) {
         return 1;
     }
 
@@ -131,9 +130,7 @@ int main(void) {
     if (!capture_main_stderr(5, argv_extra, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("extra_args_exit", exit_code, 1) ||
         !expect_int("extra_args_app_run_called", app_run_called, 0) ||
-        !expect_str("extra_args_usage_text", stderr_text,
-                    "Usage: openshop [input_path] [width height]\n"
-                    "       or: WIDTH HEIGHT\n")) {
+        !expect_str("extra_args_usage_text", stderr_text, expected_usage_text)) {
         return 1;
     }
 
@@ -141,9 +138,7 @@ int main(void) {
     if (!capture_main_stderr(1, NULL, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("null_argv_exit", exit_code, 1) ||
         !expect_int("null_argv_app_run_called", app_run_called, 0) ||
-        !expect_str("null_argv_usage_text", stderr_text,
-                    "Usage: openshop [input_path] [width height]\n"
-                    "       or: WIDTH HEIGHT\n")) {
+        !expect_str("null_argv_usage_text", stderr_text, expected_usage_text)) {
         return 1;
     }
 
@@ -152,9 +147,7 @@ int main(void) {
     if (!capture_main_stderr(0, argv_zero_argc, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("zero_argc_exit", exit_code, 1) ||
         !expect_int("zero_argc_app_run_called", app_run_called, 0) ||
-        !expect_str("zero_argc_usage_text", stderr_text,
-                    "Usage: openshop [input_path] [width height]\n"
-                    "       or: WIDTH HEIGHT\n")) {
+        !expect_str("zero_argc_usage_text", stderr_text, expected_usage_text)) {
         return 1;
     }
 
@@ -163,9 +156,7 @@ int main(void) {
     if (!capture_main_stderr(1, argv_empty_program, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("empty_program_exit", exit_code, 1) ||
         !expect_int("empty_program_app_run_called", app_run_called, 0) ||
-        !expect_str("empty_program_usage_text", stderr_text,
-                    "Usage: openshop [input_path] [width height]\n"
-                    "       or: WIDTH HEIGHT\n")) {
+        !expect_str("empty_program_usage_text", stderr_text, expected_usage_text)) {
         return 1;
     }
 
@@ -174,9 +165,7 @@ int main(void) {
     if (!capture_main_stderr(2, argv_empty_input, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("empty_input_exit", exit_code, 1) ||
         !expect_int("empty_input_app_run_called", app_run_called, 0) ||
-        !expect_str("empty_input_usage_text", stderr_text,
-                    "Usage: openshop [input_path] [width height]\n"
-                    "       or: WIDTH HEIGHT\n")) {
+        !expect_str("empty_input_usage_text", stderr_text, expected_usage_text)) {
         return 1;
     }
 
@@ -185,9 +174,7 @@ int main(void) {
     if (!capture_main_stderr(4, argv_bad_width_token, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("bad_width_token_exit", exit_code, 1) ||
         !expect_int("bad_width_token_app_run_called", app_run_called, 0) ||
-        !expect_str("bad_width_token_usage_text", stderr_text,
-                    "Usage: openshop [input_path] [width height]\n"
-                    "       or: WIDTH HEIGHT\n")) {
+        !expect_str("bad_width_token_usage_text", stderr_text, expected_usage_text)) {
         return 1;
     }
 
