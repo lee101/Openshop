@@ -113,6 +113,42 @@ static int test_apply_translation_success_and_failures(void) {
     return 1;
 }
 
+static int test_apply_translation_preserves_existing_composite_flag(void) {
+    LayerStack stack;
+    TranslationStubState stub = {0};
+    AppTranslationState state = {.needs_composite = 1};
+    AppTranslationCallbacks callbacks = {
+        .push_snapshot = stub_push_snapshot,
+        .translate_canvas = stub_translate_canvas,
+        .userdata = &stub,
+    };
+    AppTranslationCommand move = {1, 2, 0};
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "layer_stack_init failed\n");
+        return 0;
+    }
+
+    stack.layers[0].locked = 1;
+    if (app_translation_apply(move, &stack, &state, 0x00000000u, &callbacks) ||
+        !expect_int_eq("apply_translate_preserve_locked_flag", state.needs_composite, 1) ||
+        !expect_int_eq("apply_translate_preserve_locked_push", stub.push_count, 0)) {
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    stack.layers[0].locked = 0;
+    if (app_translation_apply(move, &stack, &state, 0x00000000u, NULL) ||
+        !expect_int_eq("apply_translate_preserve_missing_cb_flag", state.needs_composite, 1) ||
+        !expect_int_eq("apply_translate_preserve_missing_cb_push", stub.push_count, 0)) {
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    return 1;
+}
+
 int main(void) {
     if (!test_arrow_key_mappings()) {
         return 1;
@@ -121,6 +157,9 @@ int main(void) {
         return 1;
     }
     if (!test_apply_translation_success_and_failures()) {
+        return 1;
+    }
+    if (!test_apply_translation_preserves_existing_composite_flag()) {
         return 1;
     }
     return 0;
