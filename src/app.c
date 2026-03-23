@@ -1,6 +1,7 @@
 #include "app.h"
 #include "app_document.h"
 #include "app_history.h"
+#include "app_session.h"
 #include "app_translation.h"
 #include "canvas.h"
 #include "image_io.h"
@@ -237,58 +238,6 @@ static void cancel_shape_preview(int *shaping, int *preview_active) {
     }
     if (preview_active) {
         *preview_active = 0;
-    }
-}
-
-static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
-    if (key == SDLK_ESCAPE || key == SDLK_LSHIFT || key == SDLK_RSHIFT) {
-        return 0;
-    }
-    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_u || key == SDLK_v || key == SDLK_m || key == SDLK_d || key == SDLK_e || key == SDLK_g || key == SDLK_h || key == SDLK_l || key == SDLK_k || key == SDLK_a || key == SDLK_r || key == SDLK_i || key == SDLK_0 || key == SDLK_COMMA || key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET || key == SDLK_MINUS || key == SDLK_KP_MINUS || key == SDLK_EQUALS || key == SDLK_KP_PLUS || key == SDLK_SLASH || key == SDLK_HOME || key == SDLK_END || key == SDLK_1 || key == SDLK_2 || key == SDLK_3 || key == SDLK_4 || key == SDLK_5 || key == SDLK_6 || key == SDLK_7 || key == SDLK_8)) {
-        return 1;
-    }
-    switch (key) {
-    case SDLK_b:
-    case SDLK_e:
-    case SDLK_l:
-    case SDLK_r:
-    case SDLK_t:
-    case SDLK_o:
-    case SDLK_p:
-    case SDLK_LEFTBRACKET:
-    case SDLK_RIGHTBRACKET:
-    case SDLK_COMMA:
-    case SDLK_PERIOD:
-    case SDLK_MINUS:
-    case SDLK_KP_MINUS:
-    case SDLK_EQUALS:
-    case SDLK_KP_PLUS:
-    case SDLK_1:
-    case SDLK_2:
-    case SDLK_3:
-    case SDLK_4:
-    case SDLK_5:
-    case SDLK_6:
-    case SDLK_c:
-    case SDLK_h:
-    case SDLK_v:
-    case SDLK_j:
-    case SDLK_x:
-    case SDLK_f:
-    case SDLK_i:
-    case SDLK_UP:
-    case SDLK_DOWN:
-    case SDLK_LEFT:
-    case SDLK_RIGHT:
-    case SDLK_PAGEUP:
-    case SDLK_PAGEDOWN:
-    case SDLK_HOME:
-    case SDLK_END:
-    case SDLK_DELETE:
-    case SDLK_BACKSPACE:
-        return 1;
-    default:
-        return 0;
     }
 }
 
@@ -821,19 +770,16 @@ static int handle_session_shortcut(
     int *preview_active,
     int *running
 ) {
-    if (shaping && preview_active && *shaping && should_cancel_shape_on_key(key, ctrl)) {
+    AppSessionCommand command = app_session_command_for_key((int)key, ctrl, shaping ? *shaping : 0);
+
+    if (shaping && preview_active && command.cancel_shape) {
         cancel_shape_preview(shaping, preview_active);
     }
 
-    if (key != SDLK_ESCAPE) {
-        return 0;
-    }
-    if (shaping && preview_active && *shaping) {
-        cancel_shape_preview(shaping, preview_active);
-    } else if (running) {
+    if (running && command.stop_running) {
         *running = 0;
     }
-    return 1;
+    return command.handled;
 }
 
 static int handle_translation_shortcut(
