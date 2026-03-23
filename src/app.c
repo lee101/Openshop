@@ -696,6 +696,36 @@ static int apply_layer_stack_action_result(
     return result;
 }
 
+static int apply_active_layer_opacity(
+    SDL_Window *window,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int opacity_percent,
+    Tool tool,
+    BrushShape brush_shape,
+    int brush_radius,
+    uint32_t brush_color,
+    int brush_opacity
+) {
+    if (!layers) {
+        return 0;
+    }
+    Layer *active = layer_stack_active(layers);
+    if (!active) {
+        return 0;
+    }
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    if (!layer_stack_set_opacity(layers, layers->active_layer, opacity_percent)) {
+        refresh_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+        return 0;
+    }
+    refresh_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+    return 1;
+}
+
 static int layer_stack_show_all_action(LayerStack *stack, int index) {
     (void)index;
     return layer_stack_show_all(stack);
@@ -1244,23 +1274,23 @@ int app_run(const char *input_path) {
 
                 if (ctrl && (key == SDLK_MINUS || key == SDLK_KP_MINUS)) {
                     Layer *active = layer_stack_active(&layers);
-                    if (active) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        layer_stack_set_opacity(&layers, layers.active_layer, active->opacity_percent - 10);
+                    if (active && apply_active_layer_opacity(
+                            window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            active->opacity_percent - 10,
+                            tool, brush_shape, brush_radius, brush_color, brush_opacity)) {
                         needs_composite = 1;
                     }
-                    refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
                 if (ctrl && (key == SDLK_EQUALS || key == SDLK_KP_PLUS)) {
                     Layer *active = layer_stack_active(&layers);
-                    if (active) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        layer_stack_set_opacity(&layers, layers.active_layer, active->opacity_percent + 10);
+                    if (active && apply_active_layer_opacity(
+                            window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            active->opacity_percent + 10,
+                            tool, brush_shape, brush_radius, brush_color, brush_opacity)) {
                         needs_composite = 1;
                     }
-                    refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
@@ -1432,12 +1462,14 @@ int app_run(const char *input_path) {
 
                 if (ctrl && key == SDLK_0) {
                     Layer *active = layer_stack_active(&layers);
-                    if (active && active->opacity_percent != 100) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        layer_stack_set_opacity(&layers, layers.active_layer, 100);
+                    if (active && active->opacity_percent != 100 && apply_active_layer_opacity(
+                            window, &layers, undo_stack, &undo_count, redo_stack, &redo_count, 100,
+                            tool, brush_shape, brush_radius, brush_color, brush_opacity)) {
                         needs_composite = 1;
                     }
-                    refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    if (!active || active->opacity_percent == 100) {
+                        refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    }
                     break;
                 }
 
