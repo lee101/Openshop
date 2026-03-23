@@ -409,6 +409,22 @@ static int test_layers_basic(void) {
     }
     stack.layers[1].visible = 0;
     stack.active_layer = 3;
+    if (layer_stack_select_nth_visible(&stack, 0) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "select nth visible layer should skip hidden layers\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[3].visible = 0;
+    if (layer_stack_select_nth_visible(&stack, 0) != -1 || stack.active_layer != 3) {
+        fprintf(stderr, "select nth visible layer should preserve active layer on failure\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[3].visible = 1;
+    stack.layers[1].visible = 0;
+    stack.active_layer = 3;
     if (layer_stack_select_nth_editable_visible(&stack, 0) != 3 || stack.active_layer != 3) {
         fprintf(stderr, "select nth editable visible layer should skip hidden editable layers\n");
         canvas_free(&composite);
