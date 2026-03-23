@@ -28,6 +28,13 @@
 #define THRESHOLD_STEP 16
 #define THRESHOLD_MIN 0
 #define THRESHOLD_MAX 255
+#define BLUR_RADIUS_DEFAULT 2
+#define BLUR_RADIUS_MIN 1
+#define BLUR_RADIUS_MAX 8
+#define FILTER_ADJUST_DEFAULT 20
+#define FILTER_ADJUST_STEP 5
+#define FILTER_ADJUST_MIN 5
+#define FILTER_ADJUST_MAX 100
 
 static const uint32_t COLOR_BG = 0xFFFFFFFF;     // white
 static const uint32_t COLOR_BRUSH = 0xFF1B1F24;  // near-black
@@ -42,6 +49,8 @@ static int g_fill_tolerance = FILL_TOLERANCE_DEFAULT;
 static int g_pixelate_block_size = PIXELATE_BLOCK_DEFAULT;
 static int g_posterize_levels = POSTERIZE_LEVELS_DEFAULT;
 static int g_threshold_value = THRESHOLD_DEFAULT;
+static int g_blur_radius = BLUR_RADIUS_DEFAULT;
+static int g_filter_adjust_step = FILTER_ADJUST_DEFAULT;
 
 typedef enum {
     TOOL_BRUSH,
@@ -269,7 +278,7 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
     snprintf(
         title,
         sizeof(title),
-        "Openshop - %s (%s) | size %d | brush %d%% | fill tol %d | pixel %d | post %d | thresh %d | layer %d/%d %s [%s%s %d%%]%s | visible %d/%d | #%08X",
+        "Openshop - %s (%s) | size %d | brush %d%% | fill tol %d | pixel %d | post %d | thresh %d | blur %d | adjust %d | layer %d/%d %s [%s%s %d%%]%s | visible %d/%d | #%08X",
         tool_label(tool),
         brush_shape_label(brush_shape),
         radius,
@@ -278,6 +287,8 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
         g_pixelate_block_size,
         g_posterize_levels,
         g_threshold_value,
+        g_blur_radius,
+        g_filter_adjust_step,
         layers->active_layer + 1,
         layers->layer_count,
         layer_name,
@@ -330,6 +341,26 @@ static int clamp_threshold_value(int threshold) {
         return THRESHOLD_MAX;
     }
     return threshold;
+}
+
+static int clamp_blur_radius(int radius) {
+    if (radius < BLUR_RADIUS_MIN) {
+        return BLUR_RADIUS_MIN;
+    }
+    if (radius > BLUR_RADIUS_MAX) {
+        return BLUR_RADIUS_MAX;
+    }
+    return radius;
+}
+
+static int clamp_filter_adjust_step(int step) {
+    if (step < FILTER_ADJUST_MIN) {
+        return FILTER_ADJUST_MIN;
+    }
+    if (step > FILTER_ADJUST_MAX) {
+        return FILTER_ADJUST_MAX;
+    }
+    return step;
 }
 
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
@@ -714,6 +745,8 @@ int app_run(const char *input_path) {
     int pixelate_block_size = PIXELATE_BLOCK_DEFAULT;
     int posterize_levels = POSTERIZE_LEVELS_DEFAULT;
     int threshold_value = THRESHOLD_DEFAULT;
+    int blur_radius = BLUR_RADIUS_DEFAULT;
+    int filter_adjust_step = FILTER_ADJUST_DEFAULT;
     uint32_t brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
     uint32_t brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
     BrushShape brush_shape = BRUSH_SHAPE_ROUND;
@@ -736,6 +769,8 @@ int app_run(const char *input_path) {
     g_pixelate_block_size = pixelate_block_size;
     g_posterize_levels = posterize_levels;
     g_threshold_value = threshold_value;
+    g_blur_radius = blur_radius;
+    g_filter_adjust_step = filter_adjust_step;
     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
 
     while (running) {
@@ -898,6 +933,34 @@ int app_run(const char *input_path) {
                 if (alt && key == SDLK_PERIOD) {
                     threshold_value = clamp_threshold_value(threshold_value + THRESHOLD_STEP);
                     g_threshold_value = threshold_value;
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
+                if (alt && key == SDLK_b) {
+                    blur_radius = clamp_blur_radius(blur_radius + 1);
+                    g_blur_radius = blur_radius;
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
+                if (alt && key == SDLK_v) {
+                    blur_radius = clamp_blur_radius(blur_radius - 1);
+                    g_blur_radius = blur_radius;
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
+                if (alt && key == SDLK_UP) {
+                    filter_adjust_step = clamp_filter_adjust_step(filter_adjust_step + FILTER_ADJUST_STEP);
+                    g_filter_adjust_step = filter_adjust_step;
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
+                if (alt && key == SDLK_DOWN) {
+                    filter_adjust_step = clamp_filter_adjust_step(filter_adjust_step - FILTER_ADJUST_STEP);
+                    g_filter_adjust_step = filter_adjust_step;
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
@@ -1300,7 +1363,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_b) {
-                    if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_blur, 2)) {
+                    if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_blur, blur_radius)) {
                         needs_composite = 1;
                     }
                     break;
@@ -1308,7 +1371,7 @@ int app_run(const char *input_path) {
 
                 if (ctrl && shift && (key == SDLK_UP || key == SDLK_DOWN)) {
                     if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                            canvas_adjust_brightness, (key == SDLK_UP) ? 20 : -20)) {
+                            canvas_adjust_brightness, (key == SDLK_UP) ? filter_adjust_step : -filter_adjust_step)) {
                         needs_composite = 1;
                     }
                     break;
@@ -1316,7 +1379,7 @@ int app_run(const char *input_path) {
 
                 if (ctrl && shift && (key == SDLK_LEFT || key == SDLK_RIGHT)) {
                     if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                            canvas_adjust_contrast, (key == SDLK_RIGHT) ? 20 : -20)) {
+                            canvas_adjust_contrast, (key == SDLK_RIGHT) ? filter_adjust_step : -filter_adjust_step)) {
                         needs_composite = 1;
                     }
                     break;
