@@ -48,6 +48,7 @@ make test-sdl
 - `Arrow Keys`: nudge the active layer by 1 pixel
 - `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels
 - `PageUp / PageDown`: cycle active layer
+- `Shift` + `PageUp / PageDown`: cycle visible layers only
 - `Ctrl+,`: insert a new transparent layer below the active layer
 - `Ctrl+N`: insert a new transparent layer above the active layer
 - `Ctrl+Shift+N`: add a new transparent layer

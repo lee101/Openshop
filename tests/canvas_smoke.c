@@ -173,6 +173,29 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[1].visible = 0;
+    stack.layers[2].visible = 0;
+    stack.active_layer = 0;
+    if (layer_stack_cycle_visible(&stack, 1) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "visible layer cycling forward failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_cycle_visible(&stack, 1) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "visible layer cycling forward wrap failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_cycle_visible(&stack, -1) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "visible layer cycling backward failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[1].visible = 1;
+    stack.layers[2].visible = 1;
     if (!layer_stack_delete(&stack, 3) || !layer_stack_delete(&stack, 2)) {
         fprintf(stderr, "extended layer cycling cleanup failed\n");
         canvas_free(&composite);
