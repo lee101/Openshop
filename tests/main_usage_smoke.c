@@ -29,7 +29,7 @@ static const char *numeric_input_token = "640";
 static const char *default_size_only_width = "640";
 static const char *default_size_only_height = "480";
 static const char *zero_token = "0";
-static const char *invalid_probe_size = "768";
+static const char *invalid_probe_token = "768";
 static const char *extra_arg_token = "extra";
 static const char *negative_size_only_width = "-640";
 static const char *negative_size_only_height = "-480";
@@ -395,8 +395,8 @@ int main(void) {
 
     const struct invalid_argv_case invalid_argv_cases[] = {
         {"invalid", 3, 0, NULL, {default_program_name, default_scene_path, default_size_only_width, NULL, NULL}},
-        {"bad_size_only", 3, 0, NULL, {default_program_name, default_scene_path, invalid_probe_size, NULL, NULL}},
-        {"custom_program_invalid", 3, 0, custom_usage_text, {custom_program_name, default_scene_path, invalid_probe_size, NULL, NULL}},
+        {"bad_size_only", 3, 0, NULL, {default_program_name, default_scene_path, invalid_probe_token, NULL, NULL}},
+        {"custom_program_invalid", 3, 0, custom_usage_text, {custom_program_name, default_scene_path, invalid_probe_token, NULL, NULL}},
         {"missing_h", 3, 0, NULL, {default_program_name, default_scene_path, default_size_only_width, NULL, NULL}},
         {"extra_args", 5, 0, NULL, {default_program_name, default_scene_path, default_size_only_width, default_size_only_height, extra_arg_token}},
         {"custom_program_extra_args", 5, 0, custom_usage_text, {custom_program_name, default_scene_path, default_size_only_width, default_size_only_height, extra_arg_token}},
@@ -473,8 +473,8 @@ int main(void) {
     }
 
     const struct invalid_input_size_case invalid_input_size_cases[] = {
-        {"bad_width_value", zero_token, invalid_probe_size},
-        {"negative_width_value", negative_size_only_width, invalid_probe_size},
+        {"bad_width_value", zero_token, invalid_probe_token},
+        {"negative_width_value", negative_size_only_width, invalid_probe_token},
         {"bad_width_token", bad_width_token, default_size_only_height},
         {"bad_height_value", default_size_only_width, negative_input_size_height},
         {"negative_height_value", default_size_only_width, negative_size_only_height},
