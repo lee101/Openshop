@@ -1,6 +1,7 @@
 #include "app.h"
 #include "app_document.h"
 #include "app_history.h"
+#include "app_translation.h"
 #include "canvas.h"
 #include "image_io.h"
 #include "layers.h"
@@ -841,23 +842,12 @@ static int handle_translation_shortcut(
     LayerStack *layers,
     AppRuntime *runtime
 ) {
-    int dx = 0;
-    int dy = 0;
-    int step = shift ? 10 : 1;
-
-    if (key == SDLK_UP) {
-        dy = -step;
-    } else if (key == SDLK_DOWN) {
-        dy = step;
-    } else if (key == SDLK_LEFT) {
-        dx = -step;
-    } else if (key == SDLK_RIGHT) {
-        dx = step;
-    } else {
+    AppTranslationCommand command = app_translation_command_for_key((int)key, shift);
+    if (!command.handled) {
         return 0;
     }
 
-    if (apply_runtime_canvas_translation(layers, runtime, dx, dy)) {
+    if (apply_runtime_canvas_translation(layers, runtime, command.dx, command.dy)) {
         runtime->needs_composite = 1;
     }
     return 1;

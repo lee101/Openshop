@@ -9,7 +9,7 @@ CFLAGS += $(shell sdl2-config --cflags)
 LDFLAGS += $(shell sdl2-config --libs)
 endif
 
-SRC = src/main.c src/app.c src/app_document.c src/app_history.c src/canvas.c src/image_io.c src/layers.c
+SRC = src/main.c src/app.c src/app_document.c src/app_history.c src/app_translation.c src/canvas.c src/image_io.c src/layers.c
 OBJ = $(SRC:.c=.o)
 BIN = openshop
 
@@ -19,6 +19,8 @@ DOCUMENT_TEST_BIN = app_document_smoke
 DOCUMENT_TEST_SRC = tests/app_document_smoke.c src/app_document.c src/canvas.c src/layers.c
 HISTORY_TEST_BIN = app_history_smoke
 HISTORY_TEST_SRC = tests/app_history_smoke.c src/app_history.c src/canvas.c src/layers.c
+TRANSLATION_TEST_BIN = app_translation_smoke
+TRANSLATION_TEST_SRC = tests/app_translation_smoke.c src/app_translation.c
 IMAGE_TEST_BIN = image_selftest
 IMAGE_TEST_SRC = tests/image_selftest.c src/canvas.c
 SDL_TEST_BIN = image_io_smoke
@@ -42,10 +44,11 @@ $(BIN): check-sdl2 $(OBJ)
 
 src/app.o: check-sdl2
 
-test: $(TEST_BIN) $(DOCUMENT_TEST_BIN) $(HISTORY_TEST_BIN) $(IMAGE_TEST_BIN)
+test: $(TEST_BIN) $(DOCUMENT_TEST_BIN) $(HISTORY_TEST_BIN) $(TRANSLATION_TEST_BIN) $(IMAGE_TEST_BIN)
 	./$(TEST_BIN)
 	./$(DOCUMENT_TEST_BIN)
 	./$(HISTORY_TEST_BIN)
+	./$(TRANSLATION_TEST_BIN)
 	./$(IMAGE_TEST_BIN)
 
 test-sdl: check-sdl2 $(SDL_TEST_BIN)
@@ -60,6 +63,9 @@ $(DOCUMENT_TEST_BIN): $(DOCUMENT_TEST_SRC)
 $(HISTORY_TEST_BIN): $(HISTORY_TEST_SRC)
 	$(CC) -std=c11 -O2 -Wall -Wextra $(HISTORY_TEST_SRC) -o $(HISTORY_TEST_BIN) -lm
 
+$(TRANSLATION_TEST_BIN): $(TRANSLATION_TEST_SRC)
+	$(CC) -std=c11 -O2 -Wall -Wextra $(TRANSLATION_TEST_SRC) -o $(TRANSLATION_TEST_BIN) -lm
+
 $(IMAGE_TEST_BIN): $(IMAGE_TEST_SRC)
 	$(CC) -std=c11 -O2 -Wall -Wextra $(IMAGE_TEST_SRC) -o $(IMAGE_TEST_BIN) -lm
 
@@ -67,6 +73,6 @@ $(SDL_TEST_BIN): check-sdl2 $(SDL_TEST_SRC)
 	$(CC) $(CFLAGS) $(SDL_TEST_SRC) -o $(SDL_TEST_BIN) $(LDFLAGS) -lm
 
 clean:
-	rm -f $(OBJ) $(BIN) $(TEST_BIN) $(DOCUMENT_TEST_BIN) $(HISTORY_TEST_BIN) $(IMAGE_TEST_BIN) $(SDL_TEST_BIN)
+	rm -f $(OBJ) $(BIN) $(TEST_BIN) $(DOCUMENT_TEST_BIN) $(HISTORY_TEST_BIN) $(TRANSLATION_TEST_BIN) $(IMAGE_TEST_BIN) $(SDL_TEST_BIN)
 
 .PHONY: all clean test test-sdl
