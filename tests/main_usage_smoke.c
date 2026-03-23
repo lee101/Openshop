@@ -391,6 +391,13 @@ int main(void) {
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
+    char *argv_custom_program_plus_prefixed_size_only[] = {"./bin/openshop-dev", "+800", "600"};
+    if (!capture_main_stderr(3, argv_custom_program_plus_prefixed_size_only, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_successful_run("custom_program_plus_prefixed_size_only", exit_code, 0, NULL, 800, 600, stderr_text, "")) {
+        return 1;
+    }
+
+    reset_app_state(0, NULL, 0, 0, stderr_text);
     char *argv_custom_program_input_size[] = {"./bin/openshop-dev", "art/custom.png", "320", "240"};
     if (!capture_main_stderr(4, argv_custom_program_input_size, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_successful_run("custom_program_input_size", exit_code, 0, "art/custom.png", 320, 240, stderr_text, "")) {
