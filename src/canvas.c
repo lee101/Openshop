@@ -831,3 +831,62 @@ void canvas_edge_detect(Canvas *c) {
 
     free(orig);
 }
+
+void canvas_emboss(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+
+    size_t count = (size_t)c->width * (size_t)c->height;
+    uint32_t *orig = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!orig) {
+        return;
+    }
+    memcpy(orig, c->pixels, count * sizeof(uint32_t));
+
+    static const int kernel[3][3] = {
+        {-2, -1, 0},
+        {-1,  0, 1},
+        { 0,  1, 2},
+    };
+
+    int width = c->width;
+    int height = c->height;
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            int accum = 0;
+            uint8_t max_a = 0;
+            for (int ky = -1; ky <= 1; ky++) {
+                int sy = y + ky;
+                if (sy < 0) {
+                    sy = 0;
+                } else if (sy >= height) {
+                    sy = height - 1;
+                }
+
+                for (int kx = -1; kx <= 1; kx++) {
+                    int sx = x + kx;
+                    if (sx < 0) {
+                        sx = 0;
+                    } else if (sx >= width) {
+                        sx = width - 1;
+                    }
+
+                    uint32_t p = orig[(size_t)sy * (size_t)width + (size_t)sx];
+                    uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+                    if (a > max_a) {
+                        max_a = a;
+                    }
+                    accum += kernel[ky + 1][kx + 1] * (int)pixel_luma(p);
+                }
+            }
+
+            uint8_t value = (uint8_t)clamp_u8(128 + accum / 4);
+            c->pixels[(size_t)y * (size_t)width + (size_t)x] =
+                ((uint32_t)max_a << 24) | ((uint32_t)value << 16) |
+                ((uint32_t)value << 8) | (uint32_t)value;
+        }
+    }
+
+    free(orig);
+}

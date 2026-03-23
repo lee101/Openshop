@@ -40,5 +40,6 @@ void canvas_auto_levels(Canvas *c);
 void canvas_blur(Canvas *c, int radius);
 void canvas_sharpen(Canvas *c);
 void canvas_edge_detect(Canvas *c);
+void canvas_emboss(Canvas *c);
 
 #endif

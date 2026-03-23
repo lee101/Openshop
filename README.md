@@ -59,6 +59,7 @@ make test-sdl
 - `Ctrl+0`: reset active layer opacity to 100%
 - `Ctrl+L`: auto-level the active layer (per-channel histogram stretch)
 - `Ctrl+G`: edge-detect the active layer (Sobel grayscale)
+- `Ctrl+K`: emboss the active layer
 - `Ctrl+A`: show all layers and clear solo mode
 - `Ctrl+Shift+R`: reveal the active layer without changing other visibility states
 - `Ctrl+Shift+H`: hide the active layer and jump to the next visible layer
