@@ -475,6 +475,27 @@ static int apply_canvas_transform(
     return 1;
 }
 
+static int apply_canvas_transform_int(
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    void (*transform)(Canvas *, int),
+    int value
+) {
+    if (!layers || !transform) {
+        return 0;
+    }
+    Layer *active = layer_stack_active(layers);
+    if (!active || active->locked || !active->canvas.pixels) {
+        return 0;
+    }
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    transform(&active->canvas, value);
+    return 1;
+}
+
 static int apply_canvas_translation(
     LayerStack *layers,
     Snapshot *undo_stack,
@@ -1001,10 +1022,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && shift && key == SDLK_p) {
-                    Layer *active = layer_stack_active(&layers);
-                    if (active && !active->locked && active->canvas.pixels) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        canvas_pixelate(&active->canvas, 8);
+                    if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_pixelate, 8)) {
                         needs_composite = 1;
                     }
                     break;
@@ -1178,40 +1196,30 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && shift && key == SDLK_b) {
-                    Layer *active = layer_stack_active(&layers);
-                    if (active && !active->locked && active->canvas.pixels) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        canvas_sharpen(&active->canvas);
+                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_sharpen)) {
                         needs_composite = 1;
                     }
                     break;
                 }
 
                 if (ctrl && key == SDLK_b) {
-                    Layer *active = layer_stack_active(&layers);
-                    if (active && !active->locked && active->canvas.pixels) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        canvas_blur(&active->canvas, 2);
+                    if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_blur, 2)) {
                         needs_composite = 1;
                     }
                     break;
                 }
 
                 if (ctrl && shift && (key == SDLK_UP || key == SDLK_DOWN)) {
-                    Layer *active = layer_stack_active(&layers);
-                    if (active && !active->locked && active->canvas.pixels) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        canvas_adjust_brightness(&active->canvas, (key == SDLK_UP) ? 20 : -20);
+                    if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            canvas_adjust_brightness, (key == SDLK_UP) ? 20 : -20)) {
                         needs_composite = 1;
                     }
                     break;
                 }
 
                 if (ctrl && shift && (key == SDLK_LEFT || key == SDLK_RIGHT)) {
-                    Layer *active = layer_stack_active(&layers);
-                    if (active && !active->locked && active->canvas.pixels) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        canvas_adjust_contrast(&active->canvas, (key == SDLK_RIGHT) ? 20 : -20);
+                    if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            canvas_adjust_contrast, (key == SDLK_RIGHT) ? 20 : -20)) {
                         needs_composite = 1;
                     }
                     break;
@@ -1377,17 +1385,11 @@ int app_run(const char *input_path) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_z) {
-                    Layer *active = layer_stack_active(&layers);
-                    if (active && !active->locked && active->canvas.pixels) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        canvas_posterize(&active->canvas, 4);
+                    if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_posterize, 4)) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_n) {
-                    Layer *active = layer_stack_active(&layers);
-                    if (active && !active->locked && active->canvas.pixels) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        canvas_threshold(&active->canvas, 128);
+                    if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_threshold, 128)) {
                         needs_composite = 1;
                     }
                 }
