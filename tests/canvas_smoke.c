@@ -767,10 +767,29 @@ static int test_layers_basic(void) {
     stack.layers[1].locked = 1;
     stack.layers[2].locked = 0;
     stack.layers[3].locked = 0;
+    stack.layers[0].opacity_percent = 40;
+    stack.layers[2].opacity_percent = 60;
+    stack.layers[3].opacity_percent = 85;
+    strncpy(stack.layers[0].name, "Bottom Hidden Editable", LAYER_NAME_MAX - 1);
+    stack.layers[0].name[LAYER_NAME_MAX - 1] = '\0';
+    strncpy(stack.layers[2].name, "Mid Hidden Editable", LAYER_NAME_MAX - 1);
+    stack.layers[2].name[LAYER_NAME_MAX - 1] = '\0';
+    strncpy(stack.layers[3].name, "Top Hidden Editable", LAYER_NAME_MAX - 1);
+    stack.layers[3].name[LAYER_NAME_MAX - 1] = '\0';
     stack.active_layer = 1;
     stack.solo_index = 1;
     if (!layer_stack_reveal_hidden_editable(&stack, 0) || stack.active_layer != 0 || !stack.layers[0].visible) {
         fprintf(stderr, "reveal hidden editable from bottom failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[0].opacity_percent != 40 || stack.layers[2].opacity_percent != 60 ||
+        stack.layers[3].opacity_percent != 85 ||
+        strcmp(stack.layers[0].name, "Bottom Hidden Editable") != 0 ||
+        strcmp(stack.layers[2].name, "Mid Hidden Editable") != 0 ||
+        strcmp(stack.layers[3].name, "Top Hidden Editable") != 0) {
+        fprintf(stderr, "reveal hidden editable should preserve metadata\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -784,6 +803,12 @@ static int test_layers_basic(void) {
     stack.layers[0].visible = 0;
     if (!layer_stack_reveal_hidden_editable(&stack, 1) || stack.active_layer != 3 || !stack.layers[3].visible) {
         fprintf(stderr, "reveal hidden editable from top failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[3].opacity_percent != 85 || strcmp(stack.layers[3].name, "Top Hidden Editable") != 0) {
+        fprintf(stderr, "reveal hidden editable from top should preserve metadata\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
