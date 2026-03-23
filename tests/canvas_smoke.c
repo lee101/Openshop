@@ -201,6 +201,19 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    uint32_t invalid_clear_top_pixel = canvas_get_pixel(&stack.layers[1].canvas, 8, 8);
+    if (layer_stack_clear_layer(&stack, -1, 0xFF123456)) {
+        fprintf(stderr, "clear layer should fail on invalid source index\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.active_layer != 0 || stack.solo_index != -1 || stack.layers[0].visible != 1 || stack.layers[1].visible != 1 ||
+        !expect_pixel_eq("invalid_clear_preserves_top_pixel", canvas_get_pixel(&stack.layers[1].canvas, 8, 8), invalid_clear_top_pixel)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_toggle_visibility(&stack, 1)) {
         fprintf(stderr, "rehide top layer after show active failed\n");
         canvas_free(&composite);
