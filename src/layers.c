@@ -103,6 +103,49 @@ static int layer_stack_select_edge_filtered(LayerStack *stack, int want_visible,
     return -1;
 }
 
+static int layer_stack_cycle_locked_filtered(LayerStack *stack, int direction, int want_locked) {
+    if (!stack || stack->layer_count <= 0) {
+        return -1;
+    }
+    for (int offset = 1; offset <= stack->layer_count; offset++) {
+        int idx = stack->active_layer + (direction * offset);
+        while (idx < 0) {
+            idx += stack->layer_count;
+        }
+        idx %= stack->layer_count;
+        if ((stack->layers[idx].locked ? 1 : 0) == want_locked) {
+            stack->active_layer = idx;
+            return idx;
+        }
+    }
+    if ((stack->layers[stack->active_layer].locked ? 1 : 0) == want_locked) {
+        return stack->active_layer;
+    }
+    return -1;
+}
+
+static int layer_stack_select_locked_edge(LayerStack *stack, int want_locked, int from_top) {
+    if (!stack || stack->layer_count <= 0) {
+        return -1;
+    }
+    if (from_top) {
+        for (int i = stack->layer_count - 1; i >= 0; i--) {
+            if ((stack->layers[i].locked ? 1 : 0) == want_locked) {
+                stack->active_layer = i;
+                return i;
+            }
+        }
+        return -1;
+    }
+    for (int i = 0; i < stack->layer_count; i++) {
+        if ((stack->layers[i].locked ? 1 : 0) == want_locked) {
+            stack->active_layer = i;
+            return i;
+        }
+    }
+    return -1;
+}
+
 static int layer_stack_hide_and_focus_direction(LayerStack *stack, int index, int direction) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
@@ -288,6 +331,10 @@ int layer_stack_cycle_hidden(LayerStack *stack, int direction) {
     return layer_stack_cycle_filtered(stack, direction, 0);
 }
 
+int layer_stack_cycle_locked(LayerStack *stack, int direction) {
+    return layer_stack_cycle_locked_filtered(stack, direction, 1);
+}
+
 int layer_stack_select_bottom_visible(LayerStack *stack) {
     return layer_stack_select_edge_filtered(stack, 1, 0);
 }
@@ -302,6 +349,14 @@ int layer_stack_select_bottom_hidden(LayerStack *stack) {
 
 int layer_stack_select_top_hidden(LayerStack *stack) {
     return layer_stack_select_edge_filtered(stack, 0, 1);
+}
+
+int layer_stack_select_bottom_locked(LayerStack *stack) {
+    return layer_stack_select_locked_edge(stack, 1, 0);
+}
+
+int layer_stack_select_top_locked(LayerStack *stack) {
+    return layer_stack_select_locked_edge(stack, 1, 1);
 }
 
 int layer_stack_toggle_solo(LayerStack *stack, int index) {

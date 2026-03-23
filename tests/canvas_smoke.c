@@ -362,6 +362,61 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[1].locked = 1;
+    stack.layers[3].locked = 1;
+    stack.active_layer = 0;
+    if (layer_stack_cycle_locked(&stack, 1) != 1 || stack.active_layer != 1) {
+        fprintf(stderr, "locked layer cycling forward failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_cycle_locked(&stack, 1) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "locked layer cycling wrap failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_cycle_locked(&stack, -1) != 1 || stack.active_layer != 1) {
+        fprintf(stderr, "locked layer cycling backward failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.active_layer = 2;
+    if (layer_stack_select_bottom_locked(&stack) != 1 || stack.active_layer != 1) {
+        fprintf(stderr, "select bottom locked failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_top_locked(&stack) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "select top locked failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[1].locked = 0;
+    stack.layers[3].locked = 0;
+    stack.active_layer = 0;
+    if (layer_stack_cycle_locked(&stack, 1) != -1 || stack.active_layer != 0) {
+        fprintf(stderr, "locked layer cycling should fail when none are locked\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_bottom_locked(&stack) != -1 || stack.active_layer != 0) {
+        fprintf(stderr, "select bottom locked should fail when none are locked\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_top_locked(&stack) != -1 || stack.active_layer != 0) {
+        fprintf(stderr, "select top locked should fail when none are locked\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[1].visible = 0;
     stack.layers[0].visible = 0;
     stack.layers[2].visible = 0;
