@@ -91,17 +91,18 @@ static int expect_int(const char *label, int actual, int expected) {
 }
 
 static int expect_str(const char *label, const char *actual, const char *expected) {
-    int matches = 0;
     if (!expected) {
-        matches = (actual == NULL);
-    } else if (actual) {
-        matches = strcmp(actual, expected) == 0;
+        if (actual == NULL) {
+            return 1;
+        }
+    } else if (actual && strcmp(actual, expected) == 0) {
+        return 1;
     }
-    if (!matches) {
+
+    {
         fprintf(stderr, "%s: expected %s got %s\n", label, expected ? expected : "(null)", actual ? actual : "(null)");
         return 0;
     }
-    return 1;
 }
 
 static int capture_main_stderr(int argc, char **argv, char *buffer, size_t buffer_size, int *exit_code) {
