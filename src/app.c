@@ -640,6 +640,34 @@ static int apply_canvas_translation(
     return 1;
 }
 
+static int apply_layer_stack_action(
+    SDL_Window *window,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int (*action)(LayerStack *, int),
+    int action_index,
+    const char *error_message,
+    Tool tool,
+    BrushShape brush_shape,
+    int brush_radius,
+    uint32_t brush_color,
+    int brush_opacity
+) {
+    if (!layers || !action) {
+        return 0;
+    }
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    int changed = action(layers, action_index);
+    if (!changed && error_message) {
+        fprintf(stderr, "%s\n", error_message);
+    }
+    refresh_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+    return changed;
+}
+
 static void erase_stamp(Canvas *c, int cx, int cy, int radius, uint32_t clear_color, BrushShape shape) {
     if (!c || !c->pixels || radius <= 0) {
         return;
@@ -1056,11 +1084,10 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && shift && key == SDLK_l) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_toggle_lock(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Could not toggle layer lock\n");
-                    }
-                    refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    apply_layer_stack_action(
+                        window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                        layer_stack_toggle_lock, layers.active_layer, "Could not toggle layer lock",
+                        tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
@@ -1167,35 +1194,32 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && shift && key == SDLK_v) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_toggle_visibility(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Cannot hide the final visible layer\n");
-                    } else {
+                    if (apply_layer_stack_action(
+                            window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            layer_stack_toggle_visibility, layers.active_layer, "Cannot hide the final visible layer",
+                            tool, brush_shape, brush_radius, brush_color, brush_opacity)) {
                         needs_composite = 1;
                     }
-                    refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
                 if (ctrl && shift && key == SDLK_h) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_hide_and_advance(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Cannot hide the final visible layer\n");
-                    } else {
+                    if (apply_layer_stack_action(
+                            window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            layer_stack_hide_and_advance, layers.active_layer, "Cannot hide the final visible layer",
+                            tool, brush_shape, brush_radius, brush_color, brush_opacity)) {
                         needs_composite = 1;
                     }
-                    refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
                 if (ctrl && key == SDLK_SLASH) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_toggle_solo(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Could not toggle solo mode\n");
-                    } else {
+                    if (apply_layer_stack_action(
+                            window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            layer_stack_toggle_solo, layers.active_layer, "Could not toggle solo mode",
+                            tool, brush_shape, brush_radius, brush_color, brush_opacity)) {
                         needs_composite = 1;
                     }
-                    refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
