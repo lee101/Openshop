@@ -803,6 +803,95 @@ static int test_document_preview_toggle_coexists_with_undo_redo(void) {
     return 1;
 }
 
+static int test_document_preview_toggle_coexists_with_load_and_undo_failures(void) {
+    LayerStack stack;
+    Canvas composite = {0};
+    Canvas preview = {0};
+    AppDocumentState state = {.preview_active = 1, .needs_composite = 0};
+    DocumentStubState stub = {.save_result = 1, .load_result = 0, .restore_result = 0};
+    AppDocumentCallbacks callbacks = {
+        .save_canvas = stub_save,
+        .load_canvas = stub_load,
+        .restore_history = stub_restore,
+        .push_snapshot = stub_push,
+        .userdata = &stub,
+    };
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF) ||
+        !canvas_init(&composite, 4, 4) ||
+        !canvas_init(&preview, 4, 4) ||
+        layer_stack_add(&stack, "Top", 0x00000000) < 0) {
+        fprintf(stderr, "initialization failed\n");
+        layer_stack_free(&stack);
+        canvas_free(&composite);
+        canvas_free(&preview);
+        return 0;
+    }
+
+    stack.active_layer = 1;
+
+    if (!app_document_apply(APP_DOCUMENT_ACTION_SAVE, &stack, &state, &preview, &composite, 0, &callbacks) ||
+        !expect_int_eq("preview_fail_first_save_calls", stub.save_calls, 1) ||
+        stub.saved_canvas != &preview ||
+        !expect_int_eq("preview_fail_first_save_needs_composite", state.needs_composite, 0)) {
+        layer_stack_free(&stack);
+        canvas_free(&composite);
+        canvas_free(&preview);
+        return 0;
+    }
+
+    state.preview_active = 0;
+    if (app_document_apply(APP_DOCUMENT_ACTION_LOAD, &stack, &state, &preview, &composite, 0x55667788, &callbacks) ||
+        !expect_int_eq("preview_fail_load_push_calls", stub.push_calls, 1) ||
+        !expect_int_eq("preview_fail_load_calls", stub.load_calls, 1) ||
+        stub.loaded_canvas != &stack.layers[1].canvas ||
+        stub.loaded_clear_color != 0x55667788 ||
+        !expect_int_eq("preview_fail_load_needs_composite", state.needs_composite, 0) ||
+        !expect_int_eq("preview_fail_load_preview_active", state.preview_active, 0)) {
+        layer_stack_free(&stack);
+        canvas_free(&composite);
+        canvas_free(&preview);
+        return 0;
+    }
+
+    if (!app_document_apply(APP_DOCUMENT_ACTION_SAVE, &stack, &state, &preview, &composite, 0, &callbacks) ||
+        !expect_int_eq("preview_fail_second_save_calls", stub.save_calls, 2) ||
+        stub.saved_canvas != &composite ||
+        !expect_int_eq("preview_fail_second_save_needs_composite", state.needs_composite, 0)) {
+        layer_stack_free(&stack);
+        canvas_free(&composite);
+        canvas_free(&preview);
+        return 0;
+    }
+
+    state.preview_active = 1;
+    if (app_document_apply(APP_DOCUMENT_ACTION_UNDO, &stack, &state, &preview, &composite, 0, &callbacks) ||
+        !expect_int_eq("preview_fail_restore_calls", stub.restore_calls, 1) ||
+        !expect_int_eq("preview_fail_restore_last_flag", stub.last_redo, 0) ||
+        !expect_int_eq("preview_fail_restore_needs_composite", state.needs_composite, 0) ||
+        !expect_int_eq("preview_fail_restore_preview_active", state.preview_active, 1)) {
+        layer_stack_free(&stack);
+        canvas_free(&composite);
+        canvas_free(&preview);
+        return 0;
+    }
+
+    canvas_free(&preview);
+    if (!app_document_apply(APP_DOCUMENT_ACTION_SAVE, &stack, &state, &preview, &composite, 0, &callbacks) ||
+        !expect_int_eq("preview_fail_third_save_calls", stub.save_calls, 3) ||
+        stub.saved_canvas != &composite ||
+        !expect_int_eq("preview_fail_third_save_needs_composite", state.needs_composite, 0) ||
+        !expect_int_eq("preview_fail_third_save_preview_active", state.preview_active, 1)) {
+        layer_stack_free(&stack);
+        canvas_free(&composite);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    canvas_free(&composite);
+    return 1;
+}
+
 int main(void) {
     if (!test_save_prefers_preview_canvas()) {
         return 1;
@@ -838,6 +927,9 @@ int main(void) {
         return 1;
     }
     if (!test_document_preview_toggle_coexists_with_undo_redo()) {
+        return 1;
+    }
+    if (!test_document_preview_toggle_coexists_with_load_and_undo_failures()) {
         return 1;
     }
     return 0;
