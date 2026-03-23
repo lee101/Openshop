@@ -22,7 +22,7 @@ make test-sdl
 ```bash
 ./openshop [optional_input_path] [width height]
 ```
-Width and height are optional, but if you provide one you must provide both as positive integers.
+You can also run `./openshop WIDTH HEIGHT` to start with a custom canvas size and no input image. Width and height must be supplied together as positive integers.
 
 ## Controls
 - `Left Mouse`: draw on the active layer

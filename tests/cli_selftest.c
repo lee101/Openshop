@@ -44,6 +44,14 @@ int main(void) {
         return 1;
     }
 
+    char *argv_size_only[] = {"openshop", "1024", "768"};
+    if (!expect_int("size_only_ok", parse_cli_args(3, argv_size_only, &options), 1) ||
+        !expect_str("size_only_input", options.input_path, NULL) ||
+        !expect_int("size_only_w", options.canvas_w, 1024) ||
+        !expect_int("size_only_h", options.canvas_h, 768)) {
+        return 1;
+    }
+
     char *argv_size[] = {"openshop", "art/scene.png", "1024", "768"};
     if (!expect_int("size_ok", parse_cli_args(4, argv_size, &options), 1) ||
         !expect_str("size_input", options.input_path, "art/scene.png") ||
@@ -64,6 +72,11 @@ int main(void) {
 
     char *argv_missing_h[] = {"openshop", "art/scene.png", "640"};
     if (!expect_int("missing_h", parse_cli_args(3, argv_missing_h, &options), 0)) {
+        return 1;
+    }
+
+    char *argv_bad_size_only[] = {"openshop", "art/scene.png", "768"};
+    if (!expect_int("bad_size_only", parse_cli_args(3, argv_bad_size_only, &options), 0)) {
         return 1;
     }
 

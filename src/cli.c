@@ -37,7 +37,7 @@ int parse_cli_args(int argc, char **argv, CliOptions *options) {
         return 0;
     }
 
-    if (argc < 1 || argc == 3 || argc > 4) {
+    if (argc < 1 || argc > 4) {
         return 0;
     }
 
@@ -48,7 +48,13 @@ int parse_cli_args(int argc, char **argv, CliOptions *options) {
     if (argc > 1) {
         options->input_path = argv[1];
     }
-    if (argc > 3) {
+    if (argc == 3) {
+        if (!parse_positive_int(argv[1], &options->canvas_w) ||
+            !parse_positive_int(argv[2], &options->canvas_h)) {
+            return 0;
+        }
+        options->input_path = NULL;
+    } else if (argc > 3) {
         if (!parse_positive_int(argv[2], &options->canvas_w) ||
             !parse_positive_int(argv[3], &options->canvas_h)) {
             return 0;
