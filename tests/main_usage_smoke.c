@@ -12,6 +12,9 @@ static int app_run_result = 0;
 static const char *expected_usage_text =
     "Usage: openshop [input_path] [width height]\n"
     "       or: WIDTH HEIGHT\n";
+static const char *expected_custom_usage_text =
+    "Usage: ./bin/openshop-dev [input_path] [width height]\n"
+    "       or: WIDTH HEIGHT\n";
 
 int app_run(const char *input_path, int canvas_w, int canvas_h) {
     app_run_called += 1;
@@ -154,6 +157,25 @@ static int expect_invalid_run(const char *label_prefix, int exit_code, const cha
     return 1;
 }
 
+static int expect_invalid_run_with_usage(const char *label_prefix, int exit_code,
+                                         const char *actual_stderr, const char *expected_stderr) {
+    char label[64] = {0};
+
+    snprintf(label, sizeof(label), "%s_exit", label_prefix);
+    if (!expect_int(label, exit_code, 1)) {
+        return 0;
+    }
+    snprintf(label, sizeof(label), "%s_app_run_called", label_prefix);
+    if (!expect_int(label, app_run_called, 0)) {
+        return 0;
+    }
+    snprintf(label, sizeof(label), "%s_usage_text", label_prefix);
+    if (!expect_str(label, actual_stderr, expected_stderr)) {
+        return 0;
+    }
+    return 1;
+}
+
 int main(void) {
     char stderr_text[256] = {0};
     int exit_code = 0;
@@ -169,6 +191,13 @@ int main(void) {
     reset_app_state(0, NULL, 0, 0, stderr_text);
     if (!capture_main_stderr(3, argv_bad_size_only, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("bad_size_only", exit_code, stderr_text)) {
+        return 1;
+    }
+
+    char *argv_custom_program_invalid[] = {"./bin/openshop-dev", "art/scene.png", "768"};
+    reset_app_state(0, NULL, 0, 0, stderr_text);
+    if (!capture_main_stderr(3, argv_custom_program_invalid, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_invalid_run_with_usage("custom_program_invalid", exit_code, stderr_text, expected_custom_usage_text)) {
         return 1;
     }
 
