@@ -775,7 +775,7 @@ int app_run(const char *input_path) {
                 if (ctrl && key == SDLK_n) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (layer_stack_insert(&layers, layers.active_layer + 1, NULL, 0x00000000) < 0) {
-                        fprintf(stderr, "Could not insert a layer above the active layer\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_INSERT_LAYER_ABOVE));
                     } else {
                         needs_composite = 1;
                     }
@@ -786,7 +786,7 @@ int app_run(const char *input_path) {
                 if (ctrl && key == SDLK_COMMA) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (layer_stack_insert(&layers, layers.active_layer, NULL, 0x00000000) < 0) {
-                        fprintf(stderr, "Could not insert a layer below the active layer\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_INSERT_LAYER_BELOW));
                     } else {
                         needs_composite = 1;
                     }
@@ -869,7 +869,7 @@ int app_run(const char *input_path) {
                 if (ctrl && shift && key == SDLK_m) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_flatten(&layers, COLOR_BG)) {
-                        fprintf(stderr, "Flatten failed (check for locked layers)\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_FLATTEN_LOCKED));
                     } else {
                         needs_composite = 1;
                     }
@@ -880,7 +880,7 @@ int app_run(const char *input_path) {
                 if (ctrl && shift && key == SDLK_e) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_stamp_visible_into(&layers, layers.active_layer, COLOR_BG)) {
-                        fprintf(stderr, "Stamp visible failed (active layer may be locked)\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_STAMP_VISIBLE_INTO_LOCKED));
                     } else {
                         needs_composite = 1;
                     }
@@ -891,7 +891,7 @@ int app_run(const char *input_path) {
                 if (ctrl && shift && key == SDLK_g) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (layer_stack_stamp_visible_new(&layers, "Visible Stamp", COLOR_BG) < 0) {
-                        fprintf(stderr, "Could not stamp visible image into a new layer\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_STAMP_VISIBLE_NEW));
                     } else {
                         needs_composite = 1;
                     }
@@ -902,7 +902,7 @@ int app_run(const char *input_path) {
                 if (ctrl && key == SDLK_d) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (layer_stack_duplicate(&layers, layers.active_layer, NULL) < 0) {
-                        fprintf(stderr, "Could not duplicate layer\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_DUPLICATE_LAYER));
                     } else {
                         needs_composite = 1;
                     }
@@ -913,7 +913,7 @@ int app_run(const char *input_path) {
                 if (ctrl && key == SDLK_LEFTBRACKET) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_move(&layers, layers.active_layer, -1)) {
-                        fprintf(stderr, "Layer is already at the bottom\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_MOVE_LAYER_BOTTOM));
                     } else {
                         needs_composite = 1;
                     }
@@ -924,7 +924,7 @@ int app_run(const char *input_path) {
                 if (ctrl && key == SDLK_RIGHTBRACKET) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_move(&layers, layers.active_layer, 1)) {
-                        fprintf(stderr, "Layer is already at the top\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_MOVE_LAYER_TOP));
                     } else {
                         needs_composite = 1;
                     }
@@ -957,7 +957,7 @@ int app_run(const char *input_path) {
                 if (ctrl && shift && key == SDLK_v) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_toggle_visibility(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Cannot hide the final visible layer\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_HIDE_FINAL_VISIBLE));
                     } else {
                         needs_composite = 1;
                     }
@@ -968,7 +968,7 @@ int app_run(const char *input_path) {
                 if (ctrl && shift && key == SDLK_h) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_hide_and_advance(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Cannot hide the final visible layer\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_HIDE_FINAL_VISIBLE));
                     } else {
                         needs_composite = 1;
                     }
@@ -979,7 +979,7 @@ int app_run(const char *input_path) {
                 if (ctrl && shift && key == SDLK_j) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_hide_and_retreat(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Cannot hide the final visible layer\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_HIDE_FINAL_VISIBLE));
                     } else {
                         needs_composite = 1;
                     }
@@ -990,7 +990,7 @@ int app_run(const char *input_path) {
                 if (ctrl && key == SDLK_SLASH) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_toggle_solo(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Could not toggle solo mode\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_TOGGLE_SOLO));
                     } else {
                         needs_composite = 1;
                     }
@@ -1001,7 +1001,7 @@ int app_run(const char *input_path) {
                 if (key == SDLK_DELETE || key == SDLK_BACKSPACE) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_delete(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Cannot delete the final or a locked layer\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_DELETE_FINAL_OR_LOCKED));
                     } else {
                         needs_composite = 1;
                     }
@@ -1035,7 +1035,7 @@ int app_run(const char *input_path) {
                 if (ctrl && key == SDLK_m) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_merge_down(&layers, layers.active_layer)) {
-                        fprintf(stderr, "No lower layer to merge into, or one of the layers is locked\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_MERGE_DOWN_BLOCKED));
                     } else {
                         needs_composite = 1;
                     }
@@ -1046,7 +1046,7 @@ int app_run(const char *input_path) {
                 if (ctrl && key == SDLK_u) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_merge_up(&layers, layers.active_layer)) {
-                        fprintf(stderr, "No upper layer to merge into, or one of the layers is locked\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_MERGE_UP_BLOCKED));
                     } else {
                         needs_composite = 1;
                     }

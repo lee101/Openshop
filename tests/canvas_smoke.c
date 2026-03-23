@@ -244,7 +244,20 @@ static int test_layers_basic(void) {
         strcmp(status_text_action_error(STATUS_SHOW_UNLOCKED_ONLY), "Could not show unlocked layers only") != 0 ||
         strcmp(status_text_action_error(STATUS_SHOW_LOCKED_ONLY), "Could not show locked layers only") != 0 ||
         strcmp(status_text_action_error(STATUS_SHOW_HIDDEN_LOCKED_ONLY), "Could not show hidden locked layers only") != 0 ||
-        strcmp(status_text_action_error(STATUS_SHOW_HIDDEN_UNLOCKED_ONLY), "Could not show hidden unlocked layers only") != 0) {
+        strcmp(status_text_action_error(STATUS_SHOW_HIDDEN_UNLOCKED_ONLY), "Could not show hidden unlocked layers only") != 0 ||
+        strcmp(status_text_action_error(STATUS_INSERT_LAYER_ABOVE), "Could not insert a layer above the active layer") != 0 ||
+        strcmp(status_text_action_error(STATUS_INSERT_LAYER_BELOW), "Could not insert a layer below the active layer") != 0 ||
+        strcmp(status_text_action_error(STATUS_FLATTEN_LOCKED), "Flatten failed (check for locked layers)") != 0 ||
+        strcmp(status_text_action_error(STATUS_STAMP_VISIBLE_INTO_LOCKED), "Stamp visible failed (active layer may be locked)") != 0 ||
+        strcmp(status_text_action_error(STATUS_STAMP_VISIBLE_NEW), "Could not stamp visible image into a new layer") != 0 ||
+        strcmp(status_text_action_error(STATUS_DUPLICATE_LAYER), "Could not duplicate layer") != 0 ||
+        strcmp(status_text_action_error(STATUS_MOVE_LAYER_BOTTOM), "Layer is already at the bottom") != 0 ||
+        strcmp(status_text_action_error(STATUS_MOVE_LAYER_TOP), "Layer is already at the top") != 0 ||
+        strcmp(status_text_action_error(STATUS_HIDE_FINAL_VISIBLE), "Cannot hide the final visible layer") != 0 ||
+        strcmp(status_text_action_error(STATUS_TOGGLE_SOLO), "Could not toggle solo mode") != 0 ||
+        strcmp(status_text_action_error(STATUS_DELETE_FINAL_OR_LOCKED), "Cannot delete the final or a locked layer") != 0 ||
+        strcmp(status_text_action_error(STATUS_MERGE_DOWN_BLOCKED), "No lower layer to merge into, or one of the layers is locked") != 0 ||
+        strcmp(status_text_action_error(STATUS_MERGE_UP_BLOCKED), "No upper layer to merge into, or one of the layers is locked") != 0) {
         fprintf(stderr, "status text action mapping failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
