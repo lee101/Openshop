@@ -285,6 +285,7 @@ static const char *const empty_argv_tail_4[] = {NULL, NULL, NULL, NULL};
 static const char *const empty_argv_tail_5[] = {NULL, NULL, NULL, NULL, NULL};
 static const char *const no_size_tokens[] = {NULL, NULL};
 static const char *const no_usage_text = NULL;
+static char **const null_argv = NULL;
 
 #define INVALID_NULL_ARGV_ONLY_CASE(label, argc_value, usage_text) \
     {label, argc_value, argv_is_null, usage_text, {empty_argv_tail_5[0], empty_argv_tail_5[1], empty_argv_tail_5[2], empty_argv_tail_5[3], empty_argv_tail_5[4]}}
@@ -495,7 +496,7 @@ static int expect_invalid_argv_cases(const struct invalid_argv_case *cases, size
         char **argv_ptr = argv;
 
         if (cases[i].argv_state == argv_is_null) {
-            argv_ptr = NULL;
+            argv_ptr = null_argv;
         } else {
             fill_argv(argv, cases[i].argv, ARRAY_LEN(cases[i].argv));
         }
