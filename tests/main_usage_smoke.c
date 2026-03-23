@@ -373,45 +373,21 @@ static int expect_invalid_size_only_height_cases(const struct invalid_size_token
                                           stderr_text, stderr_size, exit_code, custom_usage_text);
 }
 
-static int expect_custom_invalid_size_only_width_cases(const struct invalid_size_token_case *cases, size_t case_count,
-                                                       char *stderr_text, size_t stderr_size, int *exit_code,
-                                                       const char *custom_usage_text) {
-    return expect_invalid_size_only_width_cases(cases, case_count, custom_program_name, default_size_only_height,
-                                                stderr_text, stderr_size, exit_code, custom_usage_text);
-}
-
-static int expect_custom_invalid_size_only_height_cases(const struct invalid_size_token_case *cases, size_t case_count,
-                                                        char *stderr_text, size_t stderr_size, int *exit_code,
-                                                        const char *custom_usage_text) {
-    return expect_invalid_size_only_height_cases(cases, case_count, custom_program_name, default_size_only_width,
-                                                 stderr_text, stderr_size, exit_code, custom_usage_text);
-}
-
-static int expect_default_invalid_size_only_width_cases(const struct invalid_size_token_case *cases, size_t case_count,
-                                                        char *stderr_text, size_t stderr_size, int *exit_code) {
-    return expect_invalid_size_only_width_cases(cases, case_count, default_program_name, default_size_only_height,
-                                                stderr_text, stderr_size, exit_code, NULL);
-}
-
-static int expect_default_invalid_size_only_height_cases(const struct invalid_size_token_case *cases, size_t case_count,
-                                                         char *stderr_text, size_t stderr_size, int *exit_code) {
-    return expect_invalid_size_only_height_cases(cases, case_count, default_program_name, default_size_only_width,
-                                                 stderr_text, stderr_size, exit_code, NULL);
-}
-
 static int expect_custom_invalid_size_only_case_groups(const struct invalid_size_token_case *width_cases,
                                                        size_t width_case_count,
                                                        const struct invalid_size_token_case *height_cases,
                                                        size_t height_case_count,
                                                        char *stderr_text, size_t stderr_size, int *exit_code,
                                                        const char *custom_usage_text) {
-    if (!expect_custom_invalid_size_only_width_cases(width_cases, width_case_count,
-                                                     stderr_text, stderr_size, exit_code, custom_usage_text)) {
+    if (!expect_invalid_size_only_width_cases(width_cases, width_case_count,
+                                              custom_program_name, default_size_only_height,
+                                              stderr_text, stderr_size, exit_code, custom_usage_text)) {
         return 0;
     }
 
-    return expect_custom_invalid_size_only_height_cases(height_cases, height_case_count,
-                                                        stderr_text, stderr_size, exit_code, custom_usage_text);
+    return expect_invalid_size_only_height_cases(height_cases, height_case_count,
+                                                 custom_program_name, default_size_only_width,
+                                                 stderr_text, stderr_size, exit_code, custom_usage_text);
 }
 
 static int expect_default_invalid_size_only_case_groups(const struct invalid_size_token_case *height_cases,
@@ -419,13 +395,15 @@ static int expect_default_invalid_size_only_case_groups(const struct invalid_siz
                                                         const struct invalid_size_token_case *width_cases,
                                                         size_t width_case_count,
                                                         char *stderr_text, size_t stderr_size, int *exit_code) {
-    if (!expect_default_invalid_size_only_height_cases(height_cases, height_case_count,
-                                                       stderr_text, stderr_size, exit_code)) {
+    if (!expect_invalid_size_only_height_cases(height_cases, height_case_count,
+                                               default_program_name, default_size_only_width,
+                                               stderr_text, stderr_size, exit_code, NULL)) {
         return 0;
     }
 
-    return expect_default_invalid_size_only_width_cases(width_cases, width_case_count,
-                                                        stderr_text, stderr_size, exit_code);
+    return expect_invalid_size_only_width_cases(width_cases, width_case_count,
+                                                default_program_name, default_size_only_height,
+                                                stderr_text, stderr_size, exit_code, NULL);
 }
 
 static int expect_main_invalid_size_only_case_groups(const struct invalid_size_token_case *custom_width_cases,
