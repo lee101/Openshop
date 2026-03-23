@@ -263,8 +263,8 @@ struct invalid_input_size_case {
 struct invalid_argv_case {
     const char *label_prefix;
     int argc;
-    int use_custom_usage;
     int use_null_argv;
+    const char *expected_usage_text;
     char *argv[5];
 };
 
@@ -373,8 +373,7 @@ static int expect_success_cases(const struct success_case *cases, size_t case_co
 }
 
 static int expect_invalid_argv_cases(const struct invalid_argv_case *cases, size_t case_count,
-                                     char *stderr_text, size_t stderr_size, int *exit_code,
-                                     const char *custom_usage_text) {
+                                     char *stderr_text, size_t stderr_size, int *exit_code) {
     size_t i = 0;
 
     for (i = 0; i < case_count; i += 1) {
@@ -384,9 +383,9 @@ static int expect_invalid_argv_cases(const struct invalid_argv_case *cases, size
             argv = NULL;
         }
 
-        if (cases[i].use_custom_usage) {
+        if (cases[i].expected_usage_text) {
             if (!expect_custom_invalid_main_run(cases[i].label_prefix, cases[i].argc, argv,
-                                                stderr_text, stderr_size, exit_code, custom_usage_text)) {
+                                                stderr_text, stderr_size, exit_code, cases[i].expected_usage_text)) {
                 return 0;
             }
             continue;
@@ -453,24 +452,24 @@ int main(void) {
     }
 
     struct invalid_argv_case invalid_argv_cases[] = {
-        {"invalid", 3, 0, 0, {"openshop", (char *)default_scene_path, (char *)default_size_only_width, NULL, NULL}},
-        {"bad_size_only", 3, 0, 0, {"openshop", (char *)default_scene_path, (char *)invalid_probe_size, NULL, NULL}},
-        {"custom_program_invalid", 3, 1, 0, {(char *)custom_program_name, (char *)default_scene_path, (char *)invalid_probe_size, NULL, NULL}},
-        {"missing_h", 3, 0, 0, {"openshop", (char *)default_scene_path, (char *)default_size_only_width, NULL, NULL}},
-        {"extra_args", 5, 0, 0, {"openshop", (char *)default_scene_path, (char *)default_size_only_width, (char *)default_size_only_height, "extra"}},
-        {"custom_program_extra_args", 5, 1, 0, {(char *)custom_program_name, (char *)default_scene_path, (char *)default_size_only_width, (char *)default_size_only_height, "extra"}},
-        {"custom_program_empty_input", 2, 1, 0, {(char *)custom_program_name, "", NULL, NULL, NULL}},
-        {"custom_program_null_input", 2, 1, 0, {(char *)custom_program_name, NULL, NULL, NULL, NULL}},
-        {"null_argv", 1, 0, 1, {NULL, NULL, NULL, NULL, NULL}},
-        {"null_program", 1, 0, 0, {NULL, NULL, NULL, NULL, NULL}},
-        {"zero_argc", 0, 0, 0, {"openshop", NULL, NULL, NULL, NULL}},
-        {"empty_program", 1, 0, 0, {"", NULL, NULL, NULL, NULL}},
-        {"empty_input", 2, 0, 0, {"openshop", "", NULL, NULL, NULL}},
-        {"null_input", 2, 0, 0, {"openshop", NULL, NULL, NULL, NULL}},
+        {"invalid", 3, 0, NULL, {"openshop", (char *)default_scene_path, (char *)default_size_only_width, NULL, NULL}},
+        {"bad_size_only", 3, 0, NULL, {"openshop", (char *)default_scene_path, (char *)invalid_probe_size, NULL, NULL}},
+        {"custom_program_invalid", 3, 0, custom_usage_text, {(char *)custom_program_name, (char *)default_scene_path, (char *)invalid_probe_size, NULL, NULL}},
+        {"missing_h", 3, 0, NULL, {"openshop", (char *)default_scene_path, (char *)default_size_only_width, NULL, NULL}},
+        {"extra_args", 5, 0, NULL, {"openshop", (char *)default_scene_path, (char *)default_size_only_width, (char *)default_size_only_height, "extra"}},
+        {"custom_program_extra_args", 5, 0, custom_usage_text, {(char *)custom_program_name, (char *)default_scene_path, (char *)default_size_only_width, (char *)default_size_only_height, "extra"}},
+        {"custom_program_empty_input", 2, 0, custom_usage_text, {(char *)custom_program_name, "", NULL, NULL, NULL}},
+        {"custom_program_null_input", 2, 0, custom_usage_text, {(char *)custom_program_name, NULL, NULL, NULL, NULL}},
+        {"null_argv", 1, 1, NULL, {NULL, NULL, NULL, NULL, NULL}},
+        {"null_program", 1, 0, NULL, {NULL, NULL, NULL, NULL, NULL}},
+        {"zero_argc", 0, 0, NULL, {"openshop", NULL, NULL, NULL, NULL}},
+        {"empty_program", 1, 0, NULL, {"", NULL, NULL, NULL, NULL}},
+        {"empty_input", 2, 0, NULL, {"openshop", "", NULL, NULL, NULL}},
+        {"null_input", 2, 0, NULL, {"openshop", NULL, NULL, NULL, NULL}},
     };
     if (!expect_invalid_argv_cases(invalid_argv_cases,
                                    ARRAY_LEN(invalid_argv_cases),
-                                   stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+                                   stderr_text, sizeof(stderr_text), &exit_code)) {
         return 1;
     }
 
