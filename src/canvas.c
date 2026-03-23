@@ -681,6 +681,61 @@ void canvas_unsharp_mask(Canvas *c) {
         free(blur);
     }
 }
+
+void canvas_edge_sharpen(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+
+    {
+        size_t total = (size_t)c->width * (size_t)c->height;
+        uint32_t *src = (uint32_t *)malloc(total * sizeof(uint32_t));
+        if (!src) {
+            return;
+        }
+        memcpy(src, c->pixels, total * sizeof(uint32_t));
+
+        for (int y = 0; y < c->height; y++) {
+            int yu = y > 0 ? y - 1 : 0;
+            int yd = y < c->height - 1 ? y + 1 : c->height - 1;
+            for (int x = 0; x < c->width; x++) {
+                int xl = x > 0 ? x - 1 : 0;
+                int xr = x < c->width - 1 ? x + 1 : c->width - 1;
+
+                uint32_t p = src[(size_t)y * (size_t)c->width + (size_t)x];
+                uint32_t up = src[(size_t)yu * (size_t)c->width + (size_t)x];
+                uint32_t down = src[(size_t)yd * (size_t)c->width + (size_t)x];
+                uint32_t left = src[(size_t)y * (size_t)c->width + (size_t)xl];
+                uint32_t right = src[(size_t)y * (size_t)c->width + (size_t)xr];
+
+                uint32_t a = p & 0xFF000000u;
+                int r = 5 * (int)((p >> 16) & 0xFF) -
+                    (int)((up >> 16) & 0xFF) -
+                    (int)((down >> 16) & 0xFF) -
+                    (int)((left >> 16) & 0xFF) -
+                    (int)((right >> 16) & 0xFF);
+                int g = 5 * (int)((p >> 8) & 0xFF) -
+                    (int)((up >> 8) & 0xFF) -
+                    (int)((down >> 8) & 0xFF) -
+                    (int)((left >> 8) & 0xFF) -
+                    (int)((right >> 8) & 0xFF);
+                int b = 5 * (int)(p & 0xFF) -
+                    (int)(up & 0xFF) -
+                    (int)(down & 0xFF) -
+                    (int)(left & 0xFF) -
+                    (int)(right & 0xFF);
+
+                if (r < 0) { r = 0; } else if (r > 255) { r = 255; }
+                if (g < 0) { g = 0; } else if (g > 255) { g = 255; }
+                if (b < 0) { b = 0; } else if (b > 255) { b = 255; }
+                c->pixels[(size_t)y * (size_t)c->width + (size_t)x] =
+                    a | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+            }
+        }
+
+        free(src);
+    }
+}
 static void canvas_contrast_step(Canvas *c, int delta) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;

@@ -1547,6 +1547,10 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
                     if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_sepia)) {
                         needs_composite = 1;
                     }
+                } else if (key == SDLK_s && shift) {
+                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_edge_sharpen)) {
+                        needs_composite = 1;
+                    }
                 } else if (key == SDLK_f) {
                     int mx = 0;
                     int my = 0;

@@ -86,6 +86,7 @@ make test-sdl
 - `Ctrl+Shift+O`: load `input.png` into the active layer
 - `Ctrl+F`: tolerance-based fill from the cursor (exact `F` fill is unchanged)
 - `Ctrl+Shift+B`: apply unsharp-mask sharpening to the active layer
+- `Shift+S`: apply edge sharpening to the active layer
 - `Ctrl+Z` / `Ctrl+Y`: undo / redo (layer-aware)
 - PNG import/export uses bundled `stb_image` / `stb_image_write` headers and does not depend on SDL image codecs.
 - `Esc`: quit

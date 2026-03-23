@@ -774,6 +774,31 @@ int main(void) {
         canvas_free(&sharp);
     }
 
+    {
+        Canvas edge;
+        if (!canvas_init(&edge, 3, 1)) {
+            fprintf(stderr, "edge sharpen canvas init failed\n");
+            return 1;
+        }
+        canvas_set_pixel_raw(&edge, 0, 0, 0xFF404040);
+        canvas_set_pixel_raw(&edge, 1, 0, 0xFF808080);
+        canvas_set_pixel_raw(&edge, 2, 0, 0xFF404040);
+        canvas_edge_sharpen(&edge);
+        if (!expect_pixel_eq("edge_sharpen_center", canvas_get_pixel(&edge, 1, 0), 0xFFFFFFFF) ||
+            !expect_pixel_eq("edge_sharpen_side", canvas_get_pixel(&edge, 0, 0), 0xFF000000)) {
+            canvas_free(&edge);
+            return 1;
+        }
+        canvas_set_pixel_raw(&edge, 1, 0, 0x80404040);
+        canvas_edge_sharpen(&edge);
+        if ((canvas_get_pixel(&edge, 1, 0) >> 24) != 0x80) {
+            fprintf(stderr, "edge_sharpen_alpha_preserved failed\n");
+            canvas_free(&edge);
+            return 1;
+        }
+        canvas_free(&edge);
+    }
+
     if (!canvas_init(&c, 2, 2)) {
         fprintf(stderr, "canvas_init blend test failed\n");
         return 1;

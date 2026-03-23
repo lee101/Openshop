@@ -41,6 +41,7 @@ void canvas_posterize(Canvas *c);
 void canvas_threshold(Canvas *c);
 void canvas_brightness(Canvas *c, int delta);
 void canvas_unsharp_mask(Canvas *c);
+void canvas_edge_sharpen(Canvas *c);
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color);
 
 #endif
