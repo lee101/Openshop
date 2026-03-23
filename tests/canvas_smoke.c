@@ -263,6 +263,25 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[1].locked = 1;
+    if (layer_stack_select_edge_editable_visible(&stack, -1) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "select bottom editable visible layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[3].locked = 1;
+    stack.layers[2].locked = 0;
+    stack.layers[2].visible = 1;
+    stack.layers[0].visible = 0;
+    if (layer_stack_select_edge_editable_visible(&stack, 1) != 2 || stack.active_layer != 2) {
+        fprintf(stderr, "select top editable visible layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[1].locked = 0;
+    stack.layers[3].locked = 0;
     stack.layers[0].visible = 1;
     stack.layers[2].visible = 1;
     stack.layers[1].locked = 0;

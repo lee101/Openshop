@@ -276,6 +276,29 @@ int layer_stack_select_edge_visible(LayerStack *stack, int direction) {
     return -1;
 }
 
+int layer_stack_select_edge_editable_visible(LayerStack *stack, int direction) {
+    if (!stack || stack->layer_count <= 0) {
+        return -1;
+    }
+
+    if (direction < 0) {
+        for (int i = 0; i < stack->layer_count; i++) {
+            if (stack->layers[i].visible && !stack->layers[i].locked) {
+                stack->active_layer = i;
+                return i;
+            }
+        }
+    } else {
+        for (int i = stack->layer_count - 1; i >= 0; i--) {
+            if (stack->layers[i].visible && !stack->layers[i].locked) {
+                stack->active_layer = i;
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+
 int layer_stack_toggle_solo(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
