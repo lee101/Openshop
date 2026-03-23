@@ -22,7 +22,12 @@ make test-sdl
 ```bash
 ./openshop [optional_input_path] [width height]
 ```
-Supported forms:
+Runtime usage:
+```bash
+Usage: openshop [input_path] [width height]
+       or: WIDTH HEIGHT
+```
+Examples:
 ```bash
 ./openshop
 ./openshop art/scene.png
