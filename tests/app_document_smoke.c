@@ -276,6 +276,49 @@ static int test_document_failure_and_noop_paths_preserve_flags(void) {
     return 1;
 }
 
+static int test_document_edge_case_selection_and_save_fallbacks(void) {
+    LayerStack stack;
+    Canvas composite = {0};
+    Canvas preview = {0};
+    AppDocumentState state = {.preview_active = 1, .needs_composite = 0};
+    DocumentStubState stub = {.save_result = 1};
+    AppDocumentCallbacks callbacks = {
+        .save_canvas = stub_save,
+        .push_snapshot = stub_push,
+        .userdata = &stub,
+    };
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF) ||
+        !canvas_init(&composite, 4, 4) ||
+        layer_stack_add(&stack, "Top", 0x00000000) < 0) {
+        fprintf(stderr, "initialization failed\n");
+        layer_stack_free(&stack);
+        canvas_free(&composite);
+        return 0;
+    }
+
+    if (!app_document_apply(APP_DOCUMENT_ACTION_SAVE, &stack, &state, &preview, &composite, 0, &callbacks) ||
+        !expect_int_eq("save_fallback_calls", stub.save_calls, 1) ||
+        stub.saved_canvas != &composite) {
+        layer_stack_free(&stack);
+        canvas_free(&composite);
+        return 0;
+    }
+
+    stack.active_layer = -1;
+    if (app_document_apply(APP_DOCUMENT_ACTION_SHOW_ACTIVE, &stack, &state, NULL, NULL, 0, &callbacks) ||
+        !expect_int_eq("show_active_invalid_push_calls", stub.push_calls, 1) ||
+        !expect_int_eq("show_active_invalid_needs_composite", state.needs_composite, 0)) {
+        layer_stack_free(&stack);
+        canvas_free(&composite);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    canvas_free(&composite);
+    return 1;
+}
+
 int main(void) {
     if (!test_save_prefers_preview_canvas()) {
         return 1;
@@ -290,6 +333,9 @@ int main(void) {
         return 1;
     }
     if (!test_document_failure_and_noop_paths_preserve_flags()) {
+        return 1;
+    }
+    if (!test_document_edge_case_selection_and_save_fallbacks()) {
         return 1;
     }
     return 0;
