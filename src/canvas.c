@@ -617,6 +617,70 @@ void canvas_auto_levels(Canvas *c) {
         c->pixels[i] = a | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
     }
 }
+
+void canvas_unsharp_mask(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+
+    {
+        size_t count = (size_t)c->width * (size_t)c->height;
+        uint32_t *orig = (uint32_t *)malloc(count * sizeof(uint32_t));
+        uint32_t *blur = (uint32_t *)malloc(count * sizeof(uint32_t));
+        if (!orig || !blur) {
+            free(orig);
+            free(blur);
+            return;
+        }
+
+        memcpy(orig, c->pixels, count * sizeof(uint32_t));
+        for (int y = 0; y < c->height; y++) {
+            for (int x = 0; x < c->width; x++) {
+                int sum_r = 0;
+                int sum_g = 0;
+                int sum_b = 0;
+                int samples = 0;
+                for (int dy = -1; dy <= 1; dy++) {
+                    int sy = y + dy;
+                    if (sy < 0 || sy >= c->height) {
+                        continue;
+                    }
+                    for (int dx = -1; dx <= 1; dx++) {
+                        int sx = x + dx;
+                        if (sx < 0 || sx >= c->width) {
+                            continue;
+                        }
+                        uint32_t p = orig[(size_t)sy * (size_t)c->width + (size_t)sx];
+                        sum_r += (int)((p >> 16) & 0xFF);
+                        sum_g += (int)((p >> 8) & 0xFF);
+                        sum_b += (int)(p & 0xFF);
+                        samples++;
+                    }
+                }
+                blur[(size_t)y * (size_t)c->width + (size_t)x] =
+                    ((uint32_t)(sum_r / samples) << 16) |
+                    ((uint32_t)(sum_g / samples) << 8) |
+                    (uint32_t)(sum_b / samples);
+            }
+        }
+
+        for (size_t i = 0; i < count; i++) {
+            uint32_t o = orig[i];
+            uint32_t b = blur[i];
+            uint32_t a = o & 0xFF000000u;
+            int r = (2 * (int)((o >> 16) & 0xFF)) - (int)((b >> 16) & 0xFF);
+            int g = (2 * (int)((o >> 8) & 0xFF)) - (int)((b >> 8) & 0xFF);
+            int blue = (2 * (int)(o & 0xFF)) - (int)(b & 0xFF);
+            if (r < 0) { r = 0; } else if (r > 255) { r = 255; }
+            if (g < 0) { g = 0; } else if (g > 255) { g = 255; }
+            if (blue < 0) { blue = 0; } else if (blue > 255) { blue = 255; }
+            c->pixels[i] = a | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)blue;
+        }
+
+        free(orig);
+        free(blur);
+    }
+}
 static void canvas_contrast_step(Canvas *c, int delta) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;

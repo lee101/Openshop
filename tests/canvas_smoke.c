@@ -745,6 +745,35 @@ int main(void) {
         canvas_free(&tol_c);
     }
 
+    {
+        Canvas sharp;
+        if (!canvas_init(&sharp, 3, 3)) {
+            fprintf(stderr, "unsharp canvas init failed\n");
+            return 1;
+        }
+        canvas_clear(&sharp, 0xFF808080);
+        canvas_unsharp_mask(&sharp);
+        if (!expect_pixel_eq("unsharp_flat", canvas_get_pixel(&sharp, 1, 1), 0xFF808080)) {
+            canvas_free(&sharp);
+            return 1;
+        }
+        canvas_set_pixel_raw(&sharp, 1, 1, 0x80808080);
+        canvas_unsharp_mask(&sharp);
+        if ((canvas_get_pixel(&sharp, 1, 1) >> 24) != 0x80) {
+            fprintf(stderr, "unsharp_alpha_preserved failed\n");
+            canvas_free(&sharp);
+            return 1;
+        }
+        canvas_clear(&sharp, 0xFF000000);
+        canvas_set_pixel_raw(&sharp, 1, 1, 0xFFFFFFFF);
+        canvas_unsharp_mask(&sharp);
+        if (!expect_pixel_eq("unsharp_center_clamp", canvas_get_pixel(&sharp, 1, 1), 0xFFFFFFFF)) {
+            canvas_free(&sharp);
+            return 1;
+        }
+        canvas_free(&sharp);
+    }
+
     if (!canvas_init(&c, 2, 2)) {
         fprintf(stderr, "canvas_init blend test failed\n");
         return 1;
