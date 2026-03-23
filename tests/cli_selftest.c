@@ -107,6 +107,13 @@ int main(void) {
         return 1;
     }
 
+    char *argv_plus_prefixed[] = {"openshop", "art/scene.png", "+640", "480"};
+    if (!expect_int("plus_prefixed", parse_cli_args(4, argv_plus_prefixed, &options), 1) ||
+        !expect_int("plus_prefixed_w", options.canvas_w, 640) ||
+        !expect_int("plus_prefixed_h", options.canvas_h, 480)) {
+        return 1;
+    }
+
     if (!expect_int("null_options", parse_cli_args(1, argv_default, NULL), 0)) {
         return 1;
     }
