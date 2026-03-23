@@ -422,6 +422,41 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_select_nth_unlocked(&stack, 0) != 1 || stack.active_layer != 1) {
+        fprintf(stderr, "select first unlocked layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_nth_unlocked(&stack, 1) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "select second unlocked layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_nth_unlocked(&stack, 2) != -1 || stack.active_layer != 3) {
+        fprintf(stderr, "select nth unlocked layer should fail past end\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[1].locked = 1;
+    stack.active_layer = 3;
+    if (layer_stack_select_nth_unlocked(&stack, 0) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "select nth unlocked layer should skip locked layers\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[3].locked = 1;
+    if (layer_stack_select_nth_unlocked(&stack, 0) != -1 || stack.active_layer != 3) {
+        fprintf(stderr, "select nth unlocked layer should preserve active layer on failure\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[1].locked = 0;
+    stack.layers[3].locked = 0;
     stack.layers[0].visible = 0;
     stack.layers[1].visible = 1;
     stack.layers[2].visible = 0;
