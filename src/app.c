@@ -59,6 +59,7 @@ static int apply_runtime_tool_effect_transform(
 );
 static int flood_fill_canvas_callback(Canvas *canvas, int x, int y, uint32_t color, void *userdata);
 static uint32_t sample_canvas_callback(const Canvas *canvas, int x, int y, void *userdata);
+static void translate_canvas_callback(Canvas *canvas, int dx, int dy, uint32_t clear_color, void *userdata);
 static int restore_runtime_history(LayerStack *layers, AppRuntime *runtime, int redo_to_undo);
 static int apply_runtime_canvas_transform(LayerStack *layers, AppRuntime *runtime, void (*transform)(Canvas *));
 static int apply_runtime_canvas_translation(LayerStack *layers, AppRuntime *runtime, int dx, int dy);
@@ -700,12 +701,20 @@ static int handle_translation_shortcut(
     AppRuntime *runtime
 ) {
     AppTranslationCommand command = app_translation_command_for_key((int)key, shift);
+    AppTranslationState state = {
+        .needs_composite = runtime ? runtime->needs_composite : 0,
+    };
+    AppTranslationCallbacks callbacks = {
+        .push_snapshot = push_runtime_snapshot_callback,
+        .translate_canvas = translate_canvas_callback,
+        .userdata = runtime,
+    };
     if (!command.handled) {
         return 0;
     }
 
-    if (apply_runtime_canvas_translation(layers, runtime, command.dx, command.dy)) {
-        runtime->needs_composite = 1;
+    if (app_translation_apply(command, layers, &state, active_layer_clear_color(layers), &callbacks)) {
+        runtime->needs_composite = state.needs_composite;
     }
     return 1;
 }
@@ -1374,6 +1383,11 @@ static int flood_fill_canvas_callback(Canvas *canvas, int x, int y, uint32_t col
 static uint32_t sample_canvas_callback(const Canvas *canvas, int x, int y, void *userdata) {
     (void)userdata;
     return canvas_get_pixel(canvas, x, y);
+}
+
+static void translate_canvas_callback(Canvas *canvas, int dx, int dy, uint32_t clear_color, void *userdata) {
+    (void)userdata;
+    canvas_translate(canvas, dx, dy, clear_color);
 }
 
 static int save_document_canvas(const Canvas *canvas, const char *path, void *userdata) {
