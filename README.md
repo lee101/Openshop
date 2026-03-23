@@ -63,6 +63,8 @@ make test-sdl
 - `Ctrl+Shift+P`: pixelate the active layer
 - `Ctrl+Shift+[ / Ctrl+Shift+]`: pixelate block size down/up
 - `Ctrl+Shift+, / Ctrl+Shift+.`: tolerance fill down/up
+- `Alt+[ / Alt+]`: posterize level down/up
+- `Alt+, / Alt+.`: threshold down/up
 - `Ctrl+A`: show all layers and clear solo mode
 - `Ctrl+Shift+R`: reveal the active layer without changing other visibility states
 - `Ctrl+Shift+H`: hide the active layer and jump to the next visible layer
@@ -81,7 +83,7 @@ make test-sdl
 - `Ctrl+O`: load `input.bmp` into the active layer
 - `Q / W`: rotate the active layer 90 degrees clockwise / counter-clockwise
 - `G / S`: grayscale / sepia the active layer
-- `Z / N`: posterize / threshold the active layer
+- `Z / N`: posterize / threshold the active layer using the current settings
 - `Ctrl+Z` / `Ctrl+Y`: undo / redo (layer-aware)
 - `Esc`: quit
 
