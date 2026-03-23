@@ -427,6 +427,7 @@ static int handle_layer_navigation_shortcut(
     SDL_Keycode key,
     int ctrl,
     int shift,
+    int alt,
     LayerStack *layers,
     SDL_Window *window,
     Tool tool,
@@ -440,6 +441,8 @@ static int handle_layer_navigation_shortcut(
 
     if (ctrl && shift && key >= SDLK_1 && key <= SDLK_8) {
         changed = layer_stack_select_nth_editable_visible(layers, (int)(key - SDLK_1)) >= 0;
+    } else if (ctrl && alt && key >= SDLK_1 && key <= SDLK_8) {
+        changed = layer_stack_select_nth_visible(layers, (int)(key - SDLK_1)) >= 0;
     } else if (ctrl && key >= SDLK_1 && key <= SDLK_8) {
         int target = (int)(key - SDLK_1);
         if (target < layers->layer_count) {
@@ -1345,6 +1348,7 @@ int app_run(const char *input_path) {
                 const Uint8 *state = SDL_GetKeyboardState(NULL);
                 int ctrl = state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL];
                 int shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
+                int alt = state[SDL_SCANCODE_LALT] || state[SDL_SCANCODE_RALT];
 
                 if (handle_session_shortcut(key, ctrl, &shaping, &preview_active, &running)) {
                     break;
@@ -1395,6 +1399,7 @@ int app_run(const char *input_path) {
                         key,
                         ctrl,
                         shift,
+                        alt,
                         &layers,
                         window,
                         tool,

@@ -282,6 +282,10 @@ int layer_stack_select_edge_editable_visible(LayerStack *stack, int direction) {
     return layer_stack_select_edge_matching(stack, direction, layer_matches_editable_visible);
 }
 
+int layer_stack_select_nth_visible(LayerStack *stack, int ordinal) {
+    return layer_stack_select_nth_matching(stack, ordinal, layer_matches_visible);
+}
+
 int layer_stack_select_nth_editable_visible(LayerStack *stack, int ordinal) {
     return layer_stack_select_nth_matching(stack, ordinal, layer_matches_editable_visible);
 }
