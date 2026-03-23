@@ -88,6 +88,26 @@ static int test_lock_and_stamp_commands(void) {
            expect_int_eq("backspace_key_action", backspace_key.action, APP_LAYER_STACK_DELETE);
 }
 
+static int test_modifier_precedence_variants(void) {
+    AppLayerStackCommand shifted_new = app_layer_stack_command_for_key('n', 1, 1);
+    AppLayerStackCommand plain_new = app_layer_stack_command_for_key('n', 1, 0);
+    AppLayerStackCommand shifted_d = app_layer_stack_command_for_key('d', 1, 1);
+    AppLayerStackCommand plain_d = app_layer_stack_command_for_key('d', 1, 0);
+    AppLayerStackCommand shifted_m = app_layer_stack_command_for_key('m', 1, 1);
+    AppLayerStackCommand plain_m = app_layer_stack_command_for_key('m', 1, 0);
+    AppLayerStackCommand shifted_u = app_layer_stack_command_for_key('u', 1, 1);
+    AppLayerStackCommand plain_u = app_layer_stack_command_for_key('u', 1, 0);
+
+    return expect_int_eq("shifted_new_action", shifted_new.action, APP_LAYER_STACK_ADD_TOP) &&
+           expect_int_eq("plain_new_action", plain_new.action, APP_LAYER_STACK_INSERT_ABOVE) &&
+           expect_int_eq("shifted_d_action", shifted_d.action, APP_LAYER_STACK_DUPLICATE_BELOW) &&
+           expect_int_eq("plain_d_action", plain_d.action, APP_LAYER_STACK_DUPLICATE) &&
+           expect_int_eq("shifted_m_action", shifted_m.action, APP_LAYER_STACK_FLATTEN) &&
+           expect_int_eq("plain_m_action", plain_m.action, APP_LAYER_STACK_MERGE_DOWN) &&
+           expect_int_eq("shifted_u_action", shifted_u.action, APP_LAYER_STACK_UNLOCK_ALL) &&
+           expect_int_eq("plain_u_action", plain_u.action, APP_LAYER_STACK_MERGE_UP);
+}
+
 static int test_unhandled_key(void) {
     AppLayerStackCommand command = app_layer_stack_command_for_key('q', 0, 0);
     return expect_int_eq("handled", command.handled, 0) &&
@@ -106,6 +126,9 @@ int main(void) {
         return 1;
     }
     if (!test_lock_and_stamp_commands()) {
+        return 1;
+    }
+    if (!test_modifier_precedence_variants()) {
         return 1;
     }
     if (!test_unhandled_key()) {
