@@ -263,6 +263,10 @@ struct invalid_argv_case {
     {label, argc_value, 0, usage_text, {arg0, arg1, arg2, arg3, arg4}}
 #define INVALID_NULL_ARGV_CASE(label, argc_value, usage_text, arg0, arg1, arg2, arg3, arg4) \
     {label, argc_value, 1, usage_text, {arg0, arg1, arg2, arg3, arg4}}
+#define INVALID_SIZE_ONLY_ARGV_CASE(label, usage_text, program, width) \
+    INVALID_ARGV_CASE(label, 3, usage_text, program, default_scene_path, width, NULL, NULL)
+#define INVALID_EXTRA_ARGV_CASE(label, usage_text, program) \
+    INVALID_ARGV_CASE(label, 5, usage_text, program, default_scene_path, default_size_only_width, default_size_only_height, extra_arg_token)
 
 struct success_case {
     const char *label_prefix;
@@ -422,12 +426,12 @@ int main(void) {
     }
 
     const struct invalid_argv_case invalid_argv_cases[] = {
-        INVALID_ARGV_CASE("invalid", 3, NULL, default_program_name, default_scene_path, default_size_only_width, NULL, NULL),
-        INVALID_ARGV_CASE("bad_size_only", 3, NULL, default_program_name, default_scene_path, invalid_probe_token, NULL, NULL),
-        INVALID_ARGV_CASE("custom_program_invalid", 3, custom_usage_text, custom_program_name, default_scene_path, invalid_probe_token, NULL, NULL),
-        INVALID_ARGV_CASE("missing_h", 3, NULL, default_program_name, default_scene_path, default_size_only_width, NULL, NULL),
-        INVALID_ARGV_CASE("extra_args", 5, NULL, default_program_name, default_scene_path, default_size_only_width, default_size_only_height, extra_arg_token),
-        INVALID_ARGV_CASE("custom_program_extra_args", 5, custom_usage_text, custom_program_name, default_scene_path, default_size_only_width, default_size_only_height, extra_arg_token),
+        INVALID_SIZE_ONLY_ARGV_CASE("invalid", NULL, default_program_name, default_size_only_width),
+        INVALID_SIZE_ONLY_ARGV_CASE("bad_size_only", NULL, default_program_name, invalid_probe_token),
+        INVALID_SIZE_ONLY_ARGV_CASE("custom_program_invalid", custom_usage_text, custom_program_name, invalid_probe_token),
+        INVALID_SIZE_ONLY_ARGV_CASE("missing_h", NULL, default_program_name, default_size_only_width),
+        INVALID_EXTRA_ARGV_CASE("extra_args", NULL, default_program_name),
+        INVALID_EXTRA_ARGV_CASE("custom_program_extra_args", custom_usage_text, custom_program_name),
         INVALID_ARGV_CASE("custom_program_empty_input", 2, custom_usage_text, custom_program_name, empty_token, NULL, NULL, NULL),
         INVALID_ARGV_CASE("custom_program_null_input", 2, custom_usage_text, custom_program_name, NULL, NULL, NULL, NULL),
         INVALID_NULL_ARGV_CASE("null_argv", 1, NULL, NULL, NULL, NULL, NULL, NULL),
