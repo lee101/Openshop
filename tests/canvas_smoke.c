@@ -748,6 +748,51 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[0].visible = 1;
+    stack.layers[1].visible = 0;
+    stack.layers[2].visible = 1;
+    stack.layers[3].visible = 1;
+    stack.layers[0].locked = 1;
+    stack.layers[1].locked = 0;
+    stack.layers[2].locked = 1;
+    stack.layers[3].locked = 1;
+    stack.layers[1].opacity_percent = 35;
+    strncpy(stack.layers[1].name, "Only Editable Fallback", LAYER_NAME_MAX - 1);
+    stack.layers[1].name[LAYER_NAME_MAX - 1] = '\0';
+    stack.active_layer = 1;
+    stack.solo_index = 2;
+    if (!layer_stack_reveal_editable(&stack, 1) || stack.active_layer != 1 || !stack.layers[1].visible) {
+        fprintf(stderr, "reveal editable should reveal the active layer when it is the only unlocked layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[1].opacity_percent != 35 || strcmp(stack.layers[1].name, "Only Editable Fallback") != 0) {
+        fprintf(stderr, "reveal editable fallback should preserve metadata\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != -1) {
+        fprintf(stderr, "reveal editable fallback should clear solo mode\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[1].visible = 0;
+    stack.solo_index = 3;
+    if (!layer_stack_reveal_editable(&stack, -1) || stack.active_layer != 1 || !stack.layers[1].visible) {
+        fprintf(stderr, "reveal editable backward should reveal the active layer when it is the only unlocked layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != -1) {
+        fprintf(stderr, "reveal editable backward fallback should clear solo mode\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[0].locked = 1;
     stack.layers[1].locked = 1;
     stack.layers[2].locked = 1;
