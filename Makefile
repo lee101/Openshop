@@ -22,7 +22,7 @@ PNG_TEST_SRC = tests/png_selftest.c src/canvas.c src/png_io.c
 PATH_TEST_BIN = path_routing_selftest
 PATH_TEST_SRC = tests/path_routing_selftest.c src/path_routing.c
 SDL_TEST_BIN = image_io_smoke
-SDL_TEST_SRC = tests/image_io_smoke.c src/canvas.c src/image_io.c
+SDL_TEST_SRC = tests/image_io_smoke.c src/canvas.c src/image_io.c src/png_io.c src/path_routing.c
 
 all: $(BIN)
 
