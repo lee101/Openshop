@@ -274,6 +274,19 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.active_layer = 0;
+    if (layer_stack_hide_and_advance(&stack, 0)) {
+        fprintf(stderr, "hide and advance should fail on last visible layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[0].visible || stack.active_layer != 0) {
+        fprintf(stderr, "failed hide and advance should preserve last visible layer state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.active_layer = 1;
 
     if (layer_stack_cycle(&stack, -1) != 0 || layer_stack_cycle(&stack, 1) != 1) {
