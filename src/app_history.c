@@ -3,11 +3,27 @@
 #include <stdlib.h>
 #include <string.h>
 
+static void *app_history_default_malloc(size_t size) {
+    return malloc(size);
+}
+
+static void app_history_default_free(void *ptr) {
+    free(ptr);
+}
+
+static AppHistoryMallocFn app_history_malloc_fn = app_history_default_malloc;
+static AppHistoryFreeFn app_history_free_fn = app_history_default_free;
+
+void app_history_set_allocators(AppHistoryMallocFn malloc_fn, AppHistoryFreeFn free_fn) {
+    app_history_malloc_fn = malloc_fn ? malloc_fn : app_history_default_malloc;
+    app_history_free_fn = free_fn ? free_fn : app_history_default_free;
+}
+
 void snapshot_free(Snapshot *snapshot) {
     if (!snapshot) {
         return;
     }
-    free(snapshot->pixels);
+    app_history_free_fn(snapshot->pixels);
     snapshot->pixels = NULL;
     snapshot->width = 0;
     snapshot->height = 0;
@@ -30,7 +46,7 @@ int snapshot_from_layers(Snapshot *snapshot, const LayerStack *stack) {
     size_t per_layer = (size_t)stack->width * (size_t)stack->height;
     size_t total_pixels = per_layer * (size_t)stack->layer_count;
     if (total_pixels > 0) {
-        snapshot->pixels = (uint32_t *)malloc(total_pixels * sizeof(uint32_t));
+        snapshot->pixels = (uint32_t *)app_history_malloc_fn(total_pixels * sizeof(uint32_t));
         if (!snapshot->pixels) {
             return 0;
         }

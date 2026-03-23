@@ -6,12 +6,39 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct {
+    int fail_after;
+    int calls;
+} AllocatorStubState;
+
+static AllocatorStubState *allocator_stub_state = NULL;
+
 static int expect_int_eq(const char *label, int got, int want) {
     if (got != want) {
         fprintf(stderr, "%s mismatch: got %d want %d\n", label, got, want);
         return 0;
     }
     return 1;
+}
+
+static void *stub_malloc(size_t size) {
+    if (!allocator_stub_state) {
+        return malloc(size);
+    }
+    allocator_stub_state->calls++;
+    if (allocator_stub_state->fail_after >= 0 && allocator_stub_state->calls > allocator_stub_state->fail_after) {
+        return NULL;
+    }
+    return malloc(size);
+}
+
+static void stub_free(void *ptr) {
+    free(ptr);
+}
+
+static void install_allocator_stub(AllocatorStubState *state) {
+    allocator_stub_state = state;
+    app_history_set_allocators(state ? stub_malloc : NULL, state ? stub_free : NULL);
 }
 
 static int expect_pixel_eq(const char *label, uint32_t got, uint32_t want) {
@@ -332,6 +359,115 @@ static int test_snapshot_restore_rejects_invalid_entry_without_mutation(void) {
         !expect_int_eq("restore_fail_top_opacity", stack.layers[1].opacity_percent, 65) ||
         !expect_pixel_eq("restore_fail_base_pixel", canvas_get_pixel(&stack.layers[0].canvas, 2, 4), base_pixel) ||
         !expect_pixel_eq("restore_fail_top_pixel", canvas_get_pixel(&stack.layers[1].canvas, 2, 4), top_pixel)) {
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    layer_stack_free(&stack);
+    return 1;
+}
+
+static int test_snapshot_push_preserves_stacks_on_allocation_failure(void) {
+    LayerStack stack;
+    Snapshot undo_stack[MAX_HISTORY];
+    Snapshot redo_stack[MAX_HISTORY];
+    int undo_count = 0;
+    int redo_count = 0;
+    AllocatorStubState alloc = {.fail_after = 0, .calls = 0};
+
+    memset(undo_stack, 0, sizeof(undo_stack));
+    memset(redo_stack, 0, sizeof(redo_stack));
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "layer_stack_init failed\n");
+        return 0;
+    }
+
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF778899);
+    if (!snapshot_from_layers(&redo_stack[0], &stack)) {
+        fprintf(stderr, "snapshot_from_layers failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    redo_count = 1;
+
+    install_allocator_stub(&alloc);
+    snapshot_push(&stack, undo_stack, &undo_count, redo_stack, &redo_count);
+    install_allocator_stub(NULL);
+
+    if (!expect_int_eq("push_fail_undo_count", undo_count, 0) ||
+        !expect_int_eq("push_fail_redo_count", redo_count, 1) ||
+        !expect_pixel_eq("push_fail_redo_pixel", redo_stack[0].pixels[0], 0xFF778899)) {
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    layer_stack_free(&stack);
+    return 1;
+}
+
+static int test_snapshot_restore_preserves_state_on_allocation_failure(void) {
+    LayerStack stack;
+    Snapshot undo_stack[MAX_HISTORY];
+    Snapshot redo_stack[MAX_HISTORY];
+    int undo_count = 0;
+    int redo_count = 0;
+    AllocatorStubState alloc = {.fail_after = 0, .calls = 0};
+
+    memset(undo_stack, 0, sizeof(undo_stack));
+    memset(redo_stack, 0, sizeof(redo_stack));
+
+    if (!layer_stack_init(&stack, 6, 6, 0xFFFFFFFF) || layer_stack_add(&stack, "Top", 0x00000000) < 0) {
+        fprintf(stderr, "layer stack initialization failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    stack.active_layer = 1;
+    stack.solo_index = 1;
+    stack.layers[0].visible = 0;
+    stack.layers[1].locked = 1;
+    stack.layers[1].opacity_percent = 65;
+    canvas_set_pixel(&stack.layers[0].canvas, 2, 2, 0xFF112244);
+    canvas_set_pixel(&stack.layers[1].canvas, 2, 2, 0x80335577);
+    if (!snapshot_from_layers(&undo_stack[0], &stack)) {
+        fprintf(stderr, "snapshot_from_layers failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    undo_count = 1;
+
+    uint32_t base_pixel = canvas_get_pixel(&stack.layers[0].canvas, 2, 2);
+    uint32_t top_pixel = canvas_get_pixel(&stack.layers[1].canvas, 2, 2);
+
+    install_allocator_stub(&alloc);
+    if (snapshot_restore(&stack, undo_stack, &undo_count, redo_stack, &redo_count)) {
+        fprintf(stderr, "snapshot_restore should fail when current snapshot allocation fails\n");
+        install_allocator_stub(NULL);
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    install_allocator_stub(NULL);
+
+    if (!expect_int_eq("restore_alloc_fail_undo_count", undo_count, 1) ||
+        !expect_int_eq("restore_alloc_fail_redo_count", redo_count, 0) ||
+        !expect_int_eq("restore_alloc_fail_active", stack.active_layer, 1) ||
+        !expect_int_eq("restore_alloc_fail_solo", stack.solo_index, 1) ||
+        !expect_int_eq("restore_alloc_fail_visible", stack.layers[0].visible, 0) ||
+        !expect_int_eq("restore_alloc_fail_locked", stack.layers[1].locked, 1) ||
+        !expect_int_eq("restore_alloc_fail_opacity", stack.layers[1].opacity_percent, 65) ||
+        !expect_pixel_eq("restore_alloc_fail_base_pixel", canvas_get_pixel(&stack.layers[0].canvas, 2, 2), base_pixel) ||
+        !expect_pixel_eq("restore_alloc_fail_top_pixel", canvas_get_pixel(&stack.layers[1].canvas, 2, 2), top_pixel)) {
         snapshot_stack_clear(undo_stack, &undo_count);
         snapshot_stack_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
@@ -680,6 +816,12 @@ int main(void) {
         return 1;
     }
     if (!test_snapshot_restore_rejects_invalid_entry_without_mutation()) {
+        return 1;
+    }
+    if (!test_snapshot_push_preserves_stacks_on_allocation_failure()) {
+        return 1;
+    }
+    if (!test_snapshot_restore_preserves_state_on_allocation_failure()) {
         return 1;
     }
     if (!test_snapshot_restore_round_trips_undo_and_redo_order()) {
