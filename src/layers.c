@@ -161,60 +161,24 @@ static int layer_stack_reveal_target(LayerStack *stack, int target) {
     return 1;
 }
 
-static int layer_stack_matches_editable(const Layer *layer, EditableVisibilityMode visibility_mode) {
-    if (!layer || layer->locked) {
-        return 0;
-    }
-    if (visibility_mode == EDITABLE_VISIBLE_ONLY) {
-        return layer->visible;
-    }
-    if (visibility_mode == EDITABLE_HIDDEN_ONLY) {
-        return !layer->visible;
-    }
-    return 1;
-}
-
 static int layer_stack_cycle_editable_filtered(LayerStack *stack, int direction, EditableVisibilityMode visibility_mode) {
-    if (!stack || stack->layer_count <= 0) {
-        return -1;
+    int required_hidden = -1;
+    if (visibility_mode == EDITABLE_VISIBLE_ONLY) {
+        required_hidden = 0;
+    } else if (visibility_mode == EDITABLE_HIDDEN_ONLY) {
+        required_hidden = 1;
     }
-    for (int offset = 1; offset <= stack->layer_count; offset++) {
-        int idx = stack->active_layer + (direction * offset);
-        while (idx < 0) {
-            idx += stack->layer_count;
-        }
-        idx %= stack->layer_count;
-        if (layer_stack_matches_editable(&stack->layers[idx], visibility_mode)) {
-            stack->active_layer = idx;
-            return idx;
-        }
-    }
-    if (layer_stack_matches_editable(&stack->layers[stack->active_layer], visibility_mode)) {
-        return stack->active_layer;
-    }
-    return -1;
+    return layer_stack_cycle_combined_filter(stack, direction, required_hidden, 0);
 }
 
 static int layer_stack_select_editable_edge(LayerStack *stack, int from_top, EditableVisibilityMode visibility_mode) {
-    if (!stack || stack->layer_count <= 0) {
-        return -1;
+    int required_hidden = -1;
+    if (visibility_mode == EDITABLE_VISIBLE_ONLY) {
+        required_hidden = 0;
+    } else if (visibility_mode == EDITABLE_HIDDEN_ONLY) {
+        required_hidden = 1;
     }
-    if (from_top) {
-        for (int i = stack->layer_count - 1; i >= 0; i--) {
-            if (layer_stack_matches_editable(&stack->layers[i], visibility_mode)) {
-                stack->active_layer = i;
-                return i;
-            }
-        }
-        return -1;
-    }
-    for (int i = 0; i < stack->layer_count; i++) {
-        if (layer_stack_matches_editable(&stack->layers[i], visibility_mode)) {
-            stack->active_layer = i;
-            return i;
-        }
-    }
-    return -1;
+    return layer_stack_select_combined_filter(stack, from_top, required_hidden, 0);
 }
 
 static int layer_stack_hide_and_focus_direction(LayerStack *stack, int index, int direction) {
