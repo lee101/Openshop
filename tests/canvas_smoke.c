@@ -1824,6 +1824,36 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_toggle_solo(&stack, 1) || !layer_stack_toggle_visibility(&stack, 1)) {
+        fprintf(stderr, "prepare hidden solo stamp visible new failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_stamp_visible_new(&stack, "Hidden Solo Stamp", 0xFFFFFFFF) != 2) {
+        fprintf(stderr, "stamp visible new hidden solo layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("stamp_visible_new_hidden_solo_pixel", canvas_get_pixel(&stack.layers[2].canvas, 0, 0), 0xFF0D6740) ||
+        !stack.layers[2].visible || stack.layers[2].locked || stack.layers[2].opacity_percent != 100 || stack.solo_index != 1) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 2) || stack.layer_count != 2) {
+        fprintf(stderr, "cleanup hidden solo stamp visible new layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_solo(&stack, 1) || stack.solo_index != -1 || !layer_stack_show(&stack, 1)) {
+        fprintf(stderr, "restore hidden solo stamp visible new state failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_stamp_visible_new(&stack, "Visible Stamp", 0xFFFFFFFF) != 2) {
         fprintf(stderr, "stamp visible new layer failed\n");
         canvas_free(&composite);
