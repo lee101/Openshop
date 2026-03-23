@@ -668,6 +668,11 @@ static int apply_layer_stack_action(
     return changed;
 }
 
+static int layer_stack_show_all_action(LayerStack *stack, int index) {
+    (void)index;
+    return layer_stack_show_all(stack);
+}
+
 static void erase_stamp(Canvas *c, int cx, int cy, int radius, uint32_t clear_color, BrushShape shape) {
     if (!c || !c->pixels || radius <= 0) {
         return;
@@ -1372,20 +1377,22 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_a) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (layer_stack_show_all(&layers)) {
+                    if (apply_layer_stack_action(
+                            window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            layer_stack_show_all_action, layers.active_layer, NULL,
+                            tool, brush_shape, brush_radius, brush_color, brush_opacity)) {
                         needs_composite = 1;
                     }
-                    refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
                 if (ctrl && shift && key == SDLK_r) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (layer_stack_show(&layers, layers.active_layer)) {
+                    if (apply_layer_stack_action(
+                            window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            layer_stack_show, layers.active_layer, NULL,
+                            tool, brush_shape, brush_radius, brush_color, brush_opacity)) {
                         needs_composite = 1;
                     }
-                    refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
