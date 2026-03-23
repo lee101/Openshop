@@ -413,13 +413,13 @@ static int expect_main_invalid_size_only_case_groups(const struct invalid_size_t
 
     if (!expect_invalid_size_only_height_cases(default_height_cases, default_height_case_count,
                                                default_program_name, default_size_only_width,
-                                               stderr_text, stderr_size, exit_code, NULL)) {
+                                               stderr_text, stderr_size, exit_code, no_usage_text)) {
         return 0;
     }
 
     return expect_invalid_size_only_width_cases(default_width_cases, default_width_case_count,
                                                 default_program_name, default_size_only_height,
-                                                stderr_text, stderr_size, exit_code, NULL);
+                                                stderr_text, stderr_size, exit_code, no_usage_text);
 }
 
 static int expect_invalid_input_size_cases(const struct invalid_input_size_case *cases, size_t case_count,
@@ -456,7 +456,7 @@ static int expect_main_invalid_input_size_case_groups(const struct invalid_input
 
     return expect_invalid_input_size_cases(default_cases, default_case_count,
                                            default_program_name, default_scene_path,
-                                           stderr_text, stderr_size, exit_code, NULL);
+                                           stderr_text, stderr_size, exit_code, no_usage_text);
 }
 
 static int expect_success_cases(const struct success_case *cases, size_t case_count,
