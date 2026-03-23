@@ -55,6 +55,8 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
 #include "../src/main.c"
 #undef main
 
+#define ARRAY_LEN(array) (sizeof(array) / sizeof((array)[0]))
+
 static int expect_int(const char *label, int actual, int expected) {
     if (actual != expected) {
         fprintf(stderr, "%s: expected %d got %d\n", label, expected, actual);
@@ -427,7 +429,7 @@ int main(void) {
         {"custom_program_overflow_size_only_width", (char *)overflow_width_token},
     };
     if (!expect_invalid_size_only_width_cases(custom_invalid_size_only_width_cases,
-                                              sizeof(custom_invalid_size_only_width_cases) / sizeof(custom_invalid_size_only_width_cases[0]),
+                                              ARRAY_LEN(custom_invalid_size_only_width_cases),
                                               (char *)custom_program_name, (char *)default_size_only_height,
                                               stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
@@ -444,7 +446,7 @@ int main(void) {
         {"custom_program_overflow_size_only_height", (char *)overflow_height_token},
     };
     if (!expect_invalid_size_only_height_cases(custom_invalid_size_only_height_cases,
-                                               sizeof(custom_invalid_size_only_height_cases) / sizeof(custom_invalid_size_only_height_cases[0]),
+                                               ARRAY_LEN(custom_invalid_size_only_height_cases),
                                                (char *)custom_program_name, (char *)default_size_only_width,
                                                stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
@@ -467,7 +469,7 @@ int main(void) {
         {"null_input", 2, 0, 0, {"openshop", NULL, NULL, NULL, NULL}},
     };
     if (!expect_invalid_argv_cases(invalid_argv_cases,
-                                   sizeof(invalid_argv_cases) / sizeof(invalid_argv_cases[0]),
+                                   ARRAY_LEN(invalid_argv_cases),
                                    stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
@@ -483,7 +485,7 @@ int main(void) {
         {"leading_tab_size_only_height", (char *)leading_tab_height_token},
     };
     if (!expect_invalid_size_only_height_cases(invalid_size_only_height_cases,
-                                               sizeof(invalid_size_only_height_cases) / sizeof(invalid_size_only_height_cases[0]),
+                                               ARRAY_LEN(invalid_size_only_height_cases),
                                                "openshop", (char *)default_size_only_width,
                                                stderr_text, sizeof(stderr_text), &exit_code, NULL)) {
         return 1;
@@ -500,7 +502,7 @@ int main(void) {
         {"trailing_space_size_only_width", (char *)trailing_space_width_token},
     };
     if (!expect_invalid_size_only_width_cases(invalid_size_only_width_cases,
-                                              sizeof(invalid_size_only_width_cases) / sizeof(invalid_size_only_width_cases[0]),
+                                              ARRAY_LEN(invalid_size_only_width_cases),
                                               "openshop", (char *)default_size_only_height,
                                               stderr_text, sizeof(stderr_text), &exit_code, NULL)) {
         return 1;
@@ -523,7 +525,7 @@ int main(void) {
         {"custom_program_zero_height", (char *)default_size_only_width, (char *)zero_token},
     };
     if (!expect_invalid_input_size_cases(custom_invalid_input_size_cases,
-                                         sizeof(custom_invalid_input_size_cases) / sizeof(custom_invalid_input_size_cases[0]),
+                                         ARRAY_LEN(custom_invalid_input_size_cases),
                                          (char *)custom_program_name, (char *)default_scene_path,
                                          stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
@@ -547,7 +549,7 @@ int main(void) {
         {"trailing_space_width", (char *)trailing_space_width_token, (char *)default_size_only_height},
     };
     if (!expect_invalid_input_size_cases(invalid_input_size_cases,
-                                         sizeof(invalid_input_size_cases) / sizeof(invalid_input_size_cases[0]),
+                                         ARRAY_LEN(invalid_input_size_cases),
                                          "openshop", (char *)default_scene_path,
                                          stderr_text, sizeof(stderr_text), &exit_code, NULL)) {
         return 1;
@@ -571,7 +573,7 @@ int main(void) {
         {"plus_prefixed", 4, "openshop", (char *)default_scene_path, (char *)default_plus_prefixed_input_size_width, (char *)default_size_only_height, 0, 0, default_scene_path, 640, 480, ""},
     };
     if (!expect_success_cases(success_cases,
-                              sizeof(success_cases) / sizeof(success_cases[0]),
+                              ARRAY_LEN(success_cases),
                               stderr_text, sizeof(stderr_text), &exit_code)) {
         return 1;
     }
