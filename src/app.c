@@ -1174,7 +1174,7 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
 
                 if (ctrl && key == SDLK_s) {
                     const Canvas *save_canvas = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
-                    const char *saved_path = shift ? "output.png" : "output.bmp";
+                    const char *saved_path = NULL;
                     int used_alternate = 0;
                     if (!canvas_save_default_output(
                             save_canvas,
@@ -1203,7 +1203,7 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
                     }
                     Snapshot before = {0};
                     int loaded = 0;
-                    const char *loaded_path = shift ? "input.png" : "input.bmp";
+                    const char *loaded_path = NULL;
                     int used_alternate = 0;
                     if (prepare_snapshot(&layers, &before)) {
                         loaded = canvas_load_default_input(
