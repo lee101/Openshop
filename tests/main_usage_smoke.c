@@ -632,6 +632,11 @@ int main(void) {
         return 1;
     }
 
+    char *argv_negative_height_value[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width, (char *)negative_size_only_height};
+    if (!expect_invalid_main_run("negative_height_value", 4, argv_negative_height_value, stderr_text, sizeof(stderr_text), &exit_code)) {
+        return 1;
+    }
+
     char *argv_empty_width[] = {"openshop", (char *)default_scene_path, "", "480"};
     if (!expect_invalid_main_run("empty_width", 4, argv_empty_width, stderr_text, sizeof(stderr_text), &exit_code)) {
         return 1;
