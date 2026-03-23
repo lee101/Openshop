@@ -722,6 +722,73 @@ static int test_snapshot_restore_preserves_full_destination_on_failure(void) {
     return 1;
 }
 
+static int test_snapshot_restore_preserves_full_destination_on_allocation_failure(void) {
+    LayerStack stack;
+    Snapshot undo_stack[MAX_HISTORY];
+    Snapshot redo_stack[MAX_HISTORY];
+    int undo_count = 0;
+    int redo_count = 0;
+    AllocatorStubState alloc = {.fail_after = 0, .calls = 0};
+
+    memset(undo_stack, 0, sizeof(undo_stack));
+    memset(redo_stack, 0, sizeof(redo_stack));
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "layer_stack_init failed\n");
+        return 0;
+    }
+
+    for (int i = 0; i < MAX_HISTORY; i++) {
+        canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF520000u + (uint32_t)i);
+        if (!snapshot_from_layers(&redo_stack[i], &stack)) {
+            fprintf(stderr, "snapshot_from_layers failed\n");
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        redo_count++;
+    }
+    uint32_t redo_oldest_before = redo_stack[0].pixels[0];
+    uint32_t redo_newest_before = redo_stack[MAX_HISTORY - 1].pixels[0];
+
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF530001);
+    if (!snapshot_from_layers(&undo_stack[0], &stack)) {
+        fprintf(stderr, "snapshot_from_layers failed\n");
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    undo_count = 1;
+
+    uint32_t live_pixel = canvas_get_pixel(&stack.layers[0].canvas, 0, 0);
+    install_allocator_stub(&alloc);
+    if (snapshot_restore(&stack, undo_stack, &undo_count, redo_stack, &redo_count)) {
+        fprintf(stderr, "snapshot_restore should fail when allocation fails with full destination\n");
+        install_allocator_stub(NULL);
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    install_allocator_stub(NULL);
+
+    if (!expect_int_eq("restore_full_alloc_fail_undo_count", undo_count, 1) ||
+        !expect_int_eq("restore_full_alloc_fail_redo_count", redo_count, MAX_HISTORY) ||
+        !expect_pixel_eq("restore_full_alloc_fail_live_pixel", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), live_pixel) ||
+        !expect_pixel_eq("restore_full_alloc_fail_redo_oldest", redo_stack[0].pixels[0], redo_oldest_before) ||
+        !expect_pixel_eq("restore_full_alloc_fail_redo_newest", redo_stack[MAX_HISTORY - 1].pixels[0], redo_newest_before)) {
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_snapshot_restore_recovers_layer_count_and_metadata(void) {
     LayerStack stack;
     Snapshot undo_stack[MAX_HISTORY];
@@ -884,6 +951,9 @@ int main(void) {
         return 1;
     }
     if (!test_snapshot_restore_preserves_full_destination_on_failure()) {
+        return 1;
+    }
+    if (!test_snapshot_restore_preserves_full_destination_on_allocation_failure()) {
         return 1;
     }
     if (!test_snapshot_restore_recovers_layer_count_and_metadata()) {
