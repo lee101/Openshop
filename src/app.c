@@ -241,44 +241,13 @@ static BrushShape cycle_brush_shape(BrushShape shape, int direction) {
 }
 
 static void update_window_title(SDL_Window *window, const LayerStack *layers, Tool tool, BrushShape brush_shape, int radius, uint32_t color, int opacity_percent) {
+    char title[384];
+
     if (!window || !layers) {
         return;
     }
-    const Layer *active = layer_stack_get(layers, layers->active_layer);
-    const char *layer_name = active && active->name[0] ? active->name : "Layer";
-    int visible_layers = layer_stack_visible_count(layers);
-    int locked_layers = 0;
-    for (int i = 0; i < layers->layer_count; i++) {
-        if (layers->layers[i].locked) {
-            locked_layers++;
-        }
-    }
-    int hidden_layers = layers->layer_count - visible_layers;
-    char hint[40];
-    char title[384];
-    format_hidden_layer_hint(layers, hint, sizeof(hint));
-    snprintf(
-        title,
-        sizeof(title),
-        "Openshop - %s (%s) | size %d | brush %d%% | layer %d/%d %s [%s%s %d%%]%s | vis %d hid %d lock %d solo %s | #%08X%s",
-        tool_label(tool),
-        brush_shape_label(brush_shape),
-        radius,
-        opacity_percent,
-        layers->active_layer + 1,
-        layers->layer_count,
-        layer_name,
-        active && active->visible ? "visible" : "hidden",
-        active && active->locked ? ", locked" : "",
-        active ? active->opacity_percent : 100,
-        (layers->solo_index == layers->active_layer) ? " [solo]" : "",
-        visible_layers,
-        hidden_layers,
-        locked_layers,
-        layers->solo_index >= 0 ? "on" : "off",
-        color,
-        hint
-    );
+    format_window_title(layers, tool_label(tool), brush_shape_label(brush_shape), radius, color, opacity_percent,
+                        title, sizeof(title));
     SDL_SetWindowTitle(window, title);
 }
 

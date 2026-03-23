@@ -179,6 +179,43 @@ static int test_layers_basic(void) {
             return 0;
         }
     }
+    stack.layers[0].opacity_percent = 60;
+    stack.layers[0].locked = 1;
+    stack.active_layer = 0;
+    stack.solo_index = 0;
+    {
+        char title[384];
+        format_window_title(&stack, "Brush", "Round", 5, 0xFFAABBCC, 75, title, sizeof(title));
+        if (strcmp(title, "Openshop - Brush (Round) | size 5 | brush 75% | layer 1/2 Background [visible, locked 60%] [solo] | vis 2 hid 0 lock 1 solo on | #FFAABBCC") != 0) {
+            fprintf(stderr, "window title formatting failed for visible locked solo layer\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    stack.layers[0].locked = 0;
+    stack.layers[0].opacity_percent = 100;
+    stack.solo_index = -1;
+    stack.layers[1].visible = 0;
+    stack.layers[1].locked = 1;
+    stack.layers[1].opacity_percent = 80;
+    stack.layers[1].name[0] = '\0';
+    stack.active_layer = 1;
+    {
+        char title[384];
+        format_window_title(&stack, "Eraser", "Square", 3, 0xFF010203, 40, title, sizeof(title));
+        if (strcmp(title, "Openshop - Eraser (Square) | size 3 | brush 40% | layer 2/2 Layer [hidden, locked 80%] | vis 1 hid 1 lock 1 solo off | #FF010203 | hint hl C-S-,/.") != 0) {
+            fprintf(stderr, "window title formatting failed for hidden locked fallback name\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    stack.layers[1].visible = 1;
+    stack.layers[1].locked = 0;
+    stack.layers[1].opacity_percent = 100;
+    strncpy(stack.layers[1].name, "Top", LAYER_NAME_MAX - 1);
+    stack.layers[1].name[LAYER_NAME_MAX - 1] = '\0';
     stack.active_layer = 1;
     if (!layer_stack_invert_visibility(&stack, 1)) {
         fprintf(stderr, "invert visibility failed\n");
