@@ -759,6 +759,48 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[0].visible = 0;
+    stack.layers[1].visible = 1;
+    stack.layers[2].visible = 0;
+    stack.layers[3].visible = 0;
+    stack.layers[0].locked = 0;
+    stack.layers[1].locked = 1;
+    stack.layers[2].locked = 0;
+    stack.layers[3].locked = 0;
+    stack.active_layer = 1;
+    stack.solo_index = 1;
+    if (!layer_stack_reveal_hidden_editable(&stack, 0) || stack.active_layer != 0 || !stack.layers[0].visible) {
+        fprintf(stderr, "reveal hidden editable from bottom failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != -1) {
+        fprintf(stderr, "reveal hidden editable should clear solo mode\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[0].visible = 0;
+    if (!layer_stack_reveal_hidden_editable(&stack, 1) || stack.active_layer != 3 || !stack.layers[3].visible) {
+        fprintf(stderr, "reveal hidden editable from top failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[0].locked = 1;
+    stack.layers[2].locked = 1;
+    stack.layers[3].locked = 1;
+    stack.layers[0].visible = 0;
+    stack.layers[2].visible = 0;
+    stack.layers[3].visible = 0;
+    stack.active_layer = 1;
+    if (layer_stack_reveal_hidden_editable(&stack, 0)) {
+        fprintf(stderr, "reveal hidden editable should fail when no hidden unlocked layers exist\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[0].locked = 0;
     stack.layers[1].locked = 0;
     stack.layers[2].locked = 0;

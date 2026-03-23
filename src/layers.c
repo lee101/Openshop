@@ -548,6 +548,32 @@ int layer_stack_reveal_editable(LayerStack *stack, int direction) {
     return 0;
 }
 
+int layer_stack_reveal_hidden_editable(LayerStack *stack, int from_top) {
+    if (!stack || stack->layer_count <= 0) {
+        return 0;
+    }
+    if (from_top) {
+        for (int i = stack->layer_count - 1; i >= 0; i--) {
+            if (!stack->layers[i].visible && !stack->layers[i].locked) {
+                stack->layers[i].visible = 1;
+                stack->active_layer = i;
+                stack->solo_index = -1;
+                return 1;
+            }
+        }
+        return 0;
+    }
+    for (int i = 0; i < stack->layer_count; i++) {
+        if (!stack->layers[i].visible && !stack->layers[i].locked) {
+            stack->layers[i].visible = 1;
+            stack->active_layer = i;
+            stack->solo_index = -1;
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int layer_stack_hide_and_advance(LayerStack *stack, int index) {
     return layer_stack_hide_and_focus_direction(stack, index, 1);
 }
