@@ -64,6 +64,7 @@ make test-sdl
 - `Ctrl+0`: reset active layer opacity to 100%
 - `Ctrl+A`: show all layers and clear solo mode
 - `Ctrl+Shift+I`: invert layer visibility and keep at least the active layer visible
+- `Ctrl+Alt+I`: show only the layers that were hidden
 - `Ctrl+Shift+R`: reveal the active layer without changing other visibility states
 - `Ctrl+Shift+/`: isolate the active layer by hiding all other layers
 - `Ctrl+Shift+H`: hide the active layer and jump to the next visible layer

@@ -770,6 +770,7 @@ int app_run(const char *input_path) {
                 const Uint8 *state = SDL_GetKeyboardState(NULL);
                 int ctrl = state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL];
                 int shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
+                int alt = state[SDL_SCANCODE_LALT] || state[SDL_SCANCODE_RALT];
 
                 if (shaping && should_cancel_shape_on_key(key, ctrl)) {
                     cancel_shape_preview(&shaping, &preview_active);
@@ -1104,6 +1105,15 @@ int app_run(const char *input_path) {
                 if (ctrl && shift && key == SDLK_i) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (layer_stack_invert_visibility(&layers, layers.active_layer)) {
+                        needs_composite = 1;
+                    }
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
+                if (ctrl && alt && key == SDLK_i) {
+                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                    if (layer_stack_show_hidden_only(&layers, layers.active_layer)) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);

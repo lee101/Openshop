@@ -369,6 +369,28 @@ int layer_stack_invert_visibility(LayerStack *stack, int preserve_index) {
     return 1;
 }
 
+int layer_stack_show_hidden_only(LayerStack *stack, int preserve_index) {
+    if (!stack || stack->layer_count <= 0) {
+        return 0;
+    }
+    if (preserve_index < 0 || preserve_index >= stack->layer_count) {
+        preserve_index = stack->active_layer;
+    }
+
+    int hidden_count = 0;
+    for (int i = 0; i < stack->layer_count; i++) {
+        int was_hidden = stack->layers[i].visible ? 0 : 1;
+        stack->layers[i].visible = was_hidden;
+        hidden_count += was_hidden;
+    }
+    if (hidden_count == 0) {
+        return layer_stack_invert_visibility(stack, preserve_index);
+    }
+    stack->active_layer = preserve_index;
+    stack->solo_index = -1;
+    return 1;
+}
+
 int layer_stack_reveal_hidden(LayerStack *stack, int direction) {
     if (!stack || stack->layer_count <= 0) {
         return 0;
