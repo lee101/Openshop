@@ -59,6 +59,7 @@ make test-sdl
 - `Ctrl+Shift+N`: add a new transparent layer
 - `Ctrl+1` ... `Ctrl+8`: select layer 1-8 directly
 - `Ctrl+Alt+1` ... `Ctrl+Alt+8`: select the 1st-8th visible layer
+- `Ctrl+Alt+Shift+1` ... `Ctrl+Alt+Shift+8`: select the 1st-8th unlocked layer
 - `Ctrl+Shift+1` ... `Ctrl+Shift+8`: select the 1st-8th visible unlocked layer
 - `Ctrl+D`: duplicate active layer
 - `Ctrl+Shift+D`: duplicate active layer below

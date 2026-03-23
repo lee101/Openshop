@@ -38,6 +38,7 @@ int layer_stack_select_edge(LayerStack *stack, int direction);
 int layer_stack_select_edge_visible(LayerStack *stack, int direction);
 int layer_stack_select_edge_editable_visible(LayerStack *stack, int direction);
 int layer_stack_select_nth_visible(LayerStack *stack, int ordinal);
+int layer_stack_select_nth_unlocked(LayerStack *stack, int ordinal);
 int layer_stack_select_nth_editable_visible(LayerStack *stack, int ordinal);
 int layer_stack_toggle_visibility(LayerStack *stack, int index);
 int layer_stack_toggle_lock(LayerStack *stack, int index);

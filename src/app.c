@@ -439,7 +439,9 @@ static int handle_layer_navigation_shortcut(
     int handled = 1;
     int changed = 0;
 
-    if (ctrl && shift && key >= SDLK_1 && key <= SDLK_8) {
+    if (ctrl && shift && alt && key >= SDLK_1 && key <= SDLK_8) {
+        changed = layer_stack_select_nth_unlocked(layers, (int)(key - SDLK_1)) >= 0;
+    } else if (ctrl && shift && key >= SDLK_1 && key <= SDLK_8) {
         changed = layer_stack_select_nth_editable_visible(layers, (int)(key - SDLK_1)) >= 0;
     } else if (ctrl && alt && key >= SDLK_1 && key <= SDLK_8) {
         changed = layer_stack_select_nth_visible(layers, (int)(key - SDLK_1)) >= 0;
