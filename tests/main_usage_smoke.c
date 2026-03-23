@@ -334,6 +334,22 @@ static int expect_invalid_size_only_cases(const struct invalid_size_token_case *
     return 1;
 }
 
+static int expect_invalid_size_only_width_cases(const struct invalid_size_token_case *cases, size_t case_count,
+                                                const char *program_name, const char *height_token,
+                                                char *stderr_text, size_t stderr_size, int *exit_code,
+                                                const char *custom_usage_text) {
+    return expect_invalid_size_only_cases(cases, case_count, program_name, height_token, 1,
+                                          stderr_text, stderr_size, exit_code, custom_usage_text);
+}
+
+static int expect_invalid_size_only_height_cases(const struct invalid_size_token_case *cases, size_t case_count,
+                                                 const char *program_name, const char *width_token,
+                                                 char *stderr_text, size_t stderr_size, int *exit_code,
+                                                 const char *custom_usage_text) {
+    return expect_invalid_size_only_cases(cases, case_count, program_name, width_token, 2,
+                                          stderr_text, stderr_size, exit_code, custom_usage_text);
+}
+
 static int expect_invalid_input_size_cases(const struct invalid_input_size_case *cases, size_t case_count,
                                            const char *program_name, const char *scene_token,
                                            char *stderr_text, size_t stderr_size, int *exit_code,
@@ -426,10 +442,10 @@ int main(void) {
         INVALID_SIZE_TOKEN_CASE("custom_program_negative_size_only_width", negative_size_only_width),
         INVALID_SIZE_TOKEN_CASE("custom_program_overflow_size_only_width", overflow_width_token),
     };
-    if (!expect_invalid_size_only_cases(custom_invalid_size_only_width_cases,
-                                        ARRAY_LEN(custom_invalid_size_only_width_cases),
-                                        custom_program_name, default_size_only_height, 1,
-                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_invalid_size_only_width_cases(custom_invalid_size_only_width_cases,
+                                              ARRAY_LEN(custom_invalid_size_only_width_cases),
+                                              custom_program_name, default_size_only_height,
+                                              stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
@@ -443,10 +459,10 @@ int main(void) {
         INVALID_SIZE_TOKEN_CASE("custom_program_empty_size_only_height", empty_token),
         INVALID_SIZE_TOKEN_CASE("custom_program_overflow_size_only_height", overflow_height_token),
     };
-    if (!expect_invalid_size_only_cases(custom_invalid_size_only_height_cases,
-                                        ARRAY_LEN(custom_invalid_size_only_height_cases),
-                                        custom_program_name, default_size_only_width, 2,
-                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_invalid_size_only_height_cases(custom_invalid_size_only_height_cases,
+                                               ARRAY_LEN(custom_invalid_size_only_height_cases),
+                                               custom_program_name, default_size_only_width,
+                                               stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
@@ -482,10 +498,10 @@ int main(void) {
         INVALID_SIZE_TOKEN_CASE("trailing_newline_size_only_height", trailing_newline_height_token),
         INVALID_SIZE_TOKEN_CASE("leading_tab_size_only_height", leading_tab_height_token),
     };
-    if (!expect_invalid_size_only_cases(invalid_size_only_height_cases,
-                                        ARRAY_LEN(invalid_size_only_height_cases),
-                                        default_program_name, default_size_only_width, 2,
-                                        stderr_text, sizeof(stderr_text), &exit_code, NULL)) {
+    if (!expect_invalid_size_only_height_cases(invalid_size_only_height_cases,
+                                               ARRAY_LEN(invalid_size_only_height_cases),
+                                               default_program_name, default_size_only_width,
+                                               stderr_text, sizeof(stderr_text), &exit_code, NULL)) {
         return 1;
     }
 
@@ -499,10 +515,10 @@ int main(void) {
         INVALID_SIZE_TOKEN_CASE("leading_space_size_only_width", leading_space_width_token),
         INVALID_SIZE_TOKEN_CASE("trailing_space_size_only_width", trailing_space_width_token),
     };
-    if (!expect_invalid_size_only_cases(invalid_size_only_width_cases,
-                                        ARRAY_LEN(invalid_size_only_width_cases),
-                                        default_program_name, default_size_only_height, 1,
-                                        stderr_text, sizeof(stderr_text), &exit_code, NULL)) {
+    if (!expect_invalid_size_only_width_cases(invalid_size_only_width_cases,
+                                              ARRAY_LEN(invalid_size_only_width_cases),
+                                              default_program_name, default_size_only_height,
+                                              stderr_text, sizeof(stderr_text), &exit_code, NULL)) {
         return 1;
     }
 
