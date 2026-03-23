@@ -249,6 +249,36 @@ static int test_layers_basic(void) {
     }
     stack.layers[0].locked = 0;
     stack.layers[1].locked = 0;
+    stack.layers[0].locked = 1;
+    stack.layers[1].locked = 0;
+    stack.active_layer = 0;
+    if (!layer_stack_show_locked_only(&stack, 0)) {
+        fprintf(stderr, "show locked only failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != -1 || stack.active_layer != 0 || !stack.layers[0].visible || stack.layers[1].visible) {
+        fprintf(stderr, "show locked only bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[0].locked = 0;
+    if (!layer_stack_show_locked_only(&stack, 0)) {
+        fprintf(stderr, "show locked only fallback failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[0].visible) {
+        fprintf(stderr, "show locked only should keep the active layer visible when nothing is locked\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[0].locked = 0;
+    stack.layers[1].locked = 0;
     stack.layers[0].visible = 1;
     stack.layers[1].visible = 1;
     if (!layer_stack_show(&stack, 1)) {
