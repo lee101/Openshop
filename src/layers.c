@@ -89,35 +89,30 @@ static int layer_stack_matches_combined_filter(const Layer *layer, int required_
            layer_stack_matches_bool_filter(layer->locked ? 1 : 0, required_locked);
 }
 
-static int layer_stack_cycle_combined_filter(LayerStack *stack, int direction, int required_hidden, int required_locked) {
+static int layer_stack_find_combined_filter(LayerStack *stack, int direction, int from_top,
+                                            int required_hidden, int required_locked) {
     if (!stack || stack->layer_count <= 0) {
         return -1;
     }
-    for (int offset = 1; offset <= stack->layer_count; offset++) {
-        int idx = stack->active_layer + (direction * offset);
-        while (idx < 0) {
-            idx += stack->layer_count;
+    if (direction != 0) {
+        for (int offset = 1; offset <= stack->layer_count; offset++) {
+            int idx = stack->active_layer + (direction * offset);
+            while (idx < 0) {
+                idx += stack->layer_count;
+            }
+            idx %= stack->layer_count;
+            if (layer_stack_matches_combined_filter(&stack->layers[idx], required_hidden, required_locked)) {
+                return idx;
+            }
         }
-        idx %= stack->layer_count;
-        if (layer_stack_matches_combined_filter(&stack->layers[idx], required_hidden, required_locked)) {
-            stack->active_layer = idx;
-            return idx;
+        if (layer_stack_matches_combined_filter(&stack->layers[stack->active_layer], required_hidden, required_locked)) {
+            return stack->active_layer;
         }
-    }
-    if (layer_stack_matches_combined_filter(&stack->layers[stack->active_layer], required_hidden, required_locked)) {
-        return stack->active_layer;
-    }
-    return -1;
-}
-
-static int layer_stack_select_combined_filter(LayerStack *stack, int from_top, int required_hidden, int required_locked) {
-    if (!stack || stack->layer_count <= 0) {
         return -1;
     }
     if (from_top) {
         for (int i = stack->layer_count - 1; i >= 0; i--) {
             if (layer_stack_matches_combined_filter(&stack->layers[i], required_hidden, required_locked)) {
-                stack->active_layer = i;
                 return i;
             }
         }
@@ -125,11 +120,26 @@ static int layer_stack_select_combined_filter(LayerStack *stack, int from_top, i
     }
     for (int i = 0; i < stack->layer_count; i++) {
         if (layer_stack_matches_combined_filter(&stack->layers[i], required_hidden, required_locked)) {
-            stack->active_layer = i;
             return i;
         }
     }
     return -1;
+}
+
+static int layer_stack_cycle_combined_filter(LayerStack *stack, int direction, int required_hidden, int required_locked) {
+    int target = layer_stack_find_combined_filter(stack, direction, 0, required_hidden, required_locked);
+    if (target >= 0) {
+        stack->active_layer = target;
+    }
+    return target;
+}
+
+static int layer_stack_select_combined_filter(LayerStack *stack, int from_top, int required_hidden, int required_locked) {
+    int target = layer_stack_find_combined_filter(stack, 0, from_top, required_hidden, required_locked);
+    if (target >= 0) {
+        stack->active_layer = target;
+    }
+    return target;
 }
 
 static int layer_stack_reveal_selected_combined_filter(LayerStack *stack, int from_top, int required_hidden, int required_locked) {
