@@ -321,6 +321,56 @@ static int action_move_layer_up(LayerStack *layers, int index) {
     return layer_stack_move(layers, index, 1);
 }
 
+static void try_save_canvas_to_output(const Canvas *save_canvas) {
+    char status_message[128];
+
+    if (!canvas_save_bmp(save_canvas, "output.bmp")) {
+        format_status_text_file_save("output.bmp", status_message, sizeof(status_message));
+        fprintf(stderr, "%s\n", status_message);
+    }
+}
+
+static int try_load_active_layer_bmp(LayerStack *layers,
+                                     Snapshot *undo_stack, int *undo_count,
+                                     Snapshot *redo_stack, int *redo_count) {
+    Layer *active = layer_stack_active(layers);
+    if (!active || active->locked) {
+        fprintf(stderr, "%s\n", status_text_action_error(STATUS_ACTIVE_LAYER_LOCKED));
+        return 0;
+    }
+
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    if (!canvas_load_bmp(&active->canvas, "input.bmp", active_layer_clear_color(layers))) {
+        fprintf(stderr, "%s\n", status_text_action_error(STATUS_LOAD_INPUT_BMP));
+        return 0;
+    }
+    return 1;
+}
+
+static int try_flood_fill_active_layer(LayerStack *layers,
+                                       Snapshot *undo_stack, int *undo_count,
+                                       Snapshot *redo_stack, int *redo_count,
+                                       int x, int y, uint32_t brush_color) {
+    Layer *active;
+
+    if (x < 0 || y < 0 || x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT) {
+        return 0;
+    }
+
+    active = layer_stack_active(layers);
+    if (!active || active->locked) {
+        fprintf(stderr, "%s\n", status_text_action_error(STATUS_FILL_FAILED));
+        return 0;
+    }
+
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    if (!canvas_flood_fill(&active->canvas, x, y, brush_color)) {
+        fprintf(stderr, "%s\n", status_text_action_error(STATUS_FILL_FAILED));
+        return 0;
+    }
+    return 1;
+}
+
 static void run_indexed_layer_action(SDL_Window *window, LayerStack *layers,
                                      Snapshot *undo_stack, int *undo_count,
                                      Snapshot *redo_stack, int *redo_count,
@@ -1058,25 +1108,13 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_s) {
-                    char status_message[128];
                     const Canvas *save_canvas = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
-                    if (!canvas_save_bmp(save_canvas, "output.bmp")) {
-                        format_status_text_file_save("output.bmp", status_message, sizeof(status_message));
-                        fprintf(stderr, "%s\n", status_message);
-                    }
+                    try_save_canvas_to_output(save_canvas);
                     break;
                 }
 
                 if (ctrl && key == SDLK_o) {
-                    Layer *active = layer_stack_active(&layers);
-                    if (!active || active->locked) {
-                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_ACTIVE_LAYER_LOCKED));
-                        break;
-                    }
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!canvas_load_bmp(&active->canvas, "input.bmp", active_layer_clear_color(&layers))) {
-                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_LOAD_INPUT_BMP));
-                    } else {
+                    if (try_load_active_layer_bmp(&layers, undo_stack, &undo_count, redo_stack, &redo_count)) {
                         needs_composite = 1;
                     }
                     break;
@@ -1619,16 +1657,9 @@ int app_run(const char *input_path) {
                     int mx = 0;
                     int my = 0;
                     SDL_GetMouseState(&mx, &my);
-                    if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
-                        Layer *active = layer_stack_active(&layers);
-                        if (active && !active->locked) {
-                            push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        }
-                        if (!active || active->locked || !canvas_flood_fill(&active->canvas, mx, my, brush_color)) {
-                            fprintf(stderr, "%s\n", status_text_action_error(STATUS_FILL_FAILED));
-                        } else {
-                            needs_composite = 1;
-                        }
+                    if (try_flood_fill_active_layer(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                    mx, my, brush_color)) {
+                        needs_composite = 1;
                     }
                 } else if (key == SDLK_i) {
                     int mx = 0;
