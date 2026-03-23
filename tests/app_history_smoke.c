@@ -443,15 +443,26 @@ static int test_snapshot_push_preserves_full_history_on_allocation_failure(void)
     uint32_t oldest_before = undo_stack[0].pixels[0];
     uint32_t newest_before = undo_stack[MAX_HISTORY - 1].pixels[0];
 
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF880001u);
+    if (!snapshot_from_layers(&redo_stack[0], &stack)) {
+        fprintf(stderr, "snapshot_from_layers failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    redo_count = 1;
+    uint32_t redo_before = redo_stack[0].pixels[0];
+
     canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF770000u);
     install_allocator_stub(&alloc);
     snapshot_push(&stack, undo_stack, &undo_count, redo_stack, &redo_count);
     install_allocator_stub(NULL);
 
     if (!expect_int_eq("push_full_fail_undo_count", undo_count, MAX_HISTORY) ||
-        !expect_int_eq("push_full_fail_redo_count", redo_count, 0) ||
+        !expect_int_eq("push_full_fail_redo_count", redo_count, 1) ||
         !expect_pixel_eq("push_full_fail_oldest", undo_stack[0].pixels[0], oldest_before) ||
-        !expect_pixel_eq("push_full_fail_newest", undo_stack[MAX_HISTORY - 1].pixels[0], newest_before)) {
+        !expect_pixel_eq("push_full_fail_newest", undo_stack[MAX_HISTORY - 1].pixels[0], newest_before) ||
+        !expect_pixel_eq("push_full_fail_redo_pixel", redo_stack[0].pixels[0], redo_before)) {
         snapshot_stack_clear(undo_stack, &undo_count);
         snapshot_stack_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
