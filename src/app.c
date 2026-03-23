@@ -470,6 +470,16 @@ static int key_translation_delta(SDL_Keycode key, int step, int *dx, int *dy) {
     return 1;
 }
 
+static int refresh_title_on_change(SDL_Window *window, const LayerStack *layers,
+                                   Tool tool, BrushShape brush_shape,
+                                   int brush_radius, uint32_t brush_color, int brush_opacity,
+                                   int changed) {
+    if (changed) {
+        update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+    }
+    return changed;
+}
+
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
     switch (shape) {
     case BRUSH_SHAPE_ROUND:
@@ -1321,198 +1331,170 @@ int app_run(const char *input_path) {
                 }
 
                 if (shift && key == SDLK_PAGEUP) {
-                    if (layer_stack_cycle_visible(&layers, 1) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_cycle_visible(&layers, 1) >= 0);
                     break;
                 }
 
                 if (shift && key == SDLK_PAGEDOWN) {
-                    if (layer_stack_cycle_visible(&layers, -1) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_cycle_visible(&layers, -1) >= 0);
                     break;
                 }
 
                 if (ctrl && key == SDLK_PAGEUP) {
-                    if (layer_stack_cycle_hidden(&layers, 1) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_cycle_hidden(&layers, 1) >= 0);
                     break;
                 }
 
                 if (ctrl && key == SDLK_PAGEDOWN) {
-                    if (layer_stack_cycle_hidden(&layers, -1) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_cycle_hidden(&layers, -1) >= 0);
                     break;
                 }
 
                 if (ctrl && key == SDLK_HOME) {
-                    if (layer_stack_select_bottom_visible(&layers) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_select_bottom_visible(&layers) >= 0);
                     break;
                 }
 
                 if (ctrl && key == SDLK_END) {
-                    if (layer_stack_select_top_visible(&layers) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_select_top_visible(&layers) >= 0);
                     break;
                 }
 
                 if (ctrl && shift && key == SDLK_HOME) {
-                    if (layer_stack_select_bottom_hidden(&layers) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_select_bottom_hidden(&layers) >= 0);
                     break;
                 }
 
                 if (ctrl && shift && key == SDLK_END) {
-                    if (layer_stack_select_top_hidden(&layers) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_select_top_hidden(&layers) >= 0);
                     break;
                 }
 
                 if (alt && key == SDLK_PAGEUP) {
-                    if (layer_stack_cycle_locked(&layers, 1) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_cycle_locked(&layers, 1) >= 0);
                     break;
                 }
 
                 if (alt && key == SDLK_PAGEDOWN) {
-                    if (layer_stack_cycle_locked(&layers, -1) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_cycle_locked(&layers, -1) >= 0);
                     break;
                 }
 
                 if (alt && key == SDLK_HOME) {
-                    if (layer_stack_select_bottom_locked(&layers) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_select_bottom_locked(&layers) >= 0);
                     break;
                 }
 
                 if (alt && key == SDLK_END) {
-                    if (layer_stack_select_top_locked(&layers) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_select_top_locked(&layers) >= 0);
                     break;
                 }
 
                 if (ctrl && alt && key == SDLK_PAGEUP) {
-                    if (layer_stack_cycle_unlocked(&layers, 1) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_cycle_unlocked(&layers, 1) >= 0);
                     break;
                 }
 
                 if (ctrl && alt && key == SDLK_PAGEDOWN) {
-                    if (layer_stack_cycle_unlocked(&layers, -1) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_cycle_unlocked(&layers, -1) >= 0);
                     break;
                 }
 
                 if (ctrl && alt && key == SDLK_HOME) {
-                    if (layer_stack_select_bottom_unlocked(&layers) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_select_bottom_unlocked(&layers) >= 0);
                     break;
                 }
 
                 if (ctrl && alt && key == SDLK_END) {
-                    if (layer_stack_select_top_unlocked(&layers) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_select_top_unlocked(&layers) >= 0);
                     break;
                 }
 
                 if (ctrl && alt && key == SDLK_RIGHTBRACKET) {
-                    if (layer_stack_cycle_hidden_unlocked(&layers, 1) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_cycle_hidden_unlocked(&layers, 1) >= 0);
                     break;
                 }
 
                 if (ctrl && alt && key == SDLK_LEFTBRACKET) {
-                    if (layer_stack_cycle_hidden_unlocked(&layers, -1) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_cycle_hidden_unlocked(&layers, -1) >= 0);
                     break;
                 }
 
                 if (ctrl && alt && key == SDLK_COMMA) {
-                    if (layer_stack_select_bottom_hidden_unlocked(&layers) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_select_bottom_hidden_unlocked(&layers) >= 0);
                     break;
                 }
 
                 if (ctrl && alt && key == SDLK_PERIOD) {
-                    if (layer_stack_select_top_hidden_unlocked(&layers) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_select_top_hidden_unlocked(&layers) >= 0);
                     break;
                 }
 
                 if (ctrl && alt && shift && key == SDLK_RIGHTBRACKET) {
-                    if (layer_stack_cycle_hidden_locked(&layers, 1) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_cycle_hidden_locked(&layers, 1) >= 0);
                     break;
                 }
 
                 if (ctrl && alt && shift && key == SDLK_LEFTBRACKET) {
-                    if (layer_stack_cycle_hidden_locked(&layers, -1) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_cycle_hidden_locked(&layers, -1) >= 0);
                     break;
                 }
 
                 if (ctrl && alt && shift && key == SDLK_COMMA) {
-                    if (layer_stack_select_bottom_hidden_locked(&layers) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_select_bottom_hidden_locked(&layers) >= 0);
                     break;
                 }
 
                 if (ctrl && alt && shift && key == SDLK_PERIOD) {
-                    if (layer_stack_select_top_hidden_locked(&layers) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_select_top_hidden_locked(&layers) >= 0);
                     break;
                 }
 
                 if (alt && shift && key == SDLK_PAGEUP) {
-                    if (layer_stack_cycle_editable(&layers, 1) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_cycle_editable(&layers, 1) >= 0);
                     break;
                 }
 
                 if (alt && shift && key == SDLK_PAGEDOWN) {
-                    if (layer_stack_cycle_editable(&layers, -1) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_cycle_editable(&layers, -1) >= 0);
                     break;
                 }
 
                 if (alt && shift && key == SDLK_HOME) {
-                    if (layer_stack_select_bottom_editable(&layers) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_select_bottom_editable(&layers) >= 0);
                     break;
                 }
 
                 if (alt && shift && key == SDLK_END) {
-                    if (layer_stack_select_top_editable(&layers) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, layer_stack_select_top_editable(&layers) >= 0);
                     break;
                 }
 
