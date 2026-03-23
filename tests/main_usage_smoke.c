@@ -28,7 +28,10 @@ static const int input_only_argc = 2;
 static const int size_only_argc = 3;
 static const int input_size_argc = 4;
 static const int extra_argv_argc = 5;
+static const int invalid_exit_code = 1;
 static const int success_exit_code = 0;
+static const int app_run_not_called = 0;
+static const int app_run_called_once = 1;
 static const int app_exit_code_7 = 7;
 static const int app_exit_code_5 = 5;
 static const char *empty_token = "";
@@ -168,7 +171,7 @@ static int expect_successful_run(const char *label_prefix, int exit_code, int ex
         return 0;
     }
     snprintf(label, sizeof(label), "%s_app_run_called", label_prefix);
-    if (!expect_int(label, app_run_called, 1)) {
+    if (!expect_int(label, app_run_called, app_run_called_once)) {
         return 0;
     }
     snprintf(label, sizeof(label), "%s_input_path", label_prefix);
@@ -195,11 +198,11 @@ static int expect_invalid_run(const char *label_prefix, int exit_code, const cha
     char expected_usage_text[CLI_USAGE_BUFFER_SIZE] = {0};
 
     snprintf(label, sizeof(label), "%s_exit", label_prefix);
-    if (!expect_int(label, exit_code, 1)) {
+    if (!expect_int(label, exit_code, invalid_exit_code)) {
         return 0;
     }
     snprintf(label, sizeof(label), "%s_app_run_called", label_prefix);
-    if (!expect_int(label, app_run_called, 0)) {
+    if (!expect_int(label, app_run_called, app_run_not_called)) {
         return 0;
     }
     if (!format_cli_usage(expected_usage_text, sizeof(expected_usage_text), NULL)) {
@@ -218,11 +221,11 @@ static int expect_invalid_run_with_usage(const char *label_prefix, int exit_code
     char label[64] = {0};
 
     snprintf(label, sizeof(label), "%s_exit", label_prefix);
-    if (!expect_int(label, exit_code, 1)) {
+    if (!expect_int(label, exit_code, invalid_exit_code)) {
         return 0;
     }
     snprintf(label, sizeof(label), "%s_app_run_called", label_prefix);
-    if (!expect_int(label, app_run_called, 0)) {
+    if (!expect_int(label, app_run_called, app_run_not_called)) {
         return 0;
     }
     snprintf(label, sizeof(label), "%s_usage_text", label_prefix);
