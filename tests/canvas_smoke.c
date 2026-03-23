@@ -1189,6 +1189,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (stack.active_layer != 0 || !stack.layers[0].locked || stack.layers[0].visible || stack.layers[0].opacity_percent != 35) {
+        fprintf(stderr, "delete after move should preserve shifted layer state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     canvas_set_pixel(&stack.layers[1].canvas, 0, 0, 0xFFFF00FF);
     if (!expect_pixel_eq("duplicate_independent", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF0040BF)) {
         canvas_free(&composite);
