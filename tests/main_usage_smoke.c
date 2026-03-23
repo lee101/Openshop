@@ -282,6 +282,20 @@ struct size_only_success_case {
     const char *expected_stderr;
 };
 
+struct input_size_success_case {
+    const char *label_prefix;
+    char *program_name;
+    char *input_token;
+    char *width_token;
+    char *height_token;
+    int result;
+    int expected_exit_code;
+    const char *expected_input_path;
+    int expected_canvas_w;
+    int expected_canvas_h;
+    const char *expected_stderr;
+};
+
 struct invalid_edge_case {
     const char *label_prefix;
     int argc;
@@ -425,6 +439,23 @@ static int expect_size_only_success_cases(const struct size_only_success_case *c
                                         stderr_size, exit_code, cases[i].expected_exit_code, NULL,
                                         cases[i].expected_canvas_w, cases[i].expected_canvas_h,
                                         cases[i].expected_stderr)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int expect_input_size_success_cases(const struct input_size_success_case *cases, size_t case_count,
+                                           char *stderr_text, size_t stderr_size, int *exit_code) {
+    size_t i = 0;
+
+    for (i = 0; i < case_count; i += 1) {
+        char *argv[] = {cases[i].program_name, cases[i].input_token, cases[i].width_token, cases[i].height_token};
+
+        if (!expect_successful_main_run(cases[i].label_prefix, 4, argv, cases[i].result, stderr_text,
+                                        stderr_size, exit_code, cases[i].expected_exit_code,
+                                        cases[i].expected_input_path, cases[i].expected_canvas_w,
+                                        cases[i].expected_canvas_h, cases[i].expected_stderr)) {
             return 0;
         }
     }
@@ -645,31 +676,15 @@ int main(void) {
         return 1;
     }
 
-    char *argv_custom_program_input_size[] = {
-        (char *)custom_program_name, (char *)custom_input_path,
-        (char *)custom_input_size_width, (char *)custom_input_size_height};
-    if (!expect_successful_main_run("custom_program_input_size", 4, argv_custom_program_input_size, 0, stderr_text, sizeof(stderr_text),
-                                    &exit_code, 0, custom_input_path, 320, 240, "")) {
-        return 1;
-    }
-
-    char *argv_custom_program_plus_prefixed[] = {
-        (char *)custom_program_name, (char *)custom_input_path,
-        (char *)custom_plus_prefixed_input_size_width, (char *)custom_input_size_height};
-    if (!expect_successful_main_run("custom_program_plus_prefixed", 4, argv_custom_program_plus_prefixed, 0, stderr_text,
-                                    sizeof(stderr_text), &exit_code, 0, custom_input_path, 320, 240, "")) {
-        return 1;
-    }
-
-    char *argv_input_size[] = {"openshop", (char *)default_scene_path, (char *)default_input_size_width, (char *)default_input_size_height};
-    if (!expect_successful_main_run("input_size", 4, argv_input_size, 0, stderr_text, sizeof(stderr_text), &exit_code,
-                                    0, default_scene_path, 320, 240, "")) {
-        return 1;
-    }
-
-    char *argv_plus_prefixed[] = {"openshop", (char *)default_scene_path, (char *)default_plus_prefixed_input_size_width, (char *)default_size_only_height};
-    if (!expect_successful_main_run("plus_prefixed", 4, argv_plus_prefixed, 0, stderr_text, sizeof(stderr_text), &exit_code,
-                                    0, default_scene_path, 640, 480, "")) {
+    struct input_size_success_case input_size_success_cases[] = {
+        {"custom_program_input_size", (char *)custom_program_name, (char *)custom_input_path, (char *)custom_input_size_width, (char *)custom_input_size_height, 0, 0, custom_input_path, 320, 240, ""},
+        {"custom_program_plus_prefixed", (char *)custom_program_name, (char *)custom_input_path, (char *)custom_plus_prefixed_input_size_width, (char *)custom_input_size_height, 0, 0, custom_input_path, 320, 240, ""},
+        {"input_size", "openshop", (char *)default_scene_path, (char *)default_input_size_width, (char *)default_input_size_height, 0, 0, default_scene_path, 320, 240, ""},
+        {"plus_prefixed", "openshop", (char *)default_scene_path, (char *)default_plus_prefixed_input_size_width, (char *)default_size_only_height, 0, 0, default_scene_path, 640, 480, ""},
+    };
+    if (!expect_input_size_success_cases(input_size_success_cases,
+                                         sizeof(input_size_success_cases) / sizeof(input_size_success_cases[0]),
+                                         stderr_text, sizeof(stderr_text), &exit_code)) {
         return 1;
     }
 
