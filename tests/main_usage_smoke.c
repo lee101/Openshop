@@ -163,6 +163,30 @@ int main(void) {
         return 1;
     }
 
+    app_run_called = 0;
+    stderr_text[0] = '\0';
+    char *argv_empty_input[] = {"openshop", ""};
+    if (!capture_main_stderr(2, argv_empty_input, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_int("empty_input_exit", exit_code, 1) ||
+        !expect_int("empty_input_app_run_called", app_run_called, 0) ||
+        !expect_str("empty_input_usage_text", stderr_text,
+                    "Usage: openshop [input_path] [width height]\n"
+                    "       or: WIDTH HEIGHT\n")) {
+        return 1;
+    }
+
+    app_run_called = 0;
+    stderr_text[0] = '\0';
+    char *argv_bad_width_token[] = {"openshop", "art/scene.png", "12x", "480"};
+    if (!capture_main_stderr(4, argv_bad_width_token, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_int("bad_width_token_exit", exit_code, 1) ||
+        !expect_int("bad_width_token_app_run_called", app_run_called, 0) ||
+        !expect_str("bad_width_token_usage_text", stderr_text,
+                    "Usage: openshop [input_path] [width height]\n"
+                    "       or: WIDTH HEIGHT\n")) {
+        return 1;
+    }
+
     app_run_result = 0;
     app_run_called = 0;
     last_input_path = NULL;
