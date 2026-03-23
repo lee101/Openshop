@@ -67,6 +67,7 @@ make test-sdl
 - `Alt+, / Alt+.`: threshold down/up
 - `Alt+V / Alt+B`: blur radius down/up
 - `Alt+Down / Alt+Up`: brightness/contrast adjustment size down/up
+- `Alt+0`: reset all filter settings to defaults
 - `Ctrl+A`: show all layers and clear solo mode
 - `Ctrl+Shift+R`: reveal the active layer without changing other visibility states
 - `Ctrl+Shift+H`: hide the active layer and jump to the next visible layer

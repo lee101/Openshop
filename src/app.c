@@ -85,14 +85,19 @@ typedef struct {
     int filter_adjust_step;
 } FilterSettings;
 
-static FilterSettings g_filter_settings = {
-    FILL_TOLERANCE_DEFAULT,
-    PIXELATE_BLOCK_DEFAULT,
-    POSTERIZE_LEVELS_DEFAULT,
-    THRESHOLD_DEFAULT,
-    BLUR_RADIUS_DEFAULT,
-    FILTER_ADJUST_DEFAULT,
-};
+static FilterSettings default_filter_settings(void) {
+    FilterSettings settings = {
+        FILL_TOLERANCE_DEFAULT,
+        PIXELATE_BLOCK_DEFAULT,
+        POSTERIZE_LEVELS_DEFAULT,
+        THRESHOLD_DEFAULT,
+        BLUR_RADIUS_DEFAULT,
+        FILTER_ADJUST_DEFAULT,
+    };
+    return settings;
+}
+
+static FilterSettings g_filter_settings = {0};
 
 static void snapshot_free(Snapshot *s) {
     if (!s) {
@@ -781,7 +786,7 @@ int app_run(const char *input_path) {
     int last_y = 0;
     int brush_radius = 6;
     int brush_opacity = 100;
-    FilterSettings settings = g_filter_settings;
+    FilterSettings settings = default_filter_settings();
     uint32_t brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
     uint32_t brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
     BrushShape brush_shape = BRUSH_SHAPE_ROUND;
@@ -800,6 +805,7 @@ int app_run(const char *input_path) {
     Canvas preview_canvas = {CANVAS_WIDTH, CANVAS_HEIGHT, preview_pixels};
     memset(undo_stack, 0, sizeof(undo_stack));
     memset(redo_stack, 0, sizeof(redo_stack));
+    g_filter_settings = settings;
     apply_filter_settings_and_refresh_title(
         window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
 
@@ -936,6 +942,13 @@ int app_run(const char *input_path) {
                         break;
                     }
                     running = 0;
+                    break;
+                }
+
+                if (alt && key == SDLK_0) {
+                    settings = default_filter_settings();
+                    apply_filter_settings_and_refresh_title(
+                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
