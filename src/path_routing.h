@@ -35,6 +35,12 @@ const char *default_routed_path(
     int png_exists
 );
 RoutedPath resolve_routed_choice(const char *bmp_path, const char *png_path, int prefer_png);
+RoutedPath resolve_routed_pair_choice(
+    const RoutedPathPair *paths,
+    const char *fallback_bmp_path,
+    const char *fallback_png_path,
+    int prefer_png
+);
 const char *default_input_path(int prefer_png, int bmp_exists, int png_exists);
 const char *default_output_path(int prefer_png, int bmp_exists, int png_exists);
 RoutedPath resolve_default_input_choice(int prefer_png);

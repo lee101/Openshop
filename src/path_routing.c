@@ -134,6 +134,17 @@ RoutedPath resolve_routed_choice(const char *bmp_path, const char *png_path, int
     return choice;
 }
 
+RoutedPath resolve_routed_pair_choice(
+    const RoutedPathPair *paths,
+    const char *fallback_bmp_path,
+    const char *fallback_png_path,
+    int prefer_png
+) {
+    const char *bmp_path = (paths && paths->bmp[0]) ? paths->bmp : fallback_bmp_path;
+    const char *png_path = (paths && paths->png[0]) ? paths->png : fallback_png_path;
+    return resolve_routed_choice(bmp_path, png_path, prefer_png);
+}
+
 RoutedPath resolve_default_input_choice(int prefer_png) {
     return resolve_routed_choice("input.bmp", "input.png", prefer_png);
 }

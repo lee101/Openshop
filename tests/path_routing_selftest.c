@@ -256,6 +256,20 @@ int main(void) {
         return 1;
     }
 
+    remove_if_exists("draft.bmp");
+    init_routed_path_pair(&pair, "draft.png", "input");
+    choice = resolve_routed_pair_choice(&pair, "input.bmp", "input.png", 0);
+    if (!expect_str("resolve_pair_fallback_png", choice.path, "draft.png") ||
+        !expect_int("resolve_pair_fallback_png_alternate", choice.used_alternate, 1)) {
+        return 1;
+    }
+
+    choice = resolve_routed_pair_choice(NULL, "input.bmp", "input.png", 1);
+    if (!expect_str("resolve_pair_null_prefer_png", choice.path, "input.png") ||
+        !expect_int("resolve_pair_null_prefer_png_alternate", choice.used_alternate, 0)) {
+        return 1;
+    }
+
     cleanup_artifacts();
     printf("path routing selftest ok\n");
     return 0;
