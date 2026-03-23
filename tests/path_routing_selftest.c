@@ -57,6 +57,7 @@ int main(void) {
     RoutedPath choice = {0};
     char bmp_path[ROUTED_PATH_MAX] = {0};
     char png_path[ROUTED_PATH_MAX] = {0};
+    RoutedPathPair pair = {{0}, {0}};
 
     if (!expect_int("ext_png_upper", path_has_extension_ci("art/IMAGE.PNG", ".png"), 1) ||
         !expect_int("ext_bmp_mixed", path_has_extension_ci("scene.BmP", ".bmp"), 1) ||
@@ -118,6 +119,32 @@ int main(void) {
     if (!build_routed_paths(".hiddenfile", bmp_path, sizeof(bmp_path), png_path, sizeof(png_path)) ||
         !expect_str("build_hidden_bmp", bmp_path, ".hiddenfile.bmp") ||
         !expect_str("build_hidden_png", png_path, ".hiddenfile.png")) {
+        return 1;
+    }
+
+    init_routed_path_pair(&pair, "shots/scene.png", "input");
+    if (!expect_str("pair_seed_bmp", pair.bmp, "shots/scene.bmp") ||
+        !expect_str("pair_seed_png", pair.png, "shots/scene.png")) {
+        return 1;
+    }
+
+    init_routed_path_pair(&pair, NULL, "input");
+    if (!expect_str("pair_fallback_bmp", pair.bmp, "input.bmp") ||
+        !expect_str("pair_fallback_png", pair.png, "input.png")) {
+        return 1;
+    }
+
+    init_routed_path_pair(&pair, "", "output");
+    if (!expect_str("pair_empty_seed_bmp", pair.bmp, "output.bmp") ||
+        !expect_str("pair_empty_seed_png", pair.png, "output.png")) {
+        return 1;
+    }
+
+    strcpy(pair.bmp, "keep.bmp");
+    strcpy(pair.png, "keep.png");
+    init_routed_path_pair(NULL, "shots/scene.png", "input");
+    if (!expect_str("pair_unchanged_bmp", pair.bmp, "keep.bmp") ||
+        !expect_str("pair_unchanged_png", pair.png, "keep.png")) {
         return 1;
     }
 

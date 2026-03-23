@@ -38,11 +38,6 @@ typedef enum {
     TOOL_FILLED_ELLIPSE
 } Tool;
 
-typedef struct DefaultPathPair {
-    char bmp[ROUTED_PATH_MAX];
-    char png[ROUTED_PATH_MAX];
-} DefaultPathPair;
-
 typedef enum {
     BRUSH_SHAPE_ROUND = 0,
     BRUSH_SHAPE_SQUARE,
@@ -480,21 +475,9 @@ static int active_layer_editable(const LayerStack *layers) {
     return active && !active->locked && active->canvas.pixels;
 }
 
-static void init_default_path_pair(DefaultPathPair *paths, const char *seed_path, const char *fallback_stem) {
-    if (!paths) {
-        return;
-    }
-    if (seed_path && seed_path[0] &&
-        build_routed_paths(seed_path, paths->bmp, sizeof(paths->bmp), paths->png, sizeof(paths->png))) {
-        return;
-    }
-    snprintf(paths->bmp, sizeof(paths->bmp), "%s.bmp", fallback_stem);
-    snprintf(paths->png, sizeof(paths->png), "%s.png", fallback_stem);
-}
-
 static int canvas_load_default_input(
     Canvas *c,
-    const DefaultPathPair *paths,
+    const RoutedPathPair *paths,
     int prefer_png,
     uint32_t background_color,
     const char **loaded_path,
@@ -521,7 +504,7 @@ static int canvas_load_default_input(
 
 static int canvas_save_default_output(
     const Canvas *c,
-    const DefaultPathPair *paths,
+    const RoutedPathPair *paths,
     int prefer_png,
     const char **saved_path,
     int *used_alternate
@@ -736,10 +719,10 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
         return 1;
     }
 
-    DefaultPathPair default_input_paths = {{0}};
-    DefaultPathPair default_output_paths = {{0}};
-    init_default_path_pair(&default_input_paths, input_path, "input");
-    init_default_path_pair(&default_output_paths, NULL, "output");
+    RoutedPathPair default_input_paths = {{0}};
+    RoutedPathPair default_output_paths = {{0}};
+    init_routed_path_pair(&default_input_paths, input_path, "input");
+    init_routed_path_pair(&default_output_paths, NULL, "output");
 
     if (input_path && input_path[0]) {
         Layer *active = layer_stack_active(&layers);
@@ -747,7 +730,7 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
             fprintf(stderr, "Failed to load %s\n", input_path);
         } else if (active) {
             fprintf(stderr, "Loaded %s\n", input_path);
-            init_default_path_pair(&default_output_paths, input_path, "output");
+            init_routed_path_pair(&default_output_paths, input_path, "output");
         }
     }
     layer_stack_composite(&layers, &composite, COLOR_BG);
@@ -1249,7 +1232,7 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
                         } else {
                             fprintf(stderr, "Loaded %s\n", loaded_path);
                         }
-                        init_default_path_pair(&default_output_paths, loaded_path, "output");
+                        init_routed_path_pair(&default_output_paths, loaded_path, "output");
                         push_snapshot_entry(before, undo_stack, &undo_count, redo_stack, &redo_count);
                         needs_composite = 1;
                     }

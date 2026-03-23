@@ -79,6 +79,23 @@ int build_routed_paths(
     return 1;
 }
 
+void init_routed_path_pair(RoutedPathPair *paths, const char *seed_path, const char *fallback_stem) {
+    if (!paths) {
+        return;
+    }
+    if (seed_path && seed_path[0] &&
+        build_routed_paths(seed_path, paths->bmp, sizeof(paths->bmp), paths->png, sizeof(paths->png))) {
+        return;
+    }
+    if (!fallback_stem) {
+        paths->bmp[0] = '\0';
+        paths->png[0] = '\0';
+        return;
+    }
+    snprintf(paths->bmp, sizeof(paths->bmp), "%s.bmp", fallback_stem);
+    snprintf(paths->png, sizeof(paths->png), "%s.png", fallback_stem);
+}
+
 const char *default_routed_path(
     const char *bmp_path,
     const char *png_path,
