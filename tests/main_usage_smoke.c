@@ -278,8 +278,10 @@ struct success_case {
     const char *expected_stderr;
 };
 
+#define SUCCESS_CASE(label, argc, program, input, width, height, result, expected_exit, expected_path, canvas_w, canvas_h, expected_stderr) \
+    {label, argc, program, input, width, height, result, expected_exit, expected_path, canvas_w, canvas_h, expected_stderr}
 #define SUCCESS_CASE_EMPTY_STDERR(label, argc, program, input, width, height, result, expected_exit, expected_path, canvas_w, canvas_h) \
-    {label, argc, program, input, width, height, result, expected_exit, expected_path, canvas_w, canvas_h, empty_stderr}
+    SUCCESS_CASE(label, argc, program, input, width, height, result, expected_exit, expected_path, canvas_w, canvas_h, empty_stderr)
 
 static int expect_invalid_size_only_cases(const struct invalid_size_token_case *cases, size_t case_count,
                                           const char *program_name, const char *fixed_token,
@@ -514,10 +516,10 @@ int main(void) {
         SUCCESS_CASE_EMPTY_STDERR("custom_program_input", 2, custom_program_name, custom_input_path, NULL, NULL, 0, 0, custom_input_path, 0, 0),
         SUCCESS_CASE_EMPTY_STDERR("custom_program_default", 1, custom_program_name, NULL, NULL, NULL, 0, 0, NULL, 0, 0),
         SUCCESS_CASE_EMPTY_STDERR("custom_program_numeric_input", 2, custom_program_name, numeric_input_token, NULL, NULL, 0, 0, numeric_input_token, 0, 0),
-        {"custom_program_nonzero", 2, custom_program_name, custom_input_path, NULL, NULL, app_exit_code_5, app_exit_code_5, custom_input_path, 0, 0, app_exit_code_5_stderr},
+        SUCCESS_CASE("custom_program_nonzero", 2, custom_program_name, custom_input_path, NULL, NULL, app_exit_code_5, app_exit_code_5, custom_input_path, 0, 0, app_exit_code_5_stderr),
         SUCCESS_CASE_EMPTY_STDERR("input_only", 2, default_program_name, default_input_path, NULL, NULL, 0, 0, default_input_path, 0, 0),
         SUCCESS_CASE_EMPTY_STDERR("numeric_input", 2, default_program_name, numeric_input_token, NULL, NULL, 0, 0, numeric_input_token, 0, 0),
-        {"size_only", 3, default_program_name, default_size_only_width, default_size_only_height, NULL, app_exit_code_7, app_exit_code_7, NULL, default_size_only_canvas_w, default_size_only_canvas_h, app_exit_code_7_stderr},
+        SUCCESS_CASE("size_only", 3, default_program_name, default_size_only_width, default_size_only_height, NULL, app_exit_code_7, app_exit_code_7, NULL, default_size_only_canvas_w, default_size_only_canvas_h, app_exit_code_7_stderr),
         SUCCESS_CASE_EMPTY_STDERR("plus_prefixed_size_only", 3, default_program_name, default_plus_prefixed_width_token, default_size_only_height, NULL, 0, 0, NULL, default_size_only_canvas_w, default_size_only_canvas_h),
         SUCCESS_CASE_EMPTY_STDERR("custom_program_size_only", 3, custom_program_name, custom_size_only_width, custom_size_only_height, NULL, 0, 0, NULL, custom_size_only_canvas_w, custom_size_only_canvas_h),
         SUCCESS_CASE_EMPTY_STDERR("custom_program_plus_prefixed_size_only", 3, custom_program_name, custom_plus_prefixed_size_only_width, custom_size_only_height, NULL, 0, 0, NULL, custom_size_only_canvas_w, custom_size_only_canvas_h),
