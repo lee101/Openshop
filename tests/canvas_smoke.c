@@ -219,7 +219,38 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[0].locked = 1;
+    stack.layers[1].locked = 0;
+    stack.active_layer = 1;
+    if (!layer_stack_show_unlocked_only(&stack, 1)) {
+        fprintf(stderr, "show unlocked only failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != -1 || stack.active_layer != 1 || stack.layers[0].visible || !stack.layers[1].visible) {
+        fprintf(stderr, "show unlocked only bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[1].locked = 1;
+    if (!layer_stack_show_unlocked_only(&stack, 1)) {
+        fprintf(stderr, "show unlocked only fallback failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[1].visible) {
+        fprintf(stderr, "show unlocked only should keep the active layer visible when all are locked\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[0].locked = 0;
+    stack.layers[1].locked = 0;
+    stack.layers[0].visible = 1;
+    stack.layers[1].visible = 1;
     if (!layer_stack_show(&stack, 1)) {
         fprintf(stderr, "restore top layer for hide-and-advance failed\n");
         canvas_free(&composite);

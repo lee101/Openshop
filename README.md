@@ -74,6 +74,7 @@ make test-sdl
 - `Ctrl+Shift+L`: toggle active layer lock
 - `Alt+L`: lock the active layer and jump to the next unlocked layer
 - `Alt+U`: unlock all layers
+- `Ctrl+Alt+U`: show only unlocked layers
 - `Ctrl+/`: solo active layer on/off
 - `Ctrl+Shift+V`: toggle active layer visibility
 - `Ctrl+M`: merge active layer down

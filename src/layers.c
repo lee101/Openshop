@@ -412,6 +412,28 @@ int layer_stack_show_hidden_only(LayerStack *stack, int preserve_index) {
     return layer_stack_flip_visibility(stack, preserve_index);
 }
 
+int layer_stack_show_unlocked_only(LayerStack *stack, int preserve_index) {
+    if (!stack || stack->layer_count <= 0) {
+        return 0;
+    }
+    if (preserve_index < 0 || preserve_index >= stack->layer_count) {
+        preserve_index = stack->active_layer;
+    }
+
+    int visible_count = 0;
+    for (int i = 0; i < stack->layer_count; i++) {
+        int next_visible = stack->layers[i].locked ? 0 : 1;
+        stack->layers[i].visible = next_visible;
+        visible_count += next_visible;
+    }
+    if (visible_count == 0) {
+        stack->layers[preserve_index].visible = 1;
+    }
+    stack->active_layer = preserve_index;
+    stack->solo_index = -1;
+    return 1;
+}
+
 int layer_stack_reveal_hidden(LayerStack *stack, int direction) {
     if (!stack || stack->layer_count <= 0) {
         return 0;
