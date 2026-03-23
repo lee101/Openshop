@@ -147,6 +147,20 @@ int main(void) {
         return 1;
     }
     fclose(custom_usage_stream);
+    FILE *append_usage_stream = tmpfile();
+    if (!expect_int("usage_append_stream_open", append_usage_stream != NULL, 1)) {
+        return 1;
+    }
+    if (fputs("prefix\n", append_usage_stream) == EOF ||
+        !expect_int("usage_write_append_ok", write_cli_usage(append_usage_stream, argv_default), 1) ||
+        !expect_stream_text("usage_write_append_text", append_usage_stream,
+                            "prefix\n"
+                            "Usage: openshop [input_path] [width height]\n"
+                            "       or: WIDTH HEIGHT\n")) {
+        fclose(append_usage_stream);
+        return 1;
+    }
+    fclose(append_usage_stream);
     if (!expect_int("usage_write_null_stream", write_cli_usage(NULL, argv_default), 0)) {
         return 1;
     }
