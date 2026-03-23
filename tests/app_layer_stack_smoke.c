@@ -65,6 +65,29 @@ static int test_visibility_and_merge_commands(void) {
            expect_int_eq("merge_up_action", merge_up.action, APP_LAYER_STACK_MERGE_UP);
 }
 
+static int test_lock_and_stamp_commands(void) {
+    AppLayerStackCommand toggle_lock = app_layer_stack_command_for_key('l', 1, 1);
+    AppLayerStackCommand toggle_lock_others = app_layer_stack_command_for_key('k', 1, 1);
+    AppLayerStackCommand toggle_visibility_others = app_layer_stack_command_for_key('i', 1, 1);
+    AppLayerStackCommand unlock_all = app_layer_stack_command_for_key('u', 1, 1);
+    AppLayerStackCommand stamp_into = app_layer_stack_command_for_key('e', 1, 1);
+    AppLayerStackCommand stamp_new = app_layer_stack_command_for_key('g', 1, 1);
+    AppLayerStackCommand delete_key = app_layer_stack_command_for_key(127, 0, 0);
+    AppLayerStackCommand backspace_key = app_layer_stack_command_for_key('\b', 0, 0);
+
+    return expect_int_eq("toggle_lock_action", toggle_lock.action, APP_LAYER_STACK_TOGGLE_LOCK) &&
+           expect_int_eq("toggle_lock_others_action", toggle_lock_others.action, APP_LAYER_STACK_TOGGLE_LOCK_OTHERS) &&
+           expect_int_eq(
+               "toggle_visibility_others_action",
+               toggle_visibility_others.action,
+               APP_LAYER_STACK_TOGGLE_VISIBILITY_OTHERS) &&
+           expect_int_eq("unlock_all_action", unlock_all.action, APP_LAYER_STACK_UNLOCK_ALL) &&
+           expect_int_eq("stamp_into_action", stamp_into.action, APP_LAYER_STACK_STAMP_VISIBLE_INTO) &&
+           expect_int_eq("stamp_new_action", stamp_new.action, APP_LAYER_STACK_STAMP_VISIBLE_NEW) &&
+           expect_int_eq("delete_key_action", delete_key.action, APP_LAYER_STACK_DELETE) &&
+           expect_int_eq("backspace_key_action", backspace_key.action, APP_LAYER_STACK_DELETE);
+}
+
 static int test_unhandled_key(void) {
     AppLayerStackCommand command = app_layer_stack_command_for_key('q', 0, 0);
     return expect_int_eq("handled", command.handled, 0) &&
@@ -80,6 +103,9 @@ int main(void) {
         return 1;
     }
     if (!test_visibility_and_merge_commands()) {
+        return 1;
+    }
+    if (!test_lock_and_stamp_commands()) {
         return 1;
     }
     if (!test_unhandled_key()) {
