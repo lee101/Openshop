@@ -704,6 +704,8 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    strncpy(stack.layers[MAX_LAYERS - 1].name, "Overflow Anchor", LAYER_NAME_MAX - 1);
+    stack.layers[MAX_LAYERS - 1].name[LAYER_NAME_MAX - 1] = '\0';
     stack.layers[MAX_LAYERS - 1].visible = 0;
     stack.layers[MAX_LAYERS - 1].locked = 1;
     stack.layers[MAX_LAYERS - 1].opacity_percent = 35;
@@ -738,8 +740,8 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (stack.layers[MAX_LAYERS - 1].visible || !stack.layers[MAX_LAYERS - 1].locked ||
-        stack.layers[MAX_LAYERS - 1].opacity_percent != 35) {
+    if (strcmp(stack.layers[MAX_LAYERS - 1].name, "Overflow Anchor") != 0 || stack.layers[MAX_LAYERS - 1].visible ||
+        !stack.layers[MAX_LAYERS - 1].locked || stack.layers[MAX_LAYERS - 1].opacity_percent != 35) {
         fprintf(stderr, "failed add/insert/duplicate should preserve top layer state\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
