@@ -1,4 +1,5 @@
 #include "app.h"
+#include "app_history.h"
 #include "canvas.h"
 #include "image_io.h"
 #include "layers.h"
@@ -12,7 +13,6 @@
 #define WINDOW_HEIGHT 768
 #define CANVAS_WIDTH 800
 #define CANVAS_HEIGHT 600
-#define MAX_HISTORY 20
 
 static const uint32_t COLOR_BG = 0xFFFFFFFF;     // white
 static const uint32_t COLOR_BRUSH = 0xFF1B1F24;  // near-black
@@ -41,156 +41,12 @@ typedef enum {
     BRUSH_SHAPE_COUNT
 } BrushShape;
 
-typedef struct {
-    int width;
-    int height;
-    int layer_count;
-    int active_layer;
-    int solo_index;
-    uint8_t visibility[MAX_LAYERS];
-    uint8_t locked[MAX_LAYERS];
-    uint8_t opacity_percent[MAX_LAYERS];
-    char names[MAX_LAYERS][LAYER_NAME_MAX];
-    uint32_t *pixels;
-} Snapshot;
-
 typedef struct AppRuntime AppRuntime;
 
 static void push_runtime_snapshot(const LayerStack *layers, AppRuntime *runtime);
 static int restore_runtime_history(LayerStack *layers, AppRuntime *runtime, int redo_to_undo);
 static int apply_runtime_canvas_transform(LayerStack *layers, AppRuntime *runtime, void (*transform)(Canvas *));
 static int apply_runtime_canvas_translation(LayerStack *layers, AppRuntime *runtime, int dx, int dy);
-
-static void snapshot_free(Snapshot *s) {
-    if (!s) {
-        return;
-    }
-    free(s->pixels);
-    s->pixels = NULL;
-    s->width = 0;
-    s->height = 0;
-    s->layer_count = 0;
-    s->active_layer = 0;
-}
-
-static int snapshot_from_layers(Snapshot *s, const LayerStack *stack) {
-    if (!s || !stack) {
-        return 0;
-    }
-
-    memset(s, 0, sizeof(*s));
-    s->width = stack->width;
-    s->height = stack->height;
-    s->layer_count = stack->layer_count;
-    s->active_layer = stack->active_layer;
-    s->solo_index = stack->solo_index;
-
-    size_t per_layer = (size_t)stack->width * (size_t)stack->height;
-    size_t total_pixels = per_layer * (size_t)stack->layer_count;
-    if (total_pixels > 0) {
-        s->pixels = (uint32_t *)malloc(total_pixels * sizeof(uint32_t));
-        if (!s->pixels) {
-            return 0;
-        }
-    }
-
-    for (int layer_index = 0; layer_index < stack->layer_count; layer_index++) {
-        const Layer *layer = &stack->layers[layer_index];
-        s->visibility[layer_index] = (uint8_t)layer->visible;
-        s->locked[layer_index] = (uint8_t)layer->locked;
-        s->opacity_percent[layer_index] = (uint8_t)layer->opacity_percent;
-        strncpy(s->names[layer_index], layer->name, LAYER_NAME_MAX - 1);
-        s->names[layer_index][LAYER_NAME_MAX - 1] = '\0';
-        if (!s->pixels) {
-            continue;
-        }
-        uint32_t *dst = s->pixels + per_layer * (size_t)layer_index;
-        if (layer->canvas.pixels) {
-            memcpy(dst, layer->canvas.pixels, per_layer * sizeof(uint32_t));
-        } else {
-            memset(dst, 0, per_layer * sizeof(uint32_t));
-        }
-    }
-
-    return 1;
-}
-
-static int snapshot_apply(const Snapshot *s, LayerStack *stack) {
-    if (!s || !stack || !s->pixels) {
-        return 0;
-    }
-    if (s->width != stack->width || s->height != stack->height) {
-        return 0;
-    }
-    if (s->layer_count <= 0 || s->layer_count > MAX_LAYERS) {
-        return 0;
-    }
-
-    while (stack->layer_count < s->layer_count) {
-        if (layer_stack_add(stack, NULL, 0x00000000) < 0) {
-            return 0;
-        }
-    }
-    stack->layer_count = s->layer_count;
-
-    size_t per_layer = (size_t)stack->width * (size_t)stack->height;
-    for (int layer_index = 0; layer_index < stack->layer_count; layer_index++) {
-        Layer *layer = &stack->layers[layer_index];
-        if (!layer->canvas.pixels && !layer_stack_clear_layer(stack, layer_index, 0x00000000)) {
-            return 0;
-        }
-        memcpy(layer->canvas.pixels, s->pixels + per_layer * (size_t)layer_index, per_layer * sizeof(uint32_t));
-        layer->visible = s->visibility[layer_index] ? 1 : 0;
-        layer->locked = s->locked[layer_index] ? 1 : 0;
-        layer->opacity_percent = s->opacity_percent[layer_index];
-        strncpy(layer->name, s->names[layer_index], LAYER_NAME_MAX - 1);
-        layer->name[LAYER_NAME_MAX - 1] = '\0';
-    }
-
-    stack->active_layer = s->active_layer;
-    if (stack->active_layer < 0) {
-        stack->active_layer = 0;
-    }
-    if (stack->active_layer >= stack->layer_count) {
-        stack->active_layer = stack->layer_count - 1;
-    }
-    stack->solo_index = s->solo_index;
-    if (stack->solo_index >= stack->layer_count) {
-        stack->solo_index = -1;
-    }
-    return 1;
-}
-
-static void stack_clear(Snapshot *stack, int *count) {
-    if (!stack || !count) {
-        return;
-    }
-    for (int i = 0; i < *count; i++) {
-        snapshot_free(&stack[i]);
-    }
-    *count = 0;
-}
-
-static void push_snapshot(const LayerStack *layers, Snapshot *stack, int *count, Snapshot *redo, int *redo_count) {
-    if (!layers || !stack || !count) {
-        return;
-    }
-    if (*count == MAX_HISTORY) {
-        snapshot_free(&stack[0]);
-        memmove(&stack[0], &stack[1], sizeof(Snapshot) * (size_t)(MAX_HISTORY - 1));
-        *count = MAX_HISTORY - 1;
-    }
-
-    Snapshot s = {0};
-    if (!snapshot_from_layers(&s, layers)) {
-        snapshot_free(&s);
-        return;
-    }
-    stack[(*count)++] = s;
-    if (redo && redo_count) {
-        stack_clear(redo, redo_count);
-    }
-}
 
 static uint32_t compose_brush_color(uint32_t rgb_color, int opacity_percent) {
     if (opacity_percent < 1) {
@@ -687,28 +543,6 @@ static int handle_layer_stack_shortcut(
     return handled;
 }
 
-static void push_current_snapshot(
-    const LayerStack *layers,
-    Snapshot *stack,
-    int *count
-) {
-    if (!layers || !stack || !count) {
-        return;
-    }
-
-    Snapshot current = {0};
-    if (!snapshot_from_layers(&current, layers)) {
-        snapshot_free(&current);
-        return;
-    }
-    if (*count == MAX_HISTORY) {
-        snapshot_free(&stack[0]);
-        memmove(&stack[0], &stack[1], sizeof(Snapshot) * (size_t)(MAX_HISTORY - 1));
-        *count = MAX_HISTORY - 1;
-    }
-    stack[(*count)++] = current;
-}
-
 static int restore_from_history(
     LayerStack *layers,
     Snapshot *from_stack,
@@ -716,15 +550,7 @@ static int restore_from_history(
     Snapshot *to_stack,
     int *to_count
 ) {
-    if (!layers || !from_stack || !from_count || !to_stack || !to_count || *from_count <= 0) {
-        return 0;
-    }
-
-    push_current_snapshot(layers, to_stack, to_count);
-    Snapshot restored = from_stack[--(*from_count)];
-    snapshot_apply(&restored, layers);
-    snapshot_free(&restored);
-    return 1;
+    return snapshot_restore(layers, from_stack, from_count, to_stack, to_count);
 }
 
 static int handle_document_shortcut(
@@ -1423,10 +1249,10 @@ static void cleanup_app_resources(
         layer_stack_free(layers);
     }
     if (undo_stack && undo_count) {
-        stack_clear(undo_stack, undo_count);
+        snapshot_stack_clear(undo_stack, undo_count);
     }
     if (redo_stack && redo_count) {
-        stack_clear(redo_stack, redo_count);
+        snapshot_stack_clear(redo_stack, redo_count);
     }
     if (texture) {
         SDL_DestroyTexture(texture);
@@ -1609,7 +1435,7 @@ static void push_runtime_snapshot(const LayerStack *layers, AppRuntime *runtime)
     if (!runtime) {
         return;
     }
-    push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
+    snapshot_push(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
 }
 
 static int restore_runtime_history(LayerStack *layers, AppRuntime *runtime, int redo_to_undo) {
