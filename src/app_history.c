@@ -11,12 +11,21 @@ static void app_history_default_free(void *ptr) {
     free(ptr);
 }
 
+static int app_history_default_canvas_init(Canvas *canvas, int width, int height) {
+    return canvas_init(canvas, width, height);
+}
+
 static AppHistoryMallocFn app_history_malloc_fn = app_history_default_malloc;
 static AppHistoryFreeFn app_history_free_fn = app_history_default_free;
+static AppHistoryCanvasInitFn app_history_canvas_init_fn = app_history_default_canvas_init;
 
 void app_history_set_allocators(AppHistoryMallocFn malloc_fn, AppHistoryFreeFn free_fn) {
     app_history_malloc_fn = malloc_fn ? malloc_fn : app_history_default_malloc;
     app_history_free_fn = free_fn ? free_fn : app_history_default_free;
+}
+
+void app_history_set_canvas_init(AppHistoryCanvasInitFn canvas_init_fn) {
+    app_history_canvas_init_fn = canvas_init_fn ? canvas_init_fn : app_history_default_canvas_init;
 }
 
 void snapshot_free(Snapshot *snapshot) {
@@ -95,9 +104,7 @@ int snapshot_apply(const Snapshot *snapshot, LayerStack *stack) {
     for (int layer_index = 0; layer_index < stack->layer_count; layer_index++) {
         Layer *layer = &stack->layers[layer_index];
         if (!layer->canvas.pixels) {
-            layer->canvas.width = stack->width;
-            layer->canvas.height = stack->height;
-            if (!canvas_init(&layer->canvas, stack->width, stack->height)) {
+            if (!app_history_canvas_init_fn(&layer->canvas, stack->width, stack->height)) {
                 return 0;
             }
         }
