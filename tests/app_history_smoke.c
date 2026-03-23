@@ -344,6 +344,70 @@ static int test_snapshot_restore_rejects_invalid_entry_without_mutation(void) {
     return 1;
 }
 
+static int test_snapshot_restore_round_trips_undo_and_redo_order(void) {
+    LayerStack stack;
+    Snapshot undo_stack[MAX_HISTORY];
+    Snapshot redo_stack[MAX_HISTORY];
+    int undo_count = 0;
+    int redo_count = 0;
+
+    memset(undo_stack, 0, sizeof(undo_stack));
+    memset(redo_stack, 0, sizeof(redo_stack));
+
+    if (!layer_stack_init(&stack, 5, 5, 0xFFFFFFFF)) {
+        fprintf(stderr, "layer_stack_init failed\n");
+        return 0;
+    }
+
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF100001);
+    snapshot_push(&stack, undo_stack, &undo_count, redo_stack, &redo_count);
+
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF100002);
+    snapshot_push(&stack, undo_stack, &undo_count, redo_stack, &redo_count);
+
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF100003);
+
+    if (!snapshot_restore(&stack, undo_stack, &undo_count, redo_stack, &redo_count)) {
+        fprintf(stderr, "first snapshot_restore failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_int_eq("round_trip_after_undo_undo_count", undo_count, 1) ||
+        !expect_int_eq("round_trip_after_undo_redo_count", redo_count, 1) ||
+        !expect_pixel_eq("round_trip_after_undo_pixel", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF100002) ||
+        !expect_pixel_eq("round_trip_redo_top_pixel", redo_stack[0].pixels[0], 0xFF100003)) {
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (!snapshot_restore(&stack, redo_stack, &redo_count, undo_stack, &undo_count)) {
+        fprintf(stderr, "second snapshot_restore failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_int_eq("round_trip_after_redo_undo_count", undo_count, 2) ||
+        !expect_int_eq("round_trip_after_redo_redo_count", redo_count, 0) ||
+        !expect_pixel_eq("round_trip_after_redo_pixel", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF100003) ||
+        !expect_pixel_eq("round_trip_undo_oldest_pixel", undo_stack[0].pixels[0], 0xFF100001) ||
+        !expect_pixel_eq("round_trip_undo_newest_pixel", undo_stack[1].pixels[0], 0xFF100002)) {
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 int main(void) {
     if (!test_snapshot_apply_restores_lazy_canvas()) {
         return 1;
@@ -358,6 +422,9 @@ int main(void) {
         return 1;
     }
     if (!test_snapshot_restore_rejects_invalid_entry_without_mutation()) {
+        return 1;
+    }
+    if (!test_snapshot_restore_round_trips_undo_and_redo_order()) {
         return 1;
     }
     return 0;
