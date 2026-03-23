@@ -476,9 +476,7 @@ static int active_layer_editable(const LayerStack *layers) {
 }
 
 static int canvas_load_default_input(Canvas *c, int prefer_png, uint32_t background_color, const char **loaded_path) {
-    int bmp_exists = path_exists("input.bmp");
-    int png_exists = path_exists("input.png");
-    const char *path = default_input_path(prefer_png, bmp_exists, png_exists);
+    const char *path = resolve_default_input_path(prefer_png);
     if (!c) {
         return 0;
     }
@@ -491,23 +489,8 @@ static int canvas_load_default_input(Canvas *c, int prefer_png, uint32_t backgro
     return 0;
 }
 
-static int path_exists(const char *path) {
-    FILE *f = NULL;
-    if (!path || !path[0]) {
-        return 0;
-    }
-    f = fopen(path, "rb");
-    if (!f) {
-        return 0;
-    }
-    fclose(f);
-    return 1;
-}
-
 static int canvas_save_default_output(const Canvas *c, int prefer_png, const char **saved_path) {
-    int bmp_exists = path_exists("output.bmp");
-    int png_exists = path_exists("output.png");
-    const char *path = default_output_path(prefer_png, bmp_exists, png_exists);
+    const char *path = resolve_default_output_path(prefer_png);
     if (!c) {
         return 0;
     }
