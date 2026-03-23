@@ -71,13 +71,28 @@ int format_cli_usage(char *buffer, int buffer_size, char **argv) {
 }
 
 int write_cli_usage(FILE *stream, char **argv) {
+    char *buffer = NULL;
+    int size = 0;
     int written = 0;
 
     if (!stream) {
         return 0;
     }
+    size = cli_usage_size(argv);
+    if (size <= 0) {
+        return 0;
+    }
+    buffer = malloc((size_t)size);
+    if (!buffer) {
+        return 0;
+    }
+    if (!format_cli_usage(buffer, size, argv)) {
+        free(buffer);
+        return 0;
+    }
 
-    written = fprintf(stream, "Usage: %s %s\n", cli_program_name(argv), cli_usage_suffix());
+    written = fputs(buffer, stream);
+    free(buffer);
     return written > 0;
 }
 
