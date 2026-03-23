@@ -390,6 +390,14 @@ int main(void) {
         return 1;
     }
 
+    reset_app_state(5, NULL, 0, 0, stderr_text);
+    char *argv_custom_program_nonzero[] = {"./bin/openshop-dev", "art/custom.png"};
+    if (!capture_main_stderr(2, argv_custom_program_nonzero, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_successful_run("custom_program_nonzero", exit_code, 5, "art/custom.png", 0, 0, stderr_text,
+                               "App exited with code 5\n")) {
+        return 1;
+    }
+
     reset_app_state(0, NULL, 0, 0, stderr_text);
     char *argv_custom_program_size_only[] = {"./bin/openshop-dev", "800", "600"};
     if (!capture_main_stderr(3, argv_custom_program_size_only, stderr_text, sizeof(stderr_text), &exit_code) ||
