@@ -472,6 +472,25 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.active_layer = 0;
+    if (!layer_stack_hide_and_advance(&stack, 1)) {
+        fprintf(stderr, "hide and advance from non-active index failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[1].visible || stack.active_layer != 0) {
+        fprintf(stderr, "hide and advance should scan from the passed index\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_show(&stack, 1)) {
+        fprintf(stderr, "restore top layer after non-active hide and advance failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_add(&stack, "Retreat", 0x00000000)) {
         fprintf(stderr, "setup hide and retreat failed\n");
         canvas_free(&composite);
@@ -508,6 +527,25 @@ static int test_layers_basic(void) {
     }
     if (!layer_stack_show(&stack, 2)) {
         fprintf(stderr, "restore retreat layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.active_layer = 0;
+    if (!layer_stack_hide_and_retreat(&stack, 2)) {
+        fprintf(stderr, "hide and retreat from non-active index failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[2].visible || stack.active_layer != 1) {
+        fprintf(stderr, "hide and retreat should scan backward from the passed index\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_show(&stack, 2)) {
+        fprintf(stderr, "restore retreat layer after non-active hide and retreat failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -1324,6 +1362,23 @@ static int test_layers_basic(void) {
     stack.layers[1].locked = 0;
     stack.layers[2].locked = 0;
     stack.layers[3].locked = 0;
+    stack.active_layer = 0;
+    if (!layer_stack_lock_and_advance(&stack, 1)) {
+        fprintf(stderr, "lock and advance from non-active index failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[1].locked || stack.active_layer != 2) {
+        fprintf(stderr, "lock and advance should scan from the passed index\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[0].locked = 0;
+    stack.layers[1].locked = 0;
+    stack.layers[2].locked = 0;
+    stack.layers[3].locked = 0;
     stack.active_layer = 2;
     stack.layers[1].opacity_percent = 65;
     stack.layers[2].opacity_percent = 45;
@@ -1366,6 +1421,23 @@ static int test_layers_basic(void) {
     }
     if (!stack.layers[1].locked || stack.active_layer != 0) {
         fprintf(stderr, "lock and retreat should continue scanning backward\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[0].locked = 0;
+    stack.layers[1].locked = 0;
+    stack.layers[2].locked = 0;
+    stack.layers[3].locked = 0;
+    stack.active_layer = 3;
+    if (!layer_stack_lock_and_retreat(&stack, 2)) {
+        fprintf(stderr, "lock and retreat from non-active index failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[2].locked || stack.active_layer != 1) {
+        fprintf(stderr, "lock and retreat should scan backward from the passed index\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;

@@ -8,6 +8,8 @@ static int layer_stack_matches_bool_filter(int value, int required_value);
 static int layer_stack_reveal_target(LayerStack *stack, int target);
 static int layer_stack_cycle_combined_filter(LayerStack *stack, int direction, int required_hidden, int required_locked);
 static int layer_stack_select_combined_filter(LayerStack *stack, int from_top, int required_hidden, int required_locked);
+static int layer_stack_find_combined_filter_from(LayerStack *stack, int start_index, int direction, int from_top,
+                                                 int required_hidden, int required_locked);
 
 typedef enum {
     EDITABLE_ANY_VISIBILITY = 0,
@@ -89,14 +91,17 @@ static int layer_stack_matches_combined_filter(const Layer *layer, int required_
            layer_stack_matches_bool_filter(layer->locked ? 1 : 0, required_locked);
 }
 
-static int layer_stack_find_combined_filter(LayerStack *stack, int direction, int from_top,
-                                            int required_hidden, int required_locked) {
+static int layer_stack_find_combined_filter_from(LayerStack *stack, int start_index, int direction, int from_top,
+                                                 int required_hidden, int required_locked) {
     if (!stack || stack->layer_count <= 0) {
         return -1;
     }
+    if (start_index < 0 || start_index >= stack->layer_count) {
+        start_index = stack->active_layer;
+    }
     if (direction != 0) {
         for (int offset = 1; offset <= stack->layer_count; offset++) {
-            int idx = stack->active_layer + (direction * offset);
+            int idx = start_index + (direction * offset);
             while (idx < 0) {
                 idx += stack->layer_count;
             }
@@ -105,8 +110,8 @@ static int layer_stack_find_combined_filter(LayerStack *stack, int direction, in
                 return idx;
             }
         }
-        if (layer_stack_matches_combined_filter(&stack->layers[stack->active_layer], required_hidden, required_locked)) {
-            return stack->active_layer;
+        if (layer_stack_matches_combined_filter(&stack->layers[start_index], required_hidden, required_locked)) {
+            return start_index;
         }
         return -1;
     }
@@ -127,7 +132,8 @@ static int layer_stack_find_combined_filter(LayerStack *stack, int direction, in
 }
 
 static int layer_stack_cycle_combined_filter(LayerStack *stack, int direction, int required_hidden, int required_locked) {
-    int target = layer_stack_find_combined_filter(stack, direction, 0, required_hidden, required_locked);
+    int target = layer_stack_find_combined_filter_from(stack, stack ? stack->active_layer : -1, direction, 0,
+                                                       required_hidden, required_locked);
     if (target >= 0) {
         stack->active_layer = target;
     }
@@ -135,7 +141,8 @@ static int layer_stack_cycle_combined_filter(LayerStack *stack, int direction, i
 }
 
 static int layer_stack_select_combined_filter(LayerStack *stack, int from_top, int required_hidden, int required_locked) {
-    int target = layer_stack_find_combined_filter(stack, 0, from_top, required_hidden, required_locked);
+    int target = layer_stack_find_combined_filter_from(stack, stack ? stack->active_layer : -1, 0, from_top,
+                                                       required_hidden, required_locked);
     if (target >= 0) {
         stack->active_layer = target;
     }
@@ -182,6 +189,7 @@ static int layer_stack_select_editable_edge(LayerStack *stack, int from_top, Edi
 }
 
 static int layer_stack_hide_and_focus_direction(LayerStack *stack, int index, int direction) {
+    int next;
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
     }
@@ -193,41 +201,21 @@ static int layer_stack_hide_and_focus_direction(LayerStack *stack, int index, in
     if (stack->solo_index == index) {
         stack->solo_index = -1;
     }
-    for (int offset = 1; offset < stack->layer_count; offset++) {
-        int next = index + (direction * offset);
-        while (next < 0) {
-            next += stack->layer_count;
-        }
-        next %= stack->layer_count;
-        if (stack->layers[next].visible) {
-            stack->active_layer = next;
-            return 1;
-        }
+    next = layer_stack_find_combined_filter_from(stack, index, direction, 0, 0, -1);
+    if (next >= 0) {
+        stack->active_layer = next;
     }
     return 1;
 }
 
 static int layer_stack_lock_and_focus_direction(LayerStack *stack, int index, int direction) {
+    int next;
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
     }
     stack->layers[index].locked = 1;
-    if (stack->layer_count == 1) {
-        stack->active_layer = index;
-        return 1;
-    }
-    for (int offset = 1; offset < stack->layer_count; offset++) {
-        int next = index + (direction * offset);
-        while (next < 0) {
-            next += stack->layer_count;
-        }
-        next %= stack->layer_count;
-        if (!stack->layers[next].locked) {
-            stack->active_layer = next;
-            return 1;
-        }
-    }
-    stack->active_layer = index;
+    next = layer_stack_find_combined_filter_from(stack, index, direction, 0, -1, 0);
+    stack->active_layer = next >= 0 ? next : index;
     return 1;
 }
 
