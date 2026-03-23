@@ -13,6 +13,10 @@
 #define CANVAS_WIDTH 800
 #define CANVAS_HEIGHT 600
 #define MAX_HISTORY 20
+#define FILL_TOLERANCE_DEFAULT 30
+#define FILL_TOLERANCE_STEP 5
+#define FILL_TOLERANCE_MIN 0
+#define FILL_TOLERANCE_MAX 255
 
 static const uint32_t COLOR_BG = 0xFFFFFFFF;     // white
 static const uint32_t COLOR_BRUSH = 0xFF1B1F24;  // near-black
@@ -23,6 +27,7 @@ static const uint32_t COLOR_BLUE = 0xFF1E88E5;
 static const uint32_t COLOR_YELLOW = 0xFFFDD835;
 static const uint32_t COLOR_PURPLE = 0xFF8E24AA;
 static const int CHECKER_SIZE = 16;
+static int g_fill_tolerance = FILL_TOLERANCE_DEFAULT;
 
 typedef enum {
     TOOL_BRUSH,
@@ -250,11 +255,12 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
     snprintf(
         title,
         sizeof(title),
-        "Openshop - %s (%s) | size %d | brush %d%% | layer %d/%d %s [%s%s %d%%]%s | visible %d/%d | #%08X",
+        "Openshop - %s (%s) | size %d | brush %d%% | fill tol %d | layer %d/%d %s [%s%s %d%%]%s | visible %d/%d | #%08X",
         tool_label(tool),
         brush_shape_label(brush_shape),
         radius,
         opacity_percent,
+        g_fill_tolerance,
         layers->active_layer + 1,
         layers->layer_count,
         layer_name,
@@ -267,6 +273,16 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
         color
     );
     SDL_SetWindowTitle(window, title);
+}
+
+static int clamp_fill_tolerance(int tolerance) {
+    if (tolerance < FILL_TOLERANCE_MIN) {
+        return FILL_TOLERANCE_MIN;
+    }
+    if (tolerance > FILL_TOLERANCE_MAX) {
+        return FILL_TOLERANCE_MAX;
+    }
+    return tolerance;
 }
 
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
@@ -626,6 +642,7 @@ int app_run(const char *input_path) {
     int last_y = 0;
     int brush_radius = 6;
     int brush_opacity = 100;
+    int fill_tolerance = FILL_TOLERANCE_DEFAULT;
     uint32_t brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
     uint32_t brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
     BrushShape brush_shape = BRUSH_SHAPE_ROUND;
@@ -644,6 +661,7 @@ int app_run(const char *input_path) {
     Canvas preview_canvas = {CANVAS_WIDTH, CANVAS_HEIGHT, preview_pixels};
     memset(undo_stack, 0, sizeof(undo_stack));
     memset(redo_stack, 0, sizeof(redo_stack));
+    g_fill_tolerance = fill_tolerance;
     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
 
     while (running) {
@@ -799,6 +817,20 @@ int app_run(const char *input_path) {
                     } else {
                         needs_composite = 1;
                     }
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
+                if (ctrl && shift && key == SDLK_COMMA) {
+                    fill_tolerance = clamp_fill_tolerance(fill_tolerance - FILL_TOLERANCE_STEP);
+                    g_fill_tolerance = fill_tolerance;
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
+                if (ctrl && shift && key == SDLK_PERIOD) {
+                    fill_tolerance = clamp_fill_tolerance(fill_tolerance + FILL_TOLERANCE_STEP);
+                    g_fill_tolerance = fill_tolerance;
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
@@ -1136,7 +1168,7 @@ int app_run(const char *input_path) {
                             push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                         }
                         if (!active || active->locked ||
-                            !canvas_flood_fill_tol(&active->canvas, mx, my, brush_color, 30)) {
+                            !canvas_flood_fill_tol(&active->canvas, mx, my, brush_color, fill_tolerance)) {
                             fprintf(stderr, "Tolerance fill failed\n");
                         } else {
                             needs_composite = 1;
