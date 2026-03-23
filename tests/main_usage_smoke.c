@@ -337,21 +337,13 @@ static int expect_invalid_argv_cases(const struct invalid_argv_case *cases, size
     return 1;
 }
 
-static int format_custom_usage_text(char *buffer, size_t buffer_size) {
-    char *argv[] = {(char *)custom_program_name};
-
-    if (!buffer || buffer_size == 0) {
-        return 0;
-    }
-    return format_cli_usage(buffer, (int)buffer_size, argv);
-}
-
 int main(void) {
     char stderr_text[256] = {0};
     char custom_usage_text[256] = {0};
+    char *custom_usage_argv[] = {(char *)custom_program_name};
     int exit_code = 0;
 
-    if (!format_custom_usage_text(custom_usage_text, sizeof(custom_usage_text))) {
+    if (!format_cli_usage(custom_usage_text, sizeof(custom_usage_text), custom_usage_argv)) {
         return 1;
     }
 
