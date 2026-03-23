@@ -258,6 +258,14 @@ struct invalid_input_size_case {
     char *height_token;
 };
 
+struct invalid_scene_probe_case {
+    const char *label_prefix;
+    char *program_name;
+    char *arg1;
+    char *arg2;
+    int argc;
+};
+
 struct simple_success_case {
     const char *label_prefix;
     char *program_name;
@@ -462,6 +470,37 @@ static int expect_input_size_success_cases(const struct input_size_success_case 
     return 1;
 }
 
+static int expect_invalid_scene_probe_cases(const struct invalid_scene_probe_case *cases, size_t case_count,
+                                            char *stderr_text, size_t stderr_size, int *exit_code) {
+    size_t i = 0;
+
+    for (i = 0; i < case_count; i += 1) {
+        char *argv[] = {cases[i].program_name, cases[i].arg1, cases[i].arg2};
+
+        if (!expect_invalid_main_run(cases[i].label_prefix, cases[i].argc, argv, stderr_text, stderr_size,
+                                     exit_code)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int expect_custom_invalid_scene_probe_cases(const struct invalid_scene_probe_case *cases, size_t case_count,
+                                                   char *stderr_text, size_t stderr_size, int *exit_code,
+                                                   const char *custom_usage_text) {
+    size_t i = 0;
+
+    for (i = 0; i < case_count; i += 1) {
+        char *argv[] = {cases[i].program_name, cases[i].arg1, cases[i].arg2};
+
+        if (!expect_custom_invalid_main_run(cases[i].label_prefix, cases[i].argc, argv, stderr_text, stderr_size,
+                                            exit_code, custom_usage_text)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static int format_custom_usage_text(char *buffer, size_t buffer_size) {
     char *argv[] = {(char *)custom_program_name};
 
@@ -480,19 +519,22 @@ int main(void) {
         return 1;
     }
 
-    char *argv_invalid[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width};
-    if (!expect_invalid_main_run("invalid", 3, argv_invalid, stderr_text, sizeof(stderr_text), &exit_code)) {
+    struct invalid_scene_probe_case invalid_scene_probe_cases[] = {
+        {"invalid", "openshop", (char *)default_scene_path, (char *)default_size_only_width, 3},
+        {"bad_size_only", "openshop", (char *)default_scene_path, (char *)invalid_probe_size, 3},
+    };
+    if (!expect_invalid_scene_probe_cases(invalid_scene_probe_cases,
+                                          sizeof(invalid_scene_probe_cases) / sizeof(invalid_scene_probe_cases[0]),
+                                          stderr_text, sizeof(stderr_text), &exit_code)) {
         return 1;
     }
 
-    char *argv_bad_size_only[] = {"openshop", (char *)default_scene_path, (char *)invalid_probe_size};
-    if (!expect_invalid_main_run("bad_size_only", 3, argv_bad_size_only, stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
-    char *argv_custom_program_invalid[] = {(char *)custom_program_name, (char *)default_scene_path, (char *)invalid_probe_size};
-    if (!expect_custom_invalid_main_run("custom_program_invalid", 3, argv_custom_program_invalid,
-                                        stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    struct invalid_scene_probe_case custom_invalid_scene_probe_cases[] = {
+        {"custom_program_invalid", (char *)custom_program_name, (char *)default_scene_path, (char *)invalid_probe_size, 3},
+    };
+    if (!expect_custom_invalid_scene_probe_cases(custom_invalid_scene_probe_cases,
+                                                 sizeof(custom_invalid_scene_probe_cases) / sizeof(custom_invalid_scene_probe_cases[0]),
+                                                 stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
