@@ -821,6 +821,7 @@ static int test_layers_basic(void) {
     int locked_layer_count = stack.layer_count;
     int locked_layer_locked = stack.layers[1].locked;
     int locked_layer_active = stack.active_layer;
+    int locked_layer_solo = stack.solo_index;
     int locked_layer_visible = stack.layers[1].visible;
     int locked_layer_opacity = stack.layers[1].opacity_percent;
     char locked_layer_name[LAYER_NAME_MAX];
@@ -863,6 +864,7 @@ static int test_layers_basic(void) {
         return 0;
     }
     if (stack.layer_count != locked_layer_count || stack.active_layer != locked_layer_active ||
+        stack.solo_index != locked_layer_solo ||
         stack.layers[1].locked != locked_layer_locked ||
         stack.layers[1].visible != locked_layer_visible ||
         stack.layers[1].opacity_percent != locked_layer_opacity || strcmp(stack.layers[1].name, locked_layer_name) != 0) {
