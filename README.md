@@ -61,6 +61,7 @@ make test-sdl
 - `Ctrl+Shift+R`: reveal the active layer without changing other visibility states
 - `Ctrl+Shift+H`: hide the active layer and jump to the next visible layer
 - `Ctrl+Shift+L`: toggle active layer lock
+- `Ctrl+Shift+K`: lock or unlock all non-active layers
 - `Ctrl+/`: solo active layer on/off
 - `Ctrl+Shift+V`: toggle active layer visibility
 - `Ctrl+M`: merge active layer down

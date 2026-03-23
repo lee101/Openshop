@@ -221,6 +221,31 @@ int layer_stack_toggle_lock(LayerStack *stack, int index) {
     return 1;
 }
 
+int layer_stack_toggle_lock_others(LayerStack *stack, int active_index) {
+    if (!stack || active_index < 0 || active_index >= stack->layer_count) {
+        return 0;
+    }
+
+    int all_others_locked = 1;
+    for (int i = 0; i < stack->layer_count; i++) {
+        if (i == active_index) {
+            continue;
+        }
+        if (!stack->layers[i].locked) {
+            all_others_locked = 0;
+            break;
+        }
+    }
+
+    for (int i = 0; i < stack->layer_count; i++) {
+        if (i == active_index) {
+            continue;
+        }
+        stack->layers[i].locked = all_others_locked ? 0 : 1;
+    }
+    return 1;
+}
+
 int layer_stack_show_all(LayerStack *stack) {
     if (!stack) {
         return 0;

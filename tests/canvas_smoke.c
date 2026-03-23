@@ -342,6 +342,43 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_add(&stack, "Lock Buddy", 0x00000000) < 0) {
+        fprintf(stderr, "add extra layer for lock-others failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.active_layer = 1;
+    if (!layer_stack_toggle_lock_others(&stack, 1)) {
+        fprintf(stderr, "toggle lock others on failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[1].locked || !stack.layers[0].locked || !stack.layers[2].locked) {
+        fprintf(stderr, "toggle lock others did not lock non-active layers\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_lock_others(&stack, 1)) {
+        fprintf(stderr, "toggle lock others off failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[0].locked || stack.layers[1].locked || stack.layers[2].locked) {
+        fprintf(stderr, "toggle lock others did not restore lock state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 2)) {
+        fprintf(stderr, "cleanup lock-others layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     canvas_clear(&stack.layers[0].canvas, 0xFF0000FF);
     canvas_clear(&stack.layers[1].canvas, 0x8000FF00);
     if (!layer_stack_set_opacity(&stack, 1, 50)) {
