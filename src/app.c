@@ -1,5 +1,6 @@
 #include "app.h"
 #include "app_document.h"
+#include "app_canvas_edit.h"
 #include "app_history.h"
 #include "app_layer_stack.h"
 #include "app_navigation.h"
@@ -1399,28 +1400,52 @@ static int restore_runtime_history(LayerStack *layers, AppRuntime *runtime, int 
 }
 
 static int apply_runtime_canvas_transform(LayerStack *layers, AppRuntime *runtime, void (*transform)(Canvas *)) {
+    AppCanvasEditState state = {
+        .needs_composite = runtime ? runtime->needs_composite : 0,
+    };
+    AppCanvasEditCallbacks callbacks = {
+        .push_snapshot = push_runtime_snapshot_callback,
+        .userdata = runtime,
+    };
+    AppCanvasTransformAction action;
+
     if (!layers || !runtime || !transform) {
         return 0;
     }
-    Layer *active = layer_stack_active(layers);
-    if (!active || active->locked || !active->canvas.pixels) {
+    if (transform == canvas_flip_horizontal) {
+        action = APP_CANVAS_TRANSFORM_FLIP_HORIZONTAL;
+    } else if (transform == canvas_flip_vertical) {
+        action = APP_CANVAS_TRANSFORM_FLIP_VERTICAL;
+    } else if (transform == canvas_rotate_180) {
+        action = APP_CANVAS_TRANSFORM_ROTATE_180;
+    } else if (transform == canvas_invert_rgb) {
+        action = APP_CANVAS_TRANSFORM_INVERT_RGB;
+    } else {
         return 0;
     }
-    push_runtime_snapshot(layers, runtime);
-    transform(&active->canvas);
+    if (!app_canvas_edit_transform_active(action, layers, &state, &callbacks)) {
+        return 0;
+    }
+    runtime->needs_composite = state.needs_composite;
     return 1;
 }
 
 static int apply_runtime_canvas_translation(LayerStack *layers, AppRuntime *runtime, int dx, int dy) {
-    if (!layers || !runtime || (dx == 0 && dy == 0)) {
+    AppCanvasEditState state = {
+        .needs_composite = runtime ? runtime->needs_composite : 0,
+    };
+    AppCanvasEditCallbacks callbacks = {
+        .push_snapshot = push_runtime_snapshot_callback,
+        .userdata = runtime,
+    };
+
+    if (!layers || !runtime) {
         return 0;
     }
-    Layer *active = layer_stack_active(layers);
-    if (!active || active->locked || !active->canvas.pixels) {
+    if (!app_canvas_edit_translate_active(layers, &state, dx, dy, active_layer_clear_color(layers), &callbacks)) {
         return 0;
     }
-    push_runtime_snapshot(layers, runtime);
-    canvas_translate(&active->canvas, dx, dy, active_layer_clear_color(layers));
+    runtime->needs_composite = state.needs_composite;
     return 1;
 }
 
