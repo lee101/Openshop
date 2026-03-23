@@ -478,6 +478,14 @@ static void hue_rotate_30(Canvas *c) {
     canvas_hue_rotate(c, 30);
 }
 
+static void canvas_brightness_up(Canvas *c) {
+    canvas_brightness(c, 15);
+}
+
+static void canvas_brightness_down(Canvas *c) {
+    canvas_brightness(c, -15);
+}
+
 static int apply_canvas_transform(
     LayerStack *layers,
     Snapshot *undo_stack,
@@ -1245,6 +1253,14 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
                         snapshot_free(&before);
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
+                if (ctrl && key == SDLK_p) {
+                    void (*brightness_fn)(Canvas *) = shift ? canvas_brightness_down : canvas_brightness_up;
+                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, brightness_fn)) {
+                        needs_composite = 1;
+                    }
                     break;
                 }
 

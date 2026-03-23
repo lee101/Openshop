@@ -37,6 +37,7 @@ void canvas_rotate_90ccw(Canvas *c);
 void canvas_desaturate(Canvas *c);
 void canvas_posterize(Canvas *c);
 void canvas_threshold(Canvas *c);
+void canvas_brightness(Canvas *c, int delta);
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color);
 
 #endif

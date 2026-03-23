@@ -65,6 +65,9 @@ make test-sdl
 - `Ctrl+]` / `Ctrl+[`: move active layer up/down
 - `Ctrl+- / Ctrl+=`: active layer opacity down/up
 - `Ctrl+0`: reset active layer opacity to 100%
+- `Ctrl+B`: apply auto-levels to the active layer (per-channel histogram stretch)
+- `Ctrl+P`: increase active layer brightness by 15 (clamps to [0,255] per channel)
+- `Ctrl+Shift+P`: decrease active layer brightness by 15
 - `Ctrl+A`: show all layers and clear solo mode
 - `Ctrl+Shift+R`: reveal the active layer without changing other visibility states
 - `Ctrl+R`: rename the active layer

@@ -1016,6 +1016,38 @@ int main(void) {
         return 1;
     }
     canvas_free(&thresh_test);
+
+    Canvas bright_test;
+    if (!canvas_init(&bright_test, 1, 1)) {
+        fprintf(stderr, "bright_test canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&bright_test, 0, 0, 0xFF808080);
+    canvas_brightness(&bright_test, 30);
+    if (!expect_pixel_eq("brightness_up", canvas_get_pixel(&bright_test, 0, 0), 0xFF9E9E9E)) {
+        canvas_free(&bright_test);
+        return 1;
+    }
+    canvas_set_pixel_raw(&bright_test, 0, 0, 0xFFC8C8C8);
+    canvas_brightness(&bright_test, 100);
+    if (!expect_pixel_eq("brightness_clamp_up", canvas_get_pixel(&bright_test, 0, 0), 0xFFFFFFFF)) {
+        canvas_free(&bright_test);
+        return 1;
+    }
+    canvas_set_pixel_raw(&bright_test, 0, 0, 0xFF505050);
+    canvas_brightness(&bright_test, -100);
+    if (!expect_pixel_eq("brightness_clamp_down", canvas_get_pixel(&bright_test, 0, 0), 0xFF000000)) {
+        canvas_free(&bright_test);
+        return 1;
+    }
+    canvas_set_pixel_raw(&bright_test, 0, 0, 0x00808080);
+    canvas_brightness(&bright_test, 30);
+    if (!expect_pixel_eq("brightness_skip_transparent", canvas_get_pixel(&bright_test, 0, 0), 0x00808080)) {
+        canvas_free(&bright_test);
+        return 1;
+    }
+    canvas_free(&bright_test);
+
     if (!test_layers_basic()) {
         return 1;
     }

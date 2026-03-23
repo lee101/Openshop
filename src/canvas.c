@@ -461,6 +461,27 @@ void canvas_threshold(Canvas *c) {
         c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)out << 16) | ((uint32_t)out << 8) | out;
     }
 }
+
+void canvas_brightness(Canvas *c, int delta) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0 || delta == 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint32_t a = p & 0xFF000000u;
+        if (a == 0) {
+            continue;
+        }
+        int r = (int)((p >> 16) & 0xFF) + delta;
+        int g = (int)((p >> 8) & 0xFF) + delta;
+        int b = (int)(p & 0xFF) + delta;
+        if (r < 0) { r = 0; } else if (r > 255) { r = 255; }
+        if (g < 0) { g = 0; } else if (g > 255) { g = 255; }
+        if (b < 0) { b = 0; } else if (b > 255) { b = 255; }
+        c->pixels[i] = a | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+    }
+}
 static void canvas_contrast_step(Canvas *c, int delta) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;
