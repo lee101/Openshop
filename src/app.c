@@ -935,6 +935,38 @@ static int handle_tool_shortcut(
     return handled;
 }
 
+static int handle_translation_shortcut(
+    SDL_Keycode key,
+    int shift,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+) {
+    int dx = 0;
+    int dy = 0;
+    int step = shift ? 10 : 1;
+
+    if (key == SDLK_UP) {
+        dy = -step;
+    } else if (key == SDLK_DOWN) {
+        dy = step;
+    } else if (key == SDLK_LEFT) {
+        dx = -step;
+    } else if (key == SDLK_RIGHT) {
+        dx = step;
+    } else {
+        return 0;
+    }
+
+    if (apply_canvas_translation(layers, undo_stack, undo_count, redo_stack, redo_count, dx, dy)) {
+        *needs_composite = 1;
+    }
+    return 1;
+}
+
 static uint32_t active_layer_clear_color(const LayerStack *layers) {
     if (!layers) {
         return COLOR_BG;
@@ -1344,22 +1376,15 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (key == SDLK_UP || key == SDLK_DOWN || key == SDLK_LEFT || key == SDLK_RIGHT) {
-                    int step = shift ? 10 : 1;
-                    int dx = 0;
-                    int dy = 0;
-                    if (key == SDLK_UP) {
-                        dy = -step;
-                    } else if (key == SDLK_DOWN) {
-                        dy = step;
-                    } else if (key == SDLK_LEFT) {
-                        dx = -step;
-                    } else {
-                        dx = step;
-                    }
-                    if (apply_canvas_translation(&layers, undo_stack, &undo_count, redo_stack, &redo_count, dx, dy)) {
-                        needs_composite = 1;
-                    }
+                if (handle_translation_shortcut(
+                        key,
+                        shift,
+                        &layers,
+                        undo_stack,
+                        &undo_count,
+                        redo_stack,
+                        &redo_count,
+                        &needs_composite)) {
                     break;
                 }
 
