@@ -371,6 +371,39 @@ static int try_flood_fill_active_layer(LayerStack *layers,
     return 1;
 }
 
+static int try_clear_active_layer(LayerStack *layers,
+                                  Snapshot *undo_stack, int *undo_count,
+                                  Snapshot *redo_stack, int *redo_count) {
+    if (active_layer_editable(layers)) {
+        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    }
+    return layer_stack_clear_layer(layers, layers->active_layer, active_layer_clear_color(layers));
+}
+
+static int try_flip_horizontal_active_layer(LayerStack *layers,
+                                            Snapshot *undo_stack, int *undo_count,
+                                            Snapshot *redo_stack, int *redo_count) {
+    return apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_flip_horizontal);
+}
+
+static int try_flip_vertical_active_layer(LayerStack *layers,
+                                          Snapshot *undo_stack, int *undo_count,
+                                          Snapshot *redo_stack, int *redo_count) {
+    return apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_flip_vertical);
+}
+
+static int try_rotate_active_layer_180(LayerStack *layers,
+                                       Snapshot *undo_stack, int *undo_count,
+                                       Snapshot *redo_stack, int *redo_count) {
+    return apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_rotate_180);
+}
+
+static int try_invert_active_layer_rgb(LayerStack *layers,
+                                       Snapshot *undo_stack, int *undo_count,
+                                       Snapshot *redo_stack, int *redo_count) {
+    return apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_invert_rgb);
+}
+
 static void run_indexed_layer_action(SDL_Window *window, LayerStack *layers,
                                      Snapshot *undo_stack, int *undo_count,
                                      Snapshot *redo_stack, int *redo_count,
@@ -1631,26 +1664,23 @@ int app_run(const char *input_path) {
                     brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
                     tool = TOOL_BRUSH;
                 } else if (key == SDLK_c) {
-                    if (active_layer_editable(&layers)) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    }
-                    if (layer_stack_clear_layer(&layers, layers.active_layer, active_layer_clear_color(&layers))) {
+                    if (try_clear_active_layer(&layers, undo_stack, &undo_count, redo_stack, &redo_count)) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_h) {
-                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_flip_horizontal)) {
+                    if (try_flip_horizontal_active_layer(&layers, undo_stack, &undo_count, redo_stack, &redo_count)) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_v) {
-                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_flip_vertical)) {
+                    if (try_flip_vertical_active_layer(&layers, undo_stack, &undo_count, redo_stack, &redo_count)) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_j) {
-                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_rotate_180)) {
+                    if (try_rotate_active_layer_180(&layers, undo_stack, &undo_count, redo_stack, &redo_count)) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_x) {
-                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_invert_rgb)) {
+                    if (try_invert_active_layer_rgb(&layers, undo_stack, &undo_count, redo_stack, &redo_count)) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_f) {
