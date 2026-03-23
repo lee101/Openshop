@@ -300,6 +300,14 @@ struct success_case {
 #define SUCCESS_INPUT_SIZE_CASE_EMPTY_STDERR(label, program, input, width, height, result, expected_exit, canvas_w, canvas_h) \
     SUCCESS_INPUT_SIZE_CASE(label, program, input, width, height, result, expected_exit, canvas_w, canvas_h, empty_stderr)
 
+static void fill_argv(char **dst, const char *const *src, size_t count) {
+    size_t i = 0;
+
+    for (i = 0; i < count; i += 1) {
+        dst[i] = (char *)src[i];
+    }
+}
+
 static int expect_invalid_size_only_cases(const struct invalid_size_token_case *cases, size_t case_count,
                                           const char *program_name, const char *fixed_token,
                                           int variable_token_index, char *stderr_text, size_t stderr_size,
@@ -307,8 +315,10 @@ static int expect_invalid_size_only_cases(const struct invalid_size_token_case *
     size_t i = 0;
 
     for (i = 0; i < case_count; i += 1) {
-        char *argv[] = {(char *)program_name, (char *)fixed_token, (char *)fixed_token};
+        const char *src[] = {program_name, fixed_token, fixed_token};
+        char *argv[ARRAY_LEN(src)] = {0};
 
+        fill_argv(argv, src, ARRAY_LEN(src));
         argv[variable_token_index] = (char *)cases[i].token;
 
         if (!expect_invalid_main_result(cases[i].label_prefix, 3, argv, stderr_text, stderr_size, exit_code,
@@ -326,7 +336,10 @@ static int expect_invalid_input_size_cases(const struct invalid_input_size_case 
     size_t i = 0;
 
     for (i = 0; i < case_count; i += 1) {
-        char *argv[] = {(char *)program_name, (char *)scene_token, (char *)cases[i].width_token, (char *)cases[i].height_token};
+        const char *src[] = {program_name, scene_token, cases[i].width_token, cases[i].height_token};
+        char *argv[ARRAY_LEN(src)] = {0};
+
+        fill_argv(argv, src, ARRAY_LEN(src));
 
         if (!expect_invalid_main_result(cases[i].label_prefix, 4, argv, stderr_text, stderr_size, exit_code,
                                         custom_usage_text)) {
@@ -341,8 +354,10 @@ static int expect_success_cases(const struct success_case *cases, size_t case_co
     size_t i = 0;
 
     for (i = 0; i < case_count; i += 1) {
-        char *argv[] = {(char *)cases[i].program_name, (char *)cases[i].input_token,
-                        (char *)cases[i].width_token, (char *)cases[i].height_token};
+        const char *src[] = {cases[i].program_name, cases[i].input_token, cases[i].width_token, cases[i].height_token};
+        char *argv[ARRAY_LEN(src)] = {0};
+
+        fill_argv(argv, src, ARRAY_LEN(src));
 
         reset_app_state(cases[i].result, NULL, 0, 0, stderr_text);
         if (!capture_main_stderr(cases[i].argc, argv, stderr_text, stderr_size, exit_code)) {
@@ -363,13 +378,16 @@ static int expect_invalid_argv_cases(const struct invalid_argv_case *cases, size
     size_t i = 0;
 
     for (i = 0; i < case_count; i += 1) {
-        char **argv = (char **)cases[i].argv;
+        char *argv[ARRAY_LEN(cases[i].argv)] = {0};
+        char **argv_ptr = argv;
 
         if (cases[i].use_null_argv) {
-            argv = NULL;
+            argv_ptr = NULL;
+        } else {
+            fill_argv(argv, cases[i].argv, ARRAY_LEN(cases[i].argv));
         }
 
-        if (!expect_invalid_main_result(cases[i].label_prefix, cases[i].argc, argv,
+        if (!expect_invalid_main_result(cases[i].label_prefix, cases[i].argc, argv_ptr,
                                         stderr_text, stderr_size, exit_code,
                                         cases[i].expected_usage_text)) {
             return 0;
