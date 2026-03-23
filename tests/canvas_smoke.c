@@ -610,10 +610,74 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[0].visible = 1;
+    stack.layers[1].visible = 0;
+    stack.layers[2].visible = 1;
+    stack.layers[3].visible = 1;
+    stack.layers[0].locked = 0;
+    stack.layers[1].locked = 0;
+    stack.layers[2].locked = 1;
+    stack.layers[3].locked = 0;
+    stack.active_layer = 0;
+    if (layer_stack_cycle_editable(&stack, 1) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "editable layer cycling forward failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_cycle_editable(&stack, 1) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "editable layer cycling wrap failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_cycle_editable(&stack, -1) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "editable layer cycling backward failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_bottom_editable(&stack) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "select bottom editable failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_top_editable(&stack) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "select top editable failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[0].locked = 1;
+    stack.layers[3].visible = 0;
+    stack.active_layer = 2;
+    if (layer_stack_cycle_editable(&stack, 1) != -1 || stack.active_layer != 2) {
+        fprintf(stderr, "editable layer cycling should fail when no visible unlocked layers exist\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_bottom_editable(&stack) != -1 || stack.active_layer != 2) {
+        fprintf(stderr, "select bottom editable should fail when no visible unlocked layers exist\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_top_editable(&stack) != -1 || stack.active_layer != 2) {
+        fprintf(stderr, "select top editable should fail when no visible unlocked layers exist\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[0].locked = 0;
     stack.layers[1].locked = 0;
     stack.layers[2].locked = 0;
     stack.layers[3].locked = 0;
+    stack.layers[0].visible = 1;
+    stack.layers[1].visible = 1;
+    stack.layers[2].visible = 1;
+    stack.layers[3].visible = 1;
     stack.active_layer = 1;
     if (!layer_stack_lock_and_advance(&stack, 1)) {
         fprintf(stderr, "lock and advance failed\n");

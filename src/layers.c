@@ -117,6 +117,49 @@ static int layer_stack_select_bool_edge(LayerStack *stack, int want_value, int f
     return -1;
 }
 
+static int layer_stack_cycle_editable_filtered(LayerStack *stack, int direction) {
+    if (!stack || stack->layer_count <= 0) {
+        return -1;
+    }
+    for (int offset = 1; offset <= stack->layer_count; offset++) {
+        int idx = stack->active_layer + (direction * offset);
+        while (idx < 0) {
+            idx += stack->layer_count;
+        }
+        idx %= stack->layer_count;
+        if (stack->layers[idx].visible && !stack->layers[idx].locked) {
+            stack->active_layer = idx;
+            return idx;
+        }
+    }
+    if (stack->layers[stack->active_layer].visible && !stack->layers[stack->active_layer].locked) {
+        return stack->active_layer;
+    }
+    return -1;
+}
+
+static int layer_stack_select_editable_edge(LayerStack *stack, int from_top) {
+    if (!stack || stack->layer_count <= 0) {
+        return -1;
+    }
+    if (from_top) {
+        for (int i = stack->layer_count - 1; i >= 0; i--) {
+            if (stack->layers[i].visible && !stack->layers[i].locked) {
+                stack->active_layer = i;
+                return i;
+            }
+        }
+        return -1;
+    }
+    for (int i = 0; i < stack->layer_count; i++) {
+        if (stack->layers[i].visible && !stack->layers[i].locked) {
+            stack->active_layer = i;
+            return i;
+        }
+    }
+    return -1;
+}
+
 static int layer_stack_hide_and_focus_direction(LayerStack *stack, int index, int direction) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
@@ -332,6 +375,10 @@ int layer_stack_cycle_unlocked(LayerStack *stack, int direction) {
     return layer_stack_cycle_bool_field(stack, direction, 0, 1);
 }
 
+int layer_stack_cycle_editable(LayerStack *stack, int direction) {
+    return layer_stack_cycle_editable_filtered(stack, direction);
+}
+
 int layer_stack_select_bottom_visible(LayerStack *stack) {
     return layer_stack_select_edge_filtered(stack, 1, 0);
 }
@@ -362,6 +409,14 @@ int layer_stack_select_bottom_unlocked(LayerStack *stack) {
 
 int layer_stack_select_top_unlocked(LayerStack *stack) {
     return layer_stack_select_bool_edge(stack, 0, 1, 1);
+}
+
+int layer_stack_select_bottom_editable(LayerStack *stack) {
+    return layer_stack_select_editable_edge(stack, 0);
+}
+
+int layer_stack_select_top_editable(LayerStack *stack) {
+    return layer_stack_select_editable_edge(stack, 1);
 }
 
 int layer_stack_toggle_solo(LayerStack *stack, int index) {

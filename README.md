@@ -57,6 +57,8 @@ make test-sdl
 - `Alt` + `Home / End`: jump to the bottommost or topmost locked layer
 - `Ctrl` + `Alt` + `PageUp / PageDown`: cycle between unlocked layers only
 - `Ctrl` + `Alt` + `Home / End`: jump to the bottommost or topmost unlocked layer
+- `Alt` + `Shift` + `PageUp / PageDown`: cycle between visible unlocked layers only
+- `Alt` + `Shift` + `Home / End`: jump to the bottommost or topmost visible unlocked layer
 - `Ctrl+,`: insert a new transparent layer below the active layer
 - `Ctrl+N`: insert a new transparent layer above the active layer
 - `Ctrl+Shift+N`: add a new transparent layer
