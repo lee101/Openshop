@@ -80,19 +80,6 @@ typedef enum {
 } BrushShape;
 
 typedef struct {
-    int width;
-    int height;
-    int layer_count;
-    int active_layer;
-    int solo_index;
-    uint8_t visibility[MAX_LAYERS];
-    uint8_t locked[MAX_LAYERS];
-    uint8_t opacity_percent[MAX_LAYERS];
-    char names[MAX_LAYERS][LAYER_NAME_MAX];
-    uint32_t *pixels;
-} Snapshot;
-
-typedef struct {
     int fill_tolerance;
     int pixelate_block_size;
     int posterize_levels;
@@ -104,6 +91,20 @@ typedef struct {
     int saturation_delta;
     int hue_shift_degrees;
 } FilterSettings;
+
+typedef struct {
+    int width;
+    int height;
+    int layer_count;
+    int active_layer;
+    int solo_index;
+    FilterSettings filter_settings;
+    uint8_t visibility[MAX_LAYERS];
+    uint8_t locked[MAX_LAYERS];
+    uint8_t opacity_percent[MAX_LAYERS];
+    char names[MAX_LAYERS][LAYER_NAME_MAX];
+    uint32_t *pixels;
+} Snapshot;
 
 static FilterSettings default_filter_settings(void) {
     FilterSettings settings = {
@@ -122,6 +123,17 @@ static FilterSettings default_filter_settings(void) {
 }
 
 static FilterSettings g_filter_settings = {0};
+
+static int clamp_fill_tolerance(int tolerance);
+static int clamp_pixelate_block_size(int block_size);
+static int clamp_posterize_levels(int levels);
+static int clamp_threshold_value(int threshold);
+static int clamp_blur_radius(int radius);
+static int clamp_brightness_delta(int delta);
+static int clamp_filter_adjust_step(int step);
+static int clamp_contrast_delta(int delta);
+static int clamp_saturation_delta(int delta);
+static int clamp_hue_shift_degrees(int degrees);
 
 static void snapshot_free(Snapshot *s) {
     if (!s) {
@@ -146,6 +158,7 @@ static int snapshot_from_layers(Snapshot *s, const LayerStack *stack) {
     s->layer_count = stack->layer_count;
     s->active_layer = stack->active_layer;
     s->solo_index = stack->solo_index;
+    s->filter_settings = g_filter_settings;
 
     size_t per_layer = (size_t)stack->width * (size_t)stack->height;
     size_t total_pixels = per_layer * (size_t)stack->layer_count;
@@ -177,7 +190,7 @@ static int snapshot_from_layers(Snapshot *s, const LayerStack *stack) {
     return 1;
 }
 
-static int snapshot_apply(const Snapshot *s, LayerStack *stack) {
+static int snapshot_apply(const Snapshot *s, LayerStack *stack, FilterSettings *settings) {
     if (!s || !stack || !s->pixels) {
         return 0;
     }
@@ -219,6 +232,10 @@ static int snapshot_apply(const Snapshot *s, LayerStack *stack) {
     stack->solo_index = s->solo_index;
     if (stack->solo_index >= stack->layer_count) {
         stack->solo_index = -1;
+    }
+    g_filter_settings = s->filter_settings;
+    if (settings) {
+        *settings = s->filter_settings;
     }
     return 1;
 }
@@ -709,6 +726,109 @@ static int apply_canvas_transform_u8(
     return 1;
 }
 
+static int adjust_filter_settings_for_alt_key(FilterSettings *settings, SDL_Keycode key) {
+    if (!settings) {
+        return 0;
+    }
+    switch (key) {
+    case SDLK_0:
+        *settings = default_filter_settings();
+        return 1;
+    case SDLK_LEFTBRACKET:
+        settings->posterize_levels = clamp_posterize_levels(settings->posterize_levels - 1);
+        return 1;
+    case SDLK_RIGHTBRACKET:
+        settings->posterize_levels = clamp_posterize_levels(settings->posterize_levels + 1);
+        return 1;
+    case SDLK_COMMA:
+        settings->threshold_value = clamp_threshold_value(settings->threshold_value - THRESHOLD_STEP);
+        return 1;
+    case SDLK_PERIOD:
+        settings->threshold_value = clamp_threshold_value(settings->threshold_value + THRESHOLD_STEP);
+        return 1;
+    case SDLK_b:
+        settings->blur_radius = clamp_blur_radius(settings->blur_radius + 1);
+        return 1;
+    case SDLK_v:
+        settings->blur_radius = clamp_blur_radius(settings->blur_radius - 1);
+        return 1;
+    case SDLK_u:
+        settings->brightness_delta = clamp_brightness_delta(settings->brightness_delta - BRIGHTNESS_STEP);
+        return 1;
+    case SDLK_i:
+        settings->brightness_delta = clamp_brightness_delta(settings->brightness_delta + BRIGHTNESS_STEP);
+        return 1;
+    case SDLK_UP:
+        settings->filter_adjust_step = clamp_filter_adjust_step(settings->filter_adjust_step + FILTER_ADJUST_STEP);
+        return 1;
+    case SDLK_DOWN:
+        settings->filter_adjust_step = clamp_filter_adjust_step(settings->filter_adjust_step - FILTER_ADJUST_STEP);
+        return 1;
+    case SDLK_LEFT:
+        settings->saturation_delta = clamp_saturation_delta(settings->saturation_delta - SATURATION_STEP);
+        return 1;
+    case SDLK_RIGHT:
+        settings->saturation_delta = clamp_saturation_delta(settings->saturation_delta + SATURATION_STEP);
+        return 1;
+    case SDLK_h:
+        settings->contrast_delta = clamp_contrast_delta(settings->contrast_delta - CONTRAST_STEP);
+        return 1;
+    case SDLK_l:
+        settings->contrast_delta = clamp_contrast_delta(settings->contrast_delta + CONTRAST_STEP);
+        return 1;
+    case SDLK_j:
+        settings->hue_shift_degrees = clamp_hue_shift_degrees(settings->hue_shift_degrees - HUE_SHIFT_STEP);
+        return 1;
+    case SDLK_k:
+        settings->hue_shift_degrees = clamp_hue_shift_degrees(settings->hue_shift_degrees + HUE_SHIFT_STEP);
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+static int apply_configured_filter_for_key(
+    SDL_Keycode key,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    const FilterSettings *settings
+) {
+    if (!settings) {
+        return 0;
+    }
+    switch (key) {
+    case SDLK_m:
+        return apply_canvas_transform_int(
+            layers, undo_stack, undo_count, redo_stack, redo_count,
+            canvas_shift_hue, settings->hue_shift_degrees);
+    case SDLK_y:
+        return apply_canvas_transform_int(
+            layers, undo_stack, undo_count, redo_stack, redo_count,
+            canvas_adjust_saturation, settings->saturation_delta);
+    case SDLK_u:
+        return apply_canvas_transform_int(
+            layers, undo_stack, undo_count, redo_stack, redo_count,
+            canvas_adjust_brightness, settings->brightness_delta);
+    case SDLK_k:
+        return apply_canvas_transform_int(
+            layers, undo_stack, undo_count, redo_stack, redo_count,
+            canvas_adjust_contrast, settings->contrast_delta);
+    case SDLK_z:
+        return apply_canvas_transform_int(
+            layers, undo_stack, undo_count, redo_stack, redo_count,
+            canvas_posterize, settings->posterize_levels);
+    case SDLK_n:
+        return apply_canvas_transform_u8(
+            layers, undo_stack, undo_count, redo_stack, redo_count,
+            canvas_threshold, (uint8_t)settings->threshold_value);
+    default:
+        return 0;
+    }
+}
+
 static int apply_canvas_translation(
     LayerStack *layers,
     Snapshot *undo_stack,
@@ -1169,123 +1289,17 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (alt && key == SDLK_0) {
-                    settings = default_filter_settings();
-                    apply_filter_settings_and_refresh_title(
-                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (alt && key == SDLK_LEFTBRACKET) {
-                    settings.posterize_levels = clamp_posterize_levels(settings.posterize_levels - 1);
-                    apply_filter_settings_and_refresh_title(
-                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (alt && key == SDLK_RIGHTBRACKET) {
-                    settings.posterize_levels = clamp_posterize_levels(settings.posterize_levels + 1);
-                    apply_filter_settings_and_refresh_title(
-                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (alt && key == SDLK_COMMA) {
-                    settings.threshold_value = clamp_threshold_value(settings.threshold_value - THRESHOLD_STEP);
-                    apply_filter_settings_and_refresh_title(
-                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (alt && key == SDLK_PERIOD) {
-                    settings.threshold_value = clamp_threshold_value(settings.threshold_value + THRESHOLD_STEP);
-                    apply_filter_settings_and_refresh_title(
-                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (alt && key == SDLK_b) {
-                    settings.blur_radius = clamp_blur_radius(settings.blur_radius + 1);
-                    apply_filter_settings_and_refresh_title(
-                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (alt && key == SDLK_v) {
-                    settings.blur_radius = clamp_blur_radius(settings.blur_radius - 1);
-                    apply_filter_settings_and_refresh_title(
-                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (alt && key == SDLK_u) {
-                    settings.brightness_delta = clamp_brightness_delta(settings.brightness_delta - BRIGHTNESS_STEP);
-                    apply_filter_settings_and_refresh_title(
-                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (alt && key == SDLK_i) {
-                    settings.brightness_delta = clamp_brightness_delta(settings.brightness_delta + BRIGHTNESS_STEP);
-                    apply_filter_settings_and_refresh_title(
-                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (alt && key == SDLK_UP) {
-                    settings.filter_adjust_step = clamp_filter_adjust_step(settings.filter_adjust_step + FILTER_ADJUST_STEP);
-                    apply_filter_settings_and_refresh_title(
-                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (alt && key == SDLK_DOWN) {
-                    settings.filter_adjust_step = clamp_filter_adjust_step(settings.filter_adjust_step - FILTER_ADJUST_STEP);
-                    apply_filter_settings_and_refresh_title(
-                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (alt && key == SDLK_LEFT) {
-                    settings.saturation_delta = clamp_saturation_delta(settings.saturation_delta - SATURATION_STEP);
-                    apply_filter_settings_and_refresh_title(
-                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (alt && key == SDLK_RIGHT) {
-                    settings.saturation_delta = clamp_saturation_delta(settings.saturation_delta + SATURATION_STEP);
-                    apply_filter_settings_and_refresh_title(
-                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (alt && key == SDLK_h) {
-                    settings.contrast_delta = clamp_contrast_delta(settings.contrast_delta - CONTRAST_STEP);
-                    apply_filter_settings_and_refresh_title(
-                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (alt && key == SDLK_l) {
-                    settings.contrast_delta = clamp_contrast_delta(settings.contrast_delta + CONTRAST_STEP);
-                    apply_filter_settings_and_refresh_title(
-                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (alt && key == SDLK_j) {
-                    settings.hue_shift_degrees = clamp_hue_shift_degrees(settings.hue_shift_degrees - HUE_SHIFT_STEP);
-                    apply_filter_settings_and_refresh_title(
-                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (alt && key == SDLK_k) {
-                    settings.hue_shift_degrees = clamp_hue_shift_degrees(settings.hue_shift_degrees + HUE_SHIFT_STEP);
-                    apply_filter_settings_and_refresh_title(
-                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
+                if (alt) {
+                    FilterSettings next_settings = settings;
+                    if (adjust_filter_settings_for_alt_key(&next_settings, key)) {
+                        if (memcmp(&next_settings, &settings, sizeof(settings)) != 0) {
+                            push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        }
+                        settings = next_settings;
+                        apply_filter_settings_and_refresh_title(
+                            window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        break;
+                    }
                 }
 
                 if (ctrl && shift && key == SDLK_n) {
@@ -1569,10 +1583,11 @@ int app_run(const char *input_path) {
                             redo_stack[redo_count++] = current;
                         }
                         Snapshot prev = undo_stack[--undo_count];
-                        snapshot_apply(&prev, &layers);
+                        snapshot_apply(&prev, &layers, &settings);
                         snapshot_free(&prev);
                         needs_composite = 1;
-                        refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        apply_filter_settings_and_refresh_title(
+                            window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                     break;
                 }
@@ -1589,10 +1604,11 @@ int app_run(const char *input_path) {
                             undo_stack[undo_count++] = current;
                         }
                         Snapshot next = redo_stack[--redo_count];
-                        snapshot_apply(&next, &layers);
+                        snapshot_apply(&next, &layers, &settings);
                         snapshot_free(&next);
                         needs_composite = 1;
-                        refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        apply_filter_settings_and_refresh_title(
+                            window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                     break;
                 }
@@ -1864,36 +1880,9 @@ int app_run(const char *input_path) {
                     if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_sepia)) {
                         needs_composite = 1;
                     }
-                } else if (key == SDLK_m) {
-                    if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                            canvas_shift_hue, settings.hue_shift_degrees)) {
-                        needs_composite = 1;
-                    }
-                } else if (key == SDLK_y) {
-                    if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                            canvas_adjust_saturation, settings.saturation_delta)) {
-                        needs_composite = 1;
-                    }
-                } else if (key == SDLK_u) {
-                    if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                            canvas_adjust_brightness, settings.brightness_delta)) {
-                        needs_composite = 1;
-                    }
-                } else if (key == SDLK_k) {
-                    if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                            canvas_adjust_contrast, settings.contrast_delta)) {
-                        needs_composite = 1;
-                    }
-                } else if (key == SDLK_z) {
-                    if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                            canvas_posterize, settings.posterize_levels)) {
-                        needs_composite = 1;
-                    }
-                } else if (key == SDLK_n) {
-                    if (apply_canvas_transform_u8(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                            canvas_threshold, settings.threshold_value)) {
-                        needs_composite = 1;
-                    }
+                } else if (apply_configured_filter_for_key(
+                        key, &layers, undo_stack, &undo_count, redo_stack, &redo_count, &settings)) {
+                    needs_composite = 1;
                 }
 
                 refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
