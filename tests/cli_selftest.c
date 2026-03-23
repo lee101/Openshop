@@ -62,6 +62,16 @@ int main(void) {
         return 1;
     }
 
+    char *argv_missing_h[] = {"openshop", "art/scene.png", "640"};
+    if (!expect_int("missing_h", parse_cli_args(3, argv_missing_h, &options), 0)) {
+        return 1;
+    }
+
+    char *argv_extra[] = {"openshop", "art/scene.png", "640", "480", "extra"};
+    if (!expect_int("extra_args", parse_cli_args(5, argv_extra, &options), 0)) {
+        return 1;
+    }
+
     if (!expect_int("null_options", parse_cli_args(1, argv_default, NULL), 0)) {
         return 1;
     }
