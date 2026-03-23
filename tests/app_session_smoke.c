@@ -40,6 +40,7 @@ static int test_escape_cancels_shape_or_stops_running(void) {
 static int test_apply_updates_session_state(void) {
     AppSessionState shaping = {.shaping = 1, .preview_active = 1, .running = 1};
     AppSessionState idle = {.shaping = 0, .preview_active = 0, .running = 1};
+    AppSessionState both = {.shaping = 1, .preview_active = 1, .running = 1};
     AppSessionState untouched = {.shaping = 1, .preview_active = 1, .running = 1};
 
     if (!app_session_apply((AppSessionCommand){.handled = 1, .cancel_shape = 1, .stop_running = 0}, &shaping) ||
@@ -53,6 +54,13 @@ static int test_apply_updates_session_state(void) {
         !expect_int_eq("apply_idle_shaping", idle.shaping, 0) ||
         !expect_int_eq("apply_idle_preview", idle.preview_active, 0) ||
         !expect_int_eq("apply_idle_running", idle.running, 0)) {
+        return 0;
+    }
+
+    if (!app_session_apply((AppSessionCommand){.handled = 1, .cancel_shape = 1, .stop_running = 1}, &both) ||
+        !expect_int_eq("apply_both_shaping", both.shaping, 0) ||
+        !expect_int_eq("apply_both_preview", both.preview_active, 0) ||
+        !expect_int_eq("apply_both_running", both.running, 0)) {
         return 0;
     }
 
