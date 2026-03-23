@@ -5,6 +5,11 @@
 #include <stdio.h>
 #include <string.h>
 
+static const char *const DEFAULT_INPUT_BMP_PATH = "input.bmp";
+static const char *const DEFAULT_INPUT_PNG_PATH = "input.png";
+static const char *const DEFAULT_OUTPUT_BMP_PATH = "output.bmp";
+static const char *const DEFAULT_OUTPUT_PNG_PATH = "output.png";
+
 int path_has_extension_ci(const char *path, const char *ext) {
     size_t path_len = 0;
     size_t ext_len = 0;
@@ -119,11 +124,11 @@ const char *default_routed_path(
 }
 
 const char *default_input_path(int prefer_png, int bmp_exists, int png_exists) {
-    return default_routed_path("input.bmp", "input.png", prefer_png, bmp_exists, png_exists);
+    return default_routed_path(DEFAULT_INPUT_BMP_PATH, DEFAULT_INPUT_PNG_PATH, prefer_png, bmp_exists, png_exists);
 }
 
 const char *default_output_path(int prefer_png, int bmp_exists, int png_exists) {
-    return default_routed_path("output.bmp", "output.png", prefer_png, bmp_exists, png_exists);
+    return default_routed_path(DEFAULT_OUTPUT_BMP_PATH, DEFAULT_OUTPUT_PNG_PATH, prefer_png, bmp_exists, png_exists);
 }
 
 RoutedPath resolve_routed_choice(const char *bmp_path, const char *png_path, int prefer_png) {
@@ -149,11 +154,11 @@ RoutedPath resolve_routed_pair_choice(
 }
 
 RoutedPath resolve_default_input_choice(int prefer_png) {
-    return resolve_routed_choice("input.bmp", "input.png", prefer_png);
+    return resolve_routed_choice(DEFAULT_INPUT_BMP_PATH, DEFAULT_INPUT_PNG_PATH, prefer_png);
 }
 
 RoutedPath resolve_default_output_choice(int prefer_png) {
-    return resolve_routed_choice("output.bmp", "output.png", prefer_png);
+    return resolve_routed_choice(DEFAULT_OUTPUT_BMP_PATH, DEFAULT_OUTPUT_PNG_PATH, prefer_png);
 }
 
 const char *resolve_default_input_path(int prefer_png) {
