@@ -9,6 +9,8 @@ static const char *last_input_path = NULL;
 static int last_canvas_w = 0;
 static int last_canvas_h = 0;
 static int app_run_result = 0;
+static const char *default_scene_path = "art/scene.png";
+static const char *default_input_path = "art/input.png";
 static const char *custom_program_name = "./bin/openshop-dev";
 static const char *custom_input_path = "art/custom.png";
 static const char *custom_numeric_input = "640";
@@ -209,28 +211,28 @@ int main(void) {
         return 1;
     }
 
-    char *argv_invalid[] = {"openshop", "art/scene.png", (char *)default_size_only_width};
+    char *argv_invalid[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width};
     reset_app_state(0, NULL, 0, 0, stderr_text);
     if (!capture_main_stderr(3, argv_invalid, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("invalid", exit_code, stderr_text)) {
         return 1;
     }
 
-    char *argv_bad_size_only[] = {"openshop", "art/scene.png", "768"};
+    char *argv_bad_size_only[] = {"openshop", (char *)default_scene_path, "768"};
     reset_app_state(0, NULL, 0, 0, stderr_text);
     if (!capture_main_stderr(3, argv_bad_size_only, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("bad_size_only", exit_code, stderr_text)) {
         return 1;
     }
 
-    char *argv_custom_program_invalid[] = {(char *)custom_program_name, "art/scene.png", "768"};
+    char *argv_custom_program_invalid[] = {(char *)custom_program_name, (char *)default_scene_path, "768"};
     reset_app_state(0, NULL, 0, 0, stderr_text);
     if (!capture_main_stderr(3, argv_custom_program_invalid, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run_with_usage("custom_program_invalid", exit_code, stderr_text, custom_usage_text)) {
         return 1;
     }
 
-    char *argv_missing_h[] = {"openshop", "art/scene.png", (char *)default_size_only_width};
+    char *argv_missing_h[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width};
     reset_app_state(0, NULL, 0, 0, stderr_text);
     if (!capture_main_stderr(3, argv_missing_h, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("missing_h", exit_code, stderr_text)) {
@@ -244,7 +246,7 @@ int main(void) {
         return 1;
     }
 
-    char *argv_extra[] = {"openshop", "art/scene.png", (char *)default_size_only_width, (char *)default_size_only_height, "extra"};
+    char *argv_extra[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width, (char *)default_size_only_height, "extra"};
     reset_app_state(0, NULL, 0, 0, stderr_text);
     if (!capture_main_stderr(5, argv_extra, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("extra_args", exit_code, stderr_text)) {
@@ -293,91 +295,91 @@ int main(void) {
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_bad_width_value[] = {"openshop", "art/scene.png", "0", "768"};
+    char *argv_bad_width_value[] = {"openshop", (char *)default_scene_path, "0", "768"};
     if (!capture_main_stderr(4, argv_bad_width_value, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("bad_width_value", exit_code, stderr_text)) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_bad_width_token[] = {"openshop", "art/scene.png", "12x", "480"};
+    char *argv_bad_width_token[] = {"openshop", (char *)default_scene_path, "12x", "480"};
     if (!capture_main_stderr(4, argv_bad_width_token, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("bad_width_token", exit_code, stderr_text)) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_bad_height_value[] = {"openshop", "art/scene.png", (char *)default_size_only_width, "-1"};
+    char *argv_bad_height_value[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width, "-1"};
     if (!capture_main_stderr(4, argv_bad_height_value, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("bad_height_value", exit_code, stderr_text)) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_empty_width[] = {"openshop", "art/scene.png", "", "480"};
+    char *argv_empty_width[] = {"openshop", (char *)default_scene_path, "", "480"};
     if (!capture_main_stderr(4, argv_empty_width, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("empty_width", exit_code, stderr_text)) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_null_width[] = {"openshop", "art/scene.png", NULL, "480"};
+    char *argv_null_width[] = {"openshop", (char *)default_scene_path, NULL, "480"};
     if (!capture_main_stderr(4, argv_null_width, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("null_width", exit_code, stderr_text)) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_null_height[] = {"openshop", "art/scene.png", (char *)default_size_only_width, NULL};
+    char *argv_null_height[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width, NULL};
     if (!capture_main_stderr(4, argv_null_height, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("null_height", exit_code, stderr_text)) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_overflow_width[] = {"openshop", "art/scene.png", "2147483648", "480"};
+    char *argv_overflow_width[] = {"openshop", (char *)default_scene_path, "2147483648", "480"};
     if (!capture_main_stderr(4, argv_overflow_width, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("overflow_width", exit_code, stderr_text)) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_bad_height_token[] = {"openshop", "art/scene.png", (char *)default_size_only_width, "48px"};
+    char *argv_bad_height_token[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width, "48px"};
     if (!capture_main_stderr(4, argv_bad_height_token, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("bad_height_token", exit_code, stderr_text)) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_overflow_height[] = {"openshop", "art/scene.png", (char *)default_size_only_width, "999999999999999999999"};
+    char *argv_overflow_height[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width, "999999999999999999999"};
     if (!capture_main_stderr(4, argv_overflow_height, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("overflow_height", exit_code, stderr_text)) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_leading_space_width[] = {"openshop", "art/scene.png", " 640", "480"};
+    char *argv_leading_space_width[] = {"openshop", (char *)default_scene_path, " 640", "480"};
     if (!capture_main_stderr(4, argv_leading_space_width, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("leading_space_width", exit_code, stderr_text)) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_trailing_newline_height[] = {"openshop", "art/scene.png", (char *)default_size_only_width, "480\n"};
+    char *argv_trailing_newline_height[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width, "480\n"};
     if (!capture_main_stderr(4, argv_trailing_newline_height, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("trailing_newline_height", exit_code, stderr_text)) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_leading_tab_height[] = {"openshop", "art/scene.png", (char *)default_size_only_width, "\t480"};
+    char *argv_leading_tab_height[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width, "\t480"};
     if (!capture_main_stderr(4, argv_leading_tab_height, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("leading_tab_height", exit_code, stderr_text)) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_trailing_space_width[] = {"openshop", "art/scene.png", "640 ", "480"};
+    char *argv_trailing_space_width[] = {"openshop", (char *)default_scene_path, "640 ", "480"};
     if (!capture_main_stderr(4, argv_trailing_space_width, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("trailing_space_width", exit_code, stderr_text)) {
         return 1;
@@ -469,23 +471,23 @@ int main(void) {
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_input_size[] = {"openshop", "art/scene.png", (char *)default_input_size_width, (char *)default_input_size_height};
+    char *argv_input_size[] = {"openshop", (char *)default_scene_path, (char *)default_input_size_width, (char *)default_input_size_height};
     if (!capture_main_stderr(4, argv_input_size, stderr_text, sizeof(stderr_text), &exit_code) ||
-        !expect_successful_run("input_size", exit_code, 0, "art/scene.png", 320, 240, stderr_text, "")) {
+        !expect_successful_run("input_size", exit_code, 0, default_scene_path, 320, 240, stderr_text, "")) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_plus_prefixed[] = {"openshop", "art/scene.png", (char *)default_plus_prefixed_input_size_width, (char *)default_size_only_height};
+    char *argv_plus_prefixed[] = {"openshop", (char *)default_scene_path, (char *)default_plus_prefixed_input_size_width, (char *)default_size_only_height};
     if (!capture_main_stderr(4, argv_plus_prefixed, stderr_text, sizeof(stderr_text), &exit_code) ||
-        !expect_successful_run("plus_prefixed", exit_code, 0, "art/scene.png", 640, 480, stderr_text, "")) {
+        !expect_successful_run("plus_prefixed", exit_code, 0, default_scene_path, 640, 480, stderr_text, "")) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_input_only[] = {"openshop", "art/input.png"};
+    char *argv_input_only[] = {"openshop", (char *)default_input_path};
     if (!capture_main_stderr(2, argv_input_only, stderr_text, sizeof(stderr_text), &exit_code) ||
-        !expect_successful_run("input_only", exit_code, 0, "art/input.png", 0, 0, stderr_text, "")) {
+        !expect_successful_run("input_only", exit_code, 0, default_input_path, 0, 0, stderr_text, "")) {
         return 1;
     }
 
