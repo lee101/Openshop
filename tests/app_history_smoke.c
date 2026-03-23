@@ -12,7 +12,8 @@ typedef struct {
 } AllocatorStubState;
 
 static AllocatorStubState *allocator_stub_state = NULL;
-static int fail_canvas_init = 0;
+static int fail_canvas_init_after = -1;
+static int canvas_init_calls = 0;
 
 static int expect_int_eq(const char *label, int got, int want) {
     if (got != want) {
@@ -43,10 +44,17 @@ static void install_allocator_stub(AllocatorStubState *state) {
 }
 
 static int stub_canvas_init(Canvas *canvas, int width, int height) {
-    if (fail_canvas_init) {
+    canvas_init_calls++;
+    if (fail_canvas_init_after >= 0 && canvas_init_calls > fail_canvas_init_after) {
         return 0;
     }
     return canvas_init(canvas, width, height);
+}
+
+static void install_canvas_init_stub(int fail_after) {
+    fail_canvas_init_after = fail_after;
+    canvas_init_calls = 0;
+    app_history_set_canvas_init(fail_after >= 0 ? stub_canvas_init : NULL);
 }
 
 static int expect_pixel_eq(const char *label, uint32_t got, uint32_t want) {
@@ -334,18 +342,15 @@ static int test_snapshot_apply_preserves_state_on_canvas_allocation_failure(void
     stack.layers[1].canvas.width = 0;
     stack.layers[1].canvas.height = 0;
 
-    fail_canvas_init = 1;
-    app_history_set_canvas_init(stub_canvas_init);
+    install_canvas_init_stub(0);
     if (snapshot_apply(&snapshot, &stack)) {
         fprintf(stderr, "snapshot_apply should fail when canvas allocation fails\n");
-        fail_canvas_init = 0;
-        app_history_set_canvas_init(NULL);
+        install_canvas_init_stub(-1);
         snapshot_free(&snapshot);
         layer_stack_free(&stack);
         return 0;
     }
-    fail_canvas_init = 0;
-    app_history_set_canvas_init(NULL);
+    install_canvas_init_stub(-1);
 
     if (!expect_int_eq("apply_alloc_fail_active", stack.active_layer, 1) ||
         !expect_int_eq("apply_alloc_fail_solo", stack.solo_index, 1) ||
@@ -358,6 +363,80 @@ static int test_snapshot_apply_preserves_state_on_canvas_allocation_failure(void
         !expect_pixel_eq("apply_alloc_fail_base_pixel", canvas_get_pixel(&stack.layers[0].canvas, 2, 2), base_pixel) ||
         !expect_int_eq("apply_alloc_fail_top_pixel_missing", canvas_get_pixel(&stack.layers[1].canvas, 2, 2), 0) ||
         !expect_pixel_eq("apply_alloc_fail_snapshot_top_pixel", snapshot.pixels[36 + 2 * 6 + 2], top_pixel)) {
+        snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    snapshot_free(&snapshot);
+    layer_stack_free(&stack);
+    return 1;
+}
+
+static int test_snapshot_apply_preserves_state_when_later_canvas_allocation_fails(void) {
+    LayerStack stack;
+    Snapshot snapshot = {0};
+
+    if (!layer_stack_init(&stack, 6, 6, 0xFFFFFFFF) ||
+        layer_stack_add(&stack, "Mid", 0x00000000) < 0 ||
+        layer_stack_add(&stack, "Top", 0x00000000) < 0) {
+        fprintf(stderr, "layer stack initialization failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    stack.active_layer = 2;
+    stack.solo_index = 2;
+    stack.layers[0].visible = 0;
+    stack.layers[1].locked = 1;
+    stack.layers[2].opacity_percent = 35;
+    canvas_set_pixel(&stack.layers[0].canvas, 1, 1, 0xFF102030);
+    canvas_set_pixel(&stack.layers[1].canvas, 1, 1, 0x80405060);
+    canvas_set_pixel(&stack.layers[2].canvas, 1, 1, 0x80708090);
+
+    if (!snapshot_from_layers(&snapshot, &stack)) {
+        fprintf(stderr, "snapshot_from_layers failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    stack.active_layer = 0;
+    stack.solo_index = -1;
+    stack.layers[0].visible = 1;
+    stack.layers[1].locked = 0;
+    stack.layers[2].opacity_percent = 100;
+    canvas_set_pixel(&stack.layers[0].canvas, 1, 1, 0xFFAABBCC);
+    canvas_set_pixel(&stack.layers[1].canvas, 1, 1, 0xFFDDEEFF);
+    canvas_set_pixel(&stack.layers[2].canvas, 1, 1, 0xFF010203);
+
+    canvas_free(&stack.layers[1].canvas);
+    stack.layers[1].canvas.width = 0;
+    stack.layers[1].canvas.height = 0;
+    canvas_free(&stack.layers[2].canvas);
+    stack.layers[2].canvas.width = 0;
+    stack.layers[2].canvas.height = 0;
+
+    install_canvas_init_stub(1);
+    if (snapshot_apply(&snapshot, &stack)) {
+        fprintf(stderr, "snapshot_apply should fail when a later canvas allocation fails\n");
+        install_canvas_init_stub(-1);
+        snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    install_canvas_init_stub(-1);
+
+    if (!expect_int_eq("apply_late_alloc_fail_active", stack.active_layer, 0) ||
+        !expect_int_eq("apply_late_alloc_fail_solo", stack.solo_index, -1) ||
+        !expect_int_eq("apply_late_alloc_fail_visible", stack.layers[0].visible, 1) ||
+        !expect_int_eq("apply_late_alloc_fail_locked", stack.layers[1].locked, 0) ||
+        !expect_int_eq("apply_late_alloc_fail_opacity", stack.layers[2].opacity_percent, 100) ||
+        !expect_pixel_eq("apply_late_alloc_fail_base_pixel", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFFAABBCC) ||
+        !stack.layers[1].canvas.pixels ||
+        !expect_pixel_eq("apply_late_alloc_fail_mid_pixel", canvas_get_pixel(&stack.layers[1].canvas, 1, 1), 0x00000000) ||
+        !expect_int_eq("apply_late_alloc_fail_top_canvas_width", stack.layers[2].canvas.width, 0) ||
+        !expect_int_eq("apply_late_alloc_fail_top_canvas_height", stack.layers[2].canvas.height, 0) ||
+        stack.layers[2].canvas.pixels != NULL) {
         snapshot_free(&snapshot);
         layer_stack_free(&stack);
         return 0;
@@ -1016,6 +1095,9 @@ int main(void) {
         return 1;
     }
     if (!test_snapshot_apply_preserves_state_on_canvas_allocation_failure()) {
+        return 1;
+    }
+    if (!test_snapshot_apply_preserves_state_when_later_canvas_allocation_fails()) {
         return 1;
     }
     if (!test_snapshot_restore_rejects_invalid_entry_without_mutation()) {

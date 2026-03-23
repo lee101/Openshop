@@ -100,7 +100,6 @@ int snapshot_apply(const Snapshot *snapshot, LayerStack *stack) {
     }
     stack->layer_count = snapshot->layer_count;
 
-    size_t per_layer = (size_t)stack->width * (size_t)stack->height;
     for (int layer_index = 0; layer_index < stack->layer_count; layer_index++) {
         Layer *layer = &stack->layers[layer_index];
         if (!layer->canvas.pixels) {
@@ -108,6 +107,11 @@ int snapshot_apply(const Snapshot *snapshot, LayerStack *stack) {
                 return 0;
             }
         }
+    }
+
+    size_t per_layer = (size_t)stack->width * (size_t)stack->height;
+    for (int layer_index = 0; layer_index < stack->layer_count; layer_index++) {
+        Layer *layer = &stack->layers[layer_index];
         memcpy(layer->canvas.pixels, snapshot->pixels + per_layer * (size_t)layer_index, per_layer * sizeof(uint32_t));
         layer->visible = snapshot->visibility[layer_index] ? 1 : 0;
         layer->locked = snapshot->locked[layer_index] ? 1 : 0;
