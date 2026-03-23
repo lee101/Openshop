@@ -65,6 +65,8 @@ int layer_stack_show_hidden_unlocked_only(LayerStack *stack, int preserve_index)
 int layer_stack_show_locked_only(LayerStack *stack, int preserve_index);
 int layer_stack_show_unlocked_only(LayerStack *stack, int preserve_index);
 int layer_stack_reveal_hidden(LayerStack *stack, int direction);
+int layer_stack_reveal_hidden_locked(LayerStack *stack, int from_top);
+int layer_stack_reveal_hidden_unlocked(LayerStack *stack, int from_top);
 int layer_stack_reveal_editable(LayerStack *stack, int direction);
 int layer_stack_reveal_hidden_editable(LayerStack *stack, int from_top);
 int layer_stack_hide_and_advance(LayerStack *stack, int index);

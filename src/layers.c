@@ -131,6 +131,21 @@ static int layer_stack_select_combined_filter(LayerStack *stack, int from_top, i
     return -1;
 }
 
+static int layer_stack_reveal_selected_combined_filter(LayerStack *stack, int from_top, int required_hidden, int required_locked) {
+    int target;
+    if (!stack || stack->layer_count <= 0) {
+        return 0;
+    }
+    target = layer_stack_select_combined_filter(stack, from_top, required_hidden, required_locked);
+    if (target < 0) {
+        return 0;
+    }
+    stack->layers[target].visible = 1;
+    stack->active_layer = target;
+    stack->solo_index = -1;
+    return 1;
+}
+
 static int layer_stack_cycle_bool_field(LayerStack *stack, int direction, int want_value, int use_locked) {
     if (!stack || stack->layer_count <= 0) {
         return -1;
@@ -640,6 +655,14 @@ int layer_stack_reveal_hidden(LayerStack *stack, int direction) {
     stack->active_layer = target;
     stack->solo_index = -1;
     return 1;
+}
+
+int layer_stack_reveal_hidden_locked(LayerStack *stack, int from_top) {
+    return layer_stack_reveal_selected_combined_filter(stack, from_top, 1, 1);
+}
+
+int layer_stack_reveal_hidden_unlocked(LayerStack *stack, int from_top) {
+    return layer_stack_reveal_selected_combined_filter(stack, from_top, 1, 0);
 }
 
 int layer_stack_reveal_editable(LayerStack *stack, int direction) {

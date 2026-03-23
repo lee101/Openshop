@@ -1117,6 +1117,131 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[0].visible = 0;
+    stack.layers[1].visible = 1;
+    stack.layers[2].visible = 0;
+    stack.layers[3].visible = 0;
+    stack.layers[0].locked = 1;
+    stack.layers[1].locked = 0;
+    stack.layers[2].locked = 0;
+    stack.layers[3].locked = 1;
+    stack.layers[0].opacity_percent = 30;
+    stack.layers[2].opacity_percent = 70;
+    stack.layers[3].opacity_percent = 85;
+    strncpy(stack.layers[0].name, "Bottom Hidden Locked", LAYER_NAME_MAX - 1);
+    stack.layers[0].name[LAYER_NAME_MAX - 1] = '\0';
+    strncpy(stack.layers[2].name, "Mid Hidden Unlocked", LAYER_NAME_MAX - 1);
+    stack.layers[2].name[LAYER_NAME_MAX - 1] = '\0';
+    strncpy(stack.layers[3].name, "Top Hidden Locked", LAYER_NAME_MAX - 1);
+    stack.layers[3].name[LAYER_NAME_MAX - 1] = '\0';
+    stack.active_layer = 1;
+    stack.solo_index = 1;
+    if (!layer_stack_reveal_hidden_locked(&stack, 0) || stack.active_layer != 0 || !stack.layers[0].visible) {
+        fprintf(stderr, "reveal hidden locked from bottom failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[0].opacity_percent != 30 || stack.layers[2].opacity_percent != 70 ||
+        stack.layers[3].opacity_percent != 85 ||
+        strcmp(stack.layers[0].name, "Bottom Hidden Locked") != 0 ||
+        strcmp(stack.layers[2].name, "Mid Hidden Unlocked") != 0 ||
+        strcmp(stack.layers[3].name, "Top Hidden Locked") != 0) {
+        fprintf(stderr, "reveal hidden locked should preserve metadata\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != -1) {
+        fprintf(stderr, "reveal hidden locked should clear solo mode\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[0].visible = 0;
+    if (!layer_stack_reveal_hidden_locked(&stack, 1) || stack.active_layer != 3 || !stack.layers[3].visible) {
+        fprintf(stderr, "reveal hidden locked from top failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[3].opacity_percent != 85 || strcmp(stack.layers[3].name, "Top Hidden Locked") != 0) {
+        fprintf(stderr, "reveal hidden locked from top should preserve metadata\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[0].locked = 0;
+    stack.layers[3].locked = 0;
+    stack.layers[0].visible = 0;
+    stack.layers[3].visible = 0;
+    stack.active_layer = 1;
+    if (layer_stack_reveal_hidden_locked(&stack, 0)) {
+        fprintf(stderr, "reveal hidden locked should fail when no hidden locked layers exist\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[0].visible = 1;
+    stack.layers[1].visible = 1;
+    stack.layers[2].visible = 0;
+    stack.layers[3].visible = 0;
+    stack.layers[0].locked = 1;
+    stack.layers[1].locked = 1;
+    stack.layers[2].locked = 0;
+    stack.layers[3].locked = 0;
+    stack.layers[2].opacity_percent = 55;
+    stack.layers[3].opacity_percent = 75;
+    strncpy(stack.layers[2].name, "Bottom Hidden Unlocked", LAYER_NAME_MAX - 1);
+    stack.layers[2].name[LAYER_NAME_MAX - 1] = '\0';
+    strncpy(stack.layers[3].name, "Top Hidden Unlocked", LAYER_NAME_MAX - 1);
+    stack.layers[3].name[LAYER_NAME_MAX - 1] = '\0';
+    stack.active_layer = 1;
+    stack.solo_index = 1;
+    if (!layer_stack_reveal_hidden_unlocked(&stack, 0) || stack.active_layer != 2 || !stack.layers[2].visible) {
+        fprintf(stderr, "reveal hidden unlocked from bottom failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[2].opacity_percent != 55 || stack.layers[3].opacity_percent != 75 ||
+        strcmp(stack.layers[2].name, "Bottom Hidden Unlocked") != 0 ||
+        strcmp(stack.layers[3].name, "Top Hidden Unlocked") != 0) {
+        fprintf(stderr, "reveal hidden unlocked should preserve metadata\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != -1) {
+        fprintf(stderr, "reveal hidden unlocked should clear solo mode\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[2].visible = 0;
+    if (!layer_stack_reveal_hidden_unlocked(&stack, 1) || stack.active_layer != 3 || !stack.layers[3].visible) {
+        fprintf(stderr, "reveal hidden unlocked from top failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[3].opacity_percent != 75 || strcmp(stack.layers[3].name, "Top Hidden Unlocked") != 0) {
+        fprintf(stderr, "reveal hidden unlocked from top should preserve metadata\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[2].locked = 1;
+    stack.layers[3].locked = 1;
+    stack.layers[2].visible = 0;
+    stack.layers[3].visible = 0;
+    stack.active_layer = 1;
+    if (layer_stack_reveal_hidden_unlocked(&stack, 0)) {
+        fprintf(stderr, "reveal hidden unlocked should fail when no hidden unlocked layers exist\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[0].locked = 0;
     stack.layers[1].locked = 0;
     stack.layers[2].locked = 0;
