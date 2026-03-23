@@ -399,11 +399,13 @@ static int expect_invalid_argv_cases(const struct invalid_argv_case *cases, size
 int main(void) {
     char stderr_text[main_smoke_buffer_size];
     char custom_usage_text[main_smoke_buffer_size];
-    char *custom_usage_argv[] = {(char *)custom_program_name};
+    const char *custom_usage_src[] = {custom_program_name};
+    char *custom_usage_argv[ARRAY_LEN(custom_usage_src)] = {0};
     int exit_code = 0;
 
     stderr_text[0] = '\0';
     custom_usage_text[0] = '\0';
+    fill_argv(custom_usage_argv, custom_usage_src, ARRAY_LEN(custom_usage_src));
 
     if (!format_cli_usage(custom_usage_text, sizeof(custom_usage_text), custom_usage_argv)) {
         return 1;
