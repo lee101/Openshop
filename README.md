@@ -98,7 +98,11 @@ make test-sdl
 - Locked layers stay visible in the stack but reject paint, fill, clear, transform, load, merge, flatten, stamp, and delete operations.
 - Solo preview still renders the active layer even if that layer's normal visibility is off.
 - Transparent regions render over a checkerboard preview in the editor.
-- CLI startup loading auto-detects `.bmp` vs `.png` from the input path and falls back across both loaders for unknown extensions.
+- Format routing:
+  Startup input uses the path you pass on the CLI and auto-detects BMP vs PNG by extension, with a BMP fallback for unknown extensions.
+  `Ctrl+O` prefers `input.bmp`, falls back to `input.png`, and `Ctrl+Shift+O` always targets `input.png`.
+  `Ctrl+S` prefers `output.bmp` unless only `output.png` already exists, and `Ctrl+Shift+S` always targets `output.png`.
+- `make test-sdl` exercises SDL-backed image I/O routing when SDL2 development tools are installed.
 
 ## Self-test Images
 `make test` now generates deterministic BMP outputs at `test-artifacts/`:
