@@ -715,6 +715,8 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
         Layer *active = layer_stack_active(&layers);
         if (active && !canvas_load_auto(&active->canvas, input_path, COLOR_BG)) {
             fprintf(stderr, "Failed to load %s\n", input_path);
+        } else if (active) {
+            fprintf(stderr, "Loaded %s\n", input_path);
         }
     }
     layer_stack_composite(&layers, &composite, COLOR_BG);
@@ -1165,6 +1167,8 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
                     const char *saved_path = shift ? "output.png" : "output.bmp";
                     if (!canvas_save_default_output(save_canvas, shift, &saved_path)) {
                         fprintf(stderr, "Failed to save %s\n", saved_path);
+                    } else {
+                        fprintf(stderr, "Saved %s\n", saved_path);
                     }
                     break;
                 }
@@ -1185,6 +1189,7 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
                         snapshot_free(&before);
                         fprintf(stderr, "Failed to load %s\n", loaded_path);
                     } else {
+                        fprintf(stderr, "Loaded %s\n", loaded_path);
                         push_snapshot_entry(before, undo_stack, &undo_count, redo_stack, &redo_count);
                         needs_composite = 1;
                     }
