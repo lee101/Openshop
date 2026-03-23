@@ -172,6 +172,13 @@ int main(void) {
         return 1;
     }
 
+    char *argv_missing_h[] = {"openshop", "art/scene.png", "640"};
+    reset_app_state(0, NULL, 0, 0, stderr_text);
+    if (!capture_main_stderr(3, argv_missing_h, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_invalid_run("missing_h", exit_code, stderr_text)) {
+        return 1;
+    }
+
     char *argv_extra[] = {"openshop", "art/scene.png", "640", "480", "extra"};
     reset_app_state(0, NULL, 0, 0, stderr_text);
     if (!capture_main_stderr(5, argv_extra, stderr_text, sizeof(stderr_text), &exit_code) ||
@@ -203,6 +210,13 @@ int main(void) {
     char *argv_empty_input[] = {"openshop", ""};
     if (!capture_main_stderr(2, argv_empty_input, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_invalid_run("empty_input", exit_code, stderr_text)) {
+        return 1;
+    }
+
+    reset_app_state(0, NULL, 0, 0, stderr_text);
+    char *argv_bad_width_value[] = {"openshop", "art/scene.png", "0", "768"};
+    if (!capture_main_stderr(4, argv_bad_width_value, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_invalid_run("bad_width_value", exit_code, stderr_text)) {
         return 1;
     }
 
