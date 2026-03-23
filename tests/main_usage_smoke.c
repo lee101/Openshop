@@ -18,9 +18,6 @@ static const char *custom_plus_prefixed_size_only_width = "+800";
 static const char *custom_input_size_width = "320";
 static const char *custom_input_size_height = "240";
 static const char *custom_plus_prefixed_input_size_width = "+320";
-static const char *expected_usage_text =
-    "Usage: openshop [input_path] [width height]\n"
-    "       or: WIDTH HEIGHT\n";
 
 int app_run(const char *input_path, int canvas_w, int canvas_h) {
     app_run_called += 1;
@@ -147,6 +144,7 @@ static int expect_successful_run(const char *label_prefix, int exit_code, int ex
 
 static int expect_invalid_run(const char *label_prefix, int exit_code, const char *actual_stderr) {
     char label[64] = {0};
+    char expected_usage_text[CLI_USAGE_BUFFER_SIZE] = {0};
 
     snprintf(label, sizeof(label), "%s_exit", label_prefix);
     if (!expect_int(label, exit_code, 1)) {
@@ -154,6 +152,10 @@ static int expect_invalid_run(const char *label_prefix, int exit_code, const cha
     }
     snprintf(label, sizeof(label), "%s_app_run_called", label_prefix);
     if (!expect_int(label, app_run_called, 0)) {
+        return 0;
+    }
+    if (!format_cli_usage(expected_usage_text, sizeof(expected_usage_text), NULL)) {
+        fprintf(stderr, "%s_usage_build: failed to format usage text\n", label_prefix);
         return 0;
     }
     snprintf(label, sizeof(label), "%s_usage_text", label_prefix);
@@ -183,16 +185,12 @@ static int expect_invalid_run_with_usage(const char *label_prefix, int exit_code
 }
 
 static int format_custom_usage_text(char *buffer, size_t buffer_size) {
-    int written = 0;
+    char *argv[] = {(char *)custom_program_name};
 
     if (!buffer || buffer_size == 0) {
         return 0;
     }
-
-    written = snprintf(buffer, buffer_size, "Usage: %s [input_path] [width height]\n"
-                                            "       or: WIDTH HEIGHT\n",
-                       custom_program_name);
-    return written > 0 && (size_t)written < buffer_size;
+    return format_cli_usage(buffer, (int)buffer_size, argv);
 }
 
 int main(void) {
