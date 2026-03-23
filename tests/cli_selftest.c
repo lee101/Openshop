@@ -28,6 +28,12 @@ static int expect_str(const char *label, const char *actual, const char *expecte
 int main(void) {
     CliOptions options = {0};
 
+    if (!expect_str("usage_suffix", cli_usage_suffix(),
+                    "[input_path] [width height]\n"
+                    "       or: WIDTH HEIGHT")) {
+        return 1;
+    }
+
     char *argv_default[] = {"openshop"};
     if (!expect_int("default_ok", parse_cli_args(1, argv_default, &options), 1) ||
         !expect_str("default_input", options.input_path, NULL) ||

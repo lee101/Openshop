@@ -8,5 +8,6 @@ typedef struct CliOptions {
 } CliOptions;
 
 int parse_cli_args(int argc, char **argv, CliOptions *options);
+const char *cli_usage_suffix(void);
 
 #endif

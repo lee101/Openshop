@@ -32,6 +32,11 @@ static int parse_positive_int(const char *text, int *value) {
     return 1;
 }
 
+const char *cli_usage_suffix(void) {
+    return "[input_path] [width height]\n"
+           "       or: WIDTH HEIGHT";
+}
+
 int parse_cli_args(int argc, char **argv, CliOptions *options) {
     if (!options) {
         return 0;

@@ -6,7 +6,7 @@ int main(int argc, char **argv) {
     CliOptions options = {0};
 
     if (!parse_cli_args(argc, argv, &options)) {
-        fprintf(stderr, "Usage: %s [input_path] [width height]\n", argv[0]);
+        fprintf(stderr, "Usage: %s %s\n", argv[0], cli_usage_suffix());
         return 1;
     }
 
