@@ -692,6 +692,119 @@ static int test_snapshot_restore_preserves_state_on_allocation_failure(void) {
     return 1;
 }
 
+static int test_snapshot_restore_preserves_state_on_late_canvas_allocation_failure(void) {
+    LayerStack stack;
+    Snapshot undo_stack[MAX_HISTORY];
+    Snapshot redo_stack[MAX_HISTORY];
+    int undo_count = 0;
+    int redo_count = 0;
+    uint32_t undo_saved_top_pixel = 0;
+    uint32_t redo_oldest_pixel = 0;
+    uint32_t redo_newest_pixel = 0;
+
+    memset(undo_stack, 0, sizeof(undo_stack));
+    memset(redo_stack, 0, sizeof(redo_stack));
+
+    if (!layer_stack_init(&stack, 6, 6, 0xFFFFFFFF) ||
+        layer_stack_add(&stack, "Mid", 0x00000000) < 0 ||
+        layer_stack_add(&stack, "Top", 0x00000000) < 0) {
+        fprintf(stderr, "layer stack initialization failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    stack.active_layer = 2;
+    stack.solo_index = 2;
+    stack.layers[0].visible = 0;
+    stack.layers[1].locked = 1;
+    stack.layers[2].opacity_percent = 35;
+    canvas_set_pixel(&stack.layers[0].canvas, 1, 1, 0xFF102030);
+    canvas_set_pixel(&stack.layers[1].canvas, 1, 1, 0x80405060);
+    canvas_set_pixel(&stack.layers[2].canvas, 1, 1, 0x80708090);
+    snapshot_push(&stack, undo_stack, &undo_count, redo_stack, &redo_count);
+    undo_saved_top_pixel = undo_stack[0].pixels[2 * 36 + 7];
+
+    stack.active_layer = 0;
+    stack.solo_index = -1;
+    stack.layers[0].visible = 1;
+    stack.layers[1].locked = 0;
+    stack.layers[2].opacity_percent = 100;
+    canvas_set_pixel(&stack.layers[0].canvas, 1, 1, 0xFFAABBCC);
+    canvas_set_pixel(&stack.layers[1].canvas, 1, 1, 0xFFDDEEFF);
+    canvas_set_pixel(&stack.layers[2].canvas, 1, 1, 0xFF010203);
+
+    canvas_free(&stack.layers[1].canvas);
+    stack.layers[1].canvas.width = 0;
+    stack.layers[1].canvas.height = 0;
+    canvas_free(&stack.layers[2].canvas);
+    stack.layers[2].canvas.width = 0;
+    stack.layers[2].canvas.height = 0;
+
+    for (int i = 0; i < MAX_HISTORY; i++) {
+        Snapshot snapshot = {0};
+        snapshot.width = 1;
+        snapshot.height = 1;
+        snapshot.layer_count = 1;
+        snapshot.active_layer = 0;
+        snapshot.solo_index = -1;
+        snapshot.visibility[0] = 1;
+        snapshot.locked[0] = 0;
+        snapshot.opacity_percent[0] = 100;
+        strcpy(snapshot.names[0], "Redo");
+        snapshot.pixels = malloc(sizeof(uint32_t));
+        if (!snapshot.pixels) {
+            fprintf(stderr, "malloc failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        snapshot.pixels[0] = 0xFF000100u + (uint32_t)i;
+        redo_stack[i] = snapshot;
+    }
+    redo_count = MAX_HISTORY;
+    redo_oldest_pixel = redo_stack[0].pixels[0];
+    redo_newest_pixel = redo_stack[MAX_HISTORY - 1].pixels[0];
+
+    install_canvas_init_stub(1);
+    if (snapshot_restore(&stack, undo_stack, &undo_count, redo_stack, &redo_count)) {
+        fprintf(stderr, "snapshot_restore should fail when a later canvas allocation fails\n");
+        install_canvas_init_stub(-1);
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    install_canvas_init_stub(-1);
+
+    if (!expect_int_eq("restore_late_alloc_fail_undo_count", undo_count, 1) ||
+        !expect_int_eq("restore_late_alloc_fail_redo_count", redo_count, MAX_HISTORY) ||
+        !expect_int_eq("restore_late_alloc_fail_active", stack.active_layer, 0) ||
+        !expect_int_eq("restore_late_alloc_fail_solo", stack.solo_index, -1) ||
+        !expect_int_eq("restore_late_alloc_fail_visible", stack.layers[0].visible, 1) ||
+        !expect_int_eq("restore_late_alloc_fail_locked", stack.layers[1].locked, 0) ||
+        !expect_int_eq("restore_late_alloc_fail_opacity", stack.layers[2].opacity_percent, 100) ||
+        !expect_pixel_eq("restore_late_alloc_fail_base_pixel", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFFAABBCC) ||
+        !stack.layers[1].canvas.pixels ||
+        !expect_pixel_eq("restore_late_alloc_fail_mid_pixel", canvas_get_pixel(&stack.layers[1].canvas, 1, 1), 0x00000000) ||
+        !expect_int_eq("restore_late_alloc_fail_top_canvas_width", stack.layers[2].canvas.width, 0) ||
+        !expect_int_eq("restore_late_alloc_fail_top_canvas_height", stack.layers[2].canvas.height, 0) ||
+        stack.layers[2].canvas.pixels != NULL ||
+        !expect_pixel_eq("restore_late_alloc_fail_undo_preserved", undo_stack[0].pixels[2 * 36 + 7], undo_saved_top_pixel) ||
+        !expect_pixel_eq("restore_late_alloc_fail_redo_oldest", redo_stack[0].pixels[0], redo_oldest_pixel) ||
+        !expect_pixel_eq("restore_late_alloc_fail_redo_newest", redo_stack[MAX_HISTORY - 1].pixels[0], redo_newest_pixel)) {
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_snapshot_restore_round_trips_undo_and_redo_order(void) {
     LayerStack stack;
     Snapshot undo_stack[MAX_HISTORY];
@@ -1110,6 +1223,9 @@ int main(void) {
         return 1;
     }
     if (!test_snapshot_restore_preserves_state_on_allocation_failure()) {
+        return 1;
+    }
+    if (!test_snapshot_restore_preserves_state_on_late_canvas_allocation_failure()) {
         return 1;
     }
     if (!test_snapshot_restore_round_trips_undo_and_redo_order()) {
