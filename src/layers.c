@@ -229,16 +229,12 @@ static int layer_stack_lock_and_focus_direction(LayerStack *stack, int index, in
     return 1;
 }
 
-typedef enum {
-    VISIBILITY_REMAP_INVERT = 0,
-    VISIBILITY_REMAP_SHOW_HIDDEN,
-    VISIBILITY_REMAP_SHOW_HIDDEN_LOCKED,
-    VISIBILITY_REMAP_SHOW_HIDDEN_UNLOCKED,
-    VISIBILITY_REMAP_SHOW_LOCKED,
-    VISIBILITY_REMAP_SHOW_UNLOCKED
-} VisibilityRemapMode;
+static int layer_stack_matches_bool_filter(int value, int required_value) {
+    return required_value < 0 || value == required_value;
+}
 
-static int layer_stack_remap_visibility(LayerStack *stack, int preserve_index, VisibilityRemapMode mode) {
+static int layer_stack_remap_visibility(LayerStack *stack, int preserve_index, int invert_visibility,
+                                        int required_hidden, int required_locked) {
     if (!stack || stack->layer_count <= 0) {
         return 0;
     }
@@ -249,26 +245,12 @@ static int layer_stack_remap_visibility(LayerStack *stack, int preserve_index, V
     int visible_count = 0;
     for (int i = 0; i < stack->layer_count; i++) {
         int next_visible = 0;
-        switch (mode) {
-        case VISIBILITY_REMAP_INVERT:
-        case VISIBILITY_REMAP_SHOW_HIDDEN:
+        if (invert_visibility) {
             next_visible = stack->layers[i].visible ? 0 : 1;
-            break;
-        case VISIBILITY_REMAP_SHOW_HIDDEN_LOCKED:
-            next_visible = (!stack->layers[i].visible && stack->layers[i].locked) ? 1 : 0;
-            break;
-        case VISIBILITY_REMAP_SHOW_HIDDEN_UNLOCKED:
-            next_visible = (!stack->layers[i].visible && !stack->layers[i].locked) ? 1 : 0;
-            break;
-        case VISIBILITY_REMAP_SHOW_LOCKED:
-            next_visible = stack->layers[i].locked ? 1 : 0;
-            break;
-        case VISIBILITY_REMAP_SHOW_UNLOCKED:
-            next_visible = stack->layers[i].locked ? 0 : 1;
-            break;
-        default:
-            next_visible = stack->layers[i].visible ? 0 : 1;
-            break;
+        } else {
+            int is_hidden = stack->layers[i].visible ? 0 : 1;
+            next_visible = layer_stack_matches_bool_filter(is_hidden, required_hidden) &&
+                           layer_stack_matches_bool_filter(stack->layers[i].locked ? 1 : 0, required_locked);
         }
         stack->layers[i].visible = next_visible;
         visible_count += next_visible;
@@ -545,27 +527,27 @@ int layer_stack_isolate(LayerStack *stack, int index) {
 }
 
 int layer_stack_invert_visibility(LayerStack *stack, int preserve_index) {
-    return layer_stack_remap_visibility(stack, preserve_index, VISIBILITY_REMAP_INVERT);
+    return layer_stack_remap_visibility(stack, preserve_index, 1, -1, -1);
 }
 
 int layer_stack_show_hidden_only(LayerStack *stack, int preserve_index) {
-    return layer_stack_remap_visibility(stack, preserve_index, VISIBILITY_REMAP_SHOW_HIDDEN);
+    return layer_stack_remap_visibility(stack, preserve_index, 0, 1, -1);
 }
 
 int layer_stack_show_hidden_locked_only(LayerStack *stack, int preserve_index) {
-    return layer_stack_remap_visibility(stack, preserve_index, VISIBILITY_REMAP_SHOW_HIDDEN_LOCKED);
+    return layer_stack_remap_visibility(stack, preserve_index, 0, 1, 1);
 }
 
 int layer_stack_show_hidden_unlocked_only(LayerStack *stack, int preserve_index) {
-    return layer_stack_remap_visibility(stack, preserve_index, VISIBILITY_REMAP_SHOW_HIDDEN_UNLOCKED);
+    return layer_stack_remap_visibility(stack, preserve_index, 0, 1, 0);
 }
 
 int layer_stack_show_locked_only(LayerStack *stack, int preserve_index) {
-    return layer_stack_remap_visibility(stack, preserve_index, VISIBILITY_REMAP_SHOW_LOCKED);
+    return layer_stack_remap_visibility(stack, preserve_index, 0, -1, 1);
 }
 
 int layer_stack_show_unlocked_only(LayerStack *stack, int preserve_index) {
-    return layer_stack_remap_visibility(stack, preserve_index, VISIBILITY_REMAP_SHOW_UNLOCKED);
+    return layer_stack_remap_visibility(stack, preserve_index, 0, -1, 0);
 }
 
 int layer_stack_reveal_hidden(LayerStack *stack, int direction) {
