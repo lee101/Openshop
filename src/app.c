@@ -1119,7 +1119,11 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
 
                 if (ctrl && key == SDLK_s) {
                     const Canvas *save_canvas = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
-                    if (!canvas_save_bmp(save_canvas, "output.bmp")) {
+                    if (shift) {
+                        if (!canvas_save_png(save_canvas, "output.png")) {
+                            fprintf(stderr, "Failed to save output.png\n");
+                        }
+                    } else if (!canvas_save_bmp(save_canvas, "output.bmp")) {
                         fprintf(stderr, "Failed to save output.bmp\n");
                     }
                     break;

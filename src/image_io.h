@@ -2,6 +2,7 @@
 #define IMAGE_IO_H
 
 #include "canvas.h"
+#include "png_io.h"
 #include <stdint.h>
 
 int canvas_load_bmp(Canvas *c, const char *path, uint32_t background_color);

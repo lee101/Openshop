@@ -81,8 +81,10 @@ make test-sdl
 - `Ctrl+Shift+G`: stamp visible image into a new top layer
 - `Ctrl+Shift+M`: flatten visible layers
 - `Ctrl+S`: save the composited image to `output.bmp`
+- `Ctrl+Shift+S`: save the composited image to `output.png`
 - `Ctrl+O`: load `input.bmp` into the active layer
 - `Ctrl+Z` / `Ctrl+Y`: undo / redo (layer-aware)
+- PNG export uses the bundled `stb_image_write` header and does not depend on SDL image codecs.
 - `Esc`: quit
 
 ## Notes
