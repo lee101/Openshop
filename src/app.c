@@ -951,6 +951,28 @@ static int handle_tool_shortcut(
     return handled;
 }
 
+static int handle_session_shortcut(
+    SDL_Keycode key,
+    int ctrl,
+    int *shaping,
+    int *preview_active,
+    int *running
+) {
+    if (shaping && preview_active && *shaping && should_cancel_shape_on_key(key, ctrl)) {
+        cancel_shape_preview(shaping, preview_active);
+    }
+
+    if (key != SDLK_ESCAPE) {
+        return 0;
+    }
+    if (shaping && preview_active && *shaping) {
+        cancel_shape_preview(shaping, preview_active);
+    } else if (running) {
+        *running = 0;
+    }
+    return 1;
+}
+
 static int handle_translation_shortcut(
     SDL_Keycode key,
     int shift,
@@ -1324,16 +1346,7 @@ int app_run(const char *input_path) {
                 int ctrl = state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL];
                 int shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
 
-                if (shaping && should_cancel_shape_on_key(key, ctrl)) {
-                    cancel_shape_preview(&shaping, &preview_active);
-                }
-
-                if (key == SDLK_ESCAPE) {
-                    if (shaping) {
-                        cancel_shape_preview(&shaping, &preview_active);
-                        break;
-                    }
-                    running = 0;
+                if (handle_session_shortcut(key, ctrl, &shaping, &preview_active, &running)) {
                     break;
                 }
 
