@@ -532,6 +532,41 @@ static int canvas_load_default_input(Canvas *c, int prefer_png, uint32_t backgro
     return 0;
 }
 
+static int path_exists(const char *path) {
+    FILE *f = NULL;
+    if (!path || !path[0]) {
+        return 0;
+    }
+    f = fopen(path, "rb");
+    if (!f) {
+        return 0;
+    }
+    fclose(f);
+    return 1;
+}
+
+static int canvas_save_default_output(const Canvas *c, int prefer_png, const char **saved_path) {
+    if (!c) {
+        return 0;
+    }
+    if (prefer_png) {
+        if (saved_path) {
+            *saved_path = "output.png";
+        }
+        return canvas_save_png(c, "output.png");
+    }
+    if (path_exists("output.bmp") || !path_exists("output.png")) {
+        if (saved_path) {
+            *saved_path = "output.bmp";
+        }
+        return canvas_save_bmp(c, "output.bmp");
+    }
+    if (saved_path) {
+        *saved_path = "output.png";
+    }
+    return canvas_save_png(c, "output.png");
+}
+
 static void hue_rotate_30(Canvas *c) {
     canvas_hue_rotate(c, 30);
 }
@@ -1177,12 +1212,9 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
 
                 if (ctrl && key == SDLK_s) {
                     const Canvas *save_canvas = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
-                    if (shift) {
-                        if (!canvas_save_png(save_canvas, "output.png")) {
-                            fprintf(stderr, "Failed to save output.png\n");
-                        }
-                    } else if (!canvas_save_bmp(save_canvas, "output.bmp")) {
-                        fprintf(stderr, "Failed to save output.bmp\n");
+                    const char *saved_path = shift ? "output.png" : "output.bmp";
+                    if (!canvas_save_default_output(save_canvas, shift, &saved_path)) {
+                        fprintf(stderr, "Failed to save %s\n", saved_path);
                     }
                     break;
                 }

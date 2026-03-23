@@ -80,7 +80,7 @@ make test-sdl
 - `Ctrl+Shift+E`: stamp visible image into active layer
 - `Ctrl+Shift+G`: stamp visible image into a new top layer
 - `Ctrl+Shift+M`: flatten visible layers
-- `Ctrl+S`: save the composited image to `output.bmp`
+- `Ctrl+S`: save to `output.bmp`, or reuse `output.png` if that is the only existing default output
 - `Ctrl+Shift+S`: save the composited image to `output.png`
 - `Ctrl+O`: load `input.bmp`, or fall back to `input.png` if the BMP is missing
 - `Ctrl+Shift+O`: load `input.png` into the active layer
