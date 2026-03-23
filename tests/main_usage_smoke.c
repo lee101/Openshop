@@ -486,6 +486,13 @@ int main(void) {
         return 1;
     }
 
+    char *argv_custom_program_negative_width[] = {
+        (char *)custom_program_name, (char *)default_scene_path, (char *)negative_size_only_width, (char *)default_size_only_height};
+    if (!expect_invalid_main_run_with_usage("custom_program_negative_width", 4, argv_custom_program_negative_width,
+                                            stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+        return 1;
+    }
+
     char *argv_custom_program_overflow_width[] = {
         (char *)custom_program_name, (char *)default_scene_path, (char *)overflow_width_token, (char *)default_size_only_height};
     if (!expect_invalid_main_run_with_usage("custom_program_overflow_width", 4, argv_custom_program_overflow_width,
