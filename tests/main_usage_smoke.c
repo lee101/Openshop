@@ -18,6 +18,11 @@ static const int input_size_canvas_w = 320;
 static const int input_size_canvas_h = 240;
 static const int size_only_width_argv_index = 1;
 static const int size_only_height_argv_index = 2;
+static const int startup_argc = 1;
+static const int input_only_argc = 2;
+static const int size_only_argc = 3;
+static const int input_size_argc = 4;
+static const int extra_argv_argc = 5;
 static const int app_exit_code_7 = 7;
 static const int app_exit_code_5 = 5;
 static const char *empty_token = "";
@@ -264,11 +269,11 @@ struct invalid_argv_case {
 #define INVALID_NULL_ARGV_ONLY_CASE(label, argc_value, usage_text) \
     {label, argc_value, 1, usage_text, {NULL, NULL, NULL, NULL, NULL}}
 #define INVALID_SIZE_ONLY_ARGV_CASE(label, usage_text, program, width) \
-    {label, 3, 0, usage_text, {program, default_scene_path, width, NULL, NULL}}
+    {label, size_only_argc, 0, usage_text, {program, default_scene_path, width, NULL, NULL}}
 #define INVALID_EXTRA_ARGV_CASE(label, usage_text, program) \
-    {label, 5, 0, usage_text, {program, default_scene_path, default_size_only_width, default_size_only_height, extra_arg_token}}
+    {label, extra_argv_argc, 0, usage_text, {program, default_scene_path, default_size_only_width, default_size_only_height, extra_arg_token}}
 #define INVALID_INPUT_ARGV_CASE(label, usage_text, program, input) \
-    {label, 2, 0, usage_text, {program, input, NULL, NULL, NULL}}
+    {label, input_only_argc, 0, usage_text, {program, input, NULL, NULL, NULL}}
 #define INVALID_PROGRAM_ONLY_ARGV_CASE(label, argc_value, usage_text, program) \
     {label, argc_value, 0, usage_text, {program, NULL, NULL, NULL, NULL}}
 
@@ -292,13 +297,13 @@ struct success_case {
 #define SUCCESS_INPUT_CASE_EMPTY_STDERR(label, argc, program, input, result, expected_exit) \
     SUCCESS_INPUT_CASE(label, argc, program, input, result, expected_exit, empty_stderr)
 #define SUCCESS_STARTUP_CASE_EMPTY_STDERR(label, program, result, expected_exit) \
-    {label, 1, program, NULL, NULL, NULL, result, expected_exit, NULL, 0, 0, empty_stderr}
+    {label, startup_argc, program, NULL, NULL, NULL, result, expected_exit, NULL, 0, 0, empty_stderr}
 #define SUCCESS_SIZE_ONLY_CASE(label, program, width, height, result, expected_exit, canvas_w, canvas_h, expected_stderr) \
-    {label, 3, program, width, height, NULL, result, expected_exit, NULL, canvas_w, canvas_h, expected_stderr}
+    {label, size_only_argc, program, width, height, NULL, result, expected_exit, NULL, canvas_w, canvas_h, expected_stderr}
 #define SUCCESS_SIZE_ONLY_CASE_EMPTY_STDERR(label, program, width, height, result, expected_exit, canvas_w, canvas_h) \
     SUCCESS_SIZE_ONLY_CASE(label, program, width, height, result, expected_exit, canvas_w, canvas_h, empty_stderr)
 #define SUCCESS_INPUT_SIZE_CASE(label, program, input, width, height, result, expected_exit, canvas_w, canvas_h, expected_stderr) \
-    {label, 4, program, input, width, height, result, expected_exit, input, canvas_w, canvas_h, expected_stderr}
+    {label, input_size_argc, program, input, width, height, result, expected_exit, input, canvas_w, canvas_h, expected_stderr}
 #define SUCCESS_INPUT_SIZE_CASE_EMPTY_STDERR(label, program, input, width, height, result, expected_exit, canvas_w, canvas_h) \
     SUCCESS_INPUT_SIZE_CASE(label, program, input, width, height, result, expected_exit, canvas_w, canvas_h, empty_stderr)
 
@@ -328,7 +333,7 @@ static int expect_invalid_size_only_cases(const struct invalid_size_token_case *
 
         fill_argv_with_override(argv, src, ARRAY_LEN(src), variable_token_index, cases[i].token);
 
-        if (!expect_invalid_main_result(cases[i].label_prefix, 3, argv, stderr_text, stderr_size, exit_code,
+        if (!expect_invalid_main_result(cases[i].label_prefix, size_only_argc, argv, stderr_text, stderr_size, exit_code,
                                         custom_usage_text)) {
             return 0;
         }
@@ -442,7 +447,7 @@ static int expect_invalid_input_size_cases(const struct invalid_input_size_case 
 
         fill_argv(argv, src, ARRAY_LEN(src));
 
-        if (!expect_invalid_main_result(cases[i].label_prefix, 4, argv, stderr_text, stderr_size, exit_code,
+        if (!expect_invalid_main_result(cases[i].label_prefix, input_size_argc, argv, stderr_text, stderr_size, exit_code,
                                         custom_usage_text)) {
             return 0;
         }
