@@ -843,8 +843,27 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_toggle_visibility(&stack, 1) || !layer_stack_toggle_solo(&stack, 1) || !layer_stack_set_opacity(&stack, 1, 40)) {
+        fprintf(stderr, "setup unlock all state preservation failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.active_layer = 1;
     if (!layer_stack_unlock_all(&stack) || stack.layers[0].locked || stack.layers[1].locked) {
         fprintf(stderr, "unlock all layers failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != 1 || stack.active_layer != 1 || stack.layers[1].visible || stack.layers[1].opacity_percent != 40) {
+        fprintf(stderr, "unlock all should preserve non-lock layer state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_solo(&stack, 1) || !layer_stack_show(&stack, 1) || !layer_stack_set_opacity(&stack, 1, 100)) {
+        fprintf(stderr, "restore unlock all preserved state failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
