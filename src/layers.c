@@ -103,7 +103,7 @@ static int layer_stack_select_edge_filtered(LayerStack *stack, int want_visible,
     return -1;
 }
 
-static int layer_stack_cycle_locked_filtered(LayerStack *stack, int direction, int want_locked) {
+static int layer_stack_cycle_bool_field(LayerStack *stack, int direction, int want_value, int use_locked) {
     if (!stack || stack->layer_count <= 0) {
         return -1;
     }
@@ -113,24 +113,26 @@ static int layer_stack_cycle_locked_filtered(LayerStack *stack, int direction, i
             idx += stack->layer_count;
         }
         idx %= stack->layer_count;
-        if ((stack->layers[idx].locked ? 1 : 0) == want_locked) {
+        int value = use_locked ? (stack->layers[idx].locked ? 1 : 0) : (stack->layers[idx].visible ? 1 : 0);
+        if (value == want_value) {
             stack->active_layer = idx;
             return idx;
         }
     }
-    if ((stack->layers[stack->active_layer].locked ? 1 : 0) == want_locked) {
+    if ((use_locked ? (stack->layers[stack->active_layer].locked ? 1 : 0) : (stack->layers[stack->active_layer].visible ? 1 : 0)) == want_value) {
         return stack->active_layer;
     }
     return -1;
 }
 
-static int layer_stack_select_locked_edge(LayerStack *stack, int want_locked, int from_top) {
+static int layer_stack_select_bool_edge(LayerStack *stack, int want_value, int from_top, int use_locked) {
     if (!stack || stack->layer_count <= 0) {
         return -1;
     }
     if (from_top) {
         for (int i = stack->layer_count - 1; i >= 0; i--) {
-            if ((stack->layers[i].locked ? 1 : 0) == want_locked) {
+            int value = use_locked ? (stack->layers[i].locked ? 1 : 0) : (stack->layers[i].visible ? 1 : 0);
+            if (value == want_value) {
                 stack->active_layer = i;
                 return i;
             }
@@ -138,7 +140,8 @@ static int layer_stack_select_locked_edge(LayerStack *stack, int want_locked, in
         return -1;
     }
     for (int i = 0; i < stack->layer_count; i++) {
-        if ((stack->layers[i].locked ? 1 : 0) == want_locked) {
+        int value = use_locked ? (stack->layers[i].locked ? 1 : 0) : (stack->layers[i].visible ? 1 : 0);
+        if (value == want_value) {
             stack->active_layer = i;
             return i;
         }
@@ -332,7 +335,7 @@ int layer_stack_cycle_hidden(LayerStack *stack, int direction) {
 }
 
 int layer_stack_cycle_locked(LayerStack *stack, int direction) {
-    return layer_stack_cycle_locked_filtered(stack, direction, 1);
+    return layer_stack_cycle_bool_field(stack, direction, 1, 1);
 }
 
 int layer_stack_select_bottom_visible(LayerStack *stack) {
@@ -352,11 +355,11 @@ int layer_stack_select_top_hidden(LayerStack *stack) {
 }
 
 int layer_stack_select_bottom_locked(LayerStack *stack) {
-    return layer_stack_select_locked_edge(stack, 1, 0);
+    return layer_stack_select_bool_edge(stack, 1, 0, 1);
 }
 
 int layer_stack_select_top_locked(LayerStack *stack) {
-    return layer_stack_select_locked_edge(stack, 1, 1);
+    return layer_stack_select_bool_edge(stack, 1, 1, 1);
 }
 
 int layer_stack_toggle_solo(LayerStack *stack, int index) {
