@@ -285,6 +285,8 @@ struct success_case {
     SUCCESS_CASE(label, argc, program, input, NULL, NULL, result, expected_exit, input, 0, 0, expected_stderr)
 #define SUCCESS_INPUT_CASE_EMPTY_STDERR(label, argc, program, input, result, expected_exit) \
     SUCCESS_INPUT_CASE(label, argc, program, input, result, expected_exit, empty_stderr)
+#define SUCCESS_STARTUP_CASE_EMPTY_STDERR(label, program, result, expected_exit) \
+    SUCCESS_CASE(label, 1, program, NULL, NULL, NULL, result, expected_exit, NULL, 0, 0, empty_stderr)
 #define SUCCESS_SIZE_ONLY_CASE(label, program, width, height, result, expected_exit, canvas_w, canvas_h, expected_stderr) \
     SUCCESS_CASE(label, 3, program, width, height, NULL, result, expected_exit, NULL, canvas_w, canvas_h, expected_stderr)
 #define SUCCESS_SIZE_ONLY_CASE_EMPTY_STDERR(label, program, width, height, result, expected_exit, canvas_w, canvas_h) \
@@ -525,9 +527,9 @@ int main(void) {
     }
 
     const struct success_case success_cases[] = {
-        SUCCESS_CASE_EMPTY_STDERR("default", 1, default_program_name, NULL, NULL, NULL, 0, 0, NULL, 0, 0),
+        SUCCESS_STARTUP_CASE_EMPTY_STDERR("default", default_program_name, 0, 0),
         SUCCESS_INPUT_CASE_EMPTY_STDERR("custom_program_input", 2, custom_program_name, custom_input_path, 0, 0),
-        SUCCESS_CASE_EMPTY_STDERR("custom_program_default", 1, custom_program_name, NULL, NULL, NULL, 0, 0, NULL, 0, 0),
+        SUCCESS_STARTUP_CASE_EMPTY_STDERR("custom_program_default", custom_program_name, 0, 0),
         SUCCESS_INPUT_CASE_EMPTY_STDERR("custom_program_numeric_input", 2, custom_program_name, numeric_input_token, 0, 0),
         SUCCESS_INPUT_CASE("custom_program_nonzero", 2, custom_program_name, custom_input_path, app_exit_code_5, app_exit_code_5, app_exit_code_5_stderr),
         SUCCESS_INPUT_CASE_EMPTY_STDERR("input_only", 2, default_program_name, default_input_path, 0, 0),
