@@ -9,6 +9,7 @@ static const char *last_input_path = NULL;
 static int last_canvas_w = 0;
 static int last_canvas_h = 0;
 static int app_run_result = 0;
+static const char *default_program_name = "openshop";
 static const char *default_scene_path = "art/scene.png";
 static const char *default_input_path = "art/input.png";
 static const char *custom_program_name = "./bin/openshop-dev";
@@ -382,20 +383,20 @@ int main(void) {
     }
 
     const struct invalid_argv_case invalid_argv_cases[] = {
-        {"invalid", 3, 0, NULL, {"openshop", default_scene_path, default_size_only_width, NULL, NULL}},
-        {"bad_size_only", 3, 0, NULL, {"openshop", default_scene_path, invalid_probe_size, NULL, NULL}},
+        {"invalid", 3, 0, NULL, {default_program_name, default_scene_path, default_size_only_width, NULL, NULL}},
+        {"bad_size_only", 3, 0, NULL, {default_program_name, default_scene_path, invalid_probe_size, NULL, NULL}},
         {"custom_program_invalid", 3, 0, custom_usage_text, {custom_program_name, default_scene_path, invalid_probe_size, NULL, NULL}},
-        {"missing_h", 3, 0, NULL, {"openshop", default_scene_path, default_size_only_width, NULL, NULL}},
-        {"extra_args", 5, 0, NULL, {"openshop", default_scene_path, default_size_only_width, default_size_only_height, "extra"}},
+        {"missing_h", 3, 0, NULL, {default_program_name, default_scene_path, default_size_only_width, NULL, NULL}},
+        {"extra_args", 5, 0, NULL, {default_program_name, default_scene_path, default_size_only_width, default_size_only_height, "extra"}},
         {"custom_program_extra_args", 5, 0, custom_usage_text, {custom_program_name, default_scene_path, default_size_only_width, default_size_only_height, "extra"}},
         {"custom_program_empty_input", 2, 0, custom_usage_text, {custom_program_name, "", NULL, NULL, NULL}},
         {"custom_program_null_input", 2, 0, custom_usage_text, {custom_program_name, NULL, NULL, NULL, NULL}},
         {"null_argv", 1, 1, NULL, {NULL, NULL, NULL, NULL, NULL}},
         {"null_program", 1, 0, NULL, {NULL, NULL, NULL, NULL, NULL}},
-        {"zero_argc", 0, 0, NULL, {"openshop", NULL, NULL, NULL, NULL}},
+        {"zero_argc", 0, 0, NULL, {default_program_name, NULL, NULL, NULL, NULL}},
         {"empty_program", 1, 0, NULL, {"", NULL, NULL, NULL, NULL}},
-        {"empty_input", 2, 0, NULL, {"openshop", "", NULL, NULL, NULL}},
-        {"null_input", 2, 0, NULL, {"openshop", NULL, NULL, NULL, NULL}},
+        {"empty_input", 2, 0, NULL, {default_program_name, "", NULL, NULL, NULL}},
+        {"null_input", 2, 0, NULL, {default_program_name, NULL, NULL, NULL, NULL}},
     };
     if (!expect_invalid_argv_cases(invalid_argv_cases,
                                    ARRAY_LEN(invalid_argv_cases),
@@ -415,7 +416,7 @@ int main(void) {
     };
     if (!expect_invalid_size_only_cases(invalid_size_only_height_cases,
                                         ARRAY_LEN(invalid_size_only_height_cases),
-                                        "openshop", default_size_only_width, 2,
+                                        default_program_name, default_size_only_width, 2,
                                         stderr_text, sizeof(stderr_text), &exit_code, NULL)) {
         return 1;
     }
@@ -432,7 +433,7 @@ int main(void) {
     };
     if (!expect_invalid_size_only_cases(invalid_size_only_width_cases,
                                         ARRAY_LEN(invalid_size_only_width_cases),
-                                        "openshop", default_size_only_height, 1,
+                                        default_program_name, default_size_only_height, 1,
                                         stderr_text, sizeof(stderr_text), &exit_code, NULL)) {
         return 1;
     }
@@ -479,27 +480,27 @@ int main(void) {
     };
     if (!expect_invalid_input_size_cases(invalid_input_size_cases,
                                          ARRAY_LEN(invalid_input_size_cases),
-                                         "openshop", default_scene_path,
+                                         default_program_name, default_scene_path,
                                          stderr_text, sizeof(stderr_text), &exit_code, NULL)) {
         return 1;
     }
 
     const struct success_case success_cases[] = {
-        {"default", 1, "openshop", NULL, NULL, NULL, 0, 0, NULL, 0, 0, ""},
+        {"default", 1, default_program_name, NULL, NULL, NULL, 0, 0, NULL, 0, 0, ""},
         {"custom_program_input", 2, custom_program_name, custom_input_path, NULL, NULL, 0, 0, custom_input_path, 0, 0, ""},
         {"custom_program_default", 1, custom_program_name, NULL, NULL, NULL, 0, 0, NULL, 0, 0, ""},
         {"custom_program_numeric_input", 2, custom_program_name, custom_numeric_input, NULL, NULL, 0, 0, custom_numeric_input, 0, 0, ""},
         {"custom_program_nonzero", 2, custom_program_name, custom_input_path, NULL, NULL, 5, 5, custom_input_path, 0, 0, app_exit_code_5_stderr},
-        {"input_only", 2, "openshop", default_input_path, NULL, NULL, 0, 0, default_input_path, 0, 0, ""},
-        {"numeric_input", 2, "openshop", default_numeric_input, NULL, NULL, 0, 0, default_numeric_input, 0, 0, ""},
-        {"size_only", 3, "openshop", default_size_only_width, default_size_only_height, NULL, 7, 7, NULL, 640, 480, app_exit_code_7_stderr},
-        {"plus_prefixed_size_only", 3, "openshop", default_plus_prefixed_size_only_width, default_size_only_height, NULL, 0, 0, NULL, 640, 480, ""},
+        {"input_only", 2, default_program_name, default_input_path, NULL, NULL, 0, 0, default_input_path, 0, 0, ""},
+        {"numeric_input", 2, default_program_name, default_numeric_input, NULL, NULL, 0, 0, default_numeric_input, 0, 0, ""},
+        {"size_only", 3, default_program_name, default_size_only_width, default_size_only_height, NULL, 7, 7, NULL, 640, 480, app_exit_code_7_stderr},
+        {"plus_prefixed_size_only", 3, default_program_name, default_plus_prefixed_size_only_width, default_size_only_height, NULL, 0, 0, NULL, 640, 480, ""},
         {"custom_program_size_only", 3, custom_program_name, custom_size_only_width, custom_size_only_height, NULL, 0, 0, NULL, 800, 600, ""},
         {"custom_program_plus_prefixed_size_only", 3, custom_program_name, custom_plus_prefixed_size_only_width, custom_size_only_height, NULL, 0, 0, NULL, 800, 600, ""},
         {"custom_program_input_size", 4, custom_program_name, custom_input_path, custom_input_size_width, custom_input_size_height, 0, 0, custom_input_path, 320, 240, ""},
         {"custom_program_plus_prefixed", 4, custom_program_name, custom_input_path, custom_plus_prefixed_input_size_width, custom_input_size_height, 0, 0, custom_input_path, 320, 240, ""},
-        {"input_size", 4, "openshop", default_scene_path, default_input_size_width, default_input_size_height, 0, 0, default_scene_path, 320, 240, ""},
-        {"plus_prefixed", 4, "openshop", default_scene_path, default_plus_prefixed_input_size_width, default_size_only_height, 0, 0, default_scene_path, 640, 480, ""},
+        {"input_size", 4, default_program_name, default_scene_path, default_input_size_width, default_input_size_height, 0, 0, default_scene_path, 320, 240, ""},
+        {"plus_prefixed", 4, default_program_name, default_scene_path, default_plus_prefixed_input_size_width, default_size_only_height, 0, 0, default_scene_path, 640, 480, ""},
     };
     if (!expect_success_cases(success_cases,
                               ARRAY_LEN(success_cases),
