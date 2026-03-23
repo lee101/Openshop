@@ -499,11 +499,9 @@ static int expect_invalid_argv_cases(const struct invalid_argv_case *cases, size
 
     for (i = 0; i < case_count; i += 1) {
         char *argv[ARRAY_LEN(cases[i].argv)] = {0};
-        char **argv_ptr = argv;
+        char **argv_ptr = cases[i].argv_state == argv_is_null ? null_argv : argv;
 
-        if (cases[i].argv_state == argv_is_null) {
-            argv_ptr = null_argv;
-        } else {
+        if (cases[i].argv_state == argv_is_present) {
             fill_argv(argv, cases[i].argv, ARRAY_LEN(cases[i].argv));
         }
 
