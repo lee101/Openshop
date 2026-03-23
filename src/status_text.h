@@ -1,6 +1,8 @@
 #ifndef STATUS_TEXT_H
 #define STATUS_TEXT_H
 
+#include <stddef.h>
+
 typedef enum {
     STATUS_LOCK_TOGGLE = 0,
     STATUS_LOCK_AND_ADVANCE,
@@ -30,5 +32,6 @@ typedef enum {
 } StatusTextAction;
 
 const char *status_text_action_error(StatusTextAction action);
+void format_status_text_max_layers(int max_layers, char *buffer, size_t buffer_size);
 
 #endif

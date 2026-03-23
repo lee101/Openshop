@@ -847,9 +847,11 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && shift && key == SDLK_n) {
+                    char status_message[64];
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (layer_stack_add(&layers, NULL, 0x00000000) < 0) {
-                        fprintf(stderr, "Max layers reached (%d)\n", MAX_LAYERS);
+                        format_status_text_max_layers(MAX_LAYERS, status_message, sizeof(status_message));
+                        fprintf(stderr, "%s\n", status_message);
                     } else {
                         needs_composite = 1;
                     }

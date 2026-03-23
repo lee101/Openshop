@@ -1,5 +1,7 @@
 #include "status_text.h"
 
+#include <stdio.h>
+
 const char *status_text_action_error(StatusTextAction action) {
     switch (action) {
     case STATUS_LOCK_TOGGLE:
@@ -55,4 +57,11 @@ const char *status_text_action_error(StatusTextAction action) {
     default:
         return "Action failed";
     }
+}
+
+void format_status_text_max_layers(int max_layers, char *buffer, size_t buffer_size) {
+    if (!buffer || buffer_size == 0) {
+        return;
+    }
+    snprintf(buffer, buffer_size, "Max layers reached (%d)", max_layers);
 }
