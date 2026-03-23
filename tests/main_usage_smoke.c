@@ -70,6 +70,7 @@ static const char *custom_plus_prefixed_size_only_width = "+800";
 static const char *custom_plus_prefixed_input_size_width = "+320";
 static const char *app_exit_code_7_stderr = "App exited with code 7\n";
 static const char *app_exit_code_5_stderr = "App exited with code 5\n";
+static const char *const null_token = NULL;
 
 int app_run(const char *input_path, int canvas_w, int canvas_h) {
     app_run_called += 1;
@@ -518,7 +519,7 @@ int main(void) {
     }
 
     const struct invalid_size_token_case custom_invalid_size_only_width_cases[] = {
-        INVALID_SIZE_TOKEN_CASE("custom_program_null_size_only_width", NULL),
+        INVALID_SIZE_TOKEN_CASE("custom_program_null_size_only_width", null_token),
         INVALID_SIZE_TOKEN_CASE("custom_program_empty_size_only_width", empty_token),
         INVALID_SIZE_TOKEN_CASE("custom_program_bad_size_only_width", bad_width_token),
         INVALID_SIZE_TOKEN_CASE("custom_program_leading_space_size_only_width", leading_space_width_token),
@@ -528,7 +529,7 @@ int main(void) {
         INVALID_SIZE_TOKEN_CASE("custom_program_overflow_size_only_width", overflow_width_token),
     };
     const struct invalid_size_token_case custom_invalid_size_only_height_cases[] = {
-        INVALID_SIZE_TOKEN_CASE("custom_program_null_size_only_height", NULL),
+        INVALID_SIZE_TOKEN_CASE("custom_program_null_size_only_height", null_token),
         INVALID_SIZE_TOKEN_CASE("custom_program_bad_size_only_height", bad_height_token),
         INVALID_SIZE_TOKEN_CASE("custom_program_zero_size_only_height", zero_token),
         INVALID_SIZE_TOKEN_CASE("custom_program_negative_size_only_height", negative_size_only_height),
@@ -545,13 +546,13 @@ int main(void) {
         INVALID_EXTRA_ARGV_CASE("extra_args", no_usage_text, default_program_name),
         INVALID_EXTRA_ARGV_CASE("custom_program_extra_args", custom_usage_text, custom_program_name),
         INVALID_INPUT_ARGV_CASE("custom_program_empty_input", custom_usage_text, custom_program_name, empty_token),
-        INVALID_INPUT_ARGV_CASE("custom_program_null_input", custom_usage_text, custom_program_name, NULL),
+        INVALID_INPUT_ARGV_CASE("custom_program_null_input", custom_usage_text, custom_program_name, null_token),
         INVALID_NULL_ARGV_ONLY_CASE("null_argv", startup_argc, no_usage_text),
-        INVALID_PROGRAM_ONLY_ARGV_CASE("null_program", startup_argc, no_usage_text, NULL),
+        INVALID_PROGRAM_ONLY_ARGV_CASE("null_program", startup_argc, no_usage_text, null_token),
         INVALID_PROGRAM_ONLY_ARGV_CASE("zero_argc", zero_argc, no_usage_text, default_program_name),
         INVALID_PROGRAM_ONLY_ARGV_CASE("empty_program", startup_argc, no_usage_text, empty_token),
         INVALID_INPUT_ARGV_CASE("empty_input", no_usage_text, default_program_name, empty_token),
-        INVALID_INPUT_ARGV_CASE("null_input", no_usage_text, default_program_name, NULL),
+        INVALID_INPUT_ARGV_CASE("null_input", no_usage_text, default_program_name, null_token),
     };
     if (!expect_invalid_argv_cases(invalid_argv_cases,
                                    ARRAY_LEN(invalid_argv_cases),
@@ -560,7 +561,7 @@ int main(void) {
     }
 
     const struct invalid_size_token_case invalid_size_only_height_cases[] = {
-        INVALID_SIZE_TOKEN_CASE("null_size_only_height", NULL),
+        INVALID_SIZE_TOKEN_CASE("null_size_only_height", null_token),
         INVALID_SIZE_TOKEN_CASE("empty_size_only_height", empty_token),
         INVALID_SIZE_TOKEN_CASE("zero_size_only_height", zero_token),
         INVALID_SIZE_TOKEN_CASE("negative_size_only_height", negative_size_only_height),
@@ -570,7 +571,7 @@ int main(void) {
         INVALID_SIZE_TOKEN_CASE("leading_tab_size_only_height", leading_tab_height_token),
     };
     const struct invalid_size_token_case invalid_size_only_width_cases[] = {
-        INVALID_SIZE_TOKEN_CASE("null_size_only_width", NULL),
+        INVALID_SIZE_TOKEN_CASE("null_size_only_width", null_token),
         INVALID_SIZE_TOKEN_CASE("empty_size_only_width", empty_token),
         INVALID_SIZE_TOKEN_CASE("zero_size_only_width", zero_token),
         INVALID_SIZE_TOKEN_CASE("negative_size_only_width", negative_size_only_width),
@@ -597,8 +598,8 @@ int main(void) {
         INVALID_INPUT_WIDTH_CASE("custom_program_overflow_width", overflow_width_token),
         INVALID_INPUT_HEIGHT_CASE("custom_program_bad_height", bad_height_token),
         INVALID_INPUT_HEIGHT_CASE("custom_program_negative_height", negative_size_only_height),
-        INVALID_INPUT_HEIGHT_CASE("custom_program_null_height", NULL),
-        INVALID_INPUT_WIDTH_CASE("custom_program_null_width", NULL),
+        INVALID_INPUT_HEIGHT_CASE("custom_program_null_height", null_token),
+        INVALID_INPUT_WIDTH_CASE("custom_program_null_width", null_token),
         INVALID_INPUT_HEIGHT_CASE("custom_program_overflow_height", overflow_height_token),
         INVALID_INPUT_WIDTH_CASE("custom_program_leading_space_width", leading_space_width_token),
         INVALID_INPUT_HEIGHT_CASE("custom_program_trailing_newline_height", trailing_newline_height_token),
@@ -614,8 +615,8 @@ int main(void) {
         INVALID_INPUT_HEIGHT_CASE("bad_height_value", negative_input_size_height),
         INVALID_INPUT_HEIGHT_CASE("negative_height_value", negative_size_only_height),
         INVALID_INPUT_WIDTH_CASE("empty_width", empty_token),
-        INVALID_INPUT_WIDTH_CASE("null_width", NULL),
-        INVALID_INPUT_HEIGHT_CASE("null_height", NULL),
+        INVALID_INPUT_WIDTH_CASE("null_width", null_token),
+        INVALID_INPUT_HEIGHT_CASE("null_height", null_token),
         INVALID_INPUT_WIDTH_CASE("overflow_width", overflow_width_token),
         INVALID_INPUT_HEIGHT_CASE("bad_height_token", bad_height_token),
         INVALID_INPUT_HEIGHT_CASE("overflow_height", overflow_height_token),
