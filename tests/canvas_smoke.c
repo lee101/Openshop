@@ -827,6 +827,12 @@ static int test_layers_basic(void) {
     char locked_layer_name[LAYER_NAME_MAX];
     strncpy(locked_layer_name, stack.layers[1].name, LAYER_NAME_MAX - 1);
     locked_layer_name[LAYER_NAME_MAX - 1] = '\0';
+    int unlocked_layer_visible = stack.layers[0].visible;
+    int unlocked_layer_locked = stack.layers[0].locked;
+    int unlocked_layer_opacity = stack.layers[0].opacity_percent;
+    char unlocked_layer_name[LAYER_NAME_MAX];
+    strncpy(unlocked_layer_name, stack.layers[0].name, LAYER_NAME_MAX - 1);
+    unlocked_layer_name[LAYER_NAME_MAX - 1] = '\0';
     uint32_t unlocked_layer_pixel = canvas_get_pixel(&stack.layers[0].canvas, 8, 8);
     uint32_t locked_layer_pixel = canvas_get_pixel(&stack.layers[1].canvas, 8, 8);
     if (layer_stack_clear_layer(&stack, 1, 0xFFABCDEF)) {
@@ -865,6 +871,13 @@ static int test_layers_basic(void) {
         return 0;
     }
     if (!expect_pixel_eq("locked_operation_preserves_other_pixel", canvas_get_pixel(&stack.layers[0].canvas, 8, 8), unlocked_layer_pixel)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[0].visible != unlocked_layer_visible || stack.layers[0].locked != unlocked_layer_locked ||
+        stack.layers[0].opacity_percent != unlocked_layer_opacity || strcmp(stack.layers[0].name, unlocked_layer_name) != 0) {
+        fprintf(stderr, "locked-operation failures should preserve neighbor bookkeeping\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
