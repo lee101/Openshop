@@ -65,6 +65,7 @@ make test-sdl
 - `Alt` + `Shift` + `Home / End`: jump to the bottommost or topmost visible unlocked layer
 - `Ctrl` + `Alt` + `Shift` + `PageUp / PageDown`: reveal and focus the next unlocked layer
 - `Ctrl` + `Alt` + `Shift` + `Home / End`: reveal and focus the bottommost or topmost hidden unlocked layer
+- `Ctrl` + `Alt` + `; / '`: reveal and focus the bottommost or topmost hidden unlocked layer
 - `Ctrl` + `Shift` + `, / .`: reveal and focus the bottommost or topmost hidden locked layer
 - `Ctrl+,`: insert a new transparent layer below the active layer
 - `Ctrl+N`: insert a new transparent layer above the active layer

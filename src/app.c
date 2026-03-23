@@ -384,7 +384,7 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     if (key == SDLK_ESCAPE || key == SDLK_LSHIFT || key == SDLK_RSHIFT) {
         return 0;
     }
-    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_u || key == SDLK_v || key == SDLK_m || key == SDLK_d || key == SDLK_e || key == SDLK_g || key == SDLK_h || key == SDLK_l || key == SDLK_a || key == SDLK_r || key == SDLK_0 || key == SDLK_COMMA || key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET || key == SDLK_MINUS || key == SDLK_KP_MINUS || key == SDLK_EQUALS || key == SDLK_KP_PLUS || key == SDLK_SLASH || key == SDLK_1 || key == SDLK_2 || key == SDLK_3 || key == SDLK_4 || key == SDLK_5 || key == SDLK_6 || key == SDLK_7 || key == SDLK_8)) {
+    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_u || key == SDLK_v || key == SDLK_m || key == SDLK_d || key == SDLK_e || key == SDLK_g || key == SDLK_h || key == SDLK_l || key == SDLK_a || key == SDLK_r || key == SDLK_0 || key == SDLK_COMMA || key == SDLK_PERIOD || key == SDLK_SEMICOLON || key == SDLK_QUOTE || key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET || key == SDLK_MINUS || key == SDLK_KP_MINUS || key == SDLK_EQUALS || key == SDLK_KP_PLUS || key == SDLK_SLASH || key == SDLK_1 || key == SDLK_2 || key == SDLK_3 || key == SDLK_4 || key == SDLK_5 || key == SDLK_6 || key == SDLK_7 || key == SDLK_8)) {
         return 1;
     }
     switch (key) {
@@ -399,6 +399,8 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     case SDLK_RIGHTBRACKET:
     case SDLK_COMMA:
     case SDLK_PERIOD:
+    case SDLK_SEMICOLON:
+    case SDLK_QUOTE:
     case SDLK_MINUS:
     case SDLK_KP_MINUS:
     case SDLK_EQUALS:
@@ -1427,6 +1429,24 @@ int app_run(const char *input_path) {
                 if (ctrl && shift && key == SDLK_PERIOD) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (layer_stack_reveal_hidden_locked(&layers, 1)) {
+                        needs_composite = 1;
+                    }
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
+                if (ctrl && alt && key == SDLK_SEMICOLON) {
+                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                    if (layer_stack_reveal_hidden_unlocked(&layers, 0)) {
+                        needs_composite = 1;
+                    }
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
+                if (ctrl && alt && key == SDLK_QUOTE) {
+                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                    if (layer_stack_reveal_hidden_unlocked(&layers, 1)) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
