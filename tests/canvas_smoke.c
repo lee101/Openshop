@@ -704,6 +704,7 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.solo_index = 1;
     if (layer_stack_add(&stack, "Overflow Add", 0x00000000) != -1) {
         fprintf(stderr, "add should fail at max layers\n");
         canvas_free(&composite);
@@ -716,12 +717,13 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (stack.layer_count != MAX_LAYERS || stack.active_layer != MAX_LAYERS - 1) {
+    if (stack.layer_count != MAX_LAYERS || stack.active_layer != MAX_LAYERS - 1 || stack.solo_index != 1) {
         fprintf(stderr, "failed add/insert should preserve full stack bookkeeping\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
     }
+    stack.solo_index = -1;
     while (stack.layer_count > 2) {
         if (!layer_stack_delete(&stack, stack.layer_count - 1)) {
             fprintf(stderr, "cleanup filled layers failed\n");
