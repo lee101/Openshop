@@ -147,6 +147,26 @@ int main(void) {
     if (!expect_int("null_argv", parse_cli_args(1, NULL, &options), 0)) {
         return 1;
     }
+    char *argv_null_program[] = {NULL};
+    if (!expect_int("null_program", parse_cli_args(1, argv_null_program, &options), 0)) {
+        return 1;
+    }
+    char *argv_null_input[] = {"openshop", NULL};
+    if (!expect_int("null_input", parse_cli_args(2, argv_null_input, &options), 0)) {
+        return 1;
+    }
+    char *argv_null_size_only_height[] = {"openshop", "640", NULL};
+    if (!expect_int("null_size_only_height", parse_cli_args(3, argv_null_size_only_height, &options), 0)) {
+        return 1;
+    }
+    char *argv_null_width[] = {"openshop", "art/scene.png", NULL, "480"};
+    if (!expect_int("null_width", parse_cli_args(4, argv_null_width, &options), 0)) {
+        return 1;
+    }
+    char *argv_null_height[] = {"openshop", "art/scene.png", "640", NULL};
+    if (!expect_int("null_height", parse_cli_args(4, argv_null_height, &options), 0)) {
+        return 1;
+    }
 
     printf("cli selftest ok\n");
     return 0;
