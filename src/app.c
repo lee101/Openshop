@@ -713,40 +713,44 @@ static int handle_tool_shortcut(
                 runtime->needs_composite = 1;
             }
             break;
+        case APP_TOOL_EFFECT_FLOOD_FILL: {
+            int mx = 0;
+            int my = 0;
+            SDL_GetMouseState(&mx, &my);
+            if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
+                Layer *active = layer_stack_active(layers);
+                if (active && !active->locked) {
+                    push_runtime_snapshot(layers, runtime);
+                }
+                if (!active || active->locked || !canvas_flood_fill(&active->canvas, mx, my, runtime->brush_color)) {
+                    fprintf(stderr, "Fill failed\n");
+                } else {
+                    runtime->needs_composite = 1;
+                }
+            }
+            break;
+        }
+        case APP_TOOL_EFFECT_PICK_COLOR: {
+            int mx = 0;
+            int my = 0;
+            SDL_GetMouseState(&mx, &my);
+            if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
+                const Canvas *sample =
+                    (runtime->preview_active && preview_canvas && preview_canvas->pixels) ? preview_canvas : composite;
+                runtime->brush_color = canvas_get_pixel(sample, mx, my);
+                runtime->brush_color_rgb = runtime->brush_color & 0x00FFFFFF;
+                runtime->brush_opacity = (int)((((runtime->brush_color >> 24) & 0xFF) * 100 + 127) / 255);
+                if (runtime->brush_opacity < 1) {
+                    runtime->brush_opacity = 1;
+                }
+                runtime->brush_color = compose_brush_color(runtime->brush_color_rgb, runtime->brush_opacity);
+                runtime->tool = TOOL_BRUSH;
+            }
+            break;
+        }
         case APP_TOOL_EFFECT_NONE:
         default:
             break;
-        }
-    } else if (key == SDLK_f) {
-        int mx = 0;
-        int my = 0;
-        SDL_GetMouseState(&mx, &my);
-        if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
-            Layer *active = layer_stack_active(layers);
-            if (active && !active->locked) {
-                push_runtime_snapshot(layers, runtime);
-            }
-            if (!active || active->locked || !canvas_flood_fill(&active->canvas, mx, my, runtime->brush_color)) {
-                fprintf(stderr, "Fill failed\n");
-            } else {
-                runtime->needs_composite = 1;
-            }
-        }
-    } else if (key == SDLK_i) {
-        int mx = 0;
-        int my = 0;
-        SDL_GetMouseState(&mx, &my);
-        if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
-            const Canvas *sample =
-                (runtime->preview_active && preview_canvas && preview_canvas->pixels) ? preview_canvas : composite;
-            runtime->brush_color = canvas_get_pixel(sample, mx, my);
-            runtime->brush_color_rgb = runtime->brush_color & 0x00FFFFFF;
-            runtime->brush_opacity = (int)((((runtime->brush_color >> 24) & 0xFF) * 100 + 127) / 255);
-            if (runtime->brush_opacity < 1) {
-                runtime->brush_opacity = 1;
-            }
-            runtime->brush_color = compose_brush_color(runtime->brush_color_rgb, runtime->brush_opacity);
-            runtime->tool = TOOL_BRUSH;
         }
     } else {
         handled = 0;

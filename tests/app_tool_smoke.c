@@ -66,7 +66,9 @@ static int test_effect_shortcut_mapping(void) {
     AppToolEffectCommand flip_v = app_tool_effect_command_for_key('v');
     AppToolEffectCommand rotate = app_tool_effect_command_for_key('j');
     AppToolEffectCommand invert = app_tool_effect_command_for_key('x');
-    AppToolEffectCommand none = app_tool_effect_command_for_key('f');
+    AppToolEffectCommand fill = app_tool_effect_command_for_key('f');
+    AppToolEffectCommand pick = app_tool_effect_command_for_key('i');
+    AppToolEffectCommand none = app_tool_effect_command_for_key('q');
 
     return expect_int_eq("clear_handled", clear.handled, 1) &&
            expect_int_eq("clear_action", clear.action, APP_TOOL_EFFECT_CLEAR_LAYER) &&
@@ -74,6 +76,8 @@ static int test_effect_shortcut_mapping(void) {
            expect_int_eq("flip_v_action", flip_v.action, APP_TOOL_EFFECT_FLIP_VERTICAL) &&
            expect_int_eq("rotate_action", rotate.action, APP_TOOL_EFFECT_ROTATE_180) &&
            expect_int_eq("invert_action", invert.action, APP_TOOL_EFFECT_INVERT_RGB) &&
+           expect_int_eq("fill_action", fill.action, APP_TOOL_EFFECT_FLOOD_FILL) &&
+           expect_int_eq("pick_action", pick.action, APP_TOOL_EFFECT_PICK_COLOR) &&
            expect_int_eq("none_handled", none.handled, 0) &&
            expect_int_eq("none_action", none.action, APP_TOOL_EFFECT_NONE);
 }

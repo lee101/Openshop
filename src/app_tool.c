@@ -164,6 +164,12 @@ AppToolEffectCommand app_tool_effect_command_for_key(int key) {
     case 'x':
         command.action = APP_TOOL_EFFECT_INVERT_RGB;
         break;
+    case 'f':
+        command.action = APP_TOOL_EFFECT_FLOOD_FILL;
+        break;
+    case 'i':
+        command.action = APP_TOOL_EFFECT_PICK_COLOR;
+        break;
     default:
         command.handled = 0;
         command.action = APP_TOOL_EFFECT_NONE;
