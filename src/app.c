@@ -315,6 +315,22 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
     SDL_SetWindowTitle(window, title);
 }
 
+static void apply_filter_settings_and_refresh_title(
+    SDL_Window *window,
+    const LayerStack *layers,
+    const FilterSettings *settings,
+    Tool tool,
+    BrushShape brush_shape,
+    int radius,
+    uint32_t color,
+    int opacity_percent
+) {
+    if (settings) {
+        g_filter_settings = *settings;
+    }
+    update_window_title(window, layers, tool, brush_shape, radius, color, opacity_percent);
+}
+
 static int clamp_fill_tolerance(int tolerance) {
     if (tolerance < FILL_TOLERANCE_MIN) {
         return FILL_TOLERANCE_MIN;
@@ -772,8 +788,8 @@ int app_run(const char *input_path) {
     Canvas preview_canvas = {CANVAS_WIDTH, CANVAS_HEIGHT, preview_pixels};
     memset(undo_stack, 0, sizeof(undo_stack));
     memset(redo_stack, 0, sizeof(redo_stack));
-    g_filter_settings = settings;
-    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+    apply_filter_settings_and_refresh_title(
+        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
 
     while (running) {
         SDL_Event e;
@@ -913,57 +929,57 @@ int app_run(const char *input_path) {
 
                 if (alt && key == SDLK_LEFTBRACKET) {
                     settings.posterize_levels = clamp_posterize_levels(settings.posterize_levels - 1);
-                    g_filter_settings = settings;
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    apply_filter_settings_and_refresh_title(
+                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
                 if (alt && key == SDLK_RIGHTBRACKET) {
                     settings.posterize_levels = clamp_posterize_levels(settings.posterize_levels + 1);
-                    g_filter_settings = settings;
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    apply_filter_settings_and_refresh_title(
+                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
                 if (alt && key == SDLK_COMMA) {
                     settings.threshold_value = clamp_threshold_value(settings.threshold_value - THRESHOLD_STEP);
-                    g_filter_settings = settings;
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    apply_filter_settings_and_refresh_title(
+                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
                 if (alt && key == SDLK_PERIOD) {
                     settings.threshold_value = clamp_threshold_value(settings.threshold_value + THRESHOLD_STEP);
-                    g_filter_settings = settings;
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    apply_filter_settings_and_refresh_title(
+                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
                 if (alt && key == SDLK_b) {
                     settings.blur_radius = clamp_blur_radius(settings.blur_radius + 1);
-                    g_filter_settings = settings;
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    apply_filter_settings_and_refresh_title(
+                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
                 if (alt && key == SDLK_v) {
                     settings.blur_radius = clamp_blur_radius(settings.blur_radius - 1);
-                    g_filter_settings = settings;
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    apply_filter_settings_and_refresh_title(
+                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
                 if (alt && key == SDLK_UP) {
                     settings.filter_adjust_step = clamp_filter_adjust_step(settings.filter_adjust_step + FILTER_ADJUST_STEP);
-                    g_filter_settings = settings;
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    apply_filter_settings_and_refresh_title(
+                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
                 if (alt && key == SDLK_DOWN) {
                     settings.filter_adjust_step = clamp_filter_adjust_step(settings.filter_adjust_step - FILTER_ADJUST_STEP);
-                    g_filter_settings = settings;
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    apply_filter_settings_and_refresh_title(
+                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
@@ -991,15 +1007,15 @@ int app_run(const char *input_path) {
 
                 if (ctrl && shift && key == SDLK_COMMA) {
                     settings.fill_tolerance = clamp_fill_tolerance(settings.fill_tolerance - FILL_TOLERANCE_STEP);
-                    g_filter_settings = settings;
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    apply_filter_settings_and_refresh_title(
+                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
                 if (ctrl && shift && key == SDLK_PERIOD) {
                     settings.fill_tolerance = clamp_fill_tolerance(settings.fill_tolerance + FILL_TOLERANCE_STEP);
-                    g_filter_settings = settings;
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    apply_filter_settings_and_refresh_title(
+                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
@@ -1069,15 +1085,15 @@ int app_run(const char *input_path) {
 
                 if (ctrl && shift && key == SDLK_LEFTBRACKET) {
                     settings.pixelate_block_size = clamp_pixelate_block_size(settings.pixelate_block_size - PIXELATE_BLOCK_STEP);
-                    g_filter_settings = settings;
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    apply_filter_settings_and_refresh_title(
+                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
                 if (ctrl && shift && key == SDLK_RIGHTBRACKET) {
                     settings.pixelate_block_size = clamp_pixelate_block_size(settings.pixelate_block_size + PIXELATE_BLOCK_STEP);
-                    g_filter_settings = settings;
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    apply_filter_settings_and_refresh_title(
+                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
