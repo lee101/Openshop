@@ -10,6 +10,7 @@ static int last_canvas_w = 0;
 static int last_canvas_h = 0;
 static int app_run_result = 0;
 static const char *custom_program_name = "./bin/openshop-dev";
+static const char *custom_input_path = "art/custom.png";
 static const char *expected_usage_text =
     "Usage: openshop [input_path] [width height]\n"
     "       or: WIDTH HEIGHT\n";
@@ -378,9 +379,9 @@ int main(void) {
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_custom_program_input[] = {(char *)custom_program_name, "art/custom.png"};
+    char *argv_custom_program_input[] = {(char *)custom_program_name, (char *)custom_input_path};
     if (!capture_main_stderr(2, argv_custom_program_input, stderr_text, sizeof(stderr_text), &exit_code) ||
-        !expect_successful_run("custom_program_input", exit_code, 0, "art/custom.png", 0, 0, stderr_text, "")) {
+        !expect_successful_run("custom_program_input", exit_code, 0, custom_input_path, 0, 0, stderr_text, "")) {
         return 1;
     }
 
@@ -392,9 +393,9 @@ int main(void) {
     }
 
     reset_app_state(5, NULL, 0, 0, stderr_text);
-    char *argv_custom_program_nonzero[] = {(char *)custom_program_name, "art/custom.png"};
+    char *argv_custom_program_nonzero[] = {(char *)custom_program_name, (char *)custom_input_path};
     if (!capture_main_stderr(2, argv_custom_program_nonzero, stderr_text, sizeof(stderr_text), &exit_code) ||
-        !expect_successful_run("custom_program_nonzero", exit_code, 5, "art/custom.png", 0, 0, stderr_text,
+        !expect_successful_run("custom_program_nonzero", exit_code, 5, custom_input_path, 0, 0, stderr_text,
                                "App exited with code 5\n")) {
         return 1;
     }
@@ -414,16 +415,16 @@ int main(void) {
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_custom_program_input_size[] = {(char *)custom_program_name, "art/custom.png", "320", "240"};
+    char *argv_custom_program_input_size[] = {(char *)custom_program_name, (char *)custom_input_path, "320", "240"};
     if (!capture_main_stderr(4, argv_custom_program_input_size, stderr_text, sizeof(stderr_text), &exit_code) ||
-        !expect_successful_run("custom_program_input_size", exit_code, 0, "art/custom.png", 320, 240, stderr_text, "")) {
+        !expect_successful_run("custom_program_input_size", exit_code, 0, custom_input_path, 320, 240, stderr_text, "")) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
-    char *argv_custom_program_plus_prefixed[] = {(char *)custom_program_name, "art/custom.png", "+320", "240"};
+    char *argv_custom_program_plus_prefixed[] = {(char *)custom_program_name, (char *)custom_input_path, "+320", "240"};
     if (!capture_main_stderr(4, argv_custom_program_plus_prefixed, stderr_text, sizeof(stderr_text), &exit_code) ||
-        !expect_successful_run("custom_program_plus_prefixed", exit_code, 0, "art/custom.png", 320, 240, stderr_text, "")) {
+        !expect_successful_run("custom_program_plus_prefixed", exit_code, 0, custom_input_path, 320, 240, stderr_text, "")) {
         return 1;
     }
 
