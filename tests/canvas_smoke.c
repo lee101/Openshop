@@ -1222,6 +1222,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!stack.layers[0].visible || stack.layers[0].locked || stack.layers[0].opacity_percent != 100 || stack.solo_index != -1) {
+        fprintf(stderr, "flatten should normalize surviving layer state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!expect_pixel_eq("flatten_pixel", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF0040BF)) {
         canvas_free(&composite);
         layer_stack_free(&stack);
@@ -1244,6 +1250,12 @@ static int test_layers_basic(void) {
     }
     if (!layer_stack_stamp_visible_into(&stack, 1, 0xFFFFFFFF)) {
         fprintf(stderr, "stamp visible failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[1].visible || stack.layers[1].locked || stack.layers[1].opacity_percent != 100 || stack.solo_index != -1) {
+        fprintf(stderr, "stamp visible should only normalize target visibility and opacity\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
