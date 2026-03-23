@@ -136,6 +136,24 @@ static int expect_successful_run(const char *label_prefix, int exit_code, int ex
     return 1;
 }
 
+static int expect_invalid_run(const char *label_prefix, int exit_code, const char *actual_stderr) {
+    char label[64] = {0};
+
+    snprintf(label, sizeof(label), "%s_exit", label_prefix);
+    if (!expect_int(label, exit_code, 1)) {
+        return 0;
+    }
+    snprintf(label, sizeof(label), "%s_app_run_called", label_prefix);
+    if (!expect_int(label, app_run_called, 0)) {
+        return 0;
+    }
+    snprintf(label, sizeof(label), "%s_usage_text", label_prefix);
+    if (!expect_str(label, actual_stderr, expected_usage_text)) {
+        return 0;
+    }
+    return 1;
+}
+
 int main(void) {
     char stderr_text[256] = {0};
     int exit_code = 0;
@@ -143,71 +161,55 @@ int main(void) {
     char *argv_invalid[] = {"openshop", "art/scene.png", "640"};
     reset_app_state(0, NULL, 0, 0, stderr_text);
     if (!capture_main_stderr(3, argv_invalid, stderr_text, sizeof(stderr_text), &exit_code) ||
-        !expect_int("invalid_exit", exit_code, 1) ||
-        !expect_int("invalid_app_run_called", app_run_called, 0) ||
-        !expect_str("invalid_usage_text", stderr_text, expected_usage_text)) {
+        !expect_invalid_run("invalid", exit_code, stderr_text)) {
         return 1;
     }
 
     char *argv_bad_size_only[] = {"openshop", "art/scene.png", "768"};
     reset_app_state(0, NULL, 0, 0, stderr_text);
     if (!capture_main_stderr(3, argv_bad_size_only, stderr_text, sizeof(stderr_text), &exit_code) ||
-        !expect_int("bad_size_only_exit", exit_code, 1) ||
-        !expect_int("bad_size_only_app_run_called", app_run_called, 0) ||
-        !expect_str("bad_size_only_usage_text", stderr_text, expected_usage_text)) {
+        !expect_invalid_run("bad_size_only", exit_code, stderr_text)) {
         return 1;
     }
 
     char *argv_extra[] = {"openshop", "art/scene.png", "640", "480", "extra"};
     reset_app_state(0, NULL, 0, 0, stderr_text);
     if (!capture_main_stderr(5, argv_extra, stderr_text, sizeof(stderr_text), &exit_code) ||
-        !expect_int("extra_args_exit", exit_code, 1) ||
-        !expect_int("extra_args_app_run_called", app_run_called, 0) ||
-        !expect_str("extra_args_usage_text", stderr_text, expected_usage_text)) {
+        !expect_invalid_run("extra_args", exit_code, stderr_text)) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
     if (!capture_main_stderr(1, NULL, stderr_text, sizeof(stderr_text), &exit_code) ||
-        !expect_int("null_argv_exit", exit_code, 1) ||
-        !expect_int("null_argv_app_run_called", app_run_called, 0) ||
-        !expect_str("null_argv_usage_text", stderr_text, expected_usage_text)) {
+        !expect_invalid_run("null_argv", exit_code, stderr_text)) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
     char *argv_zero_argc[] = {"openshop"};
     if (!capture_main_stderr(0, argv_zero_argc, stderr_text, sizeof(stderr_text), &exit_code) ||
-        !expect_int("zero_argc_exit", exit_code, 1) ||
-        !expect_int("zero_argc_app_run_called", app_run_called, 0) ||
-        !expect_str("zero_argc_usage_text", stderr_text, expected_usage_text)) {
+        !expect_invalid_run("zero_argc", exit_code, stderr_text)) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
     char *argv_empty_program[] = {""};
     if (!capture_main_stderr(1, argv_empty_program, stderr_text, sizeof(stderr_text), &exit_code) ||
-        !expect_int("empty_program_exit", exit_code, 1) ||
-        !expect_int("empty_program_app_run_called", app_run_called, 0) ||
-        !expect_str("empty_program_usage_text", stderr_text, expected_usage_text)) {
+        !expect_invalid_run("empty_program", exit_code, stderr_text)) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
     char *argv_empty_input[] = {"openshop", ""};
     if (!capture_main_stderr(2, argv_empty_input, stderr_text, sizeof(stderr_text), &exit_code) ||
-        !expect_int("empty_input_exit", exit_code, 1) ||
-        !expect_int("empty_input_app_run_called", app_run_called, 0) ||
-        !expect_str("empty_input_usage_text", stderr_text, expected_usage_text)) {
+        !expect_invalid_run("empty_input", exit_code, stderr_text)) {
         return 1;
     }
 
     reset_app_state(0, NULL, 0, 0, stderr_text);
     char *argv_bad_width_token[] = {"openshop", "art/scene.png", "12x", "480"};
     if (!capture_main_stderr(4, argv_bad_width_token, stderr_text, sizeof(stderr_text), &exit_code) ||
-        !expect_int("bad_width_token_exit", exit_code, 1) ||
-        !expect_int("bad_width_token_app_run_called", app_run_called, 0) ||
-        !expect_str("bad_width_token_usage_text", stderr_text, expected_usage_text)) {
+        !expect_invalid_run("bad_width_token", exit_code, stderr_text)) {
         return 1;
     }
 
