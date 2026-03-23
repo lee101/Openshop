@@ -35,6 +35,7 @@ void canvas_hue_rotate(Canvas *c, int degrees);
 void canvas_rotate_90cw(Canvas *c);
 void canvas_rotate_90ccw(Canvas *c);
 void canvas_desaturate(Canvas *c);
+void canvas_auto_levels(Canvas *c);
 void canvas_posterize(Canvas *c);
 void canvas_threshold(Canvas *c);
 void canvas_brightness(Canvas *c, int delta);

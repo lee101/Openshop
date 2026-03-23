@@ -1048,6 +1048,32 @@ int main(void) {
     }
     canvas_free(&bright_test);
 
+    Canvas levels_test;
+    if (!canvas_init(&levels_test, 3, 1)) {
+        fprintf(stderr, "levels_test canvas init failed\n");
+        return 1;
+    }
+    canvas_clear(&levels_test, 0xFF000000);
+    canvas_set_pixel_raw(&levels_test, 0, 0, 0xFF0A800A);
+    canvas_set_pixel_raw(&levels_test, 1, 0, 0xFF6E806E);
+    canvas_set_pixel_raw(&levels_test, 2, 0, 0xFFD28000);
+    canvas_auto_levels(&levels_test);
+    {
+        uint32_t p0 = canvas_get_pixel(&levels_test, 0, 0);
+        uint32_t p2 = canvas_get_pixel(&levels_test, 2, 0);
+        int p0_r = (int)((p0 >> 16) & 0xFF);
+        int p0_g = (int)((p0 >> 8) & 0xFF);
+        int p2_r = (int)((p2 >> 16) & 0xFF);
+        int p2_g = (int)((p2 >> 8) & 0xFF);
+        if (p0_r != 0 || p2_r != 255 || p0_g != 128 || p2_g != 128) {
+            fprintf(stderr, "auto_levels failed: p0_r=%d p0_g=%d p2_r=%d p2_g=%d\n",
+                p0_r, p0_g, p2_r, p2_g);
+            canvas_free(&levels_test);
+            return 1;
+        }
+    }
+    canvas_free(&levels_test);
+
     if (!test_layers_basic()) {
         return 1;
     }

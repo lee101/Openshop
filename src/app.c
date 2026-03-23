@@ -1264,6 +1264,13 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
                     break;
                 }
 
+                if (ctrl && key == SDLK_b) {
+                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_auto_levels)) {
+                        needs_composite = 1;
+                    }
+                    break;
+                }
+
                 if (ctrl && shift && key == SDLK_r) {
                     Snapshot before = {0};
                     int shown = 0;
