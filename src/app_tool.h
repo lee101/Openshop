@@ -1,6 +1,10 @@
 #ifndef APP_TOOL_H
 #define APP_TOOL_H
 
+#include "canvas.h"
+#include "layers.h"
+#include <stdint.h>
+
 typedef struct {
     int handled;
     int tool;
@@ -27,6 +31,23 @@ typedef struct {
     AppToolEffectAction action;
 } AppToolEffectCommand;
 
+typedef struct {
+    int tool;
+    int brush_opacity;
+    unsigned int brush_color_rgb;
+    unsigned int brush_color;
+    int preview_active;
+    int needs_composite;
+} AppToolEffectState;
+
+typedef struct {
+    void (*push_snapshot)(const LayerStack *layers, void *userdata);
+    int (*transform_layer)(LayerStack *layers, int active_layer, AppToolEffectAction action, void *userdata);
+    int (*flood_fill)(Canvas *canvas, int x, int y, uint32_t color, void *userdata);
+    uint32_t (*sample_canvas)(const Canvas *canvas, int x, int y, void *userdata);
+    void *userdata;
+} AppToolEffectCallbacks;
+
 AppToolCommand app_tool_command_for_key(
     int key,
     int tool,
@@ -37,5 +58,16 @@ AppToolCommand app_tool_command_for_key(
 );
 
 AppToolEffectCommand app_tool_effect_command_for_key(int key);
+int app_tool_effect_apply(
+    AppToolEffectCommand command,
+    LayerStack *layers,
+    AppToolEffectState *state,
+    const Canvas *preview_canvas,
+    const Canvas *composite,
+    int mouse_x,
+    int mouse_y,
+    uint32_t clear_color,
+    const AppToolEffectCallbacks *callbacks
+);
 
 #endif

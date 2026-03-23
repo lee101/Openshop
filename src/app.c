@@ -51,6 +51,14 @@ typedef struct AppRuntime AppRuntime;
 
 static void push_runtime_snapshot(const LayerStack *layers, AppRuntime *runtime);
 static void push_runtime_snapshot_callback(const LayerStack *layers, void *userdata);
+static int apply_runtime_tool_effect_transform(
+    LayerStack *layers,
+    int active_layer,
+    AppToolEffectAction action,
+    void *userdata
+);
+static int flood_fill_canvas_callback(Canvas *canvas, int x, int y, uint32_t color, void *userdata);
+static uint32_t sample_canvas_callback(const Canvas *canvas, int x, int y, void *userdata);
 static int restore_runtime_history(LayerStack *layers, AppRuntime *runtime, int redo_to_undo);
 static int apply_runtime_canvas_transform(LayerStack *layers, AppRuntime *runtime, void (*transform)(Canvas *));
 static int apply_runtime_canvas_translation(LayerStack *layers, AppRuntime *runtime, int dx, int dy);
@@ -613,6 +621,21 @@ static int handle_tool_shortcut(
         runtime->brush_color_rgb
     );
     AppToolEffectCommand effect_command = app_tool_effect_command_for_key((int)key);
+    AppToolEffectState effect_state = {
+        .tool = (int)runtime->tool,
+        .brush_opacity = runtime->brush_opacity,
+        .brush_color_rgb = runtime->brush_color_rgb,
+        .brush_color = runtime->brush_color,
+        .preview_active = runtime->preview_active,
+        .needs_composite = runtime->needs_composite,
+    };
+    AppToolEffectCallbacks effect_callbacks = {
+        .push_snapshot = push_runtime_snapshot_callback,
+        .transform_layer = apply_runtime_tool_effect_transform,
+        .flood_fill = flood_fill_canvas_callback,
+        .sample_canvas = sample_canvas_callback,
+        .userdata = runtime,
+    };
 
     if (tool_command.handled) {
         runtime->tool = (Tool)tool_command.tool;
@@ -622,74 +645,28 @@ static int handle_tool_shortcut(
         runtime->brush_color_rgb = tool_command.brush_color_rgb;
         runtime->brush_color = tool_command.brush_color;
     } else if (effect_command.handled) {
-        switch (effect_command.action) {
-        case APP_TOOL_EFFECT_CLEAR_LAYER:
-            if (active_layer_editable(layers)) {
-                push_runtime_snapshot(layers, runtime);
+        int mx = 0;
+        int my = 0;
+        SDL_GetMouseState(&mx, &my);
+        if (!app_tool_effect_apply(
+                effect_command,
+                layers,
+                &effect_state,
+                preview_canvas,
+                composite,
+                mx,
+                my,
+                active_layer_clear_color(layers),
+                &effect_callbacks)) {
+            if (effect_command.action == APP_TOOL_EFFECT_FLOOD_FILL) {
+                fprintf(stderr, "Fill failed\n");
             }
-            if (layer_stack_clear_layer(layers, layers->active_layer, active_layer_clear_color(layers))) {
-                runtime->needs_composite = 1;
-            }
-            break;
-        case APP_TOOL_EFFECT_FLIP_HORIZONTAL:
-            if (apply_runtime_canvas_transform(layers, runtime, canvas_flip_horizontal)) {
-                runtime->needs_composite = 1;
-            }
-            break;
-        case APP_TOOL_EFFECT_FLIP_VERTICAL:
-            if (apply_runtime_canvas_transform(layers, runtime, canvas_flip_vertical)) {
-                runtime->needs_composite = 1;
-            }
-            break;
-        case APP_TOOL_EFFECT_ROTATE_180:
-            if (apply_runtime_canvas_transform(layers, runtime, canvas_rotate_180)) {
-                runtime->needs_composite = 1;
-            }
-            break;
-        case APP_TOOL_EFFECT_INVERT_RGB:
-            if (apply_runtime_canvas_transform(layers, runtime, canvas_invert_rgb)) {
-                runtime->needs_composite = 1;
-            }
-            break;
-        case APP_TOOL_EFFECT_FLOOD_FILL: {
-            int mx = 0;
-            int my = 0;
-            SDL_GetMouseState(&mx, &my);
-            if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
-                Layer *active = layer_stack_active(layers);
-                if (active && !active->locked) {
-                    push_runtime_snapshot(layers, runtime);
-                }
-                if (!active || active->locked || !canvas_flood_fill(&active->canvas, mx, my, runtime->brush_color)) {
-                    fprintf(stderr, "Fill failed\n");
-                } else {
-                    runtime->needs_composite = 1;
-                }
-            }
-            break;
         }
-        case APP_TOOL_EFFECT_PICK_COLOR: {
-            int mx = 0;
-            int my = 0;
-            SDL_GetMouseState(&mx, &my);
-            if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
-                const Canvas *sample =
-                    (runtime->preview_active && preview_canvas && preview_canvas->pixels) ? preview_canvas : composite;
-                runtime->brush_color = canvas_get_pixel(sample, mx, my);
-                runtime->brush_color_rgb = runtime->brush_color & 0x00FFFFFF;
-                runtime->brush_opacity = (int)((((runtime->brush_color >> 24) & 0xFF) * 100 + 127) / 255);
-                if (runtime->brush_opacity < 1) {
-                    runtime->brush_opacity = 1;
-                }
-                runtime->brush_color = compose_brush_color(runtime->brush_color_rgb, runtime->brush_opacity);
-                runtime->tool = TOOL_BRUSH;
-            }
-            break;
-        }
-        case APP_TOOL_EFFECT_NONE:
-        default:
-            break;
-        }
+        runtime->tool = (Tool)effect_state.tool;
+        runtime->brush_opacity = effect_state.brush_opacity;
+        runtime->brush_color_rgb = effect_state.brush_color_rgb;
+        runtime->brush_color = effect_state.brush_color;
+        runtime->needs_composite = effect_state.needs_composite;
     } else {
         handled = 0;
     }
@@ -1362,6 +1339,41 @@ static void push_runtime_snapshot(const LayerStack *layers, AppRuntime *runtime)
 
 static void push_runtime_snapshot_callback(const LayerStack *layers, void *userdata) {
     push_runtime_snapshot(layers, (AppRuntime *)userdata);
+}
+
+static int apply_runtime_tool_effect_transform(
+    LayerStack *layers,
+    int active_layer,
+    AppToolEffectAction action,
+    void *userdata
+) {
+    AppRuntime *runtime = (AppRuntime *)userdata;
+    if (!layers || !runtime) {
+        return 0;
+    }
+    layers->active_layer = active_layer;
+    switch (action) {
+    case APP_TOOL_EFFECT_FLIP_HORIZONTAL:
+        return apply_runtime_canvas_transform(layers, runtime, canvas_flip_horizontal);
+    case APP_TOOL_EFFECT_FLIP_VERTICAL:
+        return apply_runtime_canvas_transform(layers, runtime, canvas_flip_vertical);
+    case APP_TOOL_EFFECT_ROTATE_180:
+        return apply_runtime_canvas_transform(layers, runtime, canvas_rotate_180);
+    case APP_TOOL_EFFECT_INVERT_RGB:
+        return apply_runtime_canvas_transform(layers, runtime, canvas_invert_rgb);
+    default:
+        return 0;
+    }
+}
+
+static int flood_fill_canvas_callback(Canvas *canvas, int x, int y, uint32_t color, void *userdata) {
+    (void)userdata;
+    return canvas_flood_fill(canvas, x, y, color);
+}
+
+static uint32_t sample_canvas_callback(const Canvas *canvas, int x, int y, void *userdata) {
+    (void)userdata;
+    return canvas_get_pixel(canvas, x, y);
 }
 
 static int save_document_canvas(const Canvas *canvas, const char *path, void *userdata) {

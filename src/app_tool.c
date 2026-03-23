@@ -1,5 +1,7 @@
 #include "app_tool.h"
 
+#include <stddef.h>
+
 enum {
     APP_TOOL_BRUSH = 0,
     APP_TOOL_ERASER,
@@ -177,4 +179,97 @@ AppToolEffectCommand app_tool_effect_command_for_key(int key) {
     }
 
     return command;
+}
+
+static void app_tool_effect_push_snapshot(const LayerStack *layers, const AppToolEffectCallbacks *callbacks) {
+    if (callbacks && callbacks->push_snapshot) {
+        callbacks->push_snapshot(layers, callbacks->userdata);
+    }
+}
+
+static unsigned int app_tool_compose_brush_color(unsigned int rgb_color, int opacity_percent) {
+    return compose_brush_color(rgb_color, opacity_percent);
+}
+
+int app_tool_effect_apply(
+    AppToolEffectCommand command,
+    LayerStack *layers,
+    AppToolEffectState *state,
+    const Canvas *preview_canvas,
+    const Canvas *composite,
+    int mouse_x,
+    int mouse_y,
+    uint32_t clear_color,
+    const AppToolEffectCallbacks *callbacks
+) {
+    Layer *active = NULL;
+    const Canvas *sample = NULL;
+    uint32_t sampled_color = 0;
+
+    if (!layers || !state || !command.handled) {
+        return 0;
+    }
+
+    switch (command.action) {
+    case APP_TOOL_EFFECT_CLEAR_LAYER:
+        active = layer_stack_active(layers);
+        if (active && !active->locked) {
+            app_tool_effect_push_snapshot(layers, callbacks);
+        }
+        if (!layer_stack_clear_layer(layers, layers->active_layer, clear_color)) {
+            return 0;
+        }
+        state->needs_composite = 1;
+        return 1;
+    case APP_TOOL_EFFECT_FLIP_HORIZONTAL:
+    case APP_TOOL_EFFECT_FLIP_VERTICAL:
+    case APP_TOOL_EFFECT_ROTATE_180:
+    case APP_TOOL_EFFECT_INVERT_RGB:
+        if (!callbacks || !callbacks->transform_layer) {
+            return 0;
+        }
+        if (!callbacks->transform_layer(layers, layers->active_layer, command.action, callbacks->userdata)) {
+            return 0;
+        }
+        state->needs_composite = 1;
+        return 1;
+    case APP_TOOL_EFFECT_FLOOD_FILL:
+        if (mouse_x < 0 || mouse_y < 0 || mouse_x >= layers->width || mouse_y >= layers->height) {
+            return 0;
+        }
+        active = layer_stack_active(layers);
+        if (active && !active->locked) {
+            app_tool_effect_push_snapshot(layers, callbacks);
+        }
+        if (!active || active->locked || !callbacks || !callbacks->flood_fill ||
+            !callbacks->flood_fill(&active->canvas, mouse_x, mouse_y, state->brush_color, callbacks->userdata)) {
+            return 0;
+        }
+        state->needs_composite = 1;
+        return 1;
+    case APP_TOOL_EFFECT_PICK_COLOR:
+        if (mouse_x < 0 || mouse_y < 0 || mouse_x >= layers->width || mouse_y >= layers->height) {
+            return 0;
+        }
+        if (!callbacks || !callbacks->sample_canvas) {
+            return 0;
+        }
+        sample = (state->preview_active && preview_canvas && preview_canvas->pixels) ? preview_canvas : composite;
+        if (!sample) {
+            return 0;
+        }
+        sampled_color = callbacks->sample_canvas(sample, mouse_x, mouse_y, callbacks->userdata);
+        state->brush_color = sampled_color;
+        state->brush_color_rgb = sampled_color & 0x00FFFFFFu;
+        state->brush_opacity = (int)((((sampled_color >> 24) & 0xFF) * 100 + 127) / 255);
+        if (state->brush_opacity < 1) {
+            state->brush_opacity = 1;
+        }
+        state->brush_color = app_tool_compose_brush_color(state->brush_color_rgb, state->brush_opacity);
+        state->tool = APP_TOOL_BRUSH;
+        return 1;
+    case APP_TOOL_EFFECT_NONE:
+    default:
+        return 0;
+    }
 }
