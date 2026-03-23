@@ -74,6 +74,9 @@ int main(void) {
     if (!expect_int("usage_null_argv_size", cli_usage_size(NULL), usage_size)) {
         return 1;
     }
+    if (!expect_int("usage_empty_program_size", cli_usage_size(argv_empty_program_name), usage_size)) {
+        return 1;
+    }
     custom_usage_size = cli_usage_size(argv_custom_program);
     if (!expect_int("usage_custom_size_greater", custom_usage_size > usage_size, 1)) {
         return 1;
