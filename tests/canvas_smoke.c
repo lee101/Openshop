@@ -1351,8 +1351,18 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    uint32_t final_layer_pixel = canvas_get_pixel(&stack.layers[0].canvas, 0, 0);
+    char final_layer_name[LAYER_NAME_MAX];
+    strncpy(final_layer_name, stack.layers[0].name, LAYER_NAME_MAX - 1);
+    final_layer_name[LAYER_NAME_MAX - 1] = '\0';
     if (layer_stack_delete(&stack, 0)) {
         fprintf(stderr, "should not delete final layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layer_count != 1 || stack.active_layer != 0 || strcmp(stack.layers[0].name, final_layer_name) != 0 ||
+        !expect_pixel_eq("final_delete_preserves_layer", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), final_layer_pixel)) {
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
