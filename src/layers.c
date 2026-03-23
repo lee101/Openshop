@@ -60,6 +60,67 @@ static int ensure_layer_canvas(Layer *layer, int width, int height) {
     return canvas_init(&layer->canvas, width, height);
 }
 
+typedef int (*LayerPredicate)(const Layer *layer);
+
+static int layer_matches_any(const Layer *layer) {
+    (void)layer;
+    return 1;
+}
+
+static int layer_matches_visible(const Layer *layer) {
+    return layer && layer->visible;
+}
+
+static int layer_matches_unlocked(const Layer *layer) {
+    return layer && !layer->locked;
+}
+
+static int layer_matches_editable_visible(const Layer *layer) {
+    return layer && layer->visible && !layer->locked;
+}
+
+static int layer_stack_cycle_matching(LayerStack *stack, int direction, LayerPredicate predicate) {
+    if (!stack || stack->layer_count <= 0 || !predicate) {
+        return -1;
+    }
+
+    for (int offset = 1; offset <= stack->layer_count; offset++) {
+        int idx = stack->active_layer + (direction * offset);
+        while (idx < 0) {
+            idx += stack->layer_count;
+        }
+        idx %= stack->layer_count;
+        if (predicate(&stack->layers[idx])) {
+            stack->active_layer = idx;
+            return idx;
+        }
+    }
+    return -1;
+}
+
+static int layer_stack_select_edge_matching(LayerStack *stack, int direction, LayerPredicate predicate) {
+    if (!stack || stack->layer_count <= 0 || !predicate) {
+        return -1;
+    }
+
+    if (direction < 0) {
+        for (int i = 0; i < stack->layer_count; i++) {
+            if (predicate(&stack->layers[i])) {
+                stack->active_layer = i;
+                return i;
+            }
+        }
+    } else {
+        for (int i = stack->layer_count - 1; i >= 0; i--) {
+            if (predicate(&stack->layers[i])) {
+                stack->active_layer = i;
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+
 int layer_stack_init(LayerStack *stack, int width, int height, uint32_t background_color) {
     if (!stack || width <= 0 || height <= 0) {
         return 0;
@@ -175,128 +236,31 @@ int layer_stack_insert(LayerStack *stack, int index, const char *name, uint32_t 
 }
 
 int layer_stack_cycle(LayerStack *stack, int direction) {
-    if (!stack || stack->layer_count <= 0) {
-        return -1;
-    }
-    int idx = stack->active_layer + direction;
-    if (idx < 0) {
-        idx = stack->layer_count - 1;
-    } else if (idx >= stack->layer_count) {
-        idx = 0;
-    }
-    stack->active_layer = idx;
-    return idx;
+    return layer_stack_cycle_matching(stack, direction, layer_matches_any);
 }
 
 int layer_stack_cycle_visible(LayerStack *stack, int direction) {
-    if (!stack || stack->layer_count <= 0) {
-        return -1;
-    }
-
-    for (int offset = 1; offset <= stack->layer_count; offset++) {
-        int idx = stack->active_layer + (direction * offset);
-        while (idx < 0) {
-            idx += stack->layer_count;
-        }
-        idx %= stack->layer_count;
-        if (stack->layers[idx].visible) {
-            stack->active_layer = idx;
-            return idx;
-        }
-    }
-    return -1;
+    return layer_stack_cycle_matching(stack, direction, layer_matches_visible);
 }
 
 int layer_stack_cycle_unlocked(LayerStack *stack, int direction) {
-    if (!stack || stack->layer_count <= 0) {
-        return -1;
-    }
-
-    for (int offset = 1; offset <= stack->layer_count; offset++) {
-        int idx = stack->active_layer + (direction * offset);
-        while (idx < 0) {
-            idx += stack->layer_count;
-        }
-        idx %= stack->layer_count;
-        if (!stack->layers[idx].locked) {
-            stack->active_layer = idx;
-            return idx;
-        }
-    }
-    return -1;
+    return layer_stack_cycle_matching(stack, direction, layer_matches_unlocked);
 }
 
 int layer_stack_cycle_editable_visible(LayerStack *stack, int direction) {
-    if (!stack || stack->layer_count <= 0) {
-        return -1;
-    }
-
-    for (int offset = 1; offset <= stack->layer_count; offset++) {
-        int idx = stack->active_layer + (direction * offset);
-        while (idx < 0) {
-            idx += stack->layer_count;
-        }
-        idx %= stack->layer_count;
-        if (stack->layers[idx].visible && !stack->layers[idx].locked) {
-            stack->active_layer = idx;
-            return idx;
-        }
-    }
-    return -1;
+    return layer_stack_cycle_matching(stack, direction, layer_matches_editable_visible);
 }
 
 int layer_stack_select_edge(LayerStack *stack, int direction) {
-    if (!stack || stack->layer_count <= 0) {
-        return -1;
-    }
-    stack->active_layer = direction < 0 ? 0 : stack->layer_count - 1;
-    return stack->active_layer;
+    return layer_stack_select_edge_matching(stack, direction, layer_matches_any);
 }
 
 int layer_stack_select_edge_visible(LayerStack *stack, int direction) {
-    if (!stack || stack->layer_count <= 0) {
-        return -1;
-    }
-
-    if (direction < 0) {
-        for (int i = 0; i < stack->layer_count; i++) {
-            if (stack->layers[i].visible) {
-                stack->active_layer = i;
-                return i;
-            }
-        }
-    } else {
-        for (int i = stack->layer_count - 1; i >= 0; i--) {
-            if (stack->layers[i].visible) {
-                stack->active_layer = i;
-                return i;
-            }
-        }
-    }
-    return -1;
+    return layer_stack_select_edge_matching(stack, direction, layer_matches_visible);
 }
 
 int layer_stack_select_edge_editable_visible(LayerStack *stack, int direction) {
-    if (!stack || stack->layer_count <= 0) {
-        return -1;
-    }
-
-    if (direction < 0) {
-        for (int i = 0; i < stack->layer_count; i++) {
-            if (stack->layers[i].visible && !stack->layers[i].locked) {
-                stack->active_layer = i;
-                return i;
-            }
-        }
-    } else {
-        for (int i = stack->layer_count - 1; i >= 0; i--) {
-            if (stack->layers[i].visible && !stack->layers[i].locked) {
-                stack->active_layer = i;
-                return i;
-            }
-        }
-    }
-    return -1;
+    return layer_stack_select_edge_matching(stack, direction, layer_matches_editable_visible);
 }
 
 int layer_stack_toggle_solo(LayerStack *stack, int index) {
