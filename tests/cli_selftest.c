@@ -87,6 +87,16 @@ int main(void) {
         return 1;
     }
 
+    char *argv_overflow_width[] = {"openshop", "art/scene.png", "2147483648", "480"};
+    if (!expect_int("overflow_width", parse_cli_args(4, argv_overflow_width, &options), 0)) {
+        return 1;
+    }
+
+    char *argv_overflow_height[] = {"openshop", "art/scene.png", "640", "999999999999999999999"};
+    if (!expect_int("overflow_height", parse_cli_args(4, argv_overflow_height, &options), 0)) {
+        return 1;
+    }
+
     if (!expect_int("null_options", parse_cli_args(1, argv_default, NULL), 0)) {
         return 1;
     }

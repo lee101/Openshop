@@ -1,5 +1,6 @@
 #include "cli.h"
 
+#include <errno.h>
 #include <limits.h>
 #include <stdlib.h>
 
@@ -11,8 +12,12 @@ static int parse_positive_int(const char *text, int *value) {
         return 0;
     }
 
+    errno = 0;
     parsed = strtol(text, &end, 10);
     if (!end || end == text || end[0] != '\0') {
+        return 0;
+    }
+    if (errno == ERANGE) {
         return 0;
     }
     if (parsed <= 0 || parsed > INT_MAX) {
