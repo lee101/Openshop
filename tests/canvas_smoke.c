@@ -292,6 +292,19 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.active_layer = 1;
+    if (layer_stack_hide_and_advance(&stack, -1)) {
+        fprintf(stderr, "hide and advance should fail on invalid source index\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.active_layer != 1 || stack.solo_index != -1 || stack.layers[0].visible != 1 || stack.layers[1].visible != 0) {
+        fprintf(stderr, "invalid hide and advance should preserve stack bookkeeping\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     if (layer_stack_toggle_visibility(&stack, 0)) {
         fprintf(stderr, "background should not hide when last visible\n");
