@@ -1,6 +1,8 @@
 #ifndef CLI_H
 #define CLI_H
 
+#include <stdio.h>
+
 enum {
     CLI_USAGE_BUFFER_SIZE = 128
 };
@@ -16,5 +18,6 @@ const char *cli_program_name(char **argv);
 const char *cli_usage_suffix(void);
 int cli_usage_size(char **argv);
 int format_cli_usage(char *buffer, int buffer_size, char **argv);
+int write_cli_usage(FILE *stream, char **argv);
 
 #endif

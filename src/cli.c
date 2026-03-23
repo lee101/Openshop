@@ -70,6 +70,17 @@ int format_cli_usage(char *buffer, int buffer_size, char **argv) {
     return written > 0 && written < buffer_size;
 }
 
+int write_cli_usage(FILE *stream, char **argv) {
+    int written = 0;
+
+    if (!stream) {
+        return 0;
+    }
+
+    written = fprintf(stream, "Usage: %s %s\n", cli_program_name(argv), cli_usage_suffix());
+    return written > 0;
+}
+
 int parse_cli_args(int argc, char **argv, CliOptions *options) {
     if (!argv || !options) {
         return 0;

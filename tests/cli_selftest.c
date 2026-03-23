@@ -25,6 +25,20 @@ static int expect_str(const char *label, const char *actual, const char *expecte
     return 1;
 }
 
+static int expect_stream_text(const char *label, FILE *stream, const char *expected) {
+    char buffer[128] = {0};
+    size_t bytes = 0;
+
+    if (!stream || fflush(stream) != 0 || fseek(stream, 0, SEEK_SET) != 0) {
+        fprintf(stderr, "%s: failed to prepare stream\n", label);
+        return 0;
+    }
+
+    bytes = fread(buffer, 1, sizeof(buffer) - 1, stream);
+    buffer[bytes] = '\0';
+    return expect_str(label, buffer, expected);
+}
+
 int main(void) {
     CliOptions options = {0};
     char *argv_default[] = {"openshop"};
@@ -101,6 +115,33 @@ int main(void) {
     }
     if (!expect_int("usage_short_buffer",
                     format_cli_usage(exact_usage, usage_size - 1, argv_default), 0)) {
+        return 1;
+    }
+    FILE *usage_stream = tmpfile();
+    if (!expect_int("usage_stream_open", usage_stream != NULL, 1)) {
+        return 1;
+    }
+    if (!expect_int("usage_write_default_ok", write_cli_usage(usage_stream, argv_default), 1) ||
+        !expect_stream_text("usage_write_default_text", usage_stream,
+                            "Usage: openshop [input_path] [width height]\n"
+                            "       or: WIDTH HEIGHT\n")) {
+        fclose(usage_stream);
+        return 1;
+    }
+    fclose(usage_stream);
+    FILE *custom_usage_stream = tmpfile();
+    if (!expect_int("usage_custom_stream_open", custom_usage_stream != NULL, 1)) {
+        return 1;
+    }
+    if (!expect_int("usage_write_custom_ok", write_cli_usage(custom_usage_stream, argv_custom_program), 1) ||
+        !expect_stream_text("usage_write_custom_text", custom_usage_stream,
+                            "Usage: ./bin/openshop-dev [input_path] [width height]\n"
+                            "       or: WIDTH HEIGHT\n")) {
+        fclose(custom_usage_stream);
+        return 1;
+    }
+    fclose(custom_usage_stream);
+    if (!expect_int("usage_write_null_stream", write_cli_usage(NULL, argv_default), 0)) {
         return 1;
     }
 
