@@ -56,6 +56,8 @@ typedef struct {
     uint32_t *pixels;
 } Snapshot;
 
+typedef int (*LayerIndexedActionFn)(LayerStack *layers, int index);
+
 static void snapshot_free(Snapshot *s) {
     if (!s) {
         return;
@@ -250,6 +252,56 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
     format_window_title(layers, tool_label(tool), brush_shape_label(brush_shape), radius, color, opacity_percent,
                         title, sizeof(title));
     SDL_SetWindowTitle(window, title);
+}
+
+static int action_insert_layer_above(LayerStack *layers, int index) {
+    return layer_stack_insert(layers, index + 1, NULL, 0x00000000) >= 0;
+}
+
+static int action_insert_layer_below(LayerStack *layers, int index) {
+    return layer_stack_insert(layers, index, NULL, 0x00000000) >= 0;
+}
+
+static int action_flatten_layers(LayerStack *layers, int index) {
+    (void)index;
+    return layer_stack_flatten(layers, COLOR_BG);
+}
+
+static int action_stamp_visible_into_active(LayerStack *layers, int index) {
+    return layer_stack_stamp_visible_into(layers, index, COLOR_BG);
+}
+
+static int action_stamp_visible_new_layer(LayerStack *layers, int index) {
+    (void)index;
+    return layer_stack_stamp_visible_new(layers, "Visible Stamp", COLOR_BG) >= 0;
+}
+
+static int action_duplicate_active_layer(LayerStack *layers, int index) {
+    return layer_stack_duplicate(layers, index, NULL) >= 0;
+}
+
+static int action_move_layer_down(LayerStack *layers, int index) {
+    return layer_stack_move(layers, index, -1);
+}
+
+static int action_move_layer_up(LayerStack *layers, int index) {
+    return layer_stack_move(layers, index, 1);
+}
+
+static void run_indexed_layer_action(SDL_Window *window, LayerStack *layers,
+                                     Snapshot *undo_stack, int *undo_count,
+                                     Snapshot *redo_stack, int *redo_count,
+                                     Tool tool, BrushShape brush_shape,
+                                     int brush_radius, uint32_t brush_color, int brush_opacity,
+                                     int *needs_composite, LayerIndexedActionFn action,
+                                     StatusTextAction error_action, int mark_composite) {
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    if (!action(layers, layers->active_layer)) {
+        fprintf(stderr, "%s\n", status_text_action_error(error_action));
+    } else if (mark_composite) {
+        *needs_composite = 1;
+    }
+    update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
 }
 
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
@@ -773,24 +825,18 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_n) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (layer_stack_insert(&layers, layers.active_layer + 1, NULL, 0x00000000) < 0) {
-                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_INSERT_LAYER_ABOVE));
-                    } else {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    run_indexed_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                             tool, brush_shape, brush_radius, brush_color, brush_opacity,
+                                             &needs_composite, action_insert_layer_above,
+                                             STATUS_INSERT_LAYER_ABOVE, 1);
                     break;
                 }
 
                 if (ctrl && key == SDLK_COMMA) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (layer_stack_insert(&layers, layers.active_layer, NULL, 0x00000000) < 0) {
-                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_INSERT_LAYER_BELOW));
-                    } else {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    run_indexed_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                             tool, brush_shape, brush_radius, brush_color, brush_opacity,
+                                             &needs_composite, action_insert_layer_below,
+                                             STATUS_INSERT_LAYER_BELOW, 1);
                     break;
                 }
 
@@ -867,68 +913,50 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && shift && key == SDLK_m) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_flatten(&layers, COLOR_BG)) {
-                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_FLATTEN_LOCKED));
-                    } else {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    run_indexed_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                             tool, brush_shape, brush_radius, brush_color, brush_opacity,
+                                             &needs_composite, action_flatten_layers,
+                                             STATUS_FLATTEN_LOCKED, 1);
                     break;
                 }
 
                 if (ctrl && shift && key == SDLK_e) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_stamp_visible_into(&layers, layers.active_layer, COLOR_BG)) {
-                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_STAMP_VISIBLE_INTO_LOCKED));
-                    } else {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    run_indexed_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                             tool, brush_shape, brush_radius, brush_color, brush_opacity,
+                                             &needs_composite, action_stamp_visible_into_active,
+                                             STATUS_STAMP_VISIBLE_INTO_LOCKED, 1);
                     break;
                 }
 
                 if (ctrl && shift && key == SDLK_g) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (layer_stack_stamp_visible_new(&layers, "Visible Stamp", COLOR_BG) < 0) {
-                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_STAMP_VISIBLE_NEW));
-                    } else {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    run_indexed_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                             tool, brush_shape, brush_radius, brush_color, brush_opacity,
+                                             &needs_composite, action_stamp_visible_new_layer,
+                                             STATUS_STAMP_VISIBLE_NEW, 1);
                     break;
                 }
 
                 if (ctrl && key == SDLK_d) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (layer_stack_duplicate(&layers, layers.active_layer, NULL) < 0) {
-                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_DUPLICATE_LAYER));
-                    } else {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    run_indexed_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                             tool, brush_shape, brush_radius, brush_color, brush_opacity,
+                                             &needs_composite, action_duplicate_active_layer,
+                                             STATUS_DUPLICATE_LAYER, 1);
                     break;
                 }
 
                 if (ctrl && key == SDLK_LEFTBRACKET) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_move(&layers, layers.active_layer, -1)) {
-                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_MOVE_LAYER_BOTTOM));
-                    } else {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    run_indexed_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                             tool, brush_shape, brush_radius, brush_color, brush_opacity,
+                                             &needs_composite, action_move_layer_down,
+                                             STATUS_MOVE_LAYER_BOTTOM, 1);
                     break;
                 }
 
                 if (ctrl && key == SDLK_RIGHTBRACKET) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_move(&layers, layers.active_layer, 1)) {
-                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_MOVE_LAYER_TOP));
-                    } else {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    run_indexed_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                             tool, brush_shape, brush_radius, brush_color, brush_opacity,
+                                             &needs_composite, action_move_layer_up,
+                                             STATUS_MOVE_LAYER_TOP, 1);
                     break;
                 }
 
@@ -955,57 +983,42 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && shift && key == SDLK_v) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_toggle_visibility(&layers, layers.active_layer)) {
-                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_HIDE_FINAL_VISIBLE));
-                    } else {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    run_indexed_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                             tool, brush_shape, brush_radius, brush_color, brush_opacity,
+                                             &needs_composite, layer_stack_toggle_visibility,
+                                             STATUS_HIDE_FINAL_VISIBLE, 1);
                     break;
                 }
 
                 if (ctrl && shift && key == SDLK_h) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_hide_and_advance(&layers, layers.active_layer)) {
-                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_HIDE_FINAL_VISIBLE));
-                    } else {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    run_indexed_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                             tool, brush_shape, brush_radius, brush_color, brush_opacity,
+                                             &needs_composite, layer_stack_hide_and_advance,
+                                             STATUS_HIDE_FINAL_VISIBLE, 1);
                     break;
                 }
 
                 if (ctrl && shift && key == SDLK_j) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_hide_and_retreat(&layers, layers.active_layer)) {
-                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_HIDE_FINAL_VISIBLE));
-                    } else {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    run_indexed_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                             tool, brush_shape, brush_radius, brush_color, brush_opacity,
+                                             &needs_composite, layer_stack_hide_and_retreat,
+                                             STATUS_HIDE_FINAL_VISIBLE, 1);
                     break;
                 }
 
                 if (ctrl && key == SDLK_SLASH) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_toggle_solo(&layers, layers.active_layer)) {
-                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_TOGGLE_SOLO));
-                    } else {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    run_indexed_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                             tool, brush_shape, brush_radius, brush_color, brush_opacity,
+                                             &needs_composite, layer_stack_toggle_solo,
+                                             STATUS_TOGGLE_SOLO, 1);
                     break;
                 }
 
                 if (key == SDLK_DELETE || key == SDLK_BACKSPACE) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_delete(&layers, layers.active_layer)) {
-                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_DELETE_FINAL_OR_LOCKED));
-                    } else {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    run_indexed_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                             tool, brush_shape, brush_radius, brush_color, brush_opacity,
+                                             &needs_composite, layer_stack_delete,
+                                             STATUS_DELETE_FINAL_OR_LOCKED, 1);
                     break;
                 }
 
@@ -1033,24 +1046,18 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_m) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_merge_down(&layers, layers.active_layer)) {
-                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_MERGE_DOWN_BLOCKED));
-                    } else {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    run_indexed_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                             tool, brush_shape, brush_radius, brush_color, brush_opacity,
+                                             &needs_composite, layer_stack_merge_down,
+                                             STATUS_MERGE_DOWN_BLOCKED, 1);
                     break;
                 }
 
                 if (ctrl && key == SDLK_u) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_merge_up(&layers, layers.active_layer)) {
-                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_MERGE_UP_BLOCKED));
-                    } else {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    run_indexed_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                             tool, brush_shape, brush_radius, brush_color, brush_opacity,
+                                             &needs_composite, layer_stack_merge_up,
+                                             STATUS_MERGE_UP_BLOCKED, 1);
                     break;
                 }
 
