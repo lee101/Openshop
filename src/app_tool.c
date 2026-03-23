@@ -144,3 +144,31 @@ AppToolCommand app_tool_command_for_key(
     command.brush_color = compose_brush_color(command.brush_color_rgb, command.brush_opacity);
     return command;
 }
+
+AppToolEffectCommand app_tool_effect_command_for_key(int key) {
+    AppToolEffectCommand command = {1, APP_TOOL_EFFECT_NONE};
+
+    switch (key) {
+    case 'c':
+        command.action = APP_TOOL_EFFECT_CLEAR_LAYER;
+        break;
+    case 'h':
+        command.action = APP_TOOL_EFFECT_FLIP_HORIZONTAL;
+        break;
+    case 'v':
+        command.action = APP_TOOL_EFFECT_FLIP_VERTICAL;
+        break;
+    case 'j':
+        command.action = APP_TOOL_EFFECT_ROTATE_180;
+        break;
+    case 'x':
+        command.action = APP_TOOL_EFFECT_INVERT_RGB;
+        break;
+    default:
+        command.handled = 0;
+        command.action = APP_TOOL_EFFECT_NONE;
+        break;
+    }
+
+    return command;
+}

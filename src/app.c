@@ -674,6 +674,7 @@ static int handle_tool_shortcut(
         runtime->brush_opacity,
         runtime->brush_color_rgb
     );
+    AppToolEffectCommand effect_command = app_tool_effect_command_for_key((int)key);
 
     if (tool_command.handled) {
         runtime->tool = (Tool)tool_command.tool;
@@ -682,28 +683,39 @@ static int handle_tool_shortcut(
         runtime->brush_opacity = tool_command.brush_opacity;
         runtime->brush_color_rgb = tool_command.brush_color_rgb;
         runtime->brush_color = tool_command.brush_color;
-    } else if (key == SDLK_c) {
-        if (active_layer_editable(layers)) {
-            push_runtime_snapshot(layers, runtime);
-        }
-        if (layer_stack_clear_layer(layers, layers->active_layer, active_layer_clear_color(layers))) {
-            runtime->needs_composite = 1;
-        }
-    } else if (key == SDLK_h) {
-        if (apply_runtime_canvas_transform(layers, runtime, canvas_flip_horizontal)) {
-            runtime->needs_composite = 1;
-        }
-    } else if (key == SDLK_v) {
-        if (apply_runtime_canvas_transform(layers, runtime, canvas_flip_vertical)) {
-            runtime->needs_composite = 1;
-        }
-    } else if (key == SDLK_j) {
-        if (apply_runtime_canvas_transform(layers, runtime, canvas_rotate_180)) {
-            runtime->needs_composite = 1;
-        }
-    } else if (key == SDLK_x) {
-        if (apply_runtime_canvas_transform(layers, runtime, canvas_invert_rgb)) {
-            runtime->needs_composite = 1;
+    } else if (effect_command.handled) {
+        switch (effect_command.action) {
+        case APP_TOOL_EFFECT_CLEAR_LAYER:
+            if (active_layer_editable(layers)) {
+                push_runtime_snapshot(layers, runtime);
+            }
+            if (layer_stack_clear_layer(layers, layers->active_layer, active_layer_clear_color(layers))) {
+                runtime->needs_composite = 1;
+            }
+            break;
+        case APP_TOOL_EFFECT_FLIP_HORIZONTAL:
+            if (apply_runtime_canvas_transform(layers, runtime, canvas_flip_horizontal)) {
+                runtime->needs_composite = 1;
+            }
+            break;
+        case APP_TOOL_EFFECT_FLIP_VERTICAL:
+            if (apply_runtime_canvas_transform(layers, runtime, canvas_flip_vertical)) {
+                runtime->needs_composite = 1;
+            }
+            break;
+        case APP_TOOL_EFFECT_ROTATE_180:
+            if (apply_runtime_canvas_transform(layers, runtime, canvas_rotate_180)) {
+                runtime->needs_composite = 1;
+            }
+            break;
+        case APP_TOOL_EFFECT_INVERT_RGB:
+            if (apply_runtime_canvas_transform(layers, runtime, canvas_invert_rgb)) {
+                runtime->needs_composite = 1;
+            }
+            break;
+        case APP_TOOL_EFFECT_NONE:
+        default:
+            break;
         }
     } else if (key == SDLK_f) {
         int mx = 0;

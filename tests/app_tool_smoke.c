@@ -60,6 +60,24 @@ static int test_unhandled_key_passthrough(void) {
            expect_uint_eq("unhandled_rgb", command.brush_color_rgb, 0x00ABCDEFu);
 }
 
+static int test_effect_shortcut_mapping(void) {
+    AppToolEffectCommand clear = app_tool_effect_command_for_key('c');
+    AppToolEffectCommand flip_h = app_tool_effect_command_for_key('h');
+    AppToolEffectCommand flip_v = app_tool_effect_command_for_key('v');
+    AppToolEffectCommand rotate = app_tool_effect_command_for_key('j');
+    AppToolEffectCommand invert = app_tool_effect_command_for_key('x');
+    AppToolEffectCommand none = app_tool_effect_command_for_key('f');
+
+    return expect_int_eq("clear_handled", clear.handled, 1) &&
+           expect_int_eq("clear_action", clear.action, APP_TOOL_EFFECT_CLEAR_LAYER) &&
+           expect_int_eq("flip_h_action", flip_h.action, APP_TOOL_EFFECT_FLIP_HORIZONTAL) &&
+           expect_int_eq("flip_v_action", flip_v.action, APP_TOOL_EFFECT_FLIP_VERTICAL) &&
+           expect_int_eq("rotate_action", rotate.action, APP_TOOL_EFFECT_ROTATE_180) &&
+           expect_int_eq("invert_action", invert.action, APP_TOOL_EFFECT_INVERT_RGB) &&
+           expect_int_eq("none_handled", none.handled, 0) &&
+           expect_int_eq("none_action", none.action, APP_TOOL_EFFECT_NONE);
+}
+
 int main(void) {
     if (!test_tool_and_palette_selection()) {
         return 1;
@@ -68,6 +86,9 @@ int main(void) {
         return 1;
     }
     if (!test_unhandled_key_passthrough()) {
+        return 1;
+    }
+    if (!test_effect_shortcut_mapping()) {
         return 1;
     }
     return 0;
