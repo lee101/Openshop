@@ -1337,6 +1337,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!stack.layers[3].visible || stack.layers[3].locked || stack.layers[3].opacity_percent != 100) {
+        fprintf(stderr, "second stamp visible new layer state failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_stamp_visible_new(&stack, "Overflow", 0xFFFFFFFF) != 4) {
         fprintf(stderr, "third stamp visible new layer failed\n");
         canvas_free(&composite);
@@ -1361,8 +1367,21 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (stack.layer_count != MAX_LAYERS || stack.active_layer != MAX_LAYERS - 1 || !stack.layers[MAX_LAYERS - 1].visible ||
+        stack.layers[MAX_LAYERS - 1].locked || stack.layers[MAX_LAYERS - 1].opacity_percent != 100) {
+        fprintf(stderr, "full stamp visible new stack bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_stamp_visible_new(&stack, "Overflow", 0xFFFFFFFF) != -1) {
         fprintf(stderr, "stamp visible new should respect max layers\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layer_count != MAX_LAYERS || stack.active_layer != MAX_LAYERS - 1) {
+        fprintf(stderr, "failed stamp visible new should preserve full stack bookkeeping\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
