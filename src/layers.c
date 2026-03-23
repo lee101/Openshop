@@ -245,6 +245,14 @@ int layer_stack_cycle_editable_visible(LayerStack *stack, int direction) {
     return -1;
 }
 
+int layer_stack_select_edge(LayerStack *stack, int direction) {
+    if (!stack || stack->layer_count <= 0) {
+        return -1;
+    }
+    stack->active_layer = direction < 0 ? 0 : stack->layer_count - 1;
+    return stack->active_layer;
+}
+
 int layer_stack_toggle_solo(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;

@@ -237,6 +237,18 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_select_edge(&stack, -1) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "select bottom layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_edge(&stack, 1) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "select top layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[1].locked = 0;
     stack.layers[2].locked = 0;
     stack.layers[2].visible = 1;

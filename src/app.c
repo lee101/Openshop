@@ -413,6 +413,8 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     case SDLK_RIGHT:
     case SDLK_PAGEUP:
     case SDLK_PAGEDOWN:
+    case SDLK_HOME:
+    case SDLK_END:
     case SDLK_DELETE:
     case SDLK_BACKSPACE:
         return 1;
@@ -1149,6 +1151,20 @@ int app_run(const char *input_path) {
                         : (ctrl ? layer_stack_cycle_unlocked(&layers, -1)
                         : (shift ? layer_stack_cycle_visible(&layers, -1) : layer_stack_cycle(&layers, -1)));
                     if (cycled >= 0) {
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    }
+                    break;
+                }
+
+                if (!ctrl && key == SDLK_HOME) {
+                    if (layer_stack_select_edge(&layers, -1) >= 0) {
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    }
+                    break;
+                }
+
+                if (!ctrl && key == SDLK_END) {
+                    if (layer_stack_select_edge(&layers, 1) >= 0) {
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                     break;
