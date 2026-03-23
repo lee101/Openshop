@@ -228,6 +228,54 @@ static int test_visibility_and_opacity_actions_push_history(void) {
     return 1;
 }
 
+static int test_document_failure_and_noop_paths_preserve_flags(void) {
+    LayerStack stack;
+    AppDocumentState state = {0};
+    DocumentStubState stub = {.load_result = 0, .restore_result = 0};
+    AppDocumentCallbacks callbacks = {
+        .load_canvas = stub_load,
+        .restore_history = stub_restore,
+        .push_snapshot = stub_push,
+        .userdata = &stub,
+    };
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF) || layer_stack_add(&stack, "Top", 0x00000000) < 0) {
+        fprintf(stderr, "initialization failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    stack.active_layer = 1;
+    stack.layers[1].locked = 0;
+    stack.layers[1].opacity_percent = 100;
+
+    if (app_document_apply(APP_DOCUMENT_ACTION_LOAD, &stack, &state, NULL, NULL, 0xAABBCCDD, &callbacks) ||
+        !expect_int_eq("failed_load_pushes_snapshot", stub.push_calls, 1) ||
+        !expect_int_eq("failed_load_calls_loader", stub.load_calls, 1) ||
+        !expect_int_eq("failed_load_needs_composite", state.needs_composite, 0)) {
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (app_document_apply(APP_DOCUMENT_ACTION_UNDO, &stack, &state, NULL, NULL, 0, &callbacks) ||
+        !expect_int_eq("failed_undo_restore_calls", stub.restore_calls, 1) ||
+        !expect_int_eq("failed_undo_needs_composite", state.needs_composite, 0)) {
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (app_document_apply(APP_DOCUMENT_ACTION_RESET_OPACITY, &stack, &state, NULL, NULL, 0, &callbacks) ||
+        !expect_int_eq("noop_reset_push_calls", stub.push_calls, 1) ||
+        !expect_int_eq("noop_reset_opacity", stack.layers[1].opacity_percent, 100) ||
+        !expect_int_eq("noop_reset_needs_composite", state.needs_composite, 0)) {
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    return 1;
+}
+
 int main(void) {
     if (!test_save_prefers_preview_canvas()) {
         return 1;
@@ -239,6 +287,9 @@ int main(void) {
         return 1;
     }
     if (!test_visibility_and_opacity_actions_push_history()) {
+        return 1;
+    }
+    if (!test_document_failure_and_noop_paths_preserve_flags()) {
         return 1;
     }
     return 0;
