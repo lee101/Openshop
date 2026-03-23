@@ -344,6 +344,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (stack.layers[0].locked || !stack.layers[1].locked) {
+        fprintf(stderr, "show hidden locked only should preserve lock state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (stack.solo_index != -1 || stack.active_layer != 1 || stack.layers[0].visible || !stack.layers[1].visible) {
         fprintf(stderr, "show hidden locked only bookkeeping failed\n");
         canvas_free(&composite);
@@ -384,6 +390,12 @@ static int test_layers_basic(void) {
         strcmp(stack.layers[0].name, "Visible Locked") != 0 ||
         strcmp(stack.layers[1].name, "Hidden Unlocked") != 0) {
         fprintf(stderr, "show hidden unlocked only should preserve opacity and names\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[0].locked || stack.layers[1].locked) {
+        fprintf(stderr, "show hidden unlocked only should preserve lock state\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
