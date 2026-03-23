@@ -49,6 +49,7 @@ make test-sdl
 - `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels
 - `PageUp / PageDown`: cycle active layer
 - `Home / End`: select bottom/top layer
+- `Shift` + `Home / End`: select bottommost/topmost visible layer
 - `Shift` + `PageUp / PageDown`: cycle visible layers only
 - `Ctrl` + `PageUp / PageDown`: cycle unlocked layers only
 - `Ctrl+Shift` + `PageUp / PageDown`: cycle visible unlocked layers only

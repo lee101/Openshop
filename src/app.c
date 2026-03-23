@@ -1157,14 +1157,16 @@ int app_run(const char *input_path) {
                 }
 
                 if (!ctrl && key == SDLK_HOME) {
-                    if (layer_stack_select_edge(&layers, -1) >= 0) {
+                    int selected = shift ? layer_stack_select_edge_visible(&layers, -1) : layer_stack_select_edge(&layers, -1);
+                    if (selected >= 0) {
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                     break;
                 }
 
                 if (!ctrl && key == SDLK_END) {
-                    if (layer_stack_select_edge(&layers, 1) >= 0) {
+                    int selected = shift ? layer_stack_select_edge_visible(&layers, 1) : layer_stack_select_edge(&layers, 1);
+                    if (selected >= 0) {
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                     break;
