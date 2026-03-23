@@ -649,6 +649,30 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_toggle_solo(&stack, 3)) {
+        fprintf(stderr, "toggle solo for editable selection failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_bottom_editable(&stack) != 0 || stack.active_layer != 0 || stack.solo_index != 3) {
+        fprintf(stderr, "editable selection should preserve solo state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_cycle_editable(&stack, 1) != 3 || stack.active_layer != 3 || stack.solo_index != 3) {
+        fprintf(stderr, "editable cycling should preserve solo state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_solo(&stack, 3) || stack.solo_index != -1) {
+        fprintf(stderr, "toggle solo off after editable selection failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[0].locked = 1;
     stack.layers[3].visible = 0;
     stack.active_layer = 2;
