@@ -320,11 +320,21 @@ struct invalid_edge_case {
 };
 
 static int expect_invalid_size_only_height_cases(const struct invalid_size_token_case *cases, size_t case_count,
-                                                 char *stderr_text, size_t stderr_size, int *exit_code) {
+                                                 char *program_name, char *width_token,
+                                                 char *stderr_text, size_t stderr_size, int *exit_code,
+                                                 const char *custom_usage_text) {
     size_t i = 0;
 
     for (i = 0; i < case_count; i += 1) {
-        char *argv[] = {"openshop", (char *)default_size_only_width, cases[i].token};
+        char *argv[] = {program_name, width_token, cases[i].token};
+
+        if (custom_usage_text) {
+            if (!expect_custom_invalid_main_run(cases[i].label_prefix, 3, argv, stderr_text, stderr_size, exit_code,
+                                                custom_usage_text)) {
+                return 0;
+            }
+            continue;
+        }
 
         if (!expect_invalid_main_run(cases[i].label_prefix, 3, argv, stderr_text, stderr_size, exit_code)) {
             return 0;
@@ -334,45 +344,23 @@ static int expect_invalid_size_only_height_cases(const struct invalid_size_token
 }
 
 static int expect_invalid_size_only_width_cases(const struct invalid_size_token_case *cases, size_t case_count,
-                                                char *stderr_text, size_t stderr_size, int *exit_code) {
+                                                char *program_name, char *height_token,
+                                                char *stderr_text, size_t stderr_size, int *exit_code,
+                                                const char *custom_usage_text) {
     size_t i = 0;
 
     for (i = 0; i < case_count; i += 1) {
-        char *argv[] = {"openshop", cases[i].token, (char *)default_size_only_height};
+        char *argv[] = {program_name, cases[i].token, height_token};
+
+        if (custom_usage_text) {
+            if (!expect_custom_invalid_main_run(cases[i].label_prefix, 3, argv, stderr_text, stderr_size, exit_code,
+                                                custom_usage_text)) {
+                return 0;
+            }
+            continue;
+        }
 
         if (!expect_invalid_main_run(cases[i].label_prefix, 3, argv, stderr_text, stderr_size, exit_code)) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
-static int expect_custom_invalid_size_only_height_cases(const struct invalid_size_token_case *cases, size_t case_count,
-                                                        char *stderr_text, size_t stderr_size, int *exit_code,
-                                                        const char *custom_usage_text) {
-    size_t i = 0;
-
-    for (i = 0; i < case_count; i += 1) {
-        char *argv[] = {(char *)custom_program_name, (char *)default_size_only_width, cases[i].token};
-
-        if (!expect_custom_invalid_main_run(cases[i].label_prefix, 3, argv, stderr_text, stderr_size, exit_code,
-                                            custom_usage_text)) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
-static int expect_custom_invalid_size_only_width_cases(const struct invalid_size_token_case *cases, size_t case_count,
-                                                       char *stderr_text, size_t stderr_size, int *exit_code,
-                                                       const char *custom_usage_text) {
-    size_t i = 0;
-
-    for (i = 0; i < case_count; i += 1) {
-        char *argv[] = {(char *)custom_program_name, cases[i].token, (char *)default_size_only_height};
-
-        if (!expect_custom_invalid_main_run(cases[i].label_prefix, 3, argv, stderr_text, stderr_size, exit_code,
-                                            custom_usage_text)) {
             return 0;
         }
     }
@@ -577,9 +565,10 @@ int main(void) {
         {"custom_program_negative_size_only_width", (char *)negative_size_only_width},
         {"custom_program_overflow_size_only_width", (char *)overflow_width_token},
     };
-    if (!expect_custom_invalid_size_only_width_cases(custom_invalid_size_only_width_cases,
-                                                     sizeof(custom_invalid_size_only_width_cases) / sizeof(custom_invalid_size_only_width_cases[0]),
-                                                     stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_invalid_size_only_width_cases(custom_invalid_size_only_width_cases,
+                                              sizeof(custom_invalid_size_only_width_cases) / sizeof(custom_invalid_size_only_width_cases[0]),
+                                              (char *)custom_program_name, (char *)default_size_only_height,
+                                              stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
@@ -593,9 +582,10 @@ int main(void) {
         {"custom_program_empty_size_only_height", ""},
         {"custom_program_overflow_size_only_height", (char *)overflow_height_token},
     };
-    if (!expect_custom_invalid_size_only_height_cases(custom_invalid_size_only_height_cases,
-                                                      sizeof(custom_invalid_size_only_height_cases) / sizeof(custom_invalid_size_only_height_cases[0]),
-                                                      stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_invalid_size_only_height_cases(custom_invalid_size_only_height_cases,
+                                               sizeof(custom_invalid_size_only_height_cases) / sizeof(custom_invalid_size_only_height_cases[0]),
+                                               (char *)custom_program_name, (char *)default_size_only_width,
+                                               stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
@@ -624,7 +614,8 @@ int main(void) {
     };
     if (!expect_invalid_size_only_height_cases(invalid_size_only_height_cases,
                                                sizeof(invalid_size_only_height_cases) / sizeof(invalid_size_only_height_cases[0]),
-                                               stderr_text, sizeof(stderr_text), &exit_code)) {
+                                               "openshop", (char *)default_size_only_width,
+                                               stderr_text, sizeof(stderr_text), &exit_code, NULL)) {
         return 1;
     }
 
@@ -640,7 +631,8 @@ int main(void) {
     };
     if (!expect_invalid_size_only_width_cases(invalid_size_only_width_cases,
                                               sizeof(invalid_size_only_width_cases) / sizeof(invalid_size_only_width_cases[0]),
-                                              stderr_text, sizeof(stderr_text), &exit_code)) {
+                                              "openshop", (char *)default_size_only_height,
+                                              stderr_text, sizeof(stderr_text), &exit_code, NULL)) {
         return 1;
     }
 
