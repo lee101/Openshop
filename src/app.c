@@ -2,6 +2,7 @@
 #include "app_document.h"
 #include "app_history.h"
 #include "app_session.h"
+#include "app_tool.h"
 #include "app_translation.h"
 #include "canvas.h"
 #include "image_io.h"
@@ -630,78 +631,22 @@ static int handle_tool_shortcut(
     const Canvas *composite
 ) {
     int handled = 1;
+    AppToolCommand tool_command = app_tool_command_for_key(
+        (int)key,
+        (int)runtime->tool,
+        (int)runtime->brush_shape,
+        runtime->brush_radius,
+        runtime->brush_opacity,
+        runtime->brush_color_rgb
+    );
 
-    if (key == SDLK_b) {
-        runtime->brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
-        runtime->brush_color = compose_brush_color(runtime->brush_color_rgb, runtime->brush_opacity);
-        runtime->tool = TOOL_BRUSH;
-    } else if (key == SDLK_e) {
-        runtime->brush_color_rgb = COLOR_ERASE & 0x00FFFFFF;
-        runtime->brush_color = compose_brush_color(runtime->brush_color_rgb, runtime->brush_opacity);
-        runtime->tool = TOOL_ERASER;
-    } else if (key == SDLK_l) {
-        runtime->tool = TOOL_LINE;
-    } else if (key == SDLK_r) {
-        runtime->tool = TOOL_RECT;
-    } else if (key == SDLK_t) {
-        runtime->tool = TOOL_FILLED_RECT;
-    } else if (key == SDLK_o) {
-        runtime->tool = TOOL_ELLIPSE;
-    } else if (key == SDLK_p) {
-        runtime->tool = TOOL_FILLED_ELLIPSE;
-    } else if (key == SDLK_LEFTBRACKET) {
-        if (runtime->brush_radius > 1) {
-            runtime->brush_radius -= 1;
-        }
-    } else if (key == SDLK_RIGHTBRACKET) {
-        if (runtime->brush_radius < 64) {
-            runtime->brush_radius += 1;
-        }
-    } else if (key == SDLK_COMMA) {
-        runtime->brush_shape = cycle_brush_shape(runtime->brush_shape, -1);
-    } else if (key == SDLK_PERIOD) {
-        runtime->brush_shape = cycle_brush_shape(runtime->brush_shape, 1);
-    } else if (key == SDLK_MINUS || key == SDLK_KP_MINUS) {
-        if (runtime->brush_opacity > 1) {
-            runtime->brush_opacity -= 5;
-            if (runtime->brush_opacity < 1) {
-                runtime->brush_opacity = 1;
-            }
-            runtime->brush_color = compose_brush_color(runtime->brush_color_rgb, runtime->brush_opacity);
-        }
-    } else if (key == SDLK_EQUALS || key == SDLK_KP_PLUS) {
-        if (runtime->brush_opacity < 100) {
-            runtime->brush_opacity += 5;
-            if (runtime->brush_opacity > 100) {
-                runtime->brush_opacity = 100;
-            }
-            runtime->brush_color = compose_brush_color(runtime->brush_color_rgb, runtime->brush_opacity);
-        }
-    } else if (key >= SDLK_1 && key <= SDLK_6) {
-        switch (key) {
-        case SDLK_1:
-            runtime->brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
-            break;
-        case SDLK_2:
-            runtime->brush_color_rgb = COLOR_RED & 0x00FFFFFF;
-            break;
-        case SDLK_3:
-            runtime->brush_color_rgb = COLOR_GREEN & 0x00FFFFFF;
-            break;
-        case SDLK_4:
-            runtime->brush_color_rgb = COLOR_BLUE & 0x00FFFFFF;
-            break;
-        case SDLK_5:
-            runtime->brush_color_rgb = COLOR_YELLOW & 0x00FFFFFF;
-            break;
-        case SDLK_6:
-            runtime->brush_color_rgb = COLOR_PURPLE & 0x00FFFFFF;
-            break;
-        default:
-            break;
-        }
-        runtime->brush_color = compose_brush_color(runtime->brush_color_rgb, runtime->brush_opacity);
-        runtime->tool = TOOL_BRUSH;
+    if (tool_command.handled) {
+        runtime->tool = (Tool)tool_command.tool;
+        runtime->brush_shape = (BrushShape)tool_command.brush_shape;
+        runtime->brush_radius = tool_command.brush_radius;
+        runtime->brush_opacity = tool_command.brush_opacity;
+        runtime->brush_color_rgb = tool_command.brush_color_rgb;
+        runtime->brush_color = tool_command.brush_color;
     } else if (key == SDLK_c) {
         if (active_layer_editable(layers)) {
             push_runtime_snapshot(layers, runtime);
