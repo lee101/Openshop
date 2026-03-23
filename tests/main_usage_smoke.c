@@ -251,13 +251,13 @@ static int expect_custom_invalid_main_run(const char *label_prefix, int argc, ch
 
 struct invalid_size_token_case {
     const char *label_prefix;
-    char *token;
+    const char *token;
 };
 
 struct invalid_input_size_case {
     const char *label_prefix;
-    char *width_token;
-    char *height_token;
+    const char *width_token;
+    const char *height_token;
 };
 
 struct invalid_argv_case {
@@ -265,16 +265,16 @@ struct invalid_argv_case {
     int argc;
     int use_null_argv;
     const char *expected_usage_text;
-    char *argv[5];
+    const char *argv[5];
 };
 
 struct success_case {
     const char *label_prefix;
     int argc;
-    char *program_name;
-    char *input_token;
-    char *width_token;
-    char *height_token;
+    const char *program_name;
+    const char *input_token;
+    const char *width_token;
+    const char *height_token;
     int result;
     int expected_exit_code;
     const char *expected_input_path;
@@ -284,13 +284,13 @@ struct success_case {
 };
 
 static int expect_invalid_size_only_height_cases(const struct invalid_size_token_case *cases, size_t case_count,
-                                                 char *program_name, char *width_token,
+                                                 const char *program_name, const char *width_token,
                                                  char *stderr_text, size_t stderr_size, int *exit_code,
                                                  const char *custom_usage_text) {
     size_t i = 0;
 
     for (i = 0; i < case_count; i += 1) {
-        char *argv[] = {program_name, width_token, cases[i].token};
+        char *argv[] = {(char *)program_name, (char *)width_token, (char *)cases[i].token};
 
         if (custom_usage_text) {
             if (!expect_custom_invalid_main_run(cases[i].label_prefix, 3, argv, stderr_text, stderr_size, exit_code,
@@ -308,13 +308,13 @@ static int expect_invalid_size_only_height_cases(const struct invalid_size_token
 }
 
 static int expect_invalid_size_only_width_cases(const struct invalid_size_token_case *cases, size_t case_count,
-                                                char *program_name, char *height_token,
+                                                const char *program_name, const char *height_token,
                                                 char *stderr_text, size_t stderr_size, int *exit_code,
                                                 const char *custom_usage_text) {
     size_t i = 0;
 
     for (i = 0; i < case_count; i += 1) {
-        char *argv[] = {program_name, cases[i].token, height_token};
+        char *argv[] = {(char *)program_name, (char *)cases[i].token, (char *)height_token};
 
         if (custom_usage_text) {
             if (!expect_custom_invalid_main_run(cases[i].label_prefix, 3, argv, stderr_text, stderr_size, exit_code,
@@ -332,13 +332,13 @@ static int expect_invalid_size_only_width_cases(const struct invalid_size_token_
 }
 
 static int expect_invalid_input_size_cases(const struct invalid_input_size_case *cases, size_t case_count,
-                                           char *program_name, char *scene_token,
+                                           const char *program_name, const char *scene_token,
                                            char *stderr_text, size_t stderr_size, int *exit_code,
                                            const char *custom_usage_text) {
     size_t i = 0;
 
     for (i = 0; i < case_count; i += 1) {
-        char *argv[] = {program_name, scene_token, cases[i].width_token, cases[i].height_token};
+        char *argv[] = {(char *)program_name, (char *)scene_token, (char *)cases[i].width_token, (char *)cases[i].height_token};
 
         if (custom_usage_text) {
             if (!expect_custom_invalid_main_run(cases[i].label_prefix, 4, argv, stderr_text, stderr_size, exit_code,
@@ -360,7 +360,8 @@ static int expect_success_cases(const struct success_case *cases, size_t case_co
     size_t i = 0;
 
     for (i = 0; i < case_count; i += 1) {
-        char *argv[] = {cases[i].program_name, cases[i].input_token, cases[i].width_token, cases[i].height_token};
+        char *argv[] = {(char *)cases[i].program_name, (char *)cases[i].input_token,
+                        (char *)cases[i].width_token, (char *)cases[i].height_token};
 
         if (!expect_successful_main_run(cases[i].label_prefix, cases[i].argc, argv, cases[i].result, stderr_text,
                                         stderr_size, exit_code, cases[i].expected_exit_code,
