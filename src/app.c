@@ -691,17 +691,32 @@ static void sample_canvas_color(
     uint32_t *brush_color_rgb,
     int *brush_opacity
 ) {
-    if (!sample || !brush_color || !brush_color_rgb || !brush_opacity || !tool) {
+    AppToolEffectState state = {
+        .tool = tool ? (int)(*tool) : 0,
+        .brush_opacity = brush_opacity ? *brush_opacity : 0,
+        .brush_color_rgb = brush_color_rgb ? *brush_color_rgb : 0,
+        .brush_color = brush_color ? *brush_color : 0,
+        .preview_active = 0,
+        .needs_composite = 0,
+    };
+    AppToolEffectCallbacks callbacks = {
+        .push_snapshot = NULL,
+        .transform_layer = NULL,
+        .flood_fill = NULL,
+        .sample_canvas = sample_canvas_callback,
+        .userdata = NULL,
+    };
+
+    if (!brush_color || !brush_color_rgb || !brush_opacity || !tool) {
         return;
     }
-    *brush_color = canvas_get_pixel(sample, x, y);
-    *brush_color_rgb = *brush_color & 0x00FFFFFF;
-    *brush_opacity = (int)((((*brush_color >> 24) & 0xFF) * 100 + 127) / 255);
-    if (*brush_opacity < 1) {
-        *brush_opacity = 1;
+    if (!app_tool_pick_sample(&state, NULL, sample, x, y, CANVAS_WIDTH, CANVAS_HEIGHT, &callbacks)) {
+        return;
     }
-    *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
-    *tool = TOOL_BRUSH;
+    *tool = (Tool)state.tool;
+    *brush_color = state.brush_color;
+    *brush_color_rgb = state.brush_color_rgb;
+    *brush_opacity = state.brush_opacity;
 }
 
 static void handle_mouse_down(

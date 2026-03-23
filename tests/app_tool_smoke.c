@@ -319,6 +319,65 @@ static int test_effect_apply_preserves_existing_composite_flag_on_noops(void) {
     return 1;
 }
 
+static int test_pick_sample_preview_and_fallback_behavior(void) {
+    Canvas preview = {0};
+    Canvas composite = {0};
+    ToolEffectStubState stub = {
+        .sampled_color = 0x00010203u,
+    };
+    AppToolEffectCallbacks callbacks = {
+        .push_snapshot = stub_push_snapshot,
+        .transform_layer = stub_transform_layer,
+        .flood_fill = stub_flood_fill,
+        .sample_canvas = stub_sample_canvas,
+        .userdata = &stub,
+    };
+    AppToolEffectState state = {
+        .tool = 4,
+        .brush_opacity = 75,
+        .brush_color_rgb = 0x00AABBCCu,
+        .brush_color = 0xBFAABBCCu,
+        .preview_active = 1,
+        .needs_composite = 1,
+    };
+
+    if (!canvas_init(&preview, 4, 4) || !canvas_init(&composite, 4, 4)) {
+        fprintf(stderr, "canvas_init failed\n");
+        canvas_free(&preview);
+        canvas_free(&composite);
+        return 0;
+    }
+
+    if (!app_tool_pick_sample(&state, &preview, &composite, 1, 1, 4, 4, &callbacks) ||
+        !expect_int_eq("pick_preview_tool", state.tool, 0) ||
+        !expect_int_eq("pick_preview_opacity_min", state.brush_opacity, 1) ||
+        !expect_uint_eq("pick_preview_rgb", state.brush_color_rgb, 0x00010203u) ||
+        !expect_uint_eq("pick_preview_color", state.brush_color, 0x03010203u) ||
+        !expect_int_eq("pick_preview_needs_composite", state.needs_composite, 1)) {
+        canvas_free(&preview);
+        canvas_free(&composite);
+        return 0;
+    }
+
+    canvas_free(&preview);
+    stub.sampled_color = 0x8044AA11u;
+    if (!app_tool_pick_sample(&state, &preview, &composite, 2, 2, 4, 4, &callbacks) ||
+        !expect_int_eq("pick_fallback_opacity", state.brush_opacity, 50) ||
+        !expect_uint_eq("pick_fallback_color", state.brush_color, 0x8044AA11u)) {
+        canvas_free(&composite);
+        return 0;
+    }
+
+    if (app_tool_pick_sample(&state, &preview, &composite, -1, 0, 4, 4, &callbacks) ||
+        !expect_int_eq("pick_oob_needs_composite", state.needs_composite, 1)) {
+        canvas_free(&composite);
+        return 0;
+    }
+
+    canvas_free(&composite);
+    return 1;
+}
+
 int main(void) {
     if (!test_tool_and_palette_selection()) {
         return 1;
@@ -339,6 +398,9 @@ int main(void) {
         return 1;
     }
     if (!test_effect_apply_preserves_existing_composite_flag_on_noops()) {
+        return 1;
+    }
+    if (!test_pick_sample_preview_and_fallback_behavior()) {
         return 1;
     }
     return 0;

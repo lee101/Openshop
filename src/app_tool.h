@@ -69,5 +69,15 @@ int app_tool_effect_apply(
     uint32_t clear_color,
     const AppToolEffectCallbacks *callbacks
 );
+int app_tool_pick_sample(
+    AppToolEffectState *state,
+    const Canvas *preview_canvas,
+    const Canvas *composite,
+    int mouse_x,
+    int mouse_y,
+    int canvas_width,
+    int canvas_height,
+    const AppToolEffectCallbacks *callbacks
+);
 
 #endif

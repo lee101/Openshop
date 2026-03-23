@@ -191,6 +191,43 @@ static unsigned int app_tool_compose_brush_color(unsigned int rgb_color, int opa
     return compose_brush_color(rgb_color, opacity_percent);
 }
 
+int app_tool_pick_sample(
+    AppToolEffectState *state,
+    const Canvas *preview_canvas,
+    const Canvas *composite,
+    int mouse_x,
+    int mouse_y,
+    int canvas_width,
+    int canvas_height,
+    const AppToolEffectCallbacks *callbacks
+) {
+    const Canvas *sample = NULL;
+    uint32_t sampled_color = 0;
+
+    if (!state || !callbacks || !callbacks->sample_canvas) {
+        return 0;
+    }
+    if (mouse_x < 0 || mouse_y < 0 || mouse_x >= canvas_width || mouse_y >= canvas_height) {
+        return 0;
+    }
+
+    sample = (state->preview_active && preview_canvas && preview_canvas->pixels) ? preview_canvas : composite;
+    if (!sample) {
+        return 0;
+    }
+
+    sampled_color = callbacks->sample_canvas(sample, mouse_x, mouse_y, callbacks->userdata);
+    state->brush_color = sampled_color;
+    state->brush_color_rgb = sampled_color & 0x00FFFFFFu;
+    state->brush_opacity = (int)((((sampled_color >> 24) & 0xFF) * 100 + 127) / 255);
+    if (state->brush_opacity < 1) {
+        state->brush_opacity = 1;
+    }
+    state->brush_color = app_tool_compose_brush_color(state->brush_color_rgb, state->brush_opacity);
+    state->tool = APP_TOOL_BRUSH;
+    return 1;
+}
+
 int app_tool_effect_apply(
     AppToolEffectCommand command,
     LayerStack *layers,
@@ -203,8 +240,6 @@ int app_tool_effect_apply(
     const AppToolEffectCallbacks *callbacks
 ) {
     Layer *active = NULL;
-    const Canvas *sample = NULL;
-    uint32_t sampled_color = 0;
 
     if (!layers || !state || !command.handled) {
         return 0;
@@ -248,26 +283,16 @@ int app_tool_effect_apply(
         state->needs_composite = 1;
         return 1;
     case APP_TOOL_EFFECT_PICK_COLOR:
-        if (mouse_x < 0 || mouse_y < 0 || mouse_x >= layers->width || mouse_y >= layers->height) {
-            return 0;
-        }
-        if (!callbacks || !callbacks->sample_canvas) {
-            return 0;
-        }
-        sample = (state->preview_active && preview_canvas && preview_canvas->pixels) ? preview_canvas : composite;
-        if (!sample) {
-            return 0;
-        }
-        sampled_color = callbacks->sample_canvas(sample, mouse_x, mouse_y, callbacks->userdata);
-        state->brush_color = sampled_color;
-        state->brush_color_rgb = sampled_color & 0x00FFFFFFu;
-        state->brush_opacity = (int)((((sampled_color >> 24) & 0xFF) * 100 + 127) / 255);
-        if (state->brush_opacity < 1) {
-            state->brush_opacity = 1;
-        }
-        state->brush_color = app_tool_compose_brush_color(state->brush_color_rgb, state->brush_opacity);
-        state->tool = APP_TOOL_BRUSH;
-        return 1;
+        return app_tool_pick_sample(
+            state,
+            preview_canvas,
+            composite,
+            mouse_x,
+            mouse_y,
+            layers->width,
+            layers->height,
+            callbacks
+        );
     case APP_TOOL_EFFECT_NONE:
     default:
         return 0;
