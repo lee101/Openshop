@@ -353,7 +353,7 @@ static void fill_argv_with_override(char **dst, const char *const *src, size_t c
 
 static int build_custom_usage_text(char *usage_text, size_t usage_text_size) {
     const char *src[] = {custom_program_name};
-    char *argv[ARRAY_LEN(src)] = {0};
+    char *argv[ARRAY_LEN(src)];
 
     if (!usage_text || usage_text_size == 0) {
         return 0;
@@ -373,7 +373,7 @@ static int expect_invalid_size_only_cases(const struct invalid_size_token_case *
 
     for (i = 0; i < case_count; i += 1) {
         const char *src[] = {program_name, fixed_token, fixed_token};
-        char *argv[ARRAY_LEN(src)] = {0};
+        char *argv[ARRAY_LEN(src)];
 
         fill_argv_with_override(argv, src, ARRAY_LEN(src), variable_token_index, cases[i].token);
 
@@ -444,7 +444,7 @@ static int expect_invalid_input_size_cases(const struct invalid_input_size_case 
 
     for (i = 0; i < case_count; i += 1) {
         const char *src[] = {program_name, scene_token, cases[i].width_token, cases[i].height_token};
-        char *argv[ARRAY_LEN(src)] = {0};
+        char *argv[ARRAY_LEN(src)];
 
         fill_argv(argv, src, ARRAY_LEN(src));
 
@@ -479,7 +479,7 @@ static int expect_success_cases(const struct success_case *cases, size_t case_co
 
     for (i = 0; i < case_count; i += 1) {
         const char *src[] = {cases[i].program_name, cases[i].input_token, cases[i].width_token, cases[i].height_token};
-        char *argv[ARRAY_LEN(src)] = {0};
+        char *argv[ARRAY_LEN(src)];
 
         fill_argv(argv, src, ARRAY_LEN(src));
 
