@@ -32,6 +32,7 @@ void canvas_rotate_90_cw(Canvas *c);
 void canvas_rotate_90_ccw(Canvas *c);
 void canvas_grayscale(Canvas *c);
 void canvas_sepia(Canvas *c);
+void canvas_shift_hue(Canvas *c, int degrees);
 void canvas_adjust_saturation(Canvas *c, int delta);
 void canvas_adjust_brightness(Canvas *c, int delta);
 void canvas_adjust_contrast(Canvas *c, int delta);

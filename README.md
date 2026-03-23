@@ -13,6 +13,11 @@ make
 make test
 ```
 
+## Full Validation
+```bash
+make verify
+```
+
 ## SDL I/O Smoke Test
 ```bash
 make test-sdl
@@ -66,6 +71,7 @@ make test-sdl
 - `Alt+[ / Alt+]`: posterize level down/up
 - `Alt+, / Alt+.`: threshold down/up
 - `Alt+Left / Alt+Right`: saturation amount down/up
+- `Alt+J / Alt+K`: hue-shift amount down/up
 - `Alt+V / Alt+B`: blur radius down/up
 - `Alt+Down / Alt+Up`: brightness/contrast adjustment size down/up
 - `Alt+0`: reset all filter settings to defaults
@@ -86,7 +92,7 @@ make test-sdl
 - `Ctrl+S`: save the composited image to `output.bmp`
 - `Ctrl+O`: load `input.bmp` into the active layer
 - `Q / W`: rotate the active layer 90 degrees clockwise / counter-clockwise
-- `G / S / Y`: grayscale / sepia / saturation-adjust the active layer
+- `G / S / M / Y`: grayscale / sepia / hue-shift / saturation-adjust the active layer
 - `Z / N`: posterize / threshold the active layer using the current settings
 - `Ctrl+Z` / `Ctrl+Y`: undo / redo (layer-aware)
 - `Esc`: quit
@@ -100,6 +106,7 @@ make test-sdl
 - Load/save uses BMP via SDL built-ins for now.
 
 ## Self-test Images
-`make test` now generates deterministic BMP outputs at `test-artifacts/`:
+`make test` now generates deterministic BMP outputs at `test-artifacts/`, and `make verify` adds the SDL image I/O smoke test when SDL2 development tools are installed:
 - `scene.bmp`
 - `fill_regions.bmp`
+- `filter_stack.bmp`

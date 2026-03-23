@@ -550,6 +550,64 @@ static int clamp_u8(int v) {
     return v;
 }
 
+static uint32_t hsv_to_argb(uint8_t alpha, double hue, double saturation, double value) {
+    if (saturation <= 0.0) {
+        int gray = clamp_u8((int)(value * 255.0 + 0.5));
+        return ((uint32_t)alpha << 24) | ((uint32_t)gray << 16) | ((uint32_t)gray << 8) | (uint32_t)gray;
+    }
+
+    while (hue < 0.0) {
+        hue += 360.0;
+    }
+    while (hue >= 360.0) {
+        hue -= 360.0;
+    }
+
+    double scaled = hue / 60.0;
+    int sector = (int)scaled;
+    double frac = scaled - (double)sector;
+    double p = value * (1.0 - saturation);
+    double q = value * (1.0 - saturation * frac);
+    double t = value * (1.0 - saturation * (1.0 - frac));
+    double r = value;
+    double g = p;
+    double b = p;
+
+    switch (sector) {
+    case 0:
+        g = t;
+        break;
+    case 1:
+        r = q;
+        g = value;
+        break;
+    case 2:
+        r = p;
+        g = value;
+        b = t;
+        break;
+    case 3:
+        r = p;
+        g = q;
+        b = value;
+        break;
+    case 4:
+        r = t;
+        g = p;
+        b = value;
+        break;
+    default:
+        g = p;
+        b = q;
+        break;
+    }
+
+    return ((uint32_t)alpha << 24) |
+           ((uint32_t)clamp_u8((int)(r * 255.0 + 0.5)) << 16) |
+           ((uint32_t)clamp_u8((int)(g * 255.0 + 0.5)) << 8) |
+           (uint32_t)clamp_u8((int)(b * 255.0 + 0.5));
+}
+
 static uint8_t pixel_luma(uint32_t p) {
     uint8_t a = (uint8_t)((p >> 24) & 0xFF);
     uint8_t r = (uint8_t)((p >> 16) & 0xFF);
@@ -557,6 +615,45 @@ static uint8_t pixel_luma(uint32_t p) {
     uint8_t b = (uint8_t)(p & 0xFF);
     int lum = (77 * (int)r + 150 * (int)g + 29 * (int)b) >> 8;
     return (uint8_t)((lum * (int)a + 127) / 255);
+}
+
+void canvas_shift_hue(Canvas *c, int degrees) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0 || degrees == 0) {
+        return;
+    }
+
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        double r = (double)((p >> 16) & 0xFF) / 255.0;
+        double g = (double)((p >> 8) & 0xFF) / 255.0;
+        double b = (double)(p & 0xFF) / 255.0;
+        double max_channel = r;
+        double min_channel = r;
+        double hue = 0.0;
+
+        if (g > max_channel) max_channel = g;
+        if (b > max_channel) max_channel = b;
+        if (g < min_channel) min_channel = g;
+        if (b < min_channel) min_channel = b;
+
+        double delta = max_channel - min_channel;
+        double saturation = max_channel <= 0.0 ? 0.0 : delta / max_channel;
+        double value = max_channel;
+
+        if (delta > 0.0) {
+            if (max_channel == r) {
+                hue = 60.0 * fmod((g - b) / delta, 6.0);
+            } else if (max_channel == g) {
+                hue = 60.0 * (((b - r) / delta) + 2.0);
+            } else {
+                hue = 60.0 * (((r - g) / delta) + 4.0);
+            }
+        }
+
+        c->pixels[i] = hsv_to_argb(a, hue + (double)degrees, saturation, value);
+    }
 }
 
 void canvas_adjust_saturation(Canvas *c, int delta) {

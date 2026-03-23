@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -std=c11 -O2 -Wall -Wextra
-LDFLAGS =
+LDFLAGS = -lm
 
 SDL2_CONFIG := $(shell command -v sdl2-config 2>/dev/null)
 HAVE_SDL2 := $(if $(SDL2_CONFIG),1,0)
@@ -45,6 +45,13 @@ test: $(TEST_BIN) $(IMAGE_TEST_BIN)
 test-sdl: check-sdl2 $(SDL_TEST_BIN)
 	./$(SDL_TEST_BIN)
 
+verify: test
+ifeq ($(HAVE_SDL2),1)
+	$(MAKE) test-sdl
+else
+	@echo "Skipping SDL smoke test: sdl2-config not found."
+endif
+
 $(TEST_BIN): $(TEST_SRC)
 	$(CC) -std=c11 -O2 -Wall -Wextra $(TEST_SRC) -o $(TEST_BIN) -lm
 
@@ -57,4 +64,4 @@ $(SDL_TEST_BIN): check-sdl2 $(SDL_TEST_SRC)
 clean:
 	rm -f $(OBJ) $(BIN) $(TEST_BIN) $(IMAGE_TEST_BIN) $(SDL_TEST_BIN)
 
-.PHONY: all clean test test-sdl
+.PHONY: all clean test test-sdl verify

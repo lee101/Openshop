@@ -24,9 +24,7 @@ jobs:
         run: make
 
       - name: Run tests
-        run: |
-          make test
-          make test-sdl
+        run: make verify
 
       - name: Upload generated self-test images
         if: always()

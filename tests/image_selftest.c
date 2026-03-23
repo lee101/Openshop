@@ -232,6 +232,33 @@ int main(void) {
     ok = ok && assert_pixel(&c, 15, 15, red, "translate_roundtrip_preserve");
     ok = ok && assert_pixel(&c, 159, 119, white, "translate_roundtrip_fill");
 
+    canvas_clear(&c, 0xFF202040);
+    canvas_draw_rect_filled(&c, 20, 18, 74, 82, 0xFFD94C3A);
+    canvas_draw_rect_outline(&c, 12, 10, 148, 108, 2, 0xFF0D1117);
+    canvas_draw_line(&c, 0, 119, 159, 0, 2, 0xFF00BCD4);
+    canvas_draw_ellipse_filled(&c, 112, 54, 24, 18, 0xFF7E57C2);
+    canvas_set_pixel(&c, 48, 36, 0x8040FF80);
+    canvas_shift_hue(&c, 90);
+    canvas_adjust_saturation(&c, -35);
+    canvas_adjust_brightness(&c, 12);
+    canvas_posterize(&c, 5);
+    canvas_blur(&c, 1);
+
+    if (!canvas_write_bmp32(&c, "test-artifacts/filter_stack.bmp")) {
+        fprintf(stderr, "failed writing test-artifacts/filter_stack.bmp\n");
+        canvas_free(&c);
+        return 1;
+    }
+
+    uint64_t filter_hash = fnv1a64(c.pixels, (size_t)c.width * (size_t)c.height);
+    const uint64_t expected_filter_hash = 0xB8C52C6F22DB8932ULL;
+    if (filter_hash != expected_filter_hash) {
+        fprintf(stderr, "filter stack hash mismatch expected=0x%016llX actual=0x%016llX\n",
+                (unsigned long long)expected_filter_hash,
+                (unsigned long long)filter_hash);
+        ok = 0;
+    }
+
     canvas_free(&c);
     if (!ok) {
         return 1;

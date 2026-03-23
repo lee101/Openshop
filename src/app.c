@@ -39,6 +39,10 @@
 #define SATURATION_STEP 5
 #define SATURATION_MIN -100
 #define SATURATION_MAX 100
+#define HUE_SHIFT_DEFAULT 30
+#define HUE_SHIFT_STEP 15
+#define HUE_SHIFT_MIN -180
+#define HUE_SHIFT_MAX 180
 
 static const uint32_t COLOR_BG = 0xFFFFFFFF;     // white
 static const uint32_t COLOR_BRUSH = 0xFF1B1F24;  // near-black
@@ -88,6 +92,7 @@ typedef struct {
     int blur_radius;
     int filter_adjust_step;
     int saturation_delta;
+    int hue_shift_degrees;
 } FilterSettings;
 
 static FilterSettings default_filter_settings(void) {
@@ -99,6 +104,7 @@ static FilterSettings default_filter_settings(void) {
         BLUR_RADIUS_DEFAULT,
         FILTER_ADJUST_DEFAULT,
         SATURATION_DEFAULT,
+        HUE_SHIFT_DEFAULT,
     };
     return settings;
 }
@@ -301,7 +307,7 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
     snprintf(
         title,
         sizeof(title),
-        "Openshop - %s (%s) | size %d | brush %d%% | fill tol %d | pixel %d | post %d | thresh %d | blur %d | adjust %d | sat %d | layer %d/%d %s [%s%s %d%%]%s | visible %d/%d | #%08X",
+        "Openshop - %s (%s) | size %d | brush %d%% | fill tol %d | pixel %d | post %d | thresh %d | blur %d | adjust %d | sat %d | hue %d | layer %d/%d %s [%s%s %d%%]%s | visible %d/%d | #%08X",
         tool_label(tool),
         brush_shape_label(brush_shape),
         radius,
@@ -313,6 +319,7 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
         g_filter_settings.blur_radius,
         g_filter_settings.filter_adjust_step,
         g_filter_settings.saturation_delta,
+        g_filter_settings.hue_shift_degrees,
         layers->active_layer + 1,
         layers->layer_count,
         layer_name,
@@ -423,6 +430,16 @@ static int clamp_saturation_delta(int delta) {
         return SATURATION_MAX;
     }
     return delta;
+}
+
+static int clamp_hue_shift_degrees(int degrees) {
+    if (degrees < HUE_SHIFT_MIN) {
+        return HUE_SHIFT_MIN;
+    }
+    if (degrees > HUE_SHIFT_MAX) {
+        return HUE_SHIFT_MAX;
+    }
+    return degrees;
 }
 
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
@@ -1195,6 +1212,20 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (alt && key == SDLK_j) {
+                    settings.hue_shift_degrees = clamp_hue_shift_degrees(settings.hue_shift_degrees - HUE_SHIFT_STEP);
+                    apply_filter_settings_and_refresh_title(
+                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
+                if (alt && key == SDLK_k) {
+                    settings.hue_shift_degrees = clamp_hue_shift_degrees(settings.hue_shift_degrees + HUE_SHIFT_STEP);
+                    apply_filter_settings_and_refresh_title(
+                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
                 if (ctrl && shift && key == SDLK_n) {
                     if (apply_layer_stack_action_result(
                             window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
@@ -1769,6 +1800,11 @@ int app_run(const char *input_path) {
                     }
                 } else if (key == SDLK_s) {
                     if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_sepia)) {
+                        needs_composite = 1;
+                    }
+                } else if (key == SDLK_m) {
+                    if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            canvas_shift_hue, settings.hue_shift_degrees)) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_y) {
