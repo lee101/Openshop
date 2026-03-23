@@ -1152,6 +1152,35 @@ int main(void) {
     }
     canvas_free(&sharp_c);
 
+    /* --- canvas_edge_detect: uniform canvas goes flat, sharp boundary lights up --- */
+    Canvas edge_c;
+    if (!canvas_init(&edge_c, 5, 3)) {
+        fprintf(stderr, "edge detect canvas init failed\n");
+        return 1;
+    }
+    canvas_clear(&edge_c, 0xFF444444);
+    canvas_edge_detect(&edge_c);
+    if (!expect_pixel_eq("edge_uniform_center", canvas_get_pixel(&edge_c, 2, 1), 0xFF000000)) {
+        canvas_free(&edge_c);
+        return 1;
+    }
+    for (int y = 0; y < 3; y++) {
+        canvas_set_pixel_raw(&edge_c, 0, y, 0xFF000000);
+        canvas_set_pixel_raw(&edge_c, 1, y, 0xFF000000);
+        canvas_set_pixel_raw(&edge_c, 2, y, 0xFFFFFFFF);
+        canvas_set_pixel_raw(&edge_c, 3, y, 0xFFFFFFFF);
+        canvas_set_pixel_raw(&edge_c, 4, y, 0xFFFFFFFF);
+    }
+    canvas_edge_detect(&edge_c);
+    if (!expect_pixel_eq("edge_dark_side", canvas_get_pixel(&edge_c, 1, 1), 0xFFFFFFFF) ||
+        !expect_pixel_eq("edge_bright_side", canvas_get_pixel(&edge_c, 2, 1), 0xFFFFFFFF) ||
+        !expect_pixel_eq("edge_far_dark", canvas_get_pixel(&edge_c, 0, 1), 0xFF000000) ||
+        !expect_pixel_eq("edge_far_bright", canvas_get_pixel(&edge_c, 4, 1), 0xFF000000)) {
+        canvas_free(&edge_c);
+        return 1;
+    }
+    canvas_free(&edge_c);
+
     /* --- canvas_flood_fill_tol ---
        3x3 canvas: centre column is slightly off-white (0xFFFEFEFE),
        rest is pure white (0xFFFFFFFF). tolerance=5 should fill all;

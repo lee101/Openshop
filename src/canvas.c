@@ -550,6 +550,15 @@ static int clamp_u8(int v) {
     return v;
 }
 
+static uint8_t pixel_luma(uint32_t p) {
+    uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+    uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+    uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+    uint8_t b = (uint8_t)(p & 0xFF);
+    int lum = (77 * (int)r + 150 * (int)g + 29 * (int)b) >> 8;
+    return (uint8_t)((lum * (int)a + 127) / 255);
+}
+
 void canvas_adjust_brightness(Canvas *c, int delta) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0 || delta == 0) {
         return;
@@ -734,6 +743,90 @@ void canvas_sharpen(Canvas *c) {
         int g = clamp_u8(2 * (int)((original >> 8) & 0xFF) - (int)((blurred >> 8) & 0xFF));
         int b = clamp_u8(2 * (int)(original & 0xFF) - (int)(blurred & 0xFF));
         c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+    }
+
+    free(orig);
+}
+
+void canvas_edge_detect(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+
+    size_t count = (size_t)c->width * (size_t)c->height;
+    uint32_t *orig = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!orig) {
+        return;
+    }
+    memcpy(orig, c->pixels, count * sizeof(uint32_t));
+
+    int width = c->width;
+    int height = c->height;
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            int gx = 0;
+            int gy = 0;
+            uint8_t max_a = 0;
+
+            for (int ky = -1; ky <= 1; ky++) {
+                int sy = y + ky;
+                if (sy < 0) {
+                    sy = 0;
+                } else if (sy >= height) {
+                    sy = height - 1;
+                }
+
+                for (int kx = -1; kx <= 1; kx++) {
+                    int sx = x + kx;
+                    if (sx < 0) {
+                        sx = 0;
+                    } else if (sx >= width) {
+                        sx = width - 1;
+                    }
+
+                    uint32_t p = orig[(size_t)sy * (size_t)width + (size_t)sx];
+                    uint8_t lum = pixel_luma(p);
+                    uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+                    if (a > max_a) {
+                        max_a = a;
+                    }
+
+                    int wx = 0;
+                    int wy = 0;
+                    if (ky == -1) {
+                        wy = -1;
+                    } else if (ky == 1) {
+                        wy = 1;
+                    }
+                    if (kx == -1) {
+                        wx = -1;
+                    } else if (kx == 1) {
+                        wx = 1;
+                    }
+                    if (kx == 0 && ky != 0) {
+                        wx = 0;
+                    }
+                    if (ky == 0 && kx != 0) {
+                        wy = 0;
+                    }
+                    if (kx == 0 && ky != 0) {
+                        wy *= 2;
+                    }
+                    if (ky == 0 && kx != 0) {
+                        wx *= 2;
+                    }
+
+                    gx += wx * (int)lum;
+                    gy += wy * (int)lum;
+                }
+            }
+
+            int magnitude = (abs(gx) + abs(gy)) / 4;
+            uint8_t edge = (uint8_t)clamp_u8(magnitude);
+            c->pixels[(size_t)y * (size_t)width + (size_t)x] =
+                ((uint32_t)max_a << 24) | ((uint32_t)edge << 16) |
+                ((uint32_t)edge << 8) | (uint32_t)edge;
+        }
     }
 
     free(orig);

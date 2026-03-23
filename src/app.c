@@ -954,6 +954,13 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (ctrl && key == SDLK_g) {
+                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_edge_detect)) {
+                        needs_composite = 1;
+                    }
+                    break;
+                }
+
                 if (key == SDLK_DELETE || key == SDLK_BACKSPACE) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_delete(&layers, layers.active_layer)) {
