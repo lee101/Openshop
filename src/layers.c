@@ -81,6 +81,28 @@ static int layer_stack_cycle_filtered(LayerStack *stack, int direction, int want
     return -1;
 }
 
+static int layer_stack_select_edge_filtered(LayerStack *stack, int want_visible, int from_top) {
+    if (!stack || stack->layer_count <= 0) {
+        return -1;
+    }
+    if (from_top) {
+        for (int i = stack->layer_count - 1; i >= 0; i--) {
+            if ((stack->layers[i].visible ? 1 : 0) == want_visible) {
+                stack->active_layer = i;
+                return i;
+            }
+        }
+        return -1;
+    }
+    for (int i = 0; i < stack->layer_count; i++) {
+        if ((stack->layers[i].visible ? 1 : 0) == want_visible) {
+            stack->active_layer = i;
+            return i;
+        }
+    }
+    return -1;
+}
+
 int layer_stack_init(LayerStack *stack, int width, int height, uint32_t background_color) {
     if (!stack || width <= 0 || height <= 0) {
         return 0;
@@ -218,55 +240,19 @@ int layer_stack_cycle_hidden(LayerStack *stack, int direction) {
 }
 
 int layer_stack_select_bottom_visible(LayerStack *stack) {
-    if (!stack || stack->layer_count <= 0) {
-        return -1;
-    }
-    for (int i = 0; i < stack->layer_count; i++) {
-        if (stack->layers[i].visible) {
-            stack->active_layer = i;
-            return i;
-        }
-    }
-    return -1;
+    return layer_stack_select_edge_filtered(stack, 1, 0);
 }
 
 int layer_stack_select_top_visible(LayerStack *stack) {
-    if (!stack || stack->layer_count <= 0) {
-        return -1;
-    }
-    for (int i = stack->layer_count - 1; i >= 0; i--) {
-        if (stack->layers[i].visible) {
-            stack->active_layer = i;
-            return i;
-        }
-    }
-    return -1;
+    return layer_stack_select_edge_filtered(stack, 1, 1);
 }
 
 int layer_stack_select_bottom_hidden(LayerStack *stack) {
-    if (!stack || stack->layer_count <= 0) {
-        return -1;
-    }
-    for (int i = 0; i < stack->layer_count; i++) {
-        if (!stack->layers[i].visible) {
-            stack->active_layer = i;
-            return i;
-        }
-    }
-    return -1;
+    return layer_stack_select_edge_filtered(stack, 0, 0);
 }
 
 int layer_stack_select_top_hidden(LayerStack *stack) {
-    if (!stack || stack->layer_count <= 0) {
-        return -1;
-    }
-    for (int i = stack->layer_count - 1; i >= 0; i--) {
-        if (!stack->layers[i].visible) {
-            stack->active_layer = i;
-            return i;
-        }
-    }
-    return -1;
+    return layer_stack_select_edge_filtered(stack, 0, 1);
 }
 
 int layer_stack_toggle_solo(LayerStack *stack, int index) {
