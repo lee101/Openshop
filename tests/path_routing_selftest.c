@@ -64,6 +64,10 @@ int main(void) {
     char bmp_path[ROUTED_PATH_MAX] = {0};
     char png_path[ROUTED_PATH_MAX] = {0};
     RoutedPathPair pair = {{0}, {0}};
+    char long_seed[ROUTED_PATH_MAX + 16];
+
+    memset(long_seed, 'x', sizeof(long_seed) - 1);
+    long_seed[sizeof(long_seed) - 1] = '\0';
 
     if (!expect_int("ext_png_upper", path_has_extension_ci("art/IMAGE.PNG", ".png"), 1) ||
         !expect_int("ext_bmp_mixed", path_has_extension_ci("scene.BmP", ".bmp"), 1) ||
@@ -167,7 +171,20 @@ int main(void) {
         !expect_int("build_zero_bmp_size", build_routed_paths("scene.png", bmp_path, 0, png_path, sizeof(png_path)), 0) ||
         !expect_int("build_zero_png_size", build_routed_paths("scene.png", bmp_path, sizeof(bmp_path), png_path, 0), 0) ||
         !expect_int("build_small_bmp_buffer", build_routed_paths("scene.png", bmp_path, 4, png_path, sizeof(png_path)), 0) ||
-        !expect_int("build_small_png_buffer", build_routed_paths("scene.png", bmp_path, sizeof(bmp_path), png_path, 4), 0)) {
+        !expect_int("build_small_png_buffer", build_routed_paths("scene.png", bmp_path, sizeof(bmp_path), png_path, 4), 0) ||
+        !expect_int("build_oversized_seed", build_routed_paths(long_seed, bmp_path, sizeof(bmp_path), png_path, sizeof(png_path)), 0)) {
+        return 1;
+    }
+
+    init_routed_path_pair(&pair, long_seed, "input");
+    if (!expect_str("pair_oversized_seed_fallback_bmp", pair.bmp, "input.bmp") ||
+        !expect_str("pair_oversized_seed_fallback_png", pair.png, "input.png")) {
+        return 1;
+    }
+
+    init_routed_path_pair(&pair, long_seed, NULL);
+    if (!expect_str("pair_oversized_seed_null_bmp", pair.bmp, "") ||
+        !expect_str("pair_oversized_seed_null_png", pair.png, "")) {
         return 1;
     }
 
