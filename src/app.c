@@ -1338,102 +1338,86 @@ static void handle_keydown_shortcut(
 }
 
 static void process_app_events(
-    int *running,
-    int *drawing,
-    int *last_x,
-    int *last_y,
+    AppRuntime *runtime,
     LayerStack *layers,
-    Snapshot *undo_stack,
-    int *undo_count,
-    Snapshot *redo_stack,
-    int *redo_count,
-    int *shaping,
-    int *shape_start_x,
-    int *shape_start_y,
-    uint32_t *shape_base_pixels,
     Canvas *composite,
-    int *preview_active,
-    Tool *tool,
-    BrushShape *brush_shape,
-    int *brush_radius,
-    uint32_t *brush_color,
-    uint32_t *brush_color_rgb,
-    int *brush_opacity,
-    Canvas *preview_canvas,
-    int *needs_composite,
     SDL_Window *window
 ) {
+    if (!runtime) {
+        return;
+    }
+
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
         switch (e.type) {
         case SDL_QUIT:
-            *running = 0;
+            runtime->running = 0;
             break;
         case SDL_MOUSEBUTTONDOWN:
             handle_mouse_down(
                 &e.button,
-                drawing,
-                last_x,
-                last_y,
+                &runtime->drawing,
+                &runtime->last_x,
+                &runtime->last_y,
                 layers,
-                undo_stack,
-                undo_count,
-                redo_stack,
-                redo_count,
-                shaping,
-                shape_start_x,
-                shape_start_y,
-                shape_base_pixels,
+                runtime->undo_stack,
+                &runtime->undo_count,
+                runtime->redo_stack,
+                &runtime->redo_count,
+                &runtime->shaping,
+                &runtime->shape_start_x,
+                &runtime->shape_start_y,
+                runtime->shape_base_pixels,
                 composite,
-                preview_active,
-                tool,
-                *brush_shape,
-                *brush_radius,
-                brush_color,
-                brush_color_rgb,
-                brush_opacity,
-                preview_canvas,
-                needs_composite,
+                &runtime->preview_active,
+                &runtime->tool,
+                runtime->brush_shape,
+                runtime->brush_radius,
+                &runtime->brush_color,
+                &runtime->brush_color_rgb,
+                &runtime->brush_opacity,
+                &runtime->preview_canvas,
+                &runtime->needs_composite,
                 window
             );
             break;
         case SDL_MOUSEBUTTONUP:
             handle_mouse_up(
                 &e.button,
-                drawing,
-                shaping,
-                preview_active,
-                *tool,
-                *shape_start_x,
-                *shape_start_y,
-                *brush_radius,
-                *brush_color,
+                &runtime->drawing,
+                &runtime->shaping,
+                &runtime->preview_active,
+                runtime->tool,
+                runtime->shape_start_x,
+                runtime->shape_start_y,
+                runtime->brush_radius,
+                runtime->brush_color,
                 layers,
-                undo_stack,
-                undo_count,
-                redo_stack,
-                redo_count,
-                needs_composite
+                runtime->undo_stack,
+                &runtime->undo_count,
+                runtime->redo_stack,
+                &runtime->redo_count,
+                &runtime->needs_composite
             );
             break;
         case SDL_MOUSEMOTION:
             handle_mouse_motion(
                 &e.motion,
-                *drawing,
-                last_x,
-                last_y,
+                runtime->drawing,
+                &runtime->last_x,
+                &runtime->last_y,
                 layers,
-                *tool,
-                *brush_shape,
-                *brush_radius,
-                *brush_color,
-                needs_composite,
-                *shaping,
-                shape_base_pixels,
-                preview_canvas,
-                *shape_start_x,
-                *shape_start_y,
-                preview_active
+                runtime->tool,
+                runtime->brush_shape,
+                runtime->brush_radius,
+                runtime->brush_color,
+                &runtime->needs_composite,
+                runtime->shaping,
+                runtime->shape_base_pixels,
+                &runtime->preview_canvas,
+                runtime->shape_start_x,
+                runtime->shape_start_y,
+                &runtime->preview_active
             );
             break;
         case SDL_KEYDOWN: {
@@ -1447,23 +1431,23 @@ static void process_app_events(
                 ctrl,
                 shift,
                 alt,
-                shaping,
-                preview_active,
-                running,
+                &runtime->shaping,
+                &runtime->preview_active,
+                &runtime->running,
                 layers,
-                undo_stack,
-                undo_count,
-                redo_stack,
-                redo_count,
-                needs_composite,
+                runtime->undo_stack,
+                &runtime->undo_count,
+                runtime->redo_stack,
+                &runtime->redo_count,
+                &runtime->needs_composite,
                 window,
-                tool,
-                brush_shape,
-                brush_radius,
-                brush_color,
-                brush_color_rgb,
-                brush_opacity,
-                preview_canvas,
+                &runtime->tool,
+                &runtime->brush_shape,
+                &runtime->brush_radius,
+                &runtime->brush_color,
+                &runtime->brush_color_rgb,
+                &runtime->brush_opacity,
+                &runtime->preview_canvas,
                 composite
             );
             break;
@@ -1477,23 +1461,21 @@ static void process_app_events(
 static void render_frame(
     SDL_Renderer *renderer,
     SDL_Texture *texture,
+    AppRuntime *runtime,
     LayerStack *layers,
-    Canvas *composite,
-    int *needs_composite,
-    Canvas *preview_canvas,
-    int preview_active
+    Canvas *composite
 ) {
-    if (!renderer || !texture || !layers || !composite || !needs_composite) {
+    if (!renderer || !texture || !runtime || !layers || !composite) {
         return;
     }
 
-    if (!preview_active && *needs_composite) {
+    if (!runtime->preview_active && runtime->needs_composite) {
         layer_stack_composite(layers, composite, COLOR_BG);
-        *needs_composite = 0;
+        runtime->needs_composite = 0;
     }
 
-    if (preview_active && preview_canvas && preview_canvas->pixels) {
-        SDL_UpdateTexture(texture, NULL, preview_canvas->pixels, CANVAS_WIDTH * 4);
+    if (runtime->preview_active && runtime->preview_canvas.pixels) {
+        SDL_UpdateTexture(texture, NULL, runtime->preview_canvas.pixels, CANVAS_WIDTH * 4);
     } else {
         SDL_UpdateTexture(texture, NULL, composite->pixels, CANVAS_WIDTH * 4);
     }
@@ -1682,6 +1664,31 @@ static int init_app_session(
     return 1;
 }
 
+typedef struct {
+    int running;
+    int drawing;
+    int last_x;
+    int last_y;
+    int brush_radius;
+    int brush_opacity;
+    uint32_t brush_color_rgb;
+    uint32_t brush_color;
+    BrushShape brush_shape;
+    Tool tool;
+    Snapshot undo_stack[MAX_HISTORY];
+    Snapshot redo_stack[MAX_HISTORY];
+    int undo_count;
+    int redo_count;
+    int shaping;
+    int shape_start_x;
+    int shape_start_y;
+    int preview_active;
+    int needs_composite;
+    uint32_t *shape_base_pixels;
+    uint32_t *preview_pixels;
+    Canvas preview_canvas;
+} AppRuntime;
+
 static uint32_t active_layer_clear_color(const LayerStack *layers) {
     if (!layers) {
         return COLOR_BG;
@@ -1807,93 +1814,73 @@ int app_run(const char *input_path) {
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
     SDL_Texture *texture = NULL;
+    AppRuntime runtime = {
+        .running = 1,
+        .brush_radius = 6,
+        .brush_opacity = 100,
+        .brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF,
+        .brush_shape = BRUSH_SHAPE_ROUND,
+        .tool = TOOL_BRUSH,
+    };
     LayerStack layers;
     Canvas composite = {0};
     memset(&layers, 0, sizeof(layers));
     if (!init_app_resources(input_path, &window, &renderer, &texture, &layers, &composite)) {
         return 1;
     }
+    runtime.brush_color = compose_brush_color(runtime.brush_color_rgb, runtime.brush_opacity);
 
-    int running = 1;
-    int drawing = 0;
-    int last_x = 0;
-    int last_y = 0;
-    int brush_radius = 6;
-    int brush_opacity = 100;
-    uint32_t brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
-    uint32_t brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-    BrushShape brush_shape = BRUSH_SHAPE_ROUND;
-    Tool tool = TOOL_BRUSH;
-    Snapshot undo_stack[MAX_HISTORY];
-    Snapshot redo_stack[MAX_HISTORY];
-    int undo_count = 0;
-    int redo_count = 0;
-    int shaping = 0;
-    int shape_start_x = 0;
-    int shape_start_y = 0;
-    int preview_active = 0;
-    int needs_composite = 0;
-    uint32_t *shape_base_pixels = NULL;
-    uint32_t *preview_pixels = NULL;
-    Canvas preview_canvas = {0};
-    if (!init_app_session(&shape_base_pixels, &preview_pixels, &preview_canvas, undo_stack, redo_stack)) {
+    if (!init_app_session(
+            &runtime.shape_base_pixels,
+            &runtime.preview_pixels,
+            &runtime.preview_canvas,
+            runtime.undo_stack,
+            runtime.redo_stack)) {
         cleanup_app_resources(
-            shape_base_pixels,
-            preview_pixels,
+            runtime.shape_base_pixels,
+            runtime.preview_pixels,
             &composite,
             &layers,
-            undo_stack,
-            &undo_count,
-            redo_stack,
-            &redo_count,
+            runtime.undo_stack,
+            &runtime.undo_count,
+            runtime.redo_stack,
+            &runtime.redo_count,
             texture,
             renderer,
             window
         );
         return 1;
     }
-    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+    update_window_title(
+        window,
+        &layers,
+        runtime.tool,
+        runtime.brush_shape,
+        runtime.brush_radius,
+        runtime.brush_color,
+        runtime.brush_opacity
+    );
 
-    while (running) {
+    while (runtime.running) {
         process_app_events(
-            &running,
-            &drawing,
-            &last_x,
-            &last_y,
+            &runtime,
             &layers,
-            undo_stack,
-            &undo_count,
-            redo_stack,
-            &redo_count,
-            &shaping,
-            &shape_start_x,
-            &shape_start_y,
-            shape_base_pixels,
             &composite,
-            &preview_active,
-            &tool,
-            &brush_shape,
-            &brush_radius,
-            &brush_color,
-            &brush_color_rgb,
-            &brush_opacity,
-            &preview_canvas,
-            &needs_composite,
             window
         );
-        render_frame(renderer, texture, &layers, &composite, &needs_composite, &preview_canvas, preview_active);
+        render_frame(renderer, texture, &runtime, &layers, &composite);
         SDL_Delay(16);
     }
 
     cleanup_app_resources(
-        shape_base_pixels,
-        preview_pixels,
+        runtime.shape_base_pixels,
+        runtime.preview_pixels,
         &composite,
         &layers,
-        undo_stack,
-        &undo_count,
-        redo_stack,
-        &redo_count,
+        runtime.undo_stack,
+        &runtime.undo_count,
+        runtime.redo_stack,
+        &runtime.redo_count,
         texture,
         renderer,
         window
