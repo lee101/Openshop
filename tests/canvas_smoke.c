@@ -702,10 +702,24 @@ static int test_layers_basic(void) {
     stack.layers[1].locked = 0;
     stack.layers[2].locked = 1;
     stack.layers[3].locked = 0;
+    stack.layers[2].opacity_percent = 55;
+    stack.layers[3].opacity_percent = 75;
+    strncpy(stack.layers[2].name, "Locked Mid", LAYER_NAME_MAX - 1);
+    stack.layers[2].name[LAYER_NAME_MAX - 1] = '\0';
+    strncpy(stack.layers[3].name, "Hidden Editable", LAYER_NAME_MAX - 1);
+    stack.layers[3].name[LAYER_NAME_MAX - 1] = '\0';
     stack.active_layer = 2;
     stack.solo_index = 2;
     if (!layer_stack_reveal_editable(&stack, 1) || stack.active_layer != 3 || !stack.layers[3].visible) {
         fprintf(stderr, "reveal editable forward failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[2].opacity_percent != 55 || stack.layers[3].opacity_percent != 75 ||
+        strcmp(stack.layers[2].name, "Locked Mid") != 0 ||
+        strcmp(stack.layers[3].name, "Hidden Editable") != 0) {
+        fprintf(stderr, "reveal editable should preserve opacity and names\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -718,9 +732,18 @@ static int test_layers_basic(void) {
     }
     stack.layers[1].locked = 0;
     stack.layers[1].visible = 0;
+    stack.layers[1].opacity_percent = 65;
+    strncpy(stack.layers[1].name, "Backward Editable", LAYER_NAME_MAX - 1);
+    stack.layers[1].name[LAYER_NAME_MAX - 1] = '\0';
     stack.active_layer = 3;
     if (!layer_stack_reveal_editable(&stack, -1) || stack.active_layer != 1 || !stack.layers[1].visible) {
         fprintf(stderr, "reveal editable backward failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[1].opacity_percent != 65 || strcmp(stack.layers[1].name, "Backward Editable") != 0) {
+        fprintf(stderr, "reveal editable backward should preserve metadata\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -744,6 +767,18 @@ static int test_layers_basic(void) {
     stack.layers[1].visible = 1;
     stack.layers[2].visible = 1;
     stack.layers[3].visible = 1;
+    stack.layers[0].opacity_percent = 100;
+    stack.layers[1].opacity_percent = 100;
+    stack.layers[2].opacity_percent = 100;
+    stack.layers[3].opacity_percent = 100;
+    strncpy(stack.layers[0].name, "Background", LAYER_NAME_MAX - 1);
+    stack.layers[0].name[LAYER_NAME_MAX - 1] = '\0';
+    strncpy(stack.layers[1].name, "Top", LAYER_NAME_MAX - 1);
+    stack.layers[1].name[LAYER_NAME_MAX - 1] = '\0';
+    strncpy(stack.layers[2].name, "Third", LAYER_NAME_MAX - 1);
+    stack.layers[2].name[LAYER_NAME_MAX - 1] = '\0';
+    strncpy(stack.layers[3].name, "Fourth", LAYER_NAME_MAX - 1);
+    stack.layers[3].name[LAYER_NAME_MAX - 1] = '\0';
     stack.active_layer = 1;
     if (!layer_stack_lock_and_advance(&stack, 1)) {
         fprintf(stderr, "lock and advance failed\n");
