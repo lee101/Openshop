@@ -35,6 +35,10 @@
 #define FILTER_ADJUST_STEP 5
 #define FILTER_ADJUST_MIN 5
 #define FILTER_ADJUST_MAX 100
+#define CONTRAST_DEFAULT 25
+#define CONTRAST_STEP 5
+#define CONTRAST_MIN -100
+#define CONTRAST_MAX 100
 #define SATURATION_DEFAULT 25
 #define SATURATION_STEP 5
 #define SATURATION_MIN -100
@@ -91,6 +95,7 @@ typedef struct {
     int threshold_value;
     int blur_radius;
     int filter_adjust_step;
+    int contrast_delta;
     int saturation_delta;
     int hue_shift_degrees;
 } FilterSettings;
@@ -103,6 +108,7 @@ static FilterSettings default_filter_settings(void) {
         THRESHOLD_DEFAULT,
         BLUR_RADIUS_DEFAULT,
         FILTER_ADJUST_DEFAULT,
+        CONTRAST_DEFAULT,
         SATURATION_DEFAULT,
         HUE_SHIFT_DEFAULT,
     };
@@ -303,11 +309,11 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
     const Layer *active = layer_stack_get(layers, layers->active_layer);
     const char *layer_name = active && active->name[0] ? active->name : "Layer";
     int visible_layers = layer_stack_visible_count(layers);
-    char title[256];
+    char title[512];
     snprintf(
         title,
         sizeof(title),
-        "Openshop - %s (%s) | size %d | brush %d%% | fill tol %d | pixel %d | post %d | thresh %d | blur %d | adjust %d | sat %d | hue %d | layer %d/%d %s [%s%s %d%%]%s | visible %d/%d | #%08X",
+        "Openshop - %s (%s) | size %d | brush %d%% | fill tol %d | pixel %d | post %d | thresh %d | blur %d | adjust %d | contrast %d | sat %d | hue %d | layer %d/%d %s [%s%s %d%%]%s | visible %d/%d | #%08X",
         tool_label(tool),
         brush_shape_label(brush_shape),
         radius,
@@ -318,6 +324,7 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
         g_filter_settings.threshold_value,
         g_filter_settings.blur_radius,
         g_filter_settings.filter_adjust_step,
+        g_filter_settings.contrast_delta,
         g_filter_settings.saturation_delta,
         g_filter_settings.hue_shift_degrees,
         layers->active_layer + 1,
@@ -420,6 +427,16 @@ static int clamp_filter_adjust_step(int step) {
         return FILTER_ADJUST_MAX;
     }
     return step;
+}
+
+static int clamp_contrast_delta(int delta) {
+    if (delta < CONTRAST_MIN) {
+        return CONTRAST_MIN;
+    }
+    if (delta > CONTRAST_MAX) {
+        return CONTRAST_MAX;
+    }
+    return delta;
 }
 
 static int clamp_saturation_delta(int delta) {
@@ -1212,6 +1229,20 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (alt && key == SDLK_h) {
+                    settings.contrast_delta = clamp_contrast_delta(settings.contrast_delta - CONTRAST_STEP);
+                    apply_filter_settings_and_refresh_title(
+                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
+                if (alt && key == SDLK_l) {
+                    settings.contrast_delta = clamp_contrast_delta(settings.contrast_delta + CONTRAST_STEP);
+                    apply_filter_settings_and_refresh_title(
+                        window, &layers, &settings, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
                 if (alt && key == SDLK_j) {
                     settings.hue_shift_degrees = clamp_hue_shift_degrees(settings.hue_shift_degrees - HUE_SHIFT_STEP);
                     apply_filter_settings_and_refresh_title(
@@ -1810,6 +1841,11 @@ int app_run(const char *input_path) {
                 } else if (key == SDLK_y) {
                     if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
                             canvas_adjust_saturation, settings.saturation_delta)) {
+                        needs_composite = 1;
+                    }
+                } else if (key == SDLK_k) {
+                    if (apply_canvas_transform_int(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            canvas_adjust_contrast, settings.contrast_delta)) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_z) {

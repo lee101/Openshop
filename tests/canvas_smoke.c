@@ -952,6 +952,39 @@ int main(void) {
     }
     canvas_free(&sepia_c);
 
+    /* --- canvas_shift_hue ---
+       Primary colors should rotate cleanly around the HSV wheel, and grays should remain unchanged. */
+    Canvas hue_c;
+    if (!canvas_init(&hue_c, 1, 1)) {
+        fprintf(stderr, "hue canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&hue_c, 0, 0, 0xFFFF0000);
+    canvas_shift_hue(&hue_c, 120);
+    if (!expect_pixel_eq("hue_red_to_green", canvas_get_pixel(&hue_c, 0, 0), 0xFF00FF00)) {
+        canvas_free(&hue_c);
+        return 1;
+    }
+    canvas_set_pixel_raw(&hue_c, 0, 0, 0xFF00FF00);
+    canvas_shift_hue(&hue_c, 120);
+    if (!expect_pixel_eq("hue_green_to_blue", canvas_get_pixel(&hue_c, 0, 0), 0xFF0000FF)) {
+        canvas_free(&hue_c);
+        return 1;
+    }
+    canvas_set_pixel_raw(&hue_c, 0, 0, 0xFF808080);
+    canvas_shift_hue(&hue_c, 45);
+    if (!expect_pixel_eq("hue_gray_invariant", canvas_get_pixel(&hue_c, 0, 0), 0xFF808080)) {
+        canvas_free(&hue_c);
+        return 1;
+    }
+    canvas_set_pixel_raw(&hue_c, 0, 0, 0x80FF0000);
+    canvas_shift_hue(&hue_c, 120);
+    if (!expect_pixel_eq("hue_alpha_preserved", canvas_get_pixel(&hue_c, 0, 0), 0x8000FF00)) {
+        canvas_free(&hue_c);
+        return 1;
+    }
+    canvas_free(&hue_c);
+
     /* --- canvas_adjust_saturation ---
        Input: 0xFF804020 (128,64,32), gray=79.
        delta=+100 doubles the distance from gray, delta=-100 collapses to gray. */
@@ -975,6 +1008,12 @@ int main(void) {
     canvas_set_pixel_raw(&sat_c, 0, 0, 0xFF808080);
     canvas_adjust_saturation(&sat_c, 100);
     if (!expect_pixel_eq("saturation_gray_invariant", canvas_get_pixel(&sat_c, 0, 0), 0xFF808080)) {
+        canvas_free(&sat_c);
+        return 1;
+    }
+    canvas_set_pixel_raw(&sat_c, 0, 0, 0x80804020);
+    canvas_adjust_saturation(&sat_c, -100);
+    if (!expect_pixel_eq("saturation_alpha_preserved", canvas_get_pixel(&sat_c, 0, 0), 0x804F4F4F)) {
         canvas_free(&sat_c);
         return 1;
     }
@@ -1039,6 +1078,12 @@ int main(void) {
             canvas_free(&contrast_c);
             return 1;
         }
+    }
+    canvas_set_pixel_raw(&contrast_c, 0, 0, 0x804080C0);
+    canvas_adjust_contrast(&contrast_c, -50);
+    if (!expect_pixel_eq("contrast_alpha_preserved", canvas_get_pixel(&contrast_c, 0, 0), 0x806080A0)) {
+        canvas_free(&contrast_c);
+        return 1;
     }
     canvas_free(&contrast_c);
 
