@@ -4,8 +4,10 @@
 #include <string.h>
 #include <unistd.h>
 
+static const char *const no_input_path = NULL;
+
 static int app_run_called = 0;
-static const char *last_input_path = NULL;
+static const char *last_input_path = no_input_path;
 static int last_canvas_w = 0;
 static int last_canvas_h = 0;
 static int app_run_result = 0;
@@ -37,7 +39,6 @@ static const int app_exit_code_5 = 5;
 static char **const default_usage_argv = NULL;
 static const char *empty_token = "";
 static const char *empty_stderr = "";
-static const char *const no_input_path = NULL;
 static const char *default_program_name = "openshop";
 static const char *default_scene_path = "art/scene.png";
 static const char *default_input_path = "art/input.png";
