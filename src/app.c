@@ -1309,6 +1309,20 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (ctrl && alt && key == SDLK_COMMA) {
+                    if (layer_stack_select_bottom_hidden_unlocked(&layers) >= 0) {
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    }
+                    break;
+                }
+
+                if (ctrl && alt && key == SDLK_PERIOD) {
+                    if (layer_stack_select_top_hidden_unlocked(&layers) >= 0) {
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    }
+                    break;
+                }
+
                 if (ctrl && alt && shift && key == SDLK_RIGHTBRACKET) {
                     if (layer_stack_cycle_hidden_locked(&layers, 1) >= 0) {
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1318,6 +1332,20 @@ int app_run(const char *input_path) {
 
                 if (ctrl && alt && shift && key == SDLK_LEFTBRACKET) {
                     if (layer_stack_cycle_hidden_locked(&layers, -1) >= 0) {
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    }
+                    break;
+                }
+
+                if (ctrl && alt && shift && key == SDLK_COMMA) {
+                    if (layer_stack_select_bottom_hidden_locked(&layers) >= 0) {
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    }
+                    break;
+                }
+
+                if (ctrl && alt && shift && key == SDLK_PERIOD) {
+                    if (layer_stack_select_top_hidden_locked(&layers) >= 0) {
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                     break;
