@@ -116,6 +116,18 @@ int main(void) {
         return 1;
     }
 
+    char *argv_extra[] = {"openshop", "art/scene.png", "640", "480", "extra"};
+    app_run_called = 0;
+    stderr_text[0] = '\0';
+    if (!capture_main_stderr(5, argv_extra, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_int("extra_args_exit", exit_code, 1) ||
+        !expect_int("extra_args_app_run_called", app_run_called, 0) ||
+        !expect_str("extra_args_usage_text", stderr_text,
+                    "Usage: openshop [input_path] [width height]\n"
+                    "       or: WIDTH HEIGHT\n")) {
+        return 1;
+    }
+
     app_run_called = 0;
     stderr_text[0] = '\0';
     if (!capture_main_stderr(1, NULL, stderr_text, sizeof(stderr_text), &exit_code) ||
@@ -136,6 +148,23 @@ int main(void) {
         !expect_str("empty_program_usage_text", stderr_text,
                     "Usage: openshop [input_path] [width height]\n"
                     "       or: WIDTH HEIGHT\n")) {
+        return 1;
+    }
+
+    app_run_result = 0;
+    app_run_called = 0;
+    last_input_path = NULL;
+    last_canvas_w = 123;
+    last_canvas_h = 456;
+    stderr_text[0] = '\0';
+    char *argv_default[] = {"openshop"};
+    if (!capture_main_stderr(1, argv_default, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_int("default_exit", exit_code, 0) ||
+        !expect_int("default_app_run_called", app_run_called, 1) ||
+        !expect_str("default_input_path", last_input_path, NULL) ||
+        !expect_int("default_canvas_w", last_canvas_w, 0) ||
+        !expect_int("default_canvas_h", last_canvas_h, 0) ||
+        !expect_str("default_exit_text", stderr_text, "")) {
         return 1;
     }
 
