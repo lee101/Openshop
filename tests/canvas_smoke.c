@@ -1773,6 +1773,38 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_add(&stack, "Flatten Hidden Non Solo", 0x00000000) != 1) {
+        fprintf(stderr, "add hidden non-solo flatten layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    canvas_clear(&stack.layers[0].canvas, 0xFF123456);
+    canvas_clear(&stack.layers[1].canvas, 0x8000FF00);
+    if (!layer_stack_toggle_visibility(&stack, 1) || stack.layers[1].visible) {
+        fprintf(stderr, "prepare hidden non-solo flatten state failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_flatten(&stack, 0xFFFFFFFF)) {
+        fprintf(stderr, "flatten hidden non-solo failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layer_count != 1 || stack.active_layer != 0 || stack.solo_index != -1 ||
+        !stack.layers[0].visible || stack.layers[0].locked || stack.layers[0].opacity_percent != 100) {
+        fprintf(stderr, "flatten hidden non-solo bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("flatten_hidden_non_solo_pixel", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF123456)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     if (layer_stack_add(&stack, "Stamp Target", 0x00000000) != 1) {
         fprintf(stderr, "add stamp layer failed\n");
