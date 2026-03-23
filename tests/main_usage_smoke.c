@@ -235,7 +235,7 @@ static int expect_invalid_run_with_usage(const char *label_prefix, int exit_code
 static int expect_invalid_main_result(const char *label_prefix, int argc, char **argv,
                                       char *stderr_text, size_t stderr_size, int *exit_code,
                                       const char *expected_stderr) {
-    reset_app_state(0, NULL, 0, 0, stderr_text);
+    reset_app_state(success_exit_code, NULL, no_input_canvas_w, no_input_canvas_h, stderr_text);
     if (!capture_main_stderr(argc, argv, stderr_text, stderr_size, exit_code)) {
         return 0;
     }
@@ -458,7 +458,7 @@ static int expect_success_cases(const struct success_case *cases, size_t case_co
 
         fill_argv(argv, src, ARRAY_LEN(src));
 
-        reset_app_state(cases[i].result, NULL, 0, 0, stderr_text);
+        reset_app_state(cases[i].result, NULL, no_input_canvas_w, no_input_canvas_h, stderr_text);
         if (!capture_main_stderr(cases[i].argc, argv, stderr_text, stderr_size, exit_code)) {
             return 0;
         }
