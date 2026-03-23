@@ -847,6 +847,12 @@ static int test_layers_basic(void) {
     strncpy(stack.layers[3].name, "Fourth", LAYER_NAME_MAX - 1);
     stack.layers[3].name[LAYER_NAME_MAX - 1] = '\0';
     stack.active_layer = 1;
+    stack.layers[1].opacity_percent = 70;
+    stack.layers[2].opacity_percent = 55;
+    strncpy(stack.layers[1].name, "Advance Lock Source", LAYER_NAME_MAX - 1);
+    stack.layers[1].name[LAYER_NAME_MAX - 1] = '\0';
+    strncpy(stack.layers[2].name, "Advance Lock Target", LAYER_NAME_MAX - 1);
+    stack.layers[2].name[LAYER_NAME_MAX - 1] = '\0';
     if (!layer_stack_lock_and_advance(&stack, 1)) {
         fprintf(stderr, "lock and advance failed\n");
         canvas_free(&composite);
@@ -855,6 +861,14 @@ static int test_layers_basic(void) {
     }
     if (!stack.layers[1].locked || stack.active_layer != 2) {
         fprintf(stderr, "lock and advance bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[1].opacity_percent != 70 || stack.layers[2].opacity_percent != 55 ||
+        strcmp(stack.layers[1].name, "Advance Lock Source") != 0 ||
+        strcmp(stack.layers[2].name, "Advance Lock Target") != 0) {
+        fprintf(stderr, "lock and advance should preserve metadata\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -876,6 +890,12 @@ static int test_layers_basic(void) {
     stack.layers[2].locked = 0;
     stack.layers[3].locked = 0;
     stack.active_layer = 2;
+    stack.layers[1].opacity_percent = 65;
+    stack.layers[2].opacity_percent = 45;
+    strncpy(stack.layers[1].name, "Retreat Lock Target", LAYER_NAME_MAX - 1);
+    stack.layers[1].name[LAYER_NAME_MAX - 1] = '\0';
+    strncpy(stack.layers[2].name, "Retreat Lock Source", LAYER_NAME_MAX - 1);
+    stack.layers[2].name[LAYER_NAME_MAX - 1] = '\0';
     if (!layer_stack_lock_and_retreat(&stack, 2)) {
         fprintf(stderr, "lock and retreat failed\n");
         canvas_free(&composite);
@@ -884,6 +904,14 @@ static int test_layers_basic(void) {
     }
     if (!stack.layers[2].locked || stack.active_layer != 1) {
         fprintf(stderr, "lock and retreat should jump to previous unlocked layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[1].opacity_percent != 65 || stack.layers[2].opacity_percent != 45 ||
+        strcmp(stack.layers[1].name, "Retreat Lock Target") != 0 ||
+        strcmp(stack.layers[2].name, "Retreat Lock Source") != 0) {
+        fprintf(stderr, "lock and retreat should preserve metadata\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -904,6 +932,18 @@ static int test_layers_basic(void) {
     stack.layers[1].locked = 0;
     stack.layers[2].locked = 0;
     stack.layers[3].locked = 0;
+    stack.layers[0].opacity_percent = 100;
+    stack.layers[1].opacity_percent = 100;
+    stack.layers[2].opacity_percent = 100;
+    stack.layers[3].opacity_percent = 100;
+    strncpy(stack.layers[0].name, "Background", LAYER_NAME_MAX - 1);
+    stack.layers[0].name[LAYER_NAME_MAX - 1] = '\0';
+    strncpy(stack.layers[1].name, "Top", LAYER_NAME_MAX - 1);
+    stack.layers[1].name[LAYER_NAME_MAX - 1] = '\0';
+    strncpy(stack.layers[2].name, "Third", LAYER_NAME_MAX - 1);
+    stack.layers[2].name[LAYER_NAME_MAX - 1] = '\0';
+    strncpy(stack.layers[3].name, "Fourth", LAYER_NAME_MAX - 1);
+    stack.layers[3].name[LAYER_NAME_MAX - 1] = '\0';
     stack.layers[0].locked = 1;
     stack.layers[2].locked = 1;
     if (!layer_stack_unlock_all(&stack)) {
