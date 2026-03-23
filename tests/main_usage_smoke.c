@@ -270,7 +270,7 @@ struct invalid_input_size_case {
 struct invalid_argv_case {
     const char *label_prefix;
     int argc;
-    int use_null_argv;
+    int argv_state;
     const char *expected_usage_text;
     const char *argv[5];
 };
@@ -489,7 +489,7 @@ static int expect_invalid_argv_cases(const struct invalid_argv_case *cases, size
         char *argv[ARRAY_LEN(cases[i].argv)] = {0};
         char **argv_ptr = argv;
 
-        if (cases[i].use_null_argv) {
+        if (cases[i].argv_state == argv_is_null) {
             argv_ptr = NULL;
         } else {
             fill_argv(argv, cases[i].argv, ARRAY_LEN(cases[i].argv));
