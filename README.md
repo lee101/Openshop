@@ -54,6 +54,7 @@ make test-sdl
 - `Ctrl+Shift+N`: add a new transparent layer
 - `Ctrl+1` ... `Ctrl+8`: select layer 1-8 directly
 - `Ctrl+D`: duplicate active layer
+- `Ctrl+Shift+D`: duplicate active layer below
 - `Delete` / `Backspace`: delete active layer
 - `Ctrl+]` / `Ctrl+[`: move active layer up/down
 - `Ctrl+Home / Ctrl+End`: send active layer to bottom/top

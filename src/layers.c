@@ -417,21 +417,30 @@ int layer_stack_delete(LayerStack *stack, int index) {
     return 1;
 }
 
-int layer_stack_duplicate(LayerStack *stack, int index, const char *name) {
+static int layer_stack_duplicate_at(LayerStack *stack, int index, int insert_at, const char *name) {
     if (!stack || index < 0 || index >= stack->layer_count || stack->layer_count >= MAX_LAYERS) {
         return -1;
     }
 
-    Layer *source = &stack->layers[index];
-    if (!source->canvas.pixels) {
+    if (!stack->layers[index].canvas.pixels) {
         return -1;
     }
 
-    int insert_at = index + 1;
+    if (insert_at < 0) {
+        insert_at = 0;
+    } else if (insert_at > stack->layer_count) {
+        insert_at = stack->layer_count;
+    }
     for (int i = stack->layer_count; i > insert_at; i--) {
         stack->layers[i] = stack->layers[i - 1];
     }
 
+    int source_index = index;
+    if (insert_at <= index) {
+        source_index++;
+    }
+
+    Layer *source = &stack->layers[source_index];
     Layer *dup = &stack->layers[insert_at];
     dup->canvas.width = stack->width;
     dup->canvas.height = stack->height;
@@ -464,6 +473,14 @@ int layer_stack_duplicate(LayerStack *stack, int index, const char *name) {
         stack->solo_index++;
     }
     return insert_at;
+}
+
+int layer_stack_duplicate(LayerStack *stack, int index, const char *name) {
+    return layer_stack_duplicate_at(stack, index, index + 1, name);
+}
+
+int layer_stack_duplicate_below(LayerStack *stack, int index, const char *name) {
+    return layer_stack_duplicate_at(stack, index, index, name);
 }
 
 int layer_stack_move(LayerStack *stack, int index, int direction) {

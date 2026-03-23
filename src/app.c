@@ -879,6 +879,17 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (ctrl && shift && key == SDLK_d) {
+                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                    if (layer_stack_duplicate_below(&layers, layers.active_layer, NULL) < 0) {
+                        fprintf(stderr, "Could not duplicate layer below\n");
+                    } else {
+                        needs_composite = 1;
+                    }
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
                 if (ctrl && key == SDLK_d) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (layer_stack_duplicate(&layers, layers.active_layer, NULL) < 0) {

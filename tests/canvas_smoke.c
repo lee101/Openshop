@@ -523,6 +523,35 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_duplicate_below(&stack, 1, "Background Copy Below") != 1) {
+        fprintf(stderr, "duplicate below failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layer_count != 3 || stack.active_layer != 1) {
+        fprintf(stderr, "duplicate below bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[1].name, "Background Copy Below") != 0 || strcmp(stack.layers[2].name, "Background Copy") != 0) {
+        fprintf(stderr, "duplicate below order failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("duplicate_below_copy_pixel", canvas_get_pixel(&stack.layers[1].canvas, 0, 0), 0xFF0040BF)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 1) || stack.layer_count != 2 || strcmp(stack.layers[1].name, "Background Copy") != 0) {
+        fprintf(stderr, "duplicate below cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_toggle_solo(&stack, 1)) {
         fprintf(stderr, "solo duplicated layer failed\n");
         canvas_free(&composite);
