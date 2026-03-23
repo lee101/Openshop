@@ -267,6 +267,31 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_toggle_solo(&stack, 0)) {
+        fprintf(stderr, "solo background before hidden hide-and-advance failure failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.active_layer = 0;
+    if (layer_stack_hide_and_advance(&stack, 1)) {
+        fprintf(stderr, "hide and advance should fail on already hidden layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != 0 || stack.active_layer != 0 || stack.layers[0].visible != 1 || stack.layers[1].visible != 0) {
+        fprintf(stderr, "failed hide and advance should preserve hidden-layer bookkeeping\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_solo(&stack, 0) || stack.solo_index != -1) {
+        fprintf(stderr, "clear solo after hidden hide-and-advance failure failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     if (layer_stack_toggle_visibility(&stack, 0)) {
         fprintf(stderr, "background should not hide when last visible\n");
