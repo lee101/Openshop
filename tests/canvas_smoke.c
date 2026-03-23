@@ -940,6 +940,7 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[0].visible = 0;
     if (!layer_stack_merge_down(&stack, 1)) {
         fprintf(stderr, "merge down failed\n");
         canvas_free(&composite);
@@ -948,6 +949,12 @@ static int test_layers_basic(void) {
     }
     if (stack.layer_count != 1 || stack.active_layer != 0) {
         fprintf(stderr, "merge down bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[0].visible || stack.layers[0].opacity_percent != 100) {
+        fprintf(stderr, "merge down should preserve visible result and reset opacity\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -972,6 +979,7 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[0].visible = 0;
     stack.active_layer = 0;
     if (!layer_stack_merge_up(&stack, 0)) {
         fprintf(stderr, "merge up failed\n");
@@ -981,6 +989,12 @@ static int test_layers_basic(void) {
     }
     if (stack.layer_count != 1 || stack.active_layer != 0) {
         fprintf(stderr, "merge up bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[0].visible || stack.layers[0].opacity_percent != 100) {
+        fprintf(stderr, "merge up should preserve visible result and reset opacity\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
