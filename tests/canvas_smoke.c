@@ -1270,6 +1270,19 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_move(&stack, 0, -1)) {
+        fprintf(stderr, "should not move bottom layer beyond bounds\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.active_layer != 0 || !stack.layers[0].locked || strcmp(stack.layers[0].name, "Background Copy") != 0 ||
+        stack.solo_index != 0 || stack.layers[0].visible || stack.layers[0].opacity_percent != 35) {
+        fprintf(stderr, "failed bottom-bound move should preserve bookkeeping\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_move_to(&stack, 0, 99) || stack.active_layer != 2) {
         fprintf(stderr, "move layer to clamped top failed\n");
         canvas_free(&composite);
