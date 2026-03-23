@@ -83,8 +83,9 @@ make test-sdl
 - `Ctrl+S`: save the composited image to `output.bmp`
 - `Ctrl+Shift+S`: save the composited image to `output.png`
 - `Ctrl+O`: load `input.bmp` into the active layer
+- `Ctrl+Shift+O`: load `input.png` into the active layer
 - `Ctrl+Z` / `Ctrl+Y`: undo / redo (layer-aware)
-- PNG export uses the bundled `stb_image_write` header and does not depend on SDL image codecs.
+- PNG import/export uses bundled `stb_image` / `stb_image_write` headers and does not depend on SDL image codecs.
 - `Esc`: quit
 
 ## Notes

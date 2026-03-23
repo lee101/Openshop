@@ -1138,11 +1138,15 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
                     Snapshot before = {0};
                     int loaded = 0;
                     if (prepare_snapshot(&layers, &before)) {
-                        loaded = canvas_load_bmp(&active->canvas, "input.bmp", active_layer_clear_color(&layers));
+                        if (shift) {
+                            loaded = canvas_load_png(&active->canvas, "input.png", active_layer_clear_color(&layers));
+                        } else {
+                            loaded = canvas_load_bmp(&active->canvas, "input.bmp", active_layer_clear_color(&layers));
+                        }
                     }
                     if (!loaded) {
                         snapshot_free(&before);
-                        fprintf(stderr, "Failed to load input.bmp\n");
+                        fprintf(stderr, "Failed to load %s\n", shift ? "input.png" : "input.bmp");
                     } else {
                         push_snapshot_entry(before, undo_stack, &undo_count, redo_stack, &redo_count);
                         needs_composite = 1;
