@@ -872,6 +872,15 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (ctrl && alt && shift && key == SDLK_i) {
+                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                    if (!layer_stack_show_hidden_locked_only(&layers, layers.active_layer)) {
+                        fprintf(stderr, "Could not show hidden locked layers only\n");
+                    }
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
                 if (ctrl && shift && key == SDLK_m) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_flatten(&layers, COLOR_BG)) {

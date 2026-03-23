@@ -232,6 +232,7 @@ static int layer_stack_lock_and_focus_direction(LayerStack *stack, int index, in
 typedef enum {
     VISIBILITY_REMAP_INVERT = 0,
     VISIBILITY_REMAP_SHOW_HIDDEN,
+    VISIBILITY_REMAP_SHOW_HIDDEN_LOCKED,
     VISIBILITY_REMAP_SHOW_LOCKED,
     VISIBILITY_REMAP_SHOW_UNLOCKED
 } VisibilityRemapMode;
@@ -251,6 +252,9 @@ static int layer_stack_remap_visibility(LayerStack *stack, int preserve_index, V
         case VISIBILITY_REMAP_INVERT:
         case VISIBILITY_REMAP_SHOW_HIDDEN:
             next_visible = stack->layers[i].visible ? 0 : 1;
+            break;
+        case VISIBILITY_REMAP_SHOW_HIDDEN_LOCKED:
+            next_visible = (!stack->layers[i].visible && stack->layers[i].locked) ? 1 : 0;
             break;
         case VISIBILITY_REMAP_SHOW_LOCKED:
             next_visible = stack->layers[i].locked ? 1 : 0;
@@ -542,6 +546,10 @@ int layer_stack_invert_visibility(LayerStack *stack, int preserve_index) {
 
 int layer_stack_show_hidden_only(LayerStack *stack, int preserve_index) {
     return layer_stack_remap_visibility(stack, preserve_index, VISIBILITY_REMAP_SHOW_HIDDEN);
+}
+
+int layer_stack_show_hidden_locked_only(LayerStack *stack, int preserve_index) {
+    return layer_stack_remap_visibility(stack, preserve_index, VISIBILITY_REMAP_SHOW_HIDDEN_LOCKED);
 }
 
 int layer_stack_show_locked_only(LayerStack *stack, int preserve_index) {
