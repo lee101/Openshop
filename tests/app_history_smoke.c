@@ -632,6 +632,34 @@ static int test_snapshot_restore_recovers_layer_count_and_metadata(void) {
         return 0;
     }
 
+    if (!snapshot_restore(&stack, redo_stack, &redo_count, undo_stack, &undo_count)) {
+        fprintf(stderr, "snapshot_restore redo failed for layer-count recovery\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (!expect_int_eq("layer_count_redo_undo_count", undo_count, 1) ||
+        !expect_int_eq("layer_count_redo_redo_count", redo_count, 0) ||
+        !expect_int_eq("layer_count_redo_count_live", stack.layer_count, 2) ||
+        !expect_int_eq("layer_count_redo_active_live", stack.active_layer, 0) ||
+        !expect_int_eq("layer_count_redo_solo_live", stack.solo_index, -1) ||
+        !expect_int_eq("layer_count_redo_base_visible_live", stack.layers[0].visible, 0) ||
+        !expect_int_eq("layer_count_redo_base_locked_live", stack.layers[0].locked, 1) ||
+        !expect_int_eq("layer_count_redo_base_opacity_live", stack.layers[0].opacity_percent, 15) ||
+        strcmp(stack.layers[0].name, "MutatedBase") != 0 ||
+        !expect_pixel_eq("layer_count_redo_base_pixel_live", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFFABCDEF) ||
+        !expect_pixel_eq("layer_count_redo_mid_pixel_live", canvas_get_pixel(&stack.layers[1].canvas, 1, 1), 0xFF112233) ||
+        !expect_int_eq("layer_count_redo_undo_snapshot_count", undo_stack[0].layer_count, 3) ||
+        !expect_int_eq("layer_count_redo_undo_snapshot_active", undo_stack[0].active_layer, 2) ||
+        !expect_int_eq("layer_count_redo_undo_snapshot_solo", undo_stack[0].solo_index, 1)) {
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
     snapshot_stack_clear(undo_stack, &undo_count);
     snapshot_stack_clear(redo_stack, &redo_count);
     layer_stack_free(&stack);
