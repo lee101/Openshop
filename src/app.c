@@ -439,6 +439,20 @@ static int try_adjust_active_layer_opacity(LayerStack *layers,
     return layer_stack_set_opacity(layers, layers->active_layer, target_opacity);
 }
 
+static int try_add_layer(LayerStack *layers,
+                         Snapshot *undo_stack, int *undo_count,
+                         Snapshot *redo_stack, int *redo_count) {
+    char status_message[64];
+
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    if (layer_stack_add(layers, NULL, 0x00000000) < 0) {
+        format_status_text_max_layers(MAX_LAYERS, status_message, sizeof(status_message));
+        fprintf(stderr, "%s\n", status_message);
+        return 0;
+    }
+    return 1;
+}
+
 typedef int (*LayerDirectionalActionFn)(LayerStack *layers, int arg);
 
 static void run_indexed_layer_action(SDL_Window *window, LayerStack *layers,
@@ -513,6 +527,14 @@ static int refresh_title_on_change(SDL_Window *window, const LayerStack *layers,
         update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
     }
     return changed;
+}
+
+static int try_select_layer_index(LayerStack *layers, int target) {
+    if (!layers || target < 0 || target >= layers->layer_count) {
+        return 0;
+    }
+    layers->active_layer = target;
+    return 1;
 }
 
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
@@ -1033,12 +1055,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && shift && key == SDLK_n) {
-                    char status_message[64];
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (layer_stack_add(&layers, NULL, 0x00000000) < 0) {
-                        format_status_text_max_layers(MAX_LAYERS, status_message, sizeof(status_message));
-                        fprintf(stderr, "%s\n", status_message);
-                    } else {
+                    if (try_add_layer(&layers, undo_stack, &undo_count, redo_stack, &redo_count)) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1303,11 +1320,8 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key >= SDLK_1 && key <= SDLK_8) {
-                    int target = (int)(key - SDLK_1);
-                    if (target < layers.layer_count) {
-                        layers.active_layer = target;
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, try_select_layer_index(&layers, (int)(key - SDLK_1)));
                     break;
                 }
 
