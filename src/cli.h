@@ -1,0 +1,12 @@
+#ifndef CLI_H
+#define CLI_H
+
+typedef struct CliOptions {
+    const char *input_path;
+    int canvas_w;
+    int canvas_h;
+} CliOptions;
+
+int parse_cli_args(int argc, char **argv, CliOptions *options);
+
+#endif
