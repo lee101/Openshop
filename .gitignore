@@ -4,4 +4,6 @@ canvas_smoke
 *.o
 image_selftest
 image_io_smoke
+path_routing_selftest
+png_selftest
 test-artifacts/
