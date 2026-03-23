@@ -376,6 +376,35 @@ static int expect_default_invalid_size_only_height_cases(const struct invalid_si
                                                  stderr_text, stderr_size, exit_code, NULL);
 }
 
+static int expect_custom_invalid_size_only_case_groups(const struct invalid_size_token_case *width_cases,
+                                                       size_t width_case_count,
+                                                       const struct invalid_size_token_case *height_cases,
+                                                       size_t height_case_count,
+                                                       char *stderr_text, size_t stderr_size, int *exit_code,
+                                                       const char *custom_usage_text) {
+    if (!expect_custom_invalid_size_only_width_cases(width_cases, width_case_count,
+                                                     stderr_text, stderr_size, exit_code, custom_usage_text)) {
+        return 0;
+    }
+
+    return expect_custom_invalid_size_only_height_cases(height_cases, height_case_count,
+                                                        stderr_text, stderr_size, exit_code, custom_usage_text);
+}
+
+static int expect_default_invalid_size_only_case_groups(const struct invalid_size_token_case *height_cases,
+                                                        size_t height_case_count,
+                                                        const struct invalid_size_token_case *width_cases,
+                                                        size_t width_case_count,
+                                                        char *stderr_text, size_t stderr_size, int *exit_code) {
+    if (!expect_default_invalid_size_only_height_cases(height_cases, height_case_count,
+                                                       stderr_text, stderr_size, exit_code)) {
+        return 0;
+    }
+
+    return expect_default_invalid_size_only_width_cases(width_cases, width_case_count,
+                                                        stderr_text, stderr_size, exit_code);
+}
+
 static int expect_invalid_input_size_cases(const struct invalid_input_size_case *cases, size_t case_count,
                                            const char *program_name, const char *scene_token,
                                            char *stderr_text, size_t stderr_size, int *exit_code,
@@ -491,12 +520,6 @@ int main(void) {
         INVALID_SIZE_TOKEN_CASE("custom_program_negative_size_only_width", negative_size_only_width),
         INVALID_SIZE_TOKEN_CASE("custom_program_overflow_size_only_width", overflow_width_token),
     };
-    if (!expect_custom_invalid_size_only_width_cases(custom_invalid_size_only_width_cases,
-                                                     ARRAY_LEN(custom_invalid_size_only_width_cases),
-                                                     stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
-        return 1;
-    }
-
     const struct invalid_size_token_case custom_invalid_size_only_height_cases[] = {
         INVALID_SIZE_TOKEN_CASE("custom_program_null_size_only_height", NULL),
         INVALID_SIZE_TOKEN_CASE("custom_program_bad_size_only_height", bad_height_token),
@@ -507,9 +530,11 @@ int main(void) {
         INVALID_SIZE_TOKEN_CASE("custom_program_empty_size_only_height", empty_token),
         INVALID_SIZE_TOKEN_CASE("custom_program_overflow_size_only_height", overflow_height_token),
     };
-    if (!expect_custom_invalid_size_only_height_cases(custom_invalid_size_only_height_cases,
-                                                      ARRAY_LEN(custom_invalid_size_only_height_cases),
-                                                      stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
+    if (!expect_custom_invalid_size_only_case_groups(custom_invalid_size_only_width_cases,
+                                                     ARRAY_LEN(custom_invalid_size_only_width_cases),
+                                                     custom_invalid_size_only_height_cases,
+                                                     ARRAY_LEN(custom_invalid_size_only_height_cases),
+                                                     stderr_text, sizeof(stderr_text), &exit_code, custom_usage_text)) {
         return 1;
     }
 
@@ -545,12 +570,6 @@ int main(void) {
         INVALID_SIZE_TOKEN_CASE("trailing_newline_size_only_height", trailing_newline_height_token),
         INVALID_SIZE_TOKEN_CASE("leading_tab_size_only_height", leading_tab_height_token),
     };
-    if (!expect_default_invalid_size_only_height_cases(invalid_size_only_height_cases,
-                                                       ARRAY_LEN(invalid_size_only_height_cases),
-                                                       stderr_text, sizeof(stderr_text), &exit_code)) {
-        return 1;
-    }
-
     const struct invalid_size_token_case invalid_size_only_width_cases[] = {
         INVALID_SIZE_TOKEN_CASE("null_size_only_width", NULL),
         INVALID_SIZE_TOKEN_CASE("empty_size_only_width", empty_token),
@@ -561,7 +580,9 @@ int main(void) {
         INVALID_SIZE_TOKEN_CASE("leading_space_size_only_width", leading_space_width_token),
         INVALID_SIZE_TOKEN_CASE("trailing_space_size_only_width", trailing_space_width_token),
     };
-    if (!expect_default_invalid_size_only_width_cases(invalid_size_only_width_cases,
+    if (!expect_default_invalid_size_only_case_groups(invalid_size_only_height_cases,
+                                                      ARRAY_LEN(invalid_size_only_height_cases),
+                                                      invalid_size_only_width_cases,
                                                       ARRAY_LEN(invalid_size_only_width_cases),
                                                       stderr_text, sizeof(stderr_text), &exit_code)) {
         return 1;
