@@ -853,6 +853,7 @@ static int test_layers_basic(void) {
     stack.layers[1].name[LAYER_NAME_MAX - 1] = '\0';
     strncpy(stack.layers[2].name, "Advance Lock Target", LAYER_NAME_MAX - 1);
     stack.layers[2].name[LAYER_NAME_MAX - 1] = '\0';
+    stack.solo_index = 3;
     if (!layer_stack_lock_and_advance(&stack, 1)) {
         fprintf(stderr, "lock and advance failed\n");
         canvas_free(&composite);
@@ -869,6 +870,12 @@ static int test_layers_basic(void) {
         strcmp(stack.layers[1].name, "Advance Lock Source") != 0 ||
         strcmp(stack.layers[2].name, "Advance Lock Target") != 0) {
         fprintf(stderr, "lock and advance should preserve metadata\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != 3) {
+        fprintf(stderr, "lock and advance should preserve solo state\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -896,6 +903,7 @@ static int test_layers_basic(void) {
     stack.layers[1].name[LAYER_NAME_MAX - 1] = '\0';
     strncpy(stack.layers[2].name, "Retreat Lock Source", LAYER_NAME_MAX - 1);
     stack.layers[2].name[LAYER_NAME_MAX - 1] = '\0';
+    stack.solo_index = 0;
     if (!layer_stack_lock_and_retreat(&stack, 2)) {
         fprintf(stderr, "lock and retreat failed\n");
         canvas_free(&composite);
@@ -916,6 +924,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (stack.solo_index != 0) {
+        fprintf(stderr, "lock and retreat should preserve solo state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_lock_and_retreat(&stack, 1)) {
         fprintf(stderr, "second lock and retreat failed\n");
         canvas_free(&composite);
@@ -932,6 +946,7 @@ static int test_layers_basic(void) {
     stack.layers[1].locked = 0;
     stack.layers[2].locked = 0;
     stack.layers[3].locked = 0;
+    stack.solo_index = -1;
     stack.layers[0].opacity_percent = 100;
     stack.layers[1].opacity_percent = 100;
     stack.layers[2].opacity_percent = 100;
