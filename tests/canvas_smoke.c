@@ -1081,6 +1081,32 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    canvas_free(&stack.layers[1].canvas);
+    if (stack.layers[1].canvas.pixels) {
+        fprintf(stderr, "free clear target canvas failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_clear_layer(&stack, 1, 0xFF2468AC)) {
+        fprintf(stderr, "clear layer reallocation failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[1].canvas.pixels || stack.layers[1].canvas.width != stack.width || stack.layers[1].canvas.height != stack.height ||
+        !expect_pixel_eq("clear_layer_reallocated_pixel", canvas_get_pixel(&stack.layers[1].canvas, 8, 8), 0xFF2468AC)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.active_layer != 1 || stack.solo_index != 1 || stack.layers[1].visible != locked_layer_visible || stack.layers[1].locked ||
+        stack.layers[1].opacity_percent != locked_layer_opacity || strcmp(stack.layers[1].name, locked_layer_name) != 0) {
+        fprintf(stderr, "clear layer reallocation should preserve bookkeeping\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (stack.layers[1].visible) {
         if (!layer_stack_toggle_visibility(&stack, 1) || stack.layers[1].visible) {
             fprintf(stderr, "hide clear target failed\n");
