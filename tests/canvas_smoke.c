@@ -815,6 +815,18 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_set_opacity(&stack, 1, 150) || stack.layers[1].opacity_percent != 100) {
+        fprintf(stderr, "opacity should clamp high values\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_set_opacity(&stack, 1, -10) || stack.layers[1].opacity_percent != 0) {
+        fprintf(stderr, "opacity should clamp low values\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_set_opacity(&stack, 1, 50)) {
         fprintf(stderr, "restore opacity after reset failed\n");
         canvas_free(&composite);
