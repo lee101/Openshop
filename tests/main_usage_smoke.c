@@ -393,6 +393,13 @@ int main(void) {
         return 1;
     }
 
+    char *argv_overflow_size_only_width[] = {"openshop", "2147483648", (char *)default_size_only_height};
+    reset_app_state(0, NULL, 0, 0, stderr_text);
+    if (!capture_main_stderr(3, argv_overflow_size_only_width, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_invalid_run("overflow_size_only_width", exit_code, stderr_text)) {
+        return 1;
+    }
+
     char *argv_extra[] = {"openshop", (char *)default_scene_path, (char *)default_size_only_width, (char *)default_size_only_height, "extra"};
     reset_app_state(0, NULL, 0, 0, stderr_text);
     if (!capture_main_stderr(5, argv_extra, stderr_text, sizeof(stderr_text), &exit_code) ||
