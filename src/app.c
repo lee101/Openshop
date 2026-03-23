@@ -404,6 +404,20 @@ static int try_invert_active_layer_rgb(LayerStack *layers,
     return apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_invert_rgb);
 }
 
+static int try_adjust_active_layer_opacity(LayerStack *layers,
+                                           Snapshot *undo_stack, int *undo_count,
+                                           Snapshot *redo_stack, int *redo_count,
+                                           int target_opacity) {
+    Layer *active = layer_stack_active(layers);
+
+    if (!active || active->opacity_percent == target_opacity) {
+        return 0;
+    }
+
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    return layer_stack_set_opacity(layers, layers->active_layer, target_opacity);
+}
+
 typedef int (*LayerDirectionalActionFn)(LayerStack *layers, int arg);
 
 static void run_indexed_layer_action(SDL_Window *window, LayerStack *layers,
@@ -433,6 +447,27 @@ static void run_directional_layer_action(SDL_Window *window, LayerStack *layers,
         *needs_composite = 1;
     }
     update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+}
+
+static int key_translation_delta(SDL_Keycode key, int step, int *dx, int *dy) {
+    if (!dx || !dy) {
+        return 0;
+    }
+
+    *dx = 0;
+    *dy = 0;
+    if (key == SDLK_UP) {
+        *dy = -step;
+    } else if (key == SDLK_DOWN) {
+        *dy = step;
+    } else if (key == SDLK_LEFT) {
+        *dx = -step;
+    } else if (key == SDLK_RIGHT) {
+        *dx = step;
+    } else {
+        return 0;
+    }
+    return 1;
 }
 
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
@@ -1095,9 +1130,8 @@ int app_run(const char *input_path) {
 
                 if (ctrl && (key == SDLK_MINUS || key == SDLK_KP_MINUS)) {
                     Layer *active = layer_stack_active(&layers);
-                    if (active) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        layer_stack_set_opacity(&layers, layers.active_layer, active->opacity_percent - 10);
+                    if (active && try_adjust_active_layer_opacity(&layers, undo_stack, &undo_count, redo_stack,
+                                                                  &redo_count, active->opacity_percent - 10)) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1106,9 +1140,8 @@ int app_run(const char *input_path) {
 
                 if (ctrl && (key == SDLK_EQUALS || key == SDLK_KP_PLUS)) {
                     Layer *active = layer_stack_active(&layers);
-                    if (active) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        layer_stack_set_opacity(&layers, layers.active_layer, active->opacity_percent + 10);
+                    if (active && try_adjust_active_layer_opacity(&layers, undo_stack, &undo_count, redo_stack,
+                                                                  &redo_count, active->opacity_percent + 10)) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1234,10 +1267,8 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_0) {
-                    Layer *active = layer_stack_active(&layers);
-                    if (active && active->opacity_percent != 100) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        layer_stack_set_opacity(&layers, layers.active_layer, 100);
+                    if (try_adjust_active_layer_opacity(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                        100)) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1573,16 +1604,8 @@ int app_run(const char *input_path) {
                     int step = shift ? 10 : 1;
                     int dx = 0;
                     int dy = 0;
-                    if (key == SDLK_UP) {
-                        dy = -step;
-                    } else if (key == SDLK_DOWN) {
-                        dy = step;
-                    } else if (key == SDLK_LEFT) {
-                        dx = -step;
-                    } else {
-                        dx = step;
-                    }
-                    if (apply_canvas_translation(&layers, undo_stack, &undo_count, redo_stack, &redo_count, dx, dy)) {
+                    if (key_translation_delta(key, step, &dx, &dy) &&
+                        apply_canvas_translation(&layers, undo_stack, &undo_count, redo_stack, &redo_count, dx, dy)) {
                         needs_composite = 1;
                     }
                     break;
