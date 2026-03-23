@@ -54,6 +54,8 @@ typedef struct {
     uint32_t *pixels;
 } Snapshot;
 
+typedef struct AppRuntime AppRuntime;
+
 static void snapshot_free(Snapshot *s) {
     if (!s) {
         return;
@@ -430,11 +432,7 @@ static int handle_layer_navigation_shortcut(
     int alt,
     LayerStack *layers,
     SDL_Window *window,
-    Tool tool,
-    BrushShape brush_shape,
-    int brush_radius,
-    uint32_t brush_color,
-    int brush_opacity
+    AppRuntime *runtime
 ) {
     int handled = 1;
     int changed = 0;
@@ -480,7 +478,15 @@ static int handle_layer_navigation_shortcut(
     }
 
     if (handled && changed) {
-        update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+        update_window_title(
+            window,
+            layers,
+            runtime->tool,
+            runtime->brush_shape,
+            runtime->brush_radius,
+            runtime->brush_color,
+            runtime->brush_opacity
+        );
     }
     return handled;
 }
@@ -490,205 +496,204 @@ static int handle_layer_stack_shortcut(
     int ctrl,
     int shift,
     LayerStack *layers,
-    Snapshot *undo_stack,
-    int *undo_count,
-    Snapshot *redo_stack,
-    int *redo_count,
-    int *needs_composite,
     SDL_Window *window,
-    Tool tool,
-    BrushShape brush_shape,
-    int brush_radius,
-    uint32_t brush_color,
-    int brush_opacity
+    AppRuntime *runtime
 ) {
     int handled = 1;
 
     if (ctrl && shift && key == SDLK_n) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (layer_stack_add(layers, NULL, 0x00000000) < 0) {
             fprintf(stderr, "Max layers reached (%d)\n", MAX_LAYERS);
         } else {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && key == SDLK_n) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (layer_stack_insert(layers, layers->active_layer + 1, NULL, 0x00000000) < 0) {
             fprintf(stderr, "Could not insert a layer above the active layer\n");
         } else {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && key == SDLK_COMMA) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (layer_stack_insert(layers, layers->active_layer, NULL, 0x00000000) < 0) {
             fprintf(stderr, "Could not insert a layer below the active layer\n");
         } else {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && shift && key == SDLK_l) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (!layer_stack_toggle_lock(layers, layers->active_layer)) {
             fprintf(stderr, "Could not toggle layer lock\n");
         }
     } else if (ctrl && shift && key == SDLK_k) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (!layer_stack_toggle_lock_others(layers, layers->active_layer)) {
             fprintf(stderr, "Could not toggle locks on the other layers\n");
         }
     } else if (ctrl && shift && key == SDLK_i) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (!layer_stack_toggle_visibility_others(layers, layers->active_layer)) {
             fprintf(stderr, "Could not toggle visibility on the other layers\n");
         } else {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && shift && key == SDLK_u) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (!layer_stack_unlock_all(layers)) {
             fprintf(stderr, "Could not unlock layers\n");
         }
     } else if (ctrl && shift && key == SDLK_m) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (!layer_stack_flatten(layers, COLOR_BG)) {
             fprintf(stderr, "Flatten failed (check for locked layers)\n");
         } else {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && shift && key == SDLK_e) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (!layer_stack_stamp_visible_into(layers, layers->active_layer, COLOR_BG)) {
             fprintf(stderr, "Stamp visible failed (active layer may be locked)\n");
         } else {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && shift && key == SDLK_g) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (layer_stack_stamp_visible_new(layers, "Visible Stamp", COLOR_BG) < 0) {
             fprintf(stderr, "Could not stamp visible image into a new layer\n");
         } else {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && shift && key == SDLK_d) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (layer_stack_duplicate_below(layers, layers->active_layer, NULL) < 0) {
             fprintf(stderr, "Could not duplicate layer below\n");
         } else {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && key == SDLK_d) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (layer_stack_duplicate(layers, layers->active_layer, NULL) < 0) {
             fprintf(stderr, "Could not duplicate layer\n");
         } else {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && key == SDLK_LEFTBRACKET) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (!layer_stack_move(layers, layers->active_layer, -1)) {
             fprintf(stderr, "Layer is already at the bottom\n");
         } else {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && key == SDLK_RIGHTBRACKET) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (!layer_stack_move(layers, layers->active_layer, 1)) {
             fprintf(stderr, "Layer is already at the top\n");
         } else {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && key == SDLK_HOME) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (!layer_stack_move_to(layers, layers->active_layer, 0)) {
             fprintf(stderr, "Layer is already at the bottom\n");
         } else {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && key == SDLK_END) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (!layer_stack_move_to(layers, layers->active_layer, layers->layer_count - 1)) {
             fprintf(stderr, "Layer is already at the top\n");
         } else {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && (key == SDLK_MINUS || key == SDLK_KP_MINUS)) {
         Layer *active = layer_stack_active(layers);
         if (active) {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
             layer_stack_set_opacity(layers, layers->active_layer, active->opacity_percent - 10);
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && (key == SDLK_EQUALS || key == SDLK_KP_PLUS)) {
         Layer *active = layer_stack_active(layers);
         if (active) {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
             layer_stack_set_opacity(layers, layers->active_layer, active->opacity_percent + 10);
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && shift && key == SDLK_v) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (!layer_stack_toggle_visibility(layers, layers->active_layer)) {
             fprintf(stderr, "Cannot hide the final visible layer\n");
         } else {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && shift && key == SDLK_h) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (!layer_stack_hide_and_advance(layers, layers->active_layer)) {
             fprintf(stderr, "Cannot hide the final visible layer\n");
         } else {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && key == SDLK_SLASH) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (!layer_stack_toggle_solo(layers, layers->active_layer)) {
             fprintf(stderr, "Could not toggle solo mode\n");
         } else {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (key == SDLK_DELETE || key == SDLK_BACKSPACE) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (!layer_stack_delete(layers, layers->active_layer)) {
             fprintf(stderr, "Cannot delete the final or a locked layer\n");
         } else {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && key == SDLK_m) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (!layer_stack_merge_down(layers, layers->active_layer)) {
             fprintf(stderr, "No lower layer to merge into, or one of the layers is locked\n");
         } else {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && key == SDLK_u) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (!layer_stack_merge_up(layers, layers->active_layer)) {
             fprintf(stderr, "No upper layer to merge into, or one of the layers is locked\n");
         } else {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && key == SDLK_0) {
         Layer *active = layer_stack_active(layers);
         if (active && active->opacity_percent != 100) {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
             layer_stack_set_opacity(layers, layers->active_layer, 100);
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && key == SDLK_a) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (layer_stack_show_all(layers)) {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else if (ctrl && shift && key == SDLK_r) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        push_snapshot(layers, runtime->undo_stack, &runtime->undo_count, runtime->redo_stack, &runtime->redo_count);
         if (layer_stack_show(layers, layers->active_layer)) {
-            *needs_composite = 1;
+            runtime->needs_composite = 1;
         }
     } else {
         handled = 0;
     }
 
     if (handled) {
-        update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+        update_window_title(
+            window,
+            layers,
+            runtime->tool,
+            runtime->brush_shape,
+            runtime->brush_radius,
+            runtime->brush_color,
+            runtime->brush_opacity
+        );
     }
     return handled;
 }
@@ -1296,17 +1301,8 @@ static void handle_keydown_shortcut(
             ctrl,
             shift,
             layers,
-            runtime->undo_stack,
-            &runtime->undo_count,
-            runtime->redo_stack,
-            &runtime->redo_count,
-            &runtime->needs_composite,
             window,
-            runtime->tool,
-            runtime->brush_shape,
-            runtime->brush_radius,
-            runtime->brush_color,
-            runtime->brush_opacity)) {
+            runtime)) {
         return;
     }
 
@@ -1339,11 +1335,7 @@ static void handle_keydown_shortcut(
             alt,
             layers,
             window,
-            runtime->tool,
-            runtime->brush_shape,
-            runtime->brush_radius,
-            runtime->brush_color,
-            runtime->brush_opacity)) {
+            runtime)) {
         return;
     }
 
@@ -1660,7 +1652,7 @@ static int init_app_session(
     return 1;
 }
 
-typedef struct {
+struct AppRuntime {
     int running;
     int drawing;
     int last_x;
@@ -1683,7 +1675,7 @@ typedef struct {
     uint32_t *shape_base_pixels;
     uint32_t *preview_pixels;
     Canvas preview_canvas;
-} AppRuntime;
+};
 
 static void cleanup_app_runtime(
     AppRuntime *runtime,
