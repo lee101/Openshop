@@ -46,8 +46,14 @@ static int expect_int(const char *label, int actual, int expected) {
 }
 
 static int expect_str(const char *label, const char *actual, const char *expected) {
-    if (!actual || strcmp(actual, expected) != 0) {
-        fprintf(stderr, "%s: expected %s got %s\n", label, expected, actual ? actual : "(null)");
+    int matches = 0;
+    if (!expected) {
+        matches = (actual == NULL);
+    } else if (actual) {
+        matches = strcmp(actual, expected) == 0;
+    }
+    if (!matches) {
+        fprintf(stderr, "%s: expected %s got %s\n", label, expected ? expected : "(null)", actual ? actual : "(null)");
         return 0;
     }
     return 1;
@@ -137,6 +143,12 @@ int main(void) {
     init_routed_path_pair(&pair, "", "output");
     if (!expect_str("pair_empty_seed_bmp", pair.bmp, "output.bmp") ||
         !expect_str("pair_empty_seed_png", pair.png, "output.png")) {
+        return 1;
+    }
+
+    init_routed_path_pair(&pair, NULL, NULL);
+    if (!expect_str("pair_null_fallback_bmp", pair.bmp, "") ||
+        !expect_str("pair_null_fallback_png", pair.png, "")) {
         return 1;
     }
 
@@ -267,6 +279,13 @@ int main(void) {
     choice = resolve_routed_pair_choice(NULL, "input.bmp", "input.png", 1);
     if (!expect_str("resolve_pair_null_prefer_png", choice.path, "input.png") ||
         !expect_int("resolve_pair_null_prefer_png_alternate", choice.used_alternate, 0)) {
+        return 1;
+    }
+
+    init_routed_path_pair(&pair, NULL, NULL);
+    choice = resolve_routed_pair_choice(&pair, NULL, NULL, 0);
+    if (!expect_str("resolve_pair_no_paths", choice.path, NULL) ||
+        !expect_int("resolve_pair_no_paths_alternate", choice.used_alternate, 0)) {
         return 1;
     }
 
