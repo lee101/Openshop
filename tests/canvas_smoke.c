@@ -1063,6 +1063,31 @@ int main(void) {
     }
     canvas_free(&thresh_c);
 
+    /* --- canvas_auto_levels ---
+       Stretch each channel independently while preserving flat channels. */
+    Canvas levels_c;
+    if (!canvas_init(&levels_c, 3, 1)) {
+        fprintf(stderr, "auto-levels canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&levels_c, 0, 0, 0xFF0A800A);
+    canvas_set_pixel_raw(&levels_c, 1, 0, 0xFF6E806E);
+    canvas_set_pixel_raw(&levels_c, 2, 0, 0xFFD28000);
+    canvas_auto_levels(&levels_c);
+    if (!expect_pixel_eq("auto_levels_min", canvas_get_pixel(&levels_c, 0, 0), 0xFF008017) ||
+        !expect_pixel_eq("auto_levels_mid", canvas_get_pixel(&levels_c, 1, 0), 0xFF8080FF) ||
+        !expect_pixel_eq("auto_levels_max", canvas_get_pixel(&levels_c, 2, 0), 0xFFFF8000)) {
+        canvas_free(&levels_c);
+        return 1;
+    }
+    canvas_clear(&levels_c, 0xFF808080);
+    canvas_auto_levels(&levels_c);
+    if (!expect_pixel_eq("auto_levels_flat_invariant", canvas_get_pixel(&levels_c, 1, 0), 0xFF808080)) {
+        canvas_free(&levels_c);
+        return 1;
+    }
+    canvas_free(&levels_c);
+
     /* --- canvas_blur: 3x1 row, radius=1 ---
        Row: [0xFF000000, 0xFFFF0000, 0xFF000000]
        For center pixel (1,0) the 3x1 neighbourhood averages to:
@@ -1099,8 +1124,7 @@ int main(void) {
     canvas_free(&blur_c);
 
     /* --- canvas_sharpen: uniform canvas must stay unchanged ---
-       Kernel: 5*c - top - bot - left - right.
-       When all neighbours equal c, result = 5*c - 4*c = c. */
+       Unsharp mask keeps flat regions stable. */
     Canvas sharp_c;
     if (!canvas_init(&sharp_c, 3, 3)) {
         fprintf(stderr, "sharpen canvas init failed\n");
@@ -1120,9 +1144,8 @@ int main(void) {
     {
         uint32_t sp = canvas_get_pixel(&sharp_c, 1, 1);
         uint8_t sr = (uint8_t)((sp >> 16) & 0xFF);
-        /* 5*0x80 - 4*0 = 640 -> clamped to 255 */
-        if (sr != 0xFF) {
-            fprintf(stderr, "sharpen isolated pixel failed: r=0x%02X want 0xFF\n", (unsigned)sr);
+        if (sr != 0xF2) {
+            fprintf(stderr, "sharpen isolated pixel failed: r=0x%02X want 0xF2\n", (unsigned)sr);
             canvas_free(&sharp_c);
             return 1;
         }

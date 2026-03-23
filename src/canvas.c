@@ -621,6 +621,58 @@ void canvas_threshold(Canvas *c, uint8_t thresh) {
     }
 }
 
+void canvas_auto_levels(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+
+    uint8_t min_r = 255;
+    uint8_t min_g = 255;
+    uint8_t min_b = 255;
+    uint8_t max_r = 0;
+    uint8_t max_g = 0;
+    uint8_t max_b = 0;
+    size_t count = (size_t)c->width * (size_t)c->height;
+
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        if (r < min_r) min_r = r;
+        if (g < min_g) min_g = g;
+        if (b < min_b) min_b = b;
+        if (r > max_r) max_r = r;
+        if (g > max_g) max_g = g;
+        if (b > max_b) max_b = b;
+    }
+
+    int range_r = (int)max_r - (int)min_r;
+    int range_g = (int)max_g - (int)min_g;
+    int range_b = (int)max_b - (int)min_b;
+
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint8_t a = (uint8_t)((p >> 24) & 0xFF);
+        int r = (int)((p >> 16) & 0xFF);
+        int g = (int)((p >> 8) & 0xFF);
+        int b = (int)(p & 0xFF);
+
+        if (range_r > 0) {
+            r = ((r - (int)min_r) * 255 + range_r / 2) / range_r;
+        }
+        if (range_g > 0) {
+            g = ((g - (int)min_g) * 255 + range_g / 2) / range_g;
+        }
+        if (range_b > 0) {
+            b = ((b - (int)min_b) * 255 + range_b / 2) / range_b;
+        }
+
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)clamp_u8(r) << 16) |
+                       ((uint32_t)clamp_u8(g) << 8) | (uint32_t)clamp_u8(b);
+    }
+}
+
 void canvas_blur(Canvas *c, int radius) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0 || radius <= 0) {
         return;
@@ -662,44 +714,27 @@ void canvas_blur(Canvas *c, int radius) {
 }
 
 void canvas_sharpen(Canvas *c) {
-    /* 3x3 sharpen kernel:  0 -1  0
-                           -1  5 -1
-                            0 -1  0  */
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;
     }
-    int W = c->width;
-    int H = c->height;
-    size_t count = (size_t)W * (size_t)H;
-    uint32_t *copy = (uint32_t *)malloc(count * sizeof(uint32_t));
-    if (!copy) {
+    size_t count = (size_t)c->width * (size_t)c->height;
+    uint32_t *orig = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!orig) {
         return;
     }
-    for (int y = 0; y < H; y++) {
-        for (int x = 0; x < W; x++) {
-            uint32_t p  = c->pixels[(size_t)y * (size_t)W + (size_t)x];
-            uint32_t pu = y > 0   ? c->pixels[(size_t)(y-1) * (size_t)W + (size_t)x] : p;
-            uint32_t pd = y < H-1 ? c->pixels[(size_t)(y+1) * (size_t)W + (size_t)x] : p;
-            uint32_t pl = x > 0   ? c->pixels[(size_t)y * (size_t)W + (size_t)(x-1)] : p;
-            uint32_t pr = x < W-1 ? c->pixels[(size_t)y * (size_t)W + (size_t)(x+1)] : p;
-            uint8_t a = (uint8_t)((p >> 24) & 0xFF);
-            int channels[3];
-            for (int ch = 0; ch < 3; ch++) {
-                int shift = (2 - ch) * 8;
-                int vc  = (int)((p  >> shift) & 0xFF);
-                int vup = (int)((pu >> shift) & 0xFF);
-                int vdn = (int)((pd >> shift) & 0xFF);
-                int vlt = (int)((pl >> shift) & 0xFF);
-                int vrt = (int)((pr >> shift) & 0xFF);
-                channels[ch] = clamp_u8(5 * vc - vup - vdn - vlt - vrt);
-            }
-            copy[(size_t)y * (size_t)W + (size_t)x] =
-                ((uint32_t)a << 24) |
-                ((uint32_t)channels[0] << 16) |
-                ((uint32_t)channels[1] << 8) |
-                (uint32_t)channels[2];
-        }
+    memcpy(orig, c->pixels, count * sizeof(uint32_t));
+
+    canvas_blur(c, 1);
+
+    for (size_t i = 0; i < count; i++) {
+        uint32_t original = orig[i];
+        uint32_t blurred = c->pixels[i];
+        uint8_t a = (uint8_t)((original >> 24) & 0xFF);
+        int r = clamp_u8(2 * (int)((original >> 16) & 0xFF) - (int)((blurred >> 16) & 0xFF));
+        int g = clamp_u8(2 * (int)((original >> 8) & 0xFF) - (int)((blurred >> 8) & 0xFF));
+        int b = clamp_u8(2 * (int)(original & 0xFF) - (int)(blurred & 0xFF));
+        c->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
     }
-    memcpy(c->pixels, copy, count * sizeof(uint32_t));
-    free(copy);
+
+    free(orig);
 }

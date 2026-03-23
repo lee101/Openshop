@@ -57,6 +57,7 @@ make test-sdl
 - `Ctrl+]` / `Ctrl+[`: move active layer up/down
 - `Ctrl+- / Ctrl+=`: active layer opacity down/up
 - `Ctrl+0`: reset active layer opacity to 100%
+- `Ctrl+L`: auto-level the active layer (per-channel histogram stretch)
 - `Ctrl+A`: show all layers and clear solo mode
 - `Ctrl+Shift+R`: reveal the active layer without changing other visibility states
 - `Ctrl+Shift+H`: hide the active layer and jump to the next visible layer
@@ -68,8 +69,14 @@ make test-sdl
 - `Ctrl+Shift+E`: stamp visible image into active layer
 - `Ctrl+Shift+G`: stamp visible image into a new top layer
 - `Ctrl+Shift+M`: flatten visible layers
+- `Ctrl+B` / `Ctrl+Shift+B`: blur / sharpen the active layer (`Ctrl+Shift+B` uses unsharp mask)
+- `Ctrl+Shift+Arrow Keys`: brightness up/down and contrast down/up
+- `Ctrl+F`: flood fill with tolerance
 - `Ctrl+S`: save the composited image to `output.bmp`
 - `Ctrl+O`: load `input.bmp` into the active layer
+- `Q / W`: rotate the active layer 90 degrees clockwise / counter-clockwise
+- `G / S`: grayscale / sepia the active layer
+- `Z / N`: posterize / threshold the active layer
 - `Ctrl+Z` / `Ctrl+Y`: undo / redo (layer-aware)
 - `Esc`: quit
 
