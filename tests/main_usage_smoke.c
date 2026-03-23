@@ -321,6 +321,19 @@ static void fill_argv_with_override(char **dst, const char *const *src, size_t c
     dst[override_index] = (char *)override_value;
 }
 
+static int build_custom_usage_text(char *usage_text, size_t usage_text_size) {
+    const char *src[] = {custom_program_name};
+    char *argv[ARRAY_LEN(src)] = {0};
+
+    if (!usage_text || usage_text_size == 0) {
+        return 0;
+    }
+
+    usage_text[0] = '\0';
+    fill_argv(argv, src, ARRAY_LEN(src));
+    return format_cli_usage(usage_text, usage_text_size, argv);
+}
+
 static int expect_invalid_size_only_cases(const struct invalid_size_token_case *cases, size_t case_count,
                                           const char *program_name, const char *fixed_token,
                                           int variable_token_index, char *stderr_text, size_t stderr_size,
@@ -543,15 +556,10 @@ static int expect_main_invalid_argv_cases(const struct invalid_argv_case *cases,
 int main(void) {
     char stderr_text[main_smoke_buffer_size];
     char custom_usage_text[main_smoke_buffer_size];
-    const char *custom_usage_src[] = {custom_program_name};
-    char *custom_usage_argv[ARRAY_LEN(custom_usage_src)] = {0};
     int exit_code = 0;
 
     stderr_text[0] = '\0';
-    custom_usage_text[0] = '\0';
-    fill_argv(custom_usage_argv, custom_usage_src, ARRAY_LEN(custom_usage_src));
-
-    if (!format_cli_usage(custom_usage_text, sizeof(custom_usage_text), custom_usage_argv)) {
+    if (!build_custom_usage_text(custom_usage_text, sizeof(custom_usage_text))) {
         return 1;
     }
 
