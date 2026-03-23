@@ -234,6 +234,58 @@ static int test_apply_noop_does_not_push_snapshot(void) {
     return 1;
 }
 
+static int test_apply_failure_preserves_existing_composite_flag(void) {
+    LayerStack stack;
+    SnapshotStubState snapshot_state = {0};
+    AppLayerStackState state = {.needs_composite = 1};
+    AppLayerStackCallbacks callbacks = {
+        .push_snapshot = stub_push_snapshot,
+        .userdata = &snapshot_state,
+    };
+    AppLayerStackCommand command = {.handled = 1, .action = APP_LAYER_STACK_TOGGLE_VISIBILITY, .argument = 0};
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "layer_stack_init failed\n");
+        return 0;
+    }
+
+    if (app_layer_stack_apply(command, &stack, &state, 0xFFFFFFFF, &callbacks) ||
+        !expect_int_eq("apply_fail_preserve_needs_composite", state.needs_composite, 1) ||
+        !expect_int_eq("apply_fail_preserve_push_count", snapshot_state.push_count, 1)) {
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    return 1;
+}
+
+static int test_apply_noop_preserves_existing_composite_flag(void) {
+    LayerStack stack;
+    SnapshotStubState snapshot_state = {0};
+    AppLayerStackState state = {.needs_composite = 1};
+    AppLayerStackCallbacks callbacks = {
+        .push_snapshot = stub_push_snapshot,
+        .userdata = &snapshot_state,
+    };
+    AppLayerStackCommand command = {.handled = 1, .action = APP_LAYER_STACK_RESET_OPACITY, .argument = 0};
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "layer_stack_init failed\n");
+        return 0;
+    }
+
+    if (app_layer_stack_apply(command, &stack, &state, 0xFFFFFFFF, &callbacks) ||
+        !expect_int_eq("apply_noop_preserve_needs_composite", state.needs_composite, 1) ||
+        !expect_int_eq("apply_noop_preserve_push_count", snapshot_state.push_count, 0)) {
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    return 1;
+}
+
 int main(void) {
     if (!test_creation_and_duplication_commands()) {
         return 1;
@@ -263,6 +315,12 @@ int main(void) {
         return 1;
     }
     if (!test_apply_noop_does_not_push_snapshot()) {
+        return 1;
+    }
+    if (!test_apply_failure_preserves_existing_composite_flag()) {
+        return 1;
+    }
+    if (!test_apply_noop_preserves_existing_composite_flag()) {
         return 1;
     }
     return 0;
