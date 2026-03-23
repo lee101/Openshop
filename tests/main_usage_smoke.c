@@ -258,6 +258,11 @@ struct invalid_argv_case {
     const char *argv[5];
 };
 
+#define INVALID_ARGV_CASE(label, argc_value, usage_text, arg0, arg1, arg2, arg3, arg4) \
+    {label, argc_value, 0, usage_text, {arg0, arg1, arg2, arg3, arg4}}
+#define INVALID_NULL_ARGV_CASE(label, argc_value, usage_text, arg0, arg1, arg2, arg3, arg4) \
+    {label, argc_value, 1, usage_text, {arg0, arg1, arg2, arg3, arg4}}
+
 struct success_case {
     const char *label_prefix;
     int argc;
@@ -402,20 +407,20 @@ int main(void) {
     }
 
     const struct invalid_argv_case invalid_argv_cases[] = {
-        {"invalid", 3, 0, NULL, {default_program_name, default_scene_path, default_size_only_width, NULL, NULL}},
-        {"bad_size_only", 3, 0, NULL, {default_program_name, default_scene_path, invalid_probe_token, NULL, NULL}},
-        {"custom_program_invalid", 3, 0, custom_usage_text, {custom_program_name, default_scene_path, invalid_probe_token, NULL, NULL}},
-        {"missing_h", 3, 0, NULL, {default_program_name, default_scene_path, default_size_only_width, NULL, NULL}},
-        {"extra_args", 5, 0, NULL, {default_program_name, default_scene_path, default_size_only_width, default_size_only_height, extra_arg_token}},
-        {"custom_program_extra_args", 5, 0, custom_usage_text, {custom_program_name, default_scene_path, default_size_only_width, default_size_only_height, extra_arg_token}},
-        {"custom_program_empty_input", 2, 0, custom_usage_text, {custom_program_name, empty_token, NULL, NULL, NULL}},
-        {"custom_program_null_input", 2, 0, custom_usage_text, {custom_program_name, NULL, NULL, NULL, NULL}},
-        {"null_argv", 1, 1, NULL, {NULL, NULL, NULL, NULL, NULL}},
-        {"null_program", 1, 0, NULL, {NULL, NULL, NULL, NULL, NULL}},
-        {"zero_argc", 0, 0, NULL, {default_program_name, NULL, NULL, NULL, NULL}},
-        {"empty_program", 1, 0, NULL, {empty_token, NULL, NULL, NULL, NULL}},
-        {"empty_input", 2, 0, NULL, {default_program_name, empty_token, NULL, NULL, NULL}},
-        {"null_input", 2, 0, NULL, {default_program_name, NULL, NULL, NULL, NULL}},
+        INVALID_ARGV_CASE("invalid", 3, NULL, default_program_name, default_scene_path, default_size_only_width, NULL, NULL),
+        INVALID_ARGV_CASE("bad_size_only", 3, NULL, default_program_name, default_scene_path, invalid_probe_token, NULL, NULL),
+        INVALID_ARGV_CASE("custom_program_invalid", 3, custom_usage_text, custom_program_name, default_scene_path, invalid_probe_token, NULL, NULL),
+        INVALID_ARGV_CASE("missing_h", 3, NULL, default_program_name, default_scene_path, default_size_only_width, NULL, NULL),
+        INVALID_ARGV_CASE("extra_args", 5, NULL, default_program_name, default_scene_path, default_size_only_width, default_size_only_height, extra_arg_token),
+        INVALID_ARGV_CASE("custom_program_extra_args", 5, custom_usage_text, custom_program_name, default_scene_path, default_size_only_width, default_size_only_height, extra_arg_token),
+        INVALID_ARGV_CASE("custom_program_empty_input", 2, custom_usage_text, custom_program_name, empty_token, NULL, NULL, NULL),
+        INVALID_ARGV_CASE("custom_program_null_input", 2, custom_usage_text, custom_program_name, NULL, NULL, NULL, NULL),
+        INVALID_NULL_ARGV_CASE("null_argv", 1, NULL, NULL, NULL, NULL, NULL, NULL),
+        INVALID_ARGV_CASE("null_program", 1, NULL, NULL, NULL, NULL, NULL, NULL),
+        INVALID_ARGV_CASE("zero_argc", 0, NULL, default_program_name, NULL, NULL, NULL, NULL),
+        INVALID_ARGV_CASE("empty_program", 1, NULL, empty_token, NULL, NULL, NULL, NULL),
+        INVALID_ARGV_CASE("empty_input", 2, NULL, default_program_name, empty_token, NULL, NULL, NULL),
+        INVALID_ARGV_CASE("null_input", 2, NULL, default_program_name, NULL, NULL, NULL, NULL),
     };
     if (!expect_invalid_argv_cases(invalid_argv_cases,
                                    ARRAY_LEN(invalid_argv_cases),
