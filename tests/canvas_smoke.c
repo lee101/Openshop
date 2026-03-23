@@ -689,6 +689,53 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    while (stack.layer_count < MAX_LAYERS) {
+        int next = layer_stack_add(&stack, "Overflow Fill", 0x00000000);
+        if (next != stack.layer_count - 1) {
+            fprintf(stderr, "fill layers to max failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    if (stack.layer_count != MAX_LAYERS || stack.active_layer != MAX_LAYERS - 1) {
+        fprintf(stderr, "fill layers to max bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_add(&stack, "Overflow Add", 0x00000000) != -1) {
+        fprintf(stderr, "add should fail at max layers\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_insert(&stack, 1, "Overflow Insert", 0x00000000) != -1) {
+        fprintf(stderr, "insert should fail at max layers\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layer_count != MAX_LAYERS || stack.active_layer != MAX_LAYERS - 1) {
+        fprintf(stderr, "failed add/insert should preserve full stack bookkeeping\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    while (stack.layer_count > 2) {
+        if (!layer_stack_delete(&stack, stack.layer_count - 1)) {
+            fprintf(stderr, "cleanup filled layers failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    if (stack.layer_count != 2 || strcmp(stack.layers[1].name, "Top") != 0) {
+        fprintf(stderr, "cleanup filled layer order failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     if (!layer_stack_toggle_visibility(&stack, 1)) {
         fprintf(stderr, "re-show top layer failed\n");
