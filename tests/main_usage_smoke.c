@@ -225,19 +225,6 @@ static int expect_invalid_main_result(const char *label_prefix, int argc, char *
     return expect_invalid_run(label_prefix, *exit_code, stderr_text);
 }
 
-static int expect_successful_main_run(const char *label_prefix, int argc, char **argv,
-                                      int result, char *stderr_text, size_t stderr_size,
-                                      int *exit_code, int expected_exit_code,
-                                      const char *expected_input_path, int expected_canvas_w,
-                                      int expected_canvas_h, const char *expected_stderr) {
-    reset_app_state(result, NULL, 0, 0, stderr_text);
-    if (!capture_main_stderr(argc, argv, stderr_text, stderr_size, exit_code)) {
-        return 0;
-    }
-    return expect_successful_run(label_prefix, *exit_code, expected_exit_code, expected_input_path,
-                                 expected_canvas_w, expected_canvas_h, stderr_text, expected_stderr);
-}
-
 struct invalid_size_token_case {
     const char *label_prefix;
     const char *token;
@@ -316,10 +303,14 @@ static int expect_success_cases(const struct success_case *cases, size_t case_co
         char *argv[] = {(char *)cases[i].program_name, (char *)cases[i].input_token,
                         (char *)cases[i].width_token, (char *)cases[i].height_token};
 
-        if (!expect_successful_main_run(cases[i].label_prefix, cases[i].argc, argv, cases[i].result, stderr_text,
-                                        stderr_size, exit_code, cases[i].expected_exit_code,
-                                        cases[i].expected_input_path, cases[i].expected_canvas_w,
-                                        cases[i].expected_canvas_h, cases[i].expected_stderr)) {
+        reset_app_state(cases[i].result, NULL, 0, 0, stderr_text);
+        if (!capture_main_stderr(cases[i].argc, argv, stderr_text, stderr_size, exit_code)) {
+            return 0;
+        }
+
+        if (!expect_successful_run(cases[i].label_prefix, *exit_code, cases[i].expected_exit_code,
+                                   cases[i].expected_input_path, cases[i].expected_canvas_w,
+                                   cases[i].expected_canvas_h, stderr_text, cases[i].expected_stderr)) {
             return 0;
         }
     }
