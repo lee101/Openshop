@@ -1,6 +1,7 @@
 #include "app.h"
 #include "app_document.h"
 #include "app_history.h"
+#include "app_navigation.h"
 #include "app_session.h"
 #include "app_tool.h"
 #include "app_translation.h"
@@ -251,47 +252,55 @@ static int handle_layer_navigation_shortcut(
     SDL_Window *window,
     AppRuntime *runtime
 ) {
-    int handled = 1;
+    AppNavigationCommand command = app_navigation_command_for_key((int)key, ctrl, shift, alt);
+    int handled = command.handled;
     int changed = 0;
 
-    if (ctrl && shift && alt && key >= SDLK_1 && key <= SDLK_8) {
-        changed = layer_stack_select_nth_unlocked(layers, (int)(key - SDLK_1)) >= 0;
-    } else if (ctrl && shift && key >= SDLK_1 && key <= SDLK_8) {
-        changed = layer_stack_select_nth_editable_visible(layers, (int)(key - SDLK_1)) >= 0;
-    } else if (ctrl && alt && key >= SDLK_1 && key <= SDLK_8) {
-        changed = layer_stack_select_nth_visible(layers, (int)(key - SDLK_1)) >= 0;
-    } else if (ctrl && key >= SDLK_1 && key <= SDLK_8) {
-        int target = (int)(key - SDLK_1);
+    switch (command.action) {
+    case APP_NAV_SELECT_NTH_UNLOCKED:
+        changed = layer_stack_select_nth_unlocked(layers, command.argument) >= 0;
+        break;
+    case APP_NAV_SELECT_NTH_EDITABLE_VISIBLE:
+        changed = layer_stack_select_nth_editable_visible(layers, command.argument) >= 0;
+        break;
+    case APP_NAV_SELECT_NTH_VISIBLE:
+        changed = layer_stack_select_nth_visible(layers, command.argument) >= 0;
+        break;
+    case APP_NAV_SELECT_NTH_DIRECT: {
+        int target = command.argument;
         if (target < layers->layer_count) {
             layers->active_layer = target;
             changed = 1;
         }
-    } else if (key == SDLK_PAGEUP) {
-        int cycled = (ctrl && shift) ? layer_stack_cycle_editable_visible(layers, 1)
-            : (ctrl ? layer_stack_cycle_unlocked(layers, 1)
-            : (shift ? layer_stack_cycle_visible(layers, 1) : layer_stack_cycle(layers, 1)));
-        changed = cycled >= 0;
-    } else if (key == SDLK_PAGEDOWN) {
-        int cycled = (ctrl && shift) ? layer_stack_cycle_editable_visible(layers, -1)
-            : (ctrl ? layer_stack_cycle_unlocked(layers, -1)
-            : (shift ? layer_stack_cycle_visible(layers, -1) : layer_stack_cycle(layers, -1)));
-        changed = cycled >= 0;
-    } else if (!ctrl && key == SDLK_HOME) {
-        int selected = shift ? layer_stack_select_edge_visible(layers, -1) : layer_stack_select_edge(layers, -1);
-        changed = selected >= 0;
-    } else if (!ctrl && key == SDLK_END) {
-        int selected = shift ? layer_stack_select_edge_visible(layers, 1) : layer_stack_select_edge(layers, 1);
-        changed = selected >= 0;
-    } else if (ctrl && alt && key == SDLK_HOME) {
-        changed = layer_stack_select_edge_unlocked(layers, -1) >= 0;
-    } else if (ctrl && alt && key == SDLK_END) {
-        changed = layer_stack_select_edge_unlocked(layers, 1) >= 0;
-    } else if (ctrl && shift && key == SDLK_HOME) {
-        changed = layer_stack_select_edge_editable_visible(layers, -1) >= 0;
-    } else if (ctrl && shift && key == SDLK_END) {
-        changed = layer_stack_select_edge_editable_visible(layers, 1) >= 0;
-    } else {
-        handled = 0;
+        break;
+    }
+    case APP_NAV_CYCLE_EDITABLE_VISIBLE:
+        changed = layer_stack_cycle_editable_visible(layers, command.argument) >= 0;
+        break;
+    case APP_NAV_CYCLE_UNLOCKED:
+        changed = layer_stack_cycle_unlocked(layers, command.argument) >= 0;
+        break;
+    case APP_NAV_CYCLE_VISIBLE:
+        changed = layer_stack_cycle_visible(layers, command.argument) >= 0;
+        break;
+    case APP_NAV_CYCLE_ALL:
+        changed = layer_stack_cycle(layers, command.argument) >= 0;
+        break;
+    case APP_NAV_EDGE_VISIBLE:
+        changed = layer_stack_select_edge_visible(layers, command.argument) >= 0;
+        break;
+    case APP_NAV_EDGE_ALL:
+        changed = layer_stack_select_edge(layers, command.argument) >= 0;
+        break;
+    case APP_NAV_EDGE_UNLOCKED:
+        changed = layer_stack_select_edge_unlocked(layers, command.argument) >= 0;
+        break;
+    case APP_NAV_EDGE_EDITABLE_VISIBLE:
+        changed = layer_stack_select_edge_editable_visible(layers, command.argument) >= 0;
+        break;
+    case APP_NAV_NONE:
+    default:
+        break;
     }
 
     if (handled && changed) {
