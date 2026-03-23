@@ -182,6 +182,43 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_show(&stack, 1) || layer_stack_add(&stack, "Locked Fallback", 0x00000000) != 2) {
+        fprintf(stderr, "setup hide and advance locked fallback failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_lock(&stack, 0) || !layer_stack_toggle_lock(&stack, 2)) {
+        fprintf(stderr, "lock fallback layers failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.active_layer = 1;
+    if (!layer_stack_hide_and_advance(&stack, 1)) {
+        fprintf(stderr, "hide and advance with locked fallback failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.active_layer != 2 || stack.layers[1].visible) {
+        fprintf(stderr, "hide and advance should fall back to locked visible layer when needed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_unlock_all(&stack) || !layer_stack_delete(&stack, 2) || !layer_stack_show(&stack, 1)) {
+        fprintf(stderr, "cleanup hide and advance locked fallback failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_visibility(&stack, 1)) {
+        fprintf(stderr, "rehide top layer after locked fallback failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     if (layer_stack_toggle_visibility(&stack, 0)) {
         fprintf(stderr, "background should not hide when last visible\n");
