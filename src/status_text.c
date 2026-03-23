@@ -65,3 +65,17 @@ void format_status_text_max_layers(int max_layers, char *buffer, size_t buffer_s
     }
     snprintf(buffer, buffer_size, "Max layers reached (%d)", max_layers);
 }
+
+void format_status_text_startup(const char *label, char *buffer, size_t buffer_size) {
+    if (!buffer || buffer_size == 0) {
+        return;
+    }
+    snprintf(buffer, buffer_size, "%s failed", label ? label : "Startup");
+}
+
+void format_status_text_sdl(const char *label, const char *detail, char *buffer, size_t buffer_size) {
+    if (!buffer || buffer_size == 0) {
+        return;
+    }
+    snprintf(buffer, buffer_size, "%s failed: %s", label ? label : "SDL", detail ? detail : "");
+}

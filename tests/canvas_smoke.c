@@ -283,6 +283,26 @@ static int test_layers_basic(void) {
             return 0;
         }
     }
+    {
+        char status_message[128];
+        format_status_text_startup("Layer stack init", status_message, sizeof(status_message));
+        if (strcmp(status_message, "Layer stack init failed") != 0) {
+            fprintf(stderr, "startup status text formatting failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    {
+        char status_message[128];
+        format_status_text_sdl("SDL_CreateTexture", "driver missing", status_message, sizeof(status_message));
+        if (strcmp(status_message, "SDL_CreateTexture failed: driver missing") != 0) {
+            fprintf(stderr, "sdl status text formatting failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
     stack.layers[0].visible = 1;
     stack.layers[0].locked = 0;
     stack.layers[0].opacity_percent = 100;

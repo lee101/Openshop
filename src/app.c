@@ -613,8 +613,10 @@ static void draw_brush_line(Canvas *c, int x0, int y0, int x1, int y1, int radiu
 }
 
 int app_run(const char *input_path) {
+    char status_message[128];
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
+        format_status_text_sdl("SDL_Init", SDL_GetError(), status_message, sizeof(status_message));
+        fprintf(stderr, "%s\n", status_message);
         return 1;
     }
 
@@ -627,14 +629,16 @@ int app_run(const char *input_path) {
         SDL_WINDOW_SHOWN
     );
     if (!window) {
-        fprintf(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
+        format_status_text_sdl("SDL_CreateWindow", SDL_GetError(), status_message, sizeof(status_message));
+        fprintf(stderr, "%s\n", status_message);
         SDL_Quit();
         return 1;
     }
 
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     if (!renderer) {
-        fprintf(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
+        format_status_text_sdl("SDL_CreateRenderer", SDL_GetError(), status_message, sizeof(status_message));
+        fprintf(stderr, "%s\n", status_message);
         SDL_DestroyWindow(window);
         SDL_Quit();
         return 1;
@@ -648,7 +652,8 @@ int app_run(const char *input_path) {
         CANVAS_HEIGHT
     );
     if (!texture) {
-        fprintf(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
+        format_status_text_sdl("SDL_CreateTexture", SDL_GetError(), status_message, sizeof(status_message));
+        fprintf(stderr, "%s\n", status_message);
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         SDL_Quit();
@@ -657,7 +662,8 @@ int app_run(const char *input_path) {
 
     LayerStack layers;
     if (!layer_stack_init(&layers, CANVAS_WIDTH, CANVAS_HEIGHT, COLOR_BG)) {
-        fprintf(stderr, "Layer stack init failed\n");
+        format_status_text_startup("Layer stack init", status_message, sizeof(status_message));
+        fprintf(stderr, "%s\n", status_message);
         SDL_DestroyTexture(texture);
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
@@ -667,7 +673,8 @@ int app_run(const char *input_path) {
 
     Canvas composite = {0};
     if (!canvas_init(&composite, CANVAS_WIDTH, CANVAS_HEIGHT)) {
-        fprintf(stderr, "Composite canvas init failed\n");
+        format_status_text_startup("Composite canvas init", status_message, sizeof(status_message));
+        fprintf(stderr, "%s\n", status_message);
         layer_stack_free(&layers);
         SDL_DestroyTexture(texture);
         SDL_DestroyRenderer(renderer);
