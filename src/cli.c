@@ -38,7 +38,7 @@ const char *cli_usage_suffix(void) {
 }
 
 int parse_cli_args(int argc, char **argv, CliOptions *options) {
-    if (!options) {
+    if (!argv || !options) {
         return 0;
     }
 

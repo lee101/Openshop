@@ -144,6 +144,9 @@ int main(void) {
     if (!expect_int("null_options", parse_cli_args(1, argv_default, NULL), 0)) {
         return 1;
     }
+    if (!expect_int("null_argv", parse_cli_args(1, NULL, &options), 0)) {
+        return 1;
+    }
 
     printf("cli selftest ok\n");
     return 0;
