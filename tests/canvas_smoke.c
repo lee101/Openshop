@@ -183,6 +183,12 @@ static int test_layers_basic(void) {
     stack.active_layer = 1;
     stack.layers[0].locked = 1;
     stack.layers[1].locked = 0;
+    stack.layers[0].opacity_percent = 35;
+    stack.layers[1].opacity_percent = 80;
+    strncpy(stack.layers[0].name, "Background Locked", LAYER_NAME_MAX - 1);
+    stack.layers[0].name[LAYER_NAME_MAX - 1] = '\0';
+    strncpy(stack.layers[1].name, "Hidden Top", LAYER_NAME_MAX - 1);
+    stack.layers[1].name[LAYER_NAME_MAX - 1] = '\0';
     if (!layer_stack_show_hidden_only(&stack, 1)) {
         fprintf(stderr, "show hidden only failed\n");
         canvas_free(&composite);
@@ -191,6 +197,14 @@ static int test_layers_basic(void) {
     }
     if (!stack.layers[0].locked || stack.layers[1].locked) {
         fprintf(stderr, "show hidden only should preserve lock state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[0].opacity_percent != 35 || stack.layers[1].opacity_percent != 80 ||
+        strcmp(stack.layers[0].name, "Background Locked") != 0 ||
+        strcmp(stack.layers[1].name, "Hidden Top") != 0) {
+        fprintf(stderr, "show hidden only should preserve opacity and names\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -222,8 +236,22 @@ static int test_layers_basic(void) {
     stack.layers[0].locked = 1;
     stack.layers[1].locked = 0;
     stack.active_layer = 1;
+    stack.layers[0].opacity_percent = 25;
+    stack.layers[1].opacity_percent = 90;
+    strncpy(stack.layers[0].name, "Locked Base", LAYER_NAME_MAX - 1);
+    stack.layers[0].name[LAYER_NAME_MAX - 1] = '\0';
+    strncpy(stack.layers[1].name, "Editable Top", LAYER_NAME_MAX - 1);
+    stack.layers[1].name[LAYER_NAME_MAX - 1] = '\0';
     if (!layer_stack_show_unlocked_only(&stack, 1)) {
         fprintf(stderr, "show unlocked only failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[0].opacity_percent != 25 || stack.layers[1].opacity_percent != 90 ||
+        strcmp(stack.layers[0].name, "Locked Base") != 0 ||
+        strcmp(stack.layers[1].name, "Editable Top") != 0) {
+        fprintf(stderr, "show unlocked only should preserve opacity and names\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -252,8 +280,22 @@ static int test_layers_basic(void) {
     stack.layers[0].locked = 1;
     stack.layers[1].locked = 0;
     stack.active_layer = 0;
+    stack.layers[0].opacity_percent = 45;
+    stack.layers[1].opacity_percent = 70;
+    strncpy(stack.layers[0].name, "Locked Active", LAYER_NAME_MAX - 1);
+    stack.layers[0].name[LAYER_NAME_MAX - 1] = '\0';
+    strncpy(stack.layers[1].name, "Unlocked Peer", LAYER_NAME_MAX - 1);
+    stack.layers[1].name[LAYER_NAME_MAX - 1] = '\0';
     if (!layer_stack_show_locked_only(&stack, 0)) {
         fprintf(stderr, "show locked only failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[0].opacity_percent != 45 || stack.layers[1].opacity_percent != 70 ||
+        strcmp(stack.layers[0].name, "Locked Active") != 0 ||
+        strcmp(stack.layers[1].name, "Unlocked Peer") != 0) {
+        fprintf(stderr, "show locked only should preserve opacity and names\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -281,6 +323,12 @@ static int test_layers_basic(void) {
     stack.layers[1].locked = 0;
     stack.layers[0].visible = 1;
     stack.layers[1].visible = 1;
+    stack.layers[0].opacity_percent = 100;
+    stack.layers[1].opacity_percent = 100;
+    strncpy(stack.layers[0].name, "Background", LAYER_NAME_MAX - 1);
+    stack.layers[0].name[LAYER_NAME_MAX - 1] = '\0';
+    strncpy(stack.layers[1].name, "Top", LAYER_NAME_MAX - 1);
+    stack.layers[1].name[LAYER_NAME_MAX - 1] = '\0';
     if (!layer_stack_show(&stack, 1)) {
         fprintf(stderr, "restore top layer for hide-and-advance failed\n");
         canvas_free(&composite);
