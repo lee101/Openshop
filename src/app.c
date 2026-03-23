@@ -668,6 +668,34 @@ static int apply_layer_stack_action(
     return changed;
 }
 
+static int apply_layer_stack_action_result(
+    SDL_Window *window,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int (*action)(LayerStack *, int),
+    int action_index,
+    const char *error_message,
+    Tool tool,
+    BrushShape brush_shape,
+    int brush_radius,
+    uint32_t brush_color,
+    int brush_opacity
+) {
+    if (!layers || !action) {
+        return -1;
+    }
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    int result = action(layers, action_index);
+    if (result < 0 && error_message) {
+        fprintf(stderr, "%s\n", error_message);
+    }
+    refresh_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+    return result;
+}
+
 static int layer_stack_show_all_action(LayerStack *stack, int index) {
     (void)index;
     return layer_stack_show_all(stack);
@@ -679,6 +707,23 @@ static int layer_stack_move_down_action(LayerStack *stack, int index) {
 
 static int layer_stack_move_up_action(LayerStack *stack, int index) {
     return layer_stack_move(stack, index, 1);
+}
+
+static int layer_stack_add_action(LayerStack *stack, int index) {
+    (void)index;
+    return layer_stack_add(stack, NULL, 0x00000000);
+}
+
+static int layer_stack_insert_above_action(LayerStack *stack, int index) {
+    return layer_stack_insert(stack, index + 1, NULL, 0x00000000);
+}
+
+static int layer_stack_insert_below_action(LayerStack *stack, int index) {
+    return layer_stack_insert(stack, index, NULL, 0x00000000);
+}
+
+static int layer_stack_duplicate_action(LayerStack *stack, int index) {
+    return layer_stack_duplicate(stack, index, NULL);
 }
 
 static void erase_stamp(Canvas *c, int cx, int cy, int radius, uint32_t clear_color, BrushShape shape) {
@@ -1050,24 +1095,23 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && shift && key == SDLK_n) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (layer_stack_add(&layers, NULL, 0x00000000) < 0) {
-                        fprintf(stderr, "Max layers reached (%d)\n", MAX_LAYERS);
-                    } else {
+                    if (apply_layer_stack_action_result(
+                            window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            layer_stack_add_action, layers.active_layer, "Max layers reached (8)",
+                            tool, brush_shape, brush_radius, brush_color, brush_opacity) >= 0) {
                         needs_composite = 1;
                     }
-                    refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
                 if (ctrl && key == SDLK_n) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (layer_stack_insert(&layers, layers.active_layer + 1, NULL, 0x00000000) < 0) {
-                        fprintf(stderr, "Could not insert a layer above the active layer\n");
-                    } else {
+                    if (apply_layer_stack_action_result(
+                            window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            layer_stack_insert_above_action, layers.active_layer,
+                            "Could not insert a layer above the active layer",
+                            tool, brush_shape, brush_radius, brush_color, brush_opacity) >= 0) {
                         needs_composite = 1;
                     }
-                    refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
@@ -1086,13 +1130,13 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_COMMA) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (layer_stack_insert(&layers, layers.active_layer, NULL, 0x00000000) < 0) {
-                        fprintf(stderr, "Could not insert a layer below the active layer\n");
-                    } else {
+                    if (apply_layer_stack_action_result(
+                            window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            layer_stack_insert_below_action, layers.active_layer,
+                            "Could not insert a layer below the active layer",
+                            tool, brush_shape, brush_radius, brush_color, brush_opacity) >= 0) {
                         needs_composite = 1;
                     }
-                    refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
@@ -1138,13 +1182,12 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_d) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (layer_stack_duplicate(&layers, layers.active_layer, NULL) < 0) {
-                        fprintf(stderr, "Could not duplicate layer\n");
-                    } else {
+                    if (apply_layer_stack_action_result(
+                            window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                            layer_stack_duplicate_action, layers.active_layer, "Could not duplicate layer",
+                            tool, brush_shape, brush_radius, brush_color, brush_opacity) >= 0) {
                         needs_composite = 1;
                     }
-                    refresh_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
