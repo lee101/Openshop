@@ -22,6 +22,7 @@ make test-sdl
 ```bash
 ./openshop [optional_input_path] [width height]
 ```
+Width and height are optional, but if you provide one you must provide both as positive integers.
 
 ## Controls
 - `Left Mouse`: draw on the active layer
