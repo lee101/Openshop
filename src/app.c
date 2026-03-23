@@ -1164,7 +1164,11 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
                     const char *saved_path = shift ? "output.png" : "output.bmp";
                     int used_alternate = 0;
                     if (!canvas_save_default_output(save_canvas, shift, &saved_path, &used_alternate)) {
-                        fprintf(stderr, "Failed to save %s\n", saved_path);
+                        if (used_alternate) {
+                            fprintf(stderr, "Failed to save %s (fallback default)\n", saved_path);
+                        } else {
+                            fprintf(stderr, "Failed to save %s\n", saved_path);
+                        }
                     } else if (used_alternate) {
                         fprintf(stderr, "Saved %s (reused fallback default)\n", saved_path);
                     } else {
@@ -1194,7 +1198,11 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
                     }
                     if (!loaded) {
                         snapshot_free(&before);
-                        fprintf(stderr, "Failed to load %s\n", loaded_path);
+                        if (used_alternate) {
+                            fprintf(stderr, "Failed to load %s (fallback default)\n", loaded_path);
+                        } else {
+                            fprintf(stderr, "Failed to load %s\n", loaded_path);
+                        }
                     } else {
                         if (used_alternate) {
                             fprintf(stderr, "Loaded %s (fallback default)\n", loaded_path);
