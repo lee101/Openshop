@@ -265,54 +265,7 @@ static int handle_layer_navigation_shortcut(
 ) {
     AppNavigationCommand command = app_navigation_command_for_key((int)key, ctrl, shift, alt);
     int handled = command.handled;
-    int changed = 0;
-
-    switch (command.action) {
-    case APP_NAV_SELECT_NTH_UNLOCKED:
-        changed = layer_stack_select_nth_unlocked(layers, command.argument) >= 0;
-        break;
-    case APP_NAV_SELECT_NTH_EDITABLE_VISIBLE:
-        changed = layer_stack_select_nth_editable_visible(layers, command.argument) >= 0;
-        break;
-    case APP_NAV_SELECT_NTH_VISIBLE:
-        changed = layer_stack_select_nth_visible(layers, command.argument) >= 0;
-        break;
-    case APP_NAV_SELECT_NTH_DIRECT: {
-        int target = command.argument;
-        if (target < layers->layer_count) {
-            layers->active_layer = target;
-            changed = 1;
-        }
-        break;
-    }
-    case APP_NAV_CYCLE_EDITABLE_VISIBLE:
-        changed = layer_stack_cycle_editable_visible(layers, command.argument) >= 0;
-        break;
-    case APP_NAV_CYCLE_UNLOCKED:
-        changed = layer_stack_cycle_unlocked(layers, command.argument) >= 0;
-        break;
-    case APP_NAV_CYCLE_VISIBLE:
-        changed = layer_stack_cycle_visible(layers, command.argument) >= 0;
-        break;
-    case APP_NAV_CYCLE_ALL:
-        changed = layer_stack_cycle(layers, command.argument) >= 0;
-        break;
-    case APP_NAV_EDGE_VISIBLE:
-        changed = layer_stack_select_edge_visible(layers, command.argument) >= 0;
-        break;
-    case APP_NAV_EDGE_ALL:
-        changed = layer_stack_select_edge(layers, command.argument) >= 0;
-        break;
-    case APP_NAV_EDGE_UNLOCKED:
-        changed = layer_stack_select_edge_unlocked(layers, command.argument) >= 0;
-        break;
-    case APP_NAV_EDGE_EDITABLE_VISIBLE:
-        changed = layer_stack_select_edge_editable_visible(layers, command.argument) >= 0;
-        break;
-    case APP_NAV_NONE:
-    default:
-        break;
-    }
+    int changed = app_navigation_apply(command, layers);
 
     if (handled && changed) {
         update_window_title_for_runtime(window, layers, runtime);

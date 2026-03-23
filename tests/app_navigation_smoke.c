@@ -1,5 +1,7 @@
 #include "../src/app_navigation.h"
 
+#include "../src/layers.h"
+
 #include <stdio.h>
 
 static int expect_int_eq(const char *label, int got, int want) {
@@ -57,6 +59,48 @@ static int test_unhandled_key(void) {
            expect_int_eq("none_arg", none.argument, 0);
 }
 
+static int test_apply_navigation_changes_and_noops(void) {
+    LayerStack stack;
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF) ||
+        layer_stack_add(&stack, "Top", 0x00000000) < 0) {
+        fprintf(stderr, "layer stack initialization failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    stack.active_layer = 0;
+    stack.layers[0].locked = 1;
+    stack.layers[0].visible = 0;
+
+    if (!app_navigation_apply((AppNavigationCommand){1, APP_NAV_SELECT_NTH_UNLOCKED, 0}, &stack) ||
+        !expect_int_eq("apply_unlocked_active", stack.active_layer, 1)) {
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (app_navigation_apply((AppNavigationCommand){1, APP_NAV_SELECT_NTH_VISIBLE, 1}, &stack) ||
+        !expect_int_eq("apply_visible_noop_active", stack.active_layer, 1)) {
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (!app_navigation_apply((AppNavigationCommand){1, APP_NAV_SELECT_NTH_DIRECT, 0}, &stack) ||
+        !expect_int_eq("apply_direct_active", stack.active_layer, 0)) {
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (app_navigation_apply((AppNavigationCommand){1, APP_NAV_SELECT_NTH_DIRECT, 5}, &stack) ||
+        !expect_int_eq("apply_direct_oob_active", stack.active_layer, 0)) {
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    return 1;
+}
+
 int main(void) {
     if (!test_numeric_selection_variants()) {
         return 1;
@@ -65,6 +109,9 @@ int main(void) {
         return 1;
     }
     if (!test_unhandled_key()) {
+        return 1;
+    }
+    if (!test_apply_navigation_changes_and_noops()) {
         return 1;
     }
     return 0;

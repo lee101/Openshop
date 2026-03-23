@@ -1,6 +1,8 @@
 #ifndef APP_NAVIGATION_H
 #define APP_NAVIGATION_H
 
+#include "layers.h"
+
 typedef enum {
     APP_NAV_NONE = 0,
     APP_NAV_SELECT_NTH_UNLOCKED,
@@ -24,5 +26,6 @@ typedef struct {
 } AppNavigationCommand;
 
 AppNavigationCommand app_navigation_command_for_key(int key, int ctrl, int shift, int alt);
+int app_navigation_apply(AppNavigationCommand command, LayerStack *layers);
 
 #endif
