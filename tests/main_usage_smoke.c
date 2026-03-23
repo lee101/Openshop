@@ -104,6 +104,18 @@ int main(void) {
         return 1;
     }
 
+    char *argv_bad_size_only[] = {"openshop", "art/scene.png", "768"};
+    app_run_called = 0;
+    stderr_text[0] = '\0';
+    if (!capture_main_stderr(3, argv_bad_size_only, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_int("bad_size_only_exit", exit_code, 1) ||
+        !expect_int("bad_size_only_app_run_called", app_run_called, 0) ||
+        !expect_str("bad_size_only_usage_text", stderr_text,
+                    "Usage: openshop [input_path] [width height]\n"
+                    "       or: WIDTH HEIGHT\n")) {
+        return 1;
+    }
+
     app_run_called = 0;
     stderr_text[0] = '\0';
     if (!capture_main_stderr(1, NULL, stderr_text, sizeof(stderr_text), &exit_code) ||
