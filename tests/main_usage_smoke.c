@@ -141,6 +141,18 @@ int main(void) {
 
     app_run_called = 0;
     stderr_text[0] = '\0';
+    char *argv_zero_argc[] = {"openshop"};
+    if (!capture_main_stderr(0, argv_zero_argc, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_int("zero_argc_exit", exit_code, 1) ||
+        !expect_int("zero_argc_app_run_called", app_run_called, 0) ||
+        !expect_str("zero_argc_usage_text", stderr_text,
+                    "Usage: openshop [input_path] [width height]\n"
+                    "       or: WIDTH HEIGHT\n")) {
+        return 1;
+    }
+
+    app_run_called = 0;
+    stderr_text[0] = '\0';
     char *argv_empty_program[] = {""};
     if (!capture_main_stderr(1, argv_empty_program, stderr_text, sizeof(stderr_text), &exit_code) ||
         !expect_int("empty_program_exit", exit_code, 1) ||
