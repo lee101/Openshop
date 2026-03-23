@@ -82,6 +82,8 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
 
 #define ARRAY_LEN(array) (sizeof(array) / sizeof((array)[0]))
 
+enum { expectation_label_size = 64 };
+
 static int expect_int(const char *label, int actual, int expected) {
     if (actual != expected) {
         fprintf(stderr, "%s: expected %d got %d\n", label, expected, actual);
@@ -165,7 +167,7 @@ static int expect_successful_run(const char *label_prefix, int exit_code, int ex
                                  const char *expected_input_path, int expected_canvas_w,
                                  int expected_canvas_h, const char *actual_stderr,
                                  const char *expected_stderr) {
-    char label[64] = {0};
+    char label[expectation_label_size] = {0};
 
     snprintf(label, sizeof(label), "%s_exit", label_prefix);
     if (!expect_int(label, exit_code, expected_exit_code)) {
@@ -195,7 +197,7 @@ static int expect_successful_run(const char *label_prefix, int exit_code, int ex
 }
 
 static int expect_invalid_run(const char *label_prefix, int exit_code, const char *actual_stderr) {
-    char label[64] = {0};
+    char label[expectation_label_size] = {0};
     char expected_usage_text[CLI_USAGE_BUFFER_SIZE] = {0};
 
     snprintf(label, sizeof(label), "%s_exit", label_prefix);
@@ -219,7 +221,7 @@ static int expect_invalid_run(const char *label_prefix, int exit_code, const cha
 
 static int expect_invalid_run_with_usage(const char *label_prefix, int exit_code,
                                          const char *actual_stderr, const char *expected_stderr) {
-    char label[64] = {0};
+    char label[expectation_label_size] = {0};
 
     snprintf(label, sizeof(label), "%s_exit", label_prefix);
     if (!expect_int(label, exit_code, invalid_exit_code)) {
