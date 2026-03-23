@@ -20,7 +20,7 @@ make test-sdl
 
 ## Run
 ```bash
-./openshop [optional_input.bmp]
+./openshop [optional_input.bmp|optional_input.png]
 ```
 
 ## Controls
@@ -98,7 +98,7 @@ make test-sdl
 - Locked layers stay visible in the stack but reject paint, fill, clear, transform, load, merge, flatten, stamp, and delete operations.
 - Solo preview still renders the active layer even if that layer's normal visibility is off.
 - Transparent regions render over a checkerboard preview in the editor.
-- Load/save uses BMP via SDL built-ins for now.
+- CLI startup loading auto-detects `.bmp` vs `.png` from the input path and falls back across both loaders for unknown extensions.
 
 ## Self-test Images
 `make test` now generates deterministic BMP outputs at `test-artifacts/`:

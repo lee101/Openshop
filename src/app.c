@@ -474,6 +474,36 @@ static int active_layer_editable(const LayerStack *layers) {
     return active && !active->locked && active->canvas.pixels;
 }
 
+static int path_has_extension_ci(const char *path, const char *ext) {
+    size_t path_len = 0;
+    size_t ext_len = 0;
+    if (!path || !ext) {
+        return 0;
+    }
+    path_len = strlen(path);
+    ext_len = strlen(ext);
+    if (path_len < ext_len) {
+        return 0;
+    }
+    return SDL_strcasecmp(path + path_len - ext_len, ext) == 0;
+}
+
+static int canvas_load_path_auto(Canvas *c, const char *path, uint32_t background_color) {
+    if (!c || !path || !path[0]) {
+        return 0;
+    }
+    if (path_has_extension_ci(path, ".png")) {
+        return canvas_load_png(c, path, background_color);
+    }
+    if (path_has_extension_ci(path, ".bmp")) {
+        return canvas_load_bmp(c, path, background_color);
+    }
+    if (canvas_load_png(c, path, background_color)) {
+        return 1;
+    }
+    return canvas_load_bmp(c, path, background_color);
+}
+
 static void hue_rotate_30(Canvas *c) {
     canvas_hue_rotate(c, 30);
 }
@@ -670,7 +700,7 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
 
     if (input_path && input_path[0]) {
         Layer *active = layer_stack_active(&layers);
-        if (active && !canvas_load_bmp(&active->canvas, input_path, COLOR_BG)) {
+        if (active && !canvas_load_path_auto(&active->canvas, input_path, COLOR_BG)) {
             fprintf(stderr, "Failed to load %s\n", input_path);
         }
     }
