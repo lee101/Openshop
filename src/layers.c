@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+static int layer_stack_cycle_bool_field(LayerStack *stack, int direction, int want_value, int use_locked);
+static int layer_stack_select_bool_edge(LayerStack *stack, int want_value, int from_top, int use_locked);
+
 static uint8_t blend_channel(uint8_t src, uint8_t dst, uint8_t src_alpha) {
     int inv = 255 - src_alpha;
     int value = src * src_alpha + dst * inv + 127;
@@ -61,46 +64,11 @@ static int ensure_layer_canvas(Layer *layer, int width, int height) {
 }
 
 static int layer_stack_cycle_filtered(LayerStack *stack, int direction, int want_visible) {
-    if (!stack || stack->layer_count <= 0) {
-        return -1;
-    }
-    for (int offset = 1; offset <= stack->layer_count; offset++) {
-        int idx = stack->active_layer + (direction * offset);
-        while (idx < 0) {
-            idx += stack->layer_count;
-        }
-        idx %= stack->layer_count;
-        if ((stack->layers[idx].visible ? 1 : 0) == want_visible) {
-            stack->active_layer = idx;
-            return idx;
-        }
-    }
-    if ((stack->layers[stack->active_layer].visible ? 1 : 0) == want_visible) {
-        return stack->active_layer;
-    }
-    return -1;
+    return layer_stack_cycle_bool_field(stack, direction, want_visible, 0);
 }
 
 static int layer_stack_select_edge_filtered(LayerStack *stack, int want_visible, int from_top) {
-    if (!stack || stack->layer_count <= 0) {
-        return -1;
-    }
-    if (from_top) {
-        for (int i = stack->layer_count - 1; i >= 0; i--) {
-            if ((stack->layers[i].visible ? 1 : 0) == want_visible) {
-                stack->active_layer = i;
-                return i;
-            }
-        }
-        return -1;
-    }
-    for (int i = 0; i < stack->layer_count; i++) {
-        if ((stack->layers[i].visible ? 1 : 0) == want_visible) {
-            stack->active_layer = i;
-            return i;
-        }
-    }
-    return -1;
+    return layer_stack_select_bool_edge(stack, want_visible, from_top, 0);
 }
 
 static int layer_stack_cycle_bool_field(LayerStack *stack, int direction, int want_value, int use_locked) {
