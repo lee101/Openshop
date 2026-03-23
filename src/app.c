@@ -603,6 +603,26 @@ static int try_sample_canvas_color(const Canvas *sample, int x, int y,
     return 1;
 }
 
+static int try_begin_brush_stroke(LayerStack *layers,
+                                  Snapshot *undo_stack, int *undo_count,
+                                  Snapshot *redo_stack, int *redo_count,
+                                  Tool tool, int x, int y, int brush_radius,
+                                  uint32_t brush_color, BrushShape brush_shape) {
+    Layer *active = layer_stack_active(layers);
+
+    if (!active || active->locked || !active->canvas.pixels) {
+        return 0;
+    }
+
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    if (tool == TOOL_ERASER) {
+        erase_stamp(&active->canvas, x, y, brush_radius, active_layer_clear_color(layers), brush_shape);
+    } else {
+        stamp_brush(&active->canvas, x, y, brush_radius, brush_color, brush_shape);
+    }
+    return 1;
+}
+
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
     switch (shape) {
     case BRUSH_SHAPE_ROUND:
@@ -996,15 +1016,9 @@ int app_run(const char *input_path) {
                     last_x = e.button.x;
                     last_y = e.button.y;
                     if (tool == TOOL_BRUSH || tool == TOOL_ERASER) {
-                        Layer *active = layer_stack_active(&layers);
-                        if (active && !active->locked && active->canvas.pixels) {
-                            push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        if (try_begin_brush_stroke(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                   tool, last_x, last_y, brush_radius, brush_color, brush_shape)) {
                             drawing = 1;
-                            if (tool == TOOL_ERASER) {
-                                erase_stamp(&active->canvas, last_x, last_y, brush_radius, active_layer_clear_color(&layers), brush_shape);
-                            } else {
-                                stamp_brush(&active->canvas, last_x, last_y, brush_radius, brush_color, brush_shape);
-                            }
                             needs_composite = 1;
                         }
                     } else if (active_layer_editable(&layers)) {
