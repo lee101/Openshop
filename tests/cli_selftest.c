@@ -71,6 +71,10 @@ int main(void) {
         !expect_int("numeric_input_h", options.canvas_h, 0)) {
         return 1;
     }
+    char *argv_empty_input[] = {"openshop", ""};
+    if (!expect_int("empty_input", parse_cli_args(2, argv_empty_input, &options), 0)) {
+        return 1;
+    }
 
     char *argv_size_only[] = {"openshop", "1024", "768"};
     if (!expect_int("size_only_ok", parse_cli_args(3, argv_size_only, &options), 1) ||
@@ -163,6 +167,10 @@ int main(void) {
     }
     char *argv_null_program[] = {NULL};
     if (!expect_int("null_program", parse_cli_args(1, argv_null_program, &options), 0)) {
+        return 1;
+    }
+    char *argv_empty_program[] = {""};
+    if (!expect_int("empty_program", parse_cli_args(1, argv_empty_program, &options), 0)) {
         return 1;
     }
     char *argv_null_input[] = {"openshop", NULL};

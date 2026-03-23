@@ -54,7 +54,7 @@ int parse_cli_args(int argc, char **argv, CliOptions *options) {
     if (argc < 1 || argc > 4) {
         return 0;
     }
-    if (!argv[0]) {
+    if (!argv[0] || !argv[0][0]) {
         return 0;
     }
 
@@ -63,7 +63,7 @@ int parse_cli_args(int argc, char **argv, CliOptions *options) {
     options->canvas_h = 0;
 
     if (argc > 1) {
-        if (!argv[1]) {
+        if (!argv[1] || !argv[1][0]) {
             return 0;
         }
         options->input_path = argv[1];
