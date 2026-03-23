@@ -1333,6 +1333,143 @@ static void handle_keydown_shortcut(
     update_window_title(window, layers, *tool, *brush_shape, *brush_radius, *brush_color, *brush_opacity);
 }
 
+static void process_app_events(
+    int *running,
+    int *drawing,
+    int *last_x,
+    int *last_y,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *shaping,
+    int *shape_start_x,
+    int *shape_start_y,
+    uint32_t *shape_base_pixels,
+    Canvas *composite,
+    int *preview_active,
+    Tool *tool,
+    BrushShape *brush_shape,
+    int *brush_radius,
+    uint32_t *brush_color,
+    uint32_t *brush_color_rgb,
+    int *brush_opacity,
+    Canvas *preview_canvas,
+    int *needs_composite,
+    SDL_Window *window
+) {
+    SDL_Event e;
+    while (SDL_PollEvent(&e)) {
+        switch (e.type) {
+        case SDL_QUIT:
+            *running = 0;
+            break;
+        case SDL_MOUSEBUTTONDOWN:
+            handle_mouse_down(
+                &e.button,
+                drawing,
+                last_x,
+                last_y,
+                layers,
+                undo_stack,
+                undo_count,
+                redo_stack,
+                redo_count,
+                shaping,
+                shape_start_x,
+                shape_start_y,
+                shape_base_pixels,
+                composite,
+                preview_active,
+                tool,
+                *brush_shape,
+                *brush_radius,
+                brush_color,
+                brush_color_rgb,
+                brush_opacity,
+                preview_canvas,
+                needs_composite,
+                window
+            );
+            break;
+        case SDL_MOUSEBUTTONUP:
+            handle_mouse_up(
+                &e.button,
+                drawing,
+                shaping,
+                preview_active,
+                *tool,
+                *shape_start_x,
+                *shape_start_y,
+                *brush_radius,
+                *brush_color,
+                layers,
+                undo_stack,
+                undo_count,
+                redo_stack,
+                redo_count,
+                needs_composite
+            );
+            break;
+        case SDL_MOUSEMOTION:
+            handle_mouse_motion(
+                &e.motion,
+                *drawing,
+                last_x,
+                last_y,
+                layers,
+                *tool,
+                *brush_shape,
+                *brush_radius,
+                *brush_color,
+                needs_composite,
+                *shaping,
+                shape_base_pixels,
+                preview_canvas,
+                *shape_start_x,
+                *shape_start_y,
+                preview_active
+            );
+            break;
+        case SDL_KEYDOWN: {
+            SDL_Keycode key = e.key.keysym.sym;
+            const Uint8 *state = SDL_GetKeyboardState(NULL);
+            int ctrl = state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL];
+            int shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
+            int alt = state[SDL_SCANCODE_LALT] || state[SDL_SCANCODE_RALT];
+            handle_keydown_shortcut(
+                key,
+                ctrl,
+                shift,
+                alt,
+                shaping,
+                preview_active,
+                running,
+                layers,
+                undo_stack,
+                undo_count,
+                redo_stack,
+                redo_count,
+                needs_composite,
+                window,
+                tool,
+                brush_shape,
+                brush_radius,
+                brush_color,
+                brush_color_rgb,
+                brush_opacity,
+                preview_canvas,
+                composite
+            );
+            break;
+        }
+        default:
+            break;
+        }
+    }
+}
+
 static void render_frame(
     SDL_Renderer *renderer,
     SDL_Texture *texture,
@@ -1714,116 +1851,32 @@ int app_run(const char *input_path) {
     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
 
     while (running) {
-        SDL_Event e;
-        while (SDL_PollEvent(&e)) {
-            switch (e.type) {
-            case SDL_QUIT:
-                running = 0;
-                break;
-            case SDL_MOUSEBUTTONDOWN:
-                handle_mouse_down(
-                    &e.button,
-                    &drawing,
-                    &last_x,
-                    &last_y,
-                    &layers,
-                    undo_stack,
-                    &undo_count,
-                    redo_stack,
-                    &redo_count,
-                    &shaping,
-                    &shape_start_x,
-                    &shape_start_y,
-                    shape_base_pixels,
-                    &composite,
-                    &preview_active,
-                    &tool,
-                    brush_shape,
-                    brush_radius,
-                    &brush_color,
-                    &brush_color_rgb,
-                    &brush_opacity,
-                    &preview_canvas,
-                    &needs_composite,
-                    window
-                );
-                break;
-            case SDL_MOUSEBUTTONUP:
-                handle_mouse_up(
-                    &e.button,
-                    &drawing,
-                    &shaping,
-                    &preview_active,
-                    tool,
-                    shape_start_x,
-                    shape_start_y,
-                    brush_radius,
-                    brush_color,
-                    &layers,
-                    undo_stack,
-                    &undo_count,
-                    redo_stack,
-                    &redo_count,
-                    &needs_composite
-                );
-                break;
-            case SDL_MOUSEMOTION:
-                handle_mouse_motion(
-                    &e.motion,
-                    drawing,
-                    &last_x,
-                    &last_y,
-                    &layers,
-                    tool,
-                    brush_shape,
-                    brush_radius,
-                    brush_color,
-                    &needs_composite,
-                    shaping,
-                    shape_base_pixels,
-                    &preview_canvas,
-                    shape_start_x,
-                    shape_start_y,
-                    &preview_active
-                );
-                break;
-            case SDL_KEYDOWN: {
-                SDL_Keycode key = e.key.keysym.sym;
-                const Uint8 *state = SDL_GetKeyboardState(NULL);
-                int ctrl = state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL];
-                int shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
-                int alt = state[SDL_SCANCODE_LALT] || state[SDL_SCANCODE_RALT];
-                handle_keydown_shortcut(
-                    key,
-                    ctrl,
-                    shift,
-                    alt,
-                    &shaping,
-                    &preview_active,
-                    &running,
-                    &layers,
-                    undo_stack,
-                    &undo_count,
-                    redo_stack,
-                    &redo_count,
-                    &needs_composite,
-                    window,
-                    &tool,
-                    &brush_shape,
-                    &brush_radius,
-                    &brush_color,
-                    &brush_color_rgb,
-                    &brush_opacity,
-                    &preview_canvas,
-                    &composite
-                );
-                break;
-            }
-            default:
-                break;
-            }
-        }
-
+        process_app_events(
+            &running,
+            &drawing,
+            &last_x,
+            &last_y,
+            &layers,
+            undo_stack,
+            &undo_count,
+            redo_stack,
+            &redo_count,
+            &shaping,
+            &shape_start_x,
+            &shape_start_y,
+            shape_base_pixels,
+            &composite,
+            &preview_active,
+            &tool,
+            &brush_shape,
+            &brush_radius,
+            &brush_color,
+            &brush_color_rgb,
+            &brush_opacity,
+            &preview_canvas,
+            &needs_composite,
+            window
+        );
         render_frame(renderer, texture, &layers, &composite, &needs_composite, &preview_canvas, preview_active);
         SDL_Delay(16);
     }
