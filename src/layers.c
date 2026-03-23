@@ -246,6 +246,33 @@ int layer_stack_toggle_lock_others(LayerStack *stack, int active_index) {
     return 1;
 }
 
+int layer_stack_toggle_visibility_others(LayerStack *stack, int active_index) {
+    if (!stack || active_index < 0 || active_index >= stack->layer_count) {
+        return 0;
+    }
+
+    int all_others_hidden = 1;
+    for (int i = 0; i < stack->layer_count; i++) {
+        if (i == active_index) {
+            continue;
+        }
+        if (stack->layers[i].visible) {
+            all_others_hidden = 0;
+            break;
+        }
+    }
+
+    stack->layers[active_index].visible = 1;
+    for (int i = 0; i < stack->layer_count; i++) {
+        if (i == active_index) {
+            continue;
+        }
+        stack->layers[i].visible = all_others_hidden ? 1 : 0;
+    }
+    stack->solo_index = -1;
+    return 1;
+}
+
 int layer_stack_unlock_all(LayerStack *stack) {
     if (!stack) {
         return 0;

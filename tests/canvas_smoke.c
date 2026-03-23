@@ -373,6 +373,32 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[1].visible = 0;
+    stack.solo_index = 2;
+    if (!layer_stack_toggle_visibility_others(&stack, 2)) {
+        fprintf(stderr, "toggle visibility others on failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[2].visible || stack.layers[0].visible || stack.layers[1].visible || stack.solo_index != -1) {
+        fprintf(stderr, "toggle visibility others did not isolate the active layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_visibility_others(&stack, 2)) {
+        fprintf(stderr, "toggle visibility others off failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[0].visible || !stack.layers[1].visible || !stack.layers[2].visible || stack.solo_index != -1) {
+        fprintf(stderr, "toggle visibility others did not restore visible state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_delete(&stack, 2)) {
         fprintf(stderr, "cleanup lock-others layer failed\n");
         canvas_free(&composite);
