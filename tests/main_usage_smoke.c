@@ -9,6 +9,12 @@ static const char *last_input_path = NULL;
 static int last_canvas_w = 0;
 static int last_canvas_h = 0;
 static int app_run_result = 0;
+static const int default_size_only_canvas_w = 640;
+static const int default_size_only_canvas_h = 480;
+static const int custom_size_only_canvas_w = 800;
+static const int custom_size_only_canvas_h = 600;
+static const int input_size_canvas_w = 320;
+static const int input_size_canvas_h = 240;
 static const char *default_program_name = "openshop";
 static const char *default_scene_path = "art/scene.png";
 static const char *default_input_path = "art/input.png";
@@ -493,14 +499,14 @@ int main(void) {
         {"custom_program_nonzero", 2, custom_program_name, custom_input_path, NULL, NULL, 5, 5, custom_input_path, 0, 0, app_exit_code_5_stderr},
         {"input_only", 2, default_program_name, default_input_path, NULL, NULL, 0, 0, default_input_path, 0, 0, ""},
         {"numeric_input", 2, default_program_name, default_numeric_input, NULL, NULL, 0, 0, default_numeric_input, 0, 0, ""},
-        {"size_only", 3, default_program_name, default_size_only_width, default_size_only_height, NULL, 7, 7, NULL, 640, 480, app_exit_code_7_stderr},
-        {"plus_prefixed_size_only", 3, default_program_name, default_plus_prefixed_size_only_width, default_size_only_height, NULL, 0, 0, NULL, 640, 480, ""},
-        {"custom_program_size_only", 3, custom_program_name, custom_size_only_width, custom_size_only_height, NULL, 0, 0, NULL, 800, 600, ""},
-        {"custom_program_plus_prefixed_size_only", 3, custom_program_name, custom_plus_prefixed_size_only_width, custom_size_only_height, NULL, 0, 0, NULL, 800, 600, ""},
-        {"custom_program_input_size", 4, custom_program_name, custom_input_path, custom_input_size_width, custom_input_size_height, 0, 0, custom_input_path, 320, 240, ""},
-        {"custom_program_plus_prefixed", 4, custom_program_name, custom_input_path, custom_plus_prefixed_input_size_width, custom_input_size_height, 0, 0, custom_input_path, 320, 240, ""},
-        {"input_size", 4, default_program_name, default_scene_path, default_input_size_width, default_input_size_height, 0, 0, default_scene_path, 320, 240, ""},
-        {"plus_prefixed", 4, default_program_name, default_scene_path, default_plus_prefixed_input_size_width, default_size_only_height, 0, 0, default_scene_path, 640, 480, ""},
+        {"size_only", 3, default_program_name, default_size_only_width, default_size_only_height, NULL, 7, 7, NULL, default_size_only_canvas_w, default_size_only_canvas_h, app_exit_code_7_stderr},
+        {"plus_prefixed_size_only", 3, default_program_name, default_plus_prefixed_size_only_width, default_size_only_height, NULL, 0, 0, NULL, default_size_only_canvas_w, default_size_only_canvas_h, ""},
+        {"custom_program_size_only", 3, custom_program_name, custom_size_only_width, custom_size_only_height, NULL, 0, 0, NULL, custom_size_only_canvas_w, custom_size_only_canvas_h, ""},
+        {"custom_program_plus_prefixed_size_only", 3, custom_program_name, custom_plus_prefixed_size_only_width, custom_size_only_height, NULL, 0, 0, NULL, custom_size_only_canvas_w, custom_size_only_canvas_h, ""},
+        {"custom_program_input_size", 4, custom_program_name, custom_input_path, custom_input_size_width, custom_input_size_height, 0, 0, custom_input_path, input_size_canvas_w, input_size_canvas_h, ""},
+        {"custom_program_plus_prefixed", 4, custom_program_name, custom_input_path, custom_plus_prefixed_input_size_width, custom_input_size_height, 0, 0, custom_input_path, input_size_canvas_w, input_size_canvas_h, ""},
+        {"input_size", 4, default_program_name, default_scene_path, default_input_size_width, default_input_size_height, 0, 0, default_scene_path, input_size_canvas_w, input_size_canvas_h, ""},
+        {"plus_prefixed", 4, default_program_name, default_scene_path, default_plus_prefixed_input_size_width, default_size_only_height, 0, 0, default_scene_path, default_size_only_canvas_w, default_size_only_canvas_h, ""},
     };
     if (!expect_success_cases(success_cases,
                               ARRAY_LEN(success_cases),
