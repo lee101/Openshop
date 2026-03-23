@@ -48,6 +48,30 @@ typedef enum {
     BRUSH_SHAPE_COUNT
 } BrushShape;
 
+struct AppRuntime {
+    int running;
+    int drawing;
+    int last_x;
+    int last_y;
+    int brush_radius;
+    int brush_opacity;
+    uint32_t brush_color_rgb;
+    uint32_t brush_color;
+    BrushShape brush_shape;
+    Tool tool;
+    Snapshot undo_stack[MAX_HISTORY];
+    Snapshot redo_stack[MAX_HISTORY];
+    int undo_count;
+    int redo_count;
+    int shaping;
+    int shape_start_x;
+    int shape_start_y;
+    int preview_active;
+    int needs_composite;
+    uint32_t *shape_base_pixels;
+    uint32_t *preview_pixels;
+    Canvas preview_canvas;
+};
 typedef struct AppRuntime AppRuntime;
 
 static void push_runtime_snapshot(const LayerStack *layers, AppRuntime *runtime);
@@ -61,6 +85,12 @@ static int apply_runtime_tool_effect_transform(
 static int flood_fill_canvas_callback(Canvas *canvas, int x, int y, uint32_t color, void *userdata);
 static uint32_t sample_canvas_callback(const Canvas *canvas, int x, int y, void *userdata);
 static void translate_canvas_callback(Canvas *canvas, int dx, int dy, uint32_t clear_color, void *userdata);
+static void update_window_title_for_runtime(SDL_Window *window, const LayerStack *layers, const AppRuntime *runtime);
+static uint32_t active_layer_clear_color(const LayerStack *layers);
+static void erase_stamp(Canvas *c, int cx, int cy, int radius, uint32_t clear_color, BrushShape shape);
+static void erase_line(Canvas *c, int x0, int y0, int x1, int y1, int radius, uint32_t clear_color, BrushShape shape);
+static void draw_brush_line(Canvas *c, int x0, int y0, int x1, int y1, int radius, uint32_t color, BrushShape shape);
+static int active_layer_editable(const LayerStack *layers);
 static int restore_runtime_history(LayerStack *layers, AppRuntime *runtime, int redo_to_undo);
 static int apply_runtime_canvas_transform(LayerStack *layers, AppRuntime *runtime, void (*transform)(Canvas *));
 static int apply_runtime_canvas_translation(LayerStack *layers, AppRuntime *runtime, int dx, int dy);
@@ -803,7 +833,7 @@ static void handle_mouse_down(
 static void handle_mouse_up(
     const SDL_MouseButtonEvent *button,
     AppRuntime *runtime,
-    LayerStack *layers,
+    LayerStack *layers
 ) {
     if (!button || !runtime || !layers) {
         return;
@@ -852,7 +882,7 @@ static void handle_mouse_up(
 static void handle_mouse_motion(
     const SDL_MouseMotionEvent *motion,
     AppRuntime *runtime,
-    LayerStack *layers,
+    LayerStack *layers
 ) {
     if (!motion || !runtime || !layers) {
         return;
@@ -1037,14 +1067,14 @@ static void process_app_events(
             handle_mouse_up(
                 &e.button,
                 runtime,
-                layers,
+                layers
             );
             break;
         case SDL_MOUSEMOTION:
             handle_mouse_motion(
                 &e.motion,
                 runtime,
-                layers,
+                layers
             );
             break;
         case SDL_KEYDOWN: {
@@ -1278,30 +1308,6 @@ static int init_app_session(
     return 1;
 }
 
-struct AppRuntime {
-    int running;
-    int drawing;
-    int last_x;
-    int last_y;
-    int brush_radius;
-    int brush_opacity;
-    uint32_t brush_color_rgb;
-    uint32_t brush_color;
-    BrushShape brush_shape;
-    Tool tool;
-    Snapshot undo_stack[MAX_HISTORY];
-    Snapshot redo_stack[MAX_HISTORY];
-    int undo_count;
-    int redo_count;
-    int shaping;
-    int shape_start_x;
-    int shape_start_y;
-    int preview_active;
-    int needs_composite;
-    uint32_t *shape_base_pixels;
-    uint32_t *preview_pixels;
-    Canvas preview_canvas;
-};
 
 static void update_window_title_for_runtime(SDL_Window *window, const LayerStack *layers, const AppRuntime *runtime) {
     if (!runtime) {
