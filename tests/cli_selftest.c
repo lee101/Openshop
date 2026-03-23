@@ -97,6 +97,16 @@ int main(void) {
         return 1;
     }
 
+    char *argv_leading_space_width[] = {"openshop", "art/scene.png", " 640", "480"};
+    if (!expect_int("leading_space_width", parse_cli_args(4, argv_leading_space_width, &options), 0)) {
+        return 1;
+    }
+
+    char *argv_leading_tab_height[] = {"openshop", "art/scene.png", "640", "\t480"};
+    if (!expect_int("leading_tab_height", parse_cli_args(4, argv_leading_tab_height, &options), 0)) {
+        return 1;
+    }
+
     if (!expect_int("null_options", parse_cli_args(1, argv_default, NULL), 0)) {
         return 1;
     }

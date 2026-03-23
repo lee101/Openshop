@@ -1,5 +1,6 @@
 #include "cli.h"
 
+#include <ctype.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdlib.h>
@@ -9,6 +10,9 @@ static int parse_positive_int(const char *text, int *value) {
     long parsed = 0;
 
     if (!text || !text[0] || !value) {
+        return 0;
+    }
+    if (isspace((unsigned char)text[0])) {
         return 0;
     }
 
