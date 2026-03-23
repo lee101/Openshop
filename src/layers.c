@@ -7,6 +7,12 @@
 static int layer_stack_cycle_bool_field(LayerStack *stack, int direction, int want_value, int use_locked);
 static int layer_stack_select_bool_edge(LayerStack *stack, int want_value, int from_top, int use_locked);
 
+typedef enum {
+    EDITABLE_ANY_VISIBILITY = 0,
+    EDITABLE_VISIBLE_ONLY,
+    EDITABLE_HIDDEN_ONLY
+} EditableVisibilityMode;
+
 static uint8_t blend_channel(uint8_t src, uint8_t dst, uint8_t src_alpha) {
     int inv = 255 - src_alpha;
     int value = src * src_alpha + dst * inv + 127;
@@ -117,7 +123,20 @@ static int layer_stack_select_bool_edge(LayerStack *stack, int want_value, int f
     return -1;
 }
 
-static int layer_stack_cycle_editable_filtered(LayerStack *stack, int direction) {
+static int layer_stack_matches_editable(const Layer *layer, EditableVisibilityMode visibility_mode) {
+    if (!layer || layer->locked) {
+        return 0;
+    }
+    if (visibility_mode == EDITABLE_VISIBLE_ONLY) {
+        return layer->visible;
+    }
+    if (visibility_mode == EDITABLE_HIDDEN_ONLY) {
+        return !layer->visible;
+    }
+    return 1;
+}
+
+static int layer_stack_cycle_editable_filtered(LayerStack *stack, int direction, EditableVisibilityMode visibility_mode) {
     if (!stack || stack->layer_count <= 0) {
         return -1;
     }
@@ -127,24 +146,24 @@ static int layer_stack_cycle_editable_filtered(LayerStack *stack, int direction)
             idx += stack->layer_count;
         }
         idx %= stack->layer_count;
-        if (stack->layers[idx].visible && !stack->layers[idx].locked) {
+        if (layer_stack_matches_editable(&stack->layers[idx], visibility_mode)) {
             stack->active_layer = idx;
             return idx;
         }
     }
-    if (stack->layers[stack->active_layer].visible && !stack->layers[stack->active_layer].locked) {
+    if (layer_stack_matches_editable(&stack->layers[stack->active_layer], visibility_mode)) {
         return stack->active_layer;
     }
     return -1;
 }
 
-static int layer_stack_select_editable_edge(LayerStack *stack, int from_top) {
+static int layer_stack_select_editable_edge(LayerStack *stack, int from_top, EditableVisibilityMode visibility_mode) {
     if (!stack || stack->layer_count <= 0) {
         return -1;
     }
     if (from_top) {
         for (int i = stack->layer_count - 1; i >= 0; i--) {
-            if (stack->layers[i].visible && !stack->layers[i].locked) {
+            if (layer_stack_matches_editable(&stack->layers[i], visibility_mode)) {
                 stack->active_layer = i;
                 return i;
             }
@@ -152,7 +171,7 @@ static int layer_stack_select_editable_edge(LayerStack *stack, int from_top) {
         return -1;
     }
     for (int i = 0; i < stack->layer_count; i++) {
-        if (stack->layers[i].visible && !stack->layers[i].locked) {
+        if (layer_stack_matches_editable(&stack->layers[i], visibility_mode)) {
             stack->active_layer = i;
             return i;
         }
@@ -400,7 +419,7 @@ int layer_stack_cycle_unlocked(LayerStack *stack, int direction) {
 }
 
 int layer_stack_cycle_editable(LayerStack *stack, int direction) {
-    return layer_stack_cycle_editable_filtered(stack, direction);
+    return layer_stack_cycle_editable_filtered(stack, direction, EDITABLE_VISIBLE_ONLY);
 }
 
 int layer_stack_select_bottom_visible(LayerStack *stack) {
@@ -436,11 +455,11 @@ int layer_stack_select_top_unlocked(LayerStack *stack) {
 }
 
 int layer_stack_select_bottom_editable(LayerStack *stack) {
-    return layer_stack_select_editable_edge(stack, 0);
+    return layer_stack_select_editable_edge(stack, 0, EDITABLE_VISIBLE_ONLY);
 }
 
 int layer_stack_select_top_editable(LayerStack *stack) {
-    return layer_stack_select_editable_edge(stack, 1);
+    return layer_stack_select_editable_edge(stack, 1, EDITABLE_VISIBLE_ONLY);
 }
 
 int layer_stack_toggle_solo(LayerStack *stack, int index) {
@@ -551,21 +570,10 @@ int layer_stack_reveal_editable(LayerStack *stack, int direction) {
     if (!stack || stack->layer_count <= 0) {
         return 0;
     }
-    for (int offset = 1; offset <= stack->layer_count; offset++) {
-        int idx = stack->active_layer + (direction * offset);
-        while (idx < 0) {
-            idx += stack->layer_count;
-        }
-        idx %= stack->layer_count;
-        if (!stack->layers[idx].locked) {
-            stack->layers[idx].visible = 1;
-            stack->active_layer = idx;
-            stack->solo_index = -1;
-            return 1;
-        }
-    }
-    if (!stack->layers[stack->active_layer].locked) {
-        stack->layers[stack->active_layer].visible = 1;
+    int target = layer_stack_cycle_editable_filtered(stack, direction, EDITABLE_ANY_VISIBILITY);
+    if (target >= 0) {
+        stack->layers[target].visible = 1;
+        stack->active_layer = target;
         stack->solo_index = -1;
         return 1;
     }
@@ -576,24 +584,12 @@ int layer_stack_reveal_hidden_editable(LayerStack *stack, int from_top) {
     if (!stack || stack->layer_count <= 0) {
         return 0;
     }
-    if (from_top) {
-        for (int i = stack->layer_count - 1; i >= 0; i--) {
-            if (!stack->layers[i].visible && !stack->layers[i].locked) {
-                stack->layers[i].visible = 1;
-                stack->active_layer = i;
-                stack->solo_index = -1;
-                return 1;
-            }
-        }
-        return 0;
-    }
-    for (int i = 0; i < stack->layer_count; i++) {
-        if (!stack->layers[i].visible && !stack->layers[i].locked) {
-            stack->layers[i].visible = 1;
-            stack->active_layer = i;
-            stack->solo_index = -1;
-            return 1;
-        }
+    int target = layer_stack_select_editable_edge(stack, from_top, EDITABLE_HIDDEN_ONLY);
+    if (target >= 0) {
+        stack->layers[target].visible = 1;
+        stack->active_layer = target;
+        stack->solo_index = -1;
+        return 1;
     }
     return 0;
 }
