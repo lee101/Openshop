@@ -121,6 +121,17 @@ int main(void) {
         return 1;
     }
 
+    if (!expect_int("build_null_seed", build_routed_paths(NULL, bmp_path, sizeof(bmp_path), png_path, sizeof(png_path)), 0) ||
+        !expect_int("build_empty_seed", build_routed_paths("", bmp_path, sizeof(bmp_path), png_path, sizeof(png_path)), 0) ||
+        !expect_int("build_null_bmp", build_routed_paths("scene.png", NULL, sizeof(bmp_path), png_path, sizeof(png_path)), 0) ||
+        !expect_int("build_null_png", build_routed_paths("scene.png", bmp_path, sizeof(bmp_path), NULL, sizeof(png_path)), 0) ||
+        !expect_int("build_zero_bmp_size", build_routed_paths("scene.png", bmp_path, 0, png_path, sizeof(png_path)), 0) ||
+        !expect_int("build_zero_png_size", build_routed_paths("scene.png", bmp_path, sizeof(bmp_path), png_path, 0), 0) ||
+        !expect_int("build_small_bmp_buffer", build_routed_paths("scene.png", bmp_path, 4, png_path, sizeof(png_path)), 0) ||
+        !expect_int("build_small_png_buffer", build_routed_paths("scene.png", bmp_path, sizeof(bmp_path), png_path, 4), 0)) {
+        return 1;
+    }
+
     if (!expect_str("generic_prefer_png", default_routed_path("draft.bmp", "draft.png", 1, 1, 1), "draft.png") ||
         !expect_str("generic_prefer_bmp_existing", default_routed_path("draft.bmp", "draft.png", 0, 1, 1), "draft.bmp") ||
         !expect_str("generic_fallback_png", default_routed_path("draft.bmp", "draft.png", 0, 0, 1), "draft.png") ||
