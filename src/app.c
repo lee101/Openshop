@@ -1012,7 +1012,7 @@ int app_run(const char *input_path) {
                 if (ctrl && key == SDLK_s) {
                     const Canvas *save_canvas = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
                     if (!canvas_save_bmp(save_canvas, "output.bmp")) {
-                        fprintf(stderr, "Failed to save output.bmp\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_SAVE_OUTPUT_BMP));
                     }
                     break;
                 }
@@ -1020,12 +1020,12 @@ int app_run(const char *input_path) {
                 if (ctrl && key == SDLK_o) {
                     Layer *active = layer_stack_active(&layers);
                     if (!active || active->locked) {
-                        fprintf(stderr, "Active layer is locked\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_ACTIVE_LAYER_LOCKED));
                         break;
                     }
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!canvas_load_bmp(&active->canvas, "input.bmp", active_layer_clear_color(&layers))) {
-                        fprintf(stderr, "Failed to load input.bmp\n");
+                        fprintf(stderr, "%s\n", status_text_action_error(STATUS_LOAD_INPUT_BMP));
                     } else {
                         needs_composite = 1;
                     }
@@ -1581,7 +1581,7 @@ int app_run(const char *input_path) {
                             push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                         }
                         if (!active || active->locked || !canvas_flood_fill(&active->canvas, mx, my, brush_color)) {
-                            fprintf(stderr, "Fill failed\n");
+                            fprintf(stderr, "%s\n", status_text_action_error(STATUS_FILL_FAILED));
                         } else {
                             needs_composite = 1;
                         }

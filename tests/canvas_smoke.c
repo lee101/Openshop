@@ -257,7 +257,11 @@ static int test_layers_basic(void) {
         strcmp(status_text_action_error(STATUS_TOGGLE_SOLO), "Could not toggle solo mode") != 0 ||
         strcmp(status_text_action_error(STATUS_DELETE_FINAL_OR_LOCKED), "Cannot delete the final or a locked layer") != 0 ||
         strcmp(status_text_action_error(STATUS_MERGE_DOWN_BLOCKED), "No lower layer to merge into, or one of the layers is locked") != 0 ||
-        strcmp(status_text_action_error(STATUS_MERGE_UP_BLOCKED), "No upper layer to merge into, or one of the layers is locked") != 0) {
+        strcmp(status_text_action_error(STATUS_MERGE_UP_BLOCKED), "No upper layer to merge into, or one of the layers is locked") != 0 ||
+        strcmp(status_text_action_error(STATUS_SAVE_OUTPUT_BMP), "Failed to save output.bmp") != 0 ||
+        strcmp(status_text_action_error(STATUS_ACTIVE_LAYER_LOCKED), "Active layer is locked") != 0 ||
+        strcmp(status_text_action_error(STATUS_LOAD_INPUT_BMP), "Failed to load input.bmp") != 0 ||
+        strcmp(status_text_action_error(STATUS_FILL_FAILED), "Fill failed") != 0) {
         fprintf(stderr, "status text action mapping failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);

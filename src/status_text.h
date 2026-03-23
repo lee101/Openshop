@@ -22,7 +22,11 @@ typedef enum {
     STATUS_TOGGLE_SOLO,
     STATUS_DELETE_FINAL_OR_LOCKED,
     STATUS_MERGE_DOWN_BLOCKED,
-    STATUS_MERGE_UP_BLOCKED
+    STATUS_MERGE_UP_BLOCKED,
+    STATUS_SAVE_OUTPUT_BMP,
+    STATUS_ACTIVE_LAYER_LOCKED,
+    STATUS_LOAD_INPUT_BMP,
+    STATUS_FILL_FAILED
 } StatusTextAction;
 
 const char *status_text_action_error(StatusTextAction action);

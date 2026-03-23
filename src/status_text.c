@@ -44,6 +44,14 @@ const char *status_text_action_error(StatusTextAction action) {
         return "No lower layer to merge into, or one of the layers is locked";
     case STATUS_MERGE_UP_BLOCKED:
         return "No upper layer to merge into, or one of the layers is locked";
+    case STATUS_SAVE_OUTPUT_BMP:
+        return "Failed to save output.bmp";
+    case STATUS_ACTIVE_LAYER_LOCKED:
+        return "Active layer is locked";
+    case STATUS_LOAD_INPUT_BMP:
+        return "Failed to load input.bmp";
+    case STATUS_FILL_FAILED:
+        return "Fill failed";
     default:
         return "Action failed";
     }
