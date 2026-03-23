@@ -273,13 +273,15 @@ struct invalid_input_size_case {
 #define INVALID_INPUT_HEIGHT_CASE(label, height) {label, default_size_only_width, height}
 #define INVALID_INPUT_WIDTH_VALUE_CASE(label, width) {label, width, invalid_probe_token}
 
+enum invalid_argv_state {
+    argv_is_present = 0,
+    argv_is_null = 1,
+};
+
 struct invalid_argv_case {
     const char *label_prefix;
     int argc;
-    enum {
-        argv_is_present = 0,
-        argv_is_null = 1,
-    } argv_state;
+    enum invalid_argv_state argv_state;
     const char *expected_usage_text;
     const char *argv[5];
 };
