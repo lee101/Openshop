@@ -60,6 +60,27 @@ static int ensure_layer_canvas(Layer *layer, int width, int height) {
     return canvas_init(&layer->canvas, width, height);
 }
 
+static int layer_stack_cycle_filtered(LayerStack *stack, int direction, int want_visible) {
+    if (!stack || stack->layer_count <= 0) {
+        return -1;
+    }
+    for (int offset = 1; offset <= stack->layer_count; offset++) {
+        int idx = stack->active_layer + (direction * offset);
+        while (idx < 0) {
+            idx += stack->layer_count;
+        }
+        idx %= stack->layer_count;
+        if ((stack->layers[idx].visible ? 1 : 0) == want_visible) {
+            stack->active_layer = idx;
+            return idx;
+        }
+    }
+    if ((stack->layers[stack->active_layer].visible ? 1 : 0) == want_visible) {
+        return stack->active_layer;
+    }
+    return -1;
+}
+
 int layer_stack_init(LayerStack *stack, int width, int height, uint32_t background_color) {
     if (!stack || width <= 0 || height <= 0) {
         return 0;
@@ -189,45 +210,11 @@ int layer_stack_cycle(LayerStack *stack, int direction) {
 }
 
 int layer_stack_cycle_visible(LayerStack *stack, int direction) {
-    if (!stack || stack->layer_count <= 0) {
-        return -1;
-    }
-    for (int offset = 1; offset <= stack->layer_count; offset++) {
-        int idx = stack->active_layer + (direction * offset);
-        while (idx < 0) {
-            idx += stack->layer_count;
-        }
-        idx %= stack->layer_count;
-        if (stack->layers[idx].visible) {
-            stack->active_layer = idx;
-            return idx;
-        }
-    }
-    if (stack->layers[stack->active_layer].visible) {
-        return stack->active_layer;
-    }
-    return -1;
+    return layer_stack_cycle_filtered(stack, direction, 1);
 }
 
 int layer_stack_cycle_hidden(LayerStack *stack, int direction) {
-    if (!stack || stack->layer_count <= 0) {
-        return -1;
-    }
-    for (int offset = 1; offset <= stack->layer_count; offset++) {
-        int idx = stack->active_layer + (direction * offset);
-        while (idx < 0) {
-            idx += stack->layer_count;
-        }
-        idx %= stack->layer_count;
-        if (!stack->layers[idx].visible) {
-            stack->active_layer = idx;
-            return idx;
-        }
-    }
-    if (!stack->layers[stack->active_layer].visible) {
-        return stack->active_layer;
-    }
-    return -1;
+    return layer_stack_cycle_filtered(stack, direction, 0);
 }
 
 int layer_stack_toggle_solo(LayerStack *stack, int index) {
