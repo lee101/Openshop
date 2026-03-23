@@ -16,6 +16,8 @@ static const int custom_size_only_canvas_w = 800;
 static const int custom_size_only_canvas_h = 600;
 static const int input_size_canvas_w = 320;
 static const int input_size_canvas_h = 240;
+static const int size_only_width_argv_index = 1;
+static const int size_only_height_argv_index = 2;
 static const int app_exit_code_7 = 7;
 static const int app_exit_code_5 = 5;
 static const char *empty_token = "";
@@ -338,7 +340,8 @@ static int expect_invalid_size_only_width_cases(const struct invalid_size_token_
                                                 const char *program_name, const char *height_token,
                                                 char *stderr_text, size_t stderr_size, int *exit_code,
                                                 const char *custom_usage_text) {
-    return expect_invalid_size_only_cases(cases, case_count, program_name, height_token, 1,
+    return expect_invalid_size_only_cases(cases, case_count, program_name, height_token,
+                                          size_only_width_argv_index,
                                           stderr_text, stderr_size, exit_code, custom_usage_text);
 }
 
@@ -346,7 +349,8 @@ static int expect_invalid_size_only_height_cases(const struct invalid_size_token
                                                  const char *program_name, const char *width_token,
                                                  char *stderr_text, size_t stderr_size, int *exit_code,
                                                  const char *custom_usage_text) {
-    return expect_invalid_size_only_cases(cases, case_count, program_name, width_token, 2,
+    return expect_invalid_size_only_cases(cases, case_count, program_name, width_token,
+                                          size_only_height_argv_index,
                                           stderr_text, stderr_size, exit_code, custom_usage_text);
 }
 
