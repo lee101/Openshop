@@ -18,6 +18,8 @@ static const int input_size_canvas_w = 320;
 static const int input_size_canvas_h = 240;
 static const int size_only_width_argv_index = 1;
 static const int size_only_height_argv_index = 2;
+static const int argv_is_present = 0;
+static const int argv_is_null = 1;
 static const int zero_argc = 0;
 static const int startup_argc = 1;
 static const int input_only_argc = 2;
@@ -268,15 +270,15 @@ struct invalid_argv_case {
 };
 
 #define INVALID_NULL_ARGV_ONLY_CASE(label, argc_value, usage_text) \
-    {label, argc_value, 1, usage_text, {NULL, NULL, NULL, NULL, NULL}}
+    {label, argc_value, argv_is_null, usage_text, {NULL, NULL, NULL, NULL, NULL}}
 #define INVALID_SIZE_ONLY_ARGV_CASE(label, usage_text, program, width) \
-    {label, size_only_argc, 0, usage_text, {program, default_scene_path, width, NULL, NULL}}
+    {label, size_only_argc, argv_is_present, usage_text, {program, default_scene_path, width, NULL, NULL}}
 #define INVALID_EXTRA_ARGV_CASE(label, usage_text, program) \
-    {label, extra_argv_argc, 0, usage_text, {program, default_scene_path, default_size_only_width, default_size_only_height, extra_arg_token}}
+    {label, extra_argv_argc, argv_is_present, usage_text, {program, default_scene_path, default_size_only_width, default_size_only_height, extra_arg_token}}
 #define INVALID_INPUT_ARGV_CASE(label, usage_text, program, input) \
-    {label, input_only_argc, 0, usage_text, {program, input, NULL, NULL, NULL}}
+    {label, input_only_argc, argv_is_present, usage_text, {program, input, NULL, NULL, NULL}}
 #define INVALID_PROGRAM_ONLY_ARGV_CASE(label, argc_value, usage_text, program) \
-    {label, argc_value, 0, usage_text, {program, NULL, NULL, NULL, NULL}}
+    {label, argc_value, argv_is_present, usage_text, {program, NULL, NULL, NULL, NULL}}
 
 struct success_case {
     const char *label_prefix;
