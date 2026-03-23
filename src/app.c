@@ -438,7 +438,9 @@ static int handle_layer_navigation_shortcut(
     int handled = 1;
     int changed = 0;
 
-    if (ctrl && key >= SDLK_1 && key <= SDLK_8) {
+    if (ctrl && shift && key >= SDLK_1 && key <= SDLK_8) {
+        changed = layer_stack_select_nth_editable_visible(layers, (int)(key - SDLK_1)) >= 0;
+    } else if (ctrl && key >= SDLK_1 && key <= SDLK_8) {
         int target = (int)(key - SDLK_1);
         if (target < layers->layer_count) {
             layers->active_layer = target;

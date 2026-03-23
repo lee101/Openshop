@@ -121,6 +121,25 @@ static int layer_stack_select_edge_matching(LayerStack *stack, int direction, La
     return -1;
 }
 
+static int layer_stack_select_nth_matching(LayerStack *stack, int ordinal, LayerPredicate predicate) {
+    if (!stack || stack->layer_count <= 0 || !predicate || ordinal < 0) {
+        return -1;
+    }
+
+    int seen = 0;
+    for (int i = 0; i < stack->layer_count; i++) {
+        if (!predicate(&stack->layers[i])) {
+            continue;
+        }
+        if (seen == ordinal) {
+            stack->active_layer = i;
+            return i;
+        }
+        seen++;
+    }
+    return -1;
+}
+
 int layer_stack_init(LayerStack *stack, int width, int height, uint32_t background_color) {
     if (!stack || width <= 0 || height <= 0) {
         return 0;
@@ -261,6 +280,10 @@ int layer_stack_select_edge_visible(LayerStack *stack, int direction) {
 
 int layer_stack_select_edge_editable_visible(LayerStack *stack, int direction) {
     return layer_stack_select_edge_matching(stack, direction, layer_matches_editable_visible);
+}
+
+int layer_stack_select_nth_editable_visible(LayerStack *stack, int ordinal) {
+    return layer_stack_select_nth_matching(stack, ordinal, layer_matches_editable_visible);
 }
 
 int layer_stack_toggle_solo(LayerStack *stack, int index) {
