@@ -18,6 +18,8 @@ static const int input_size_canvas_w = 320;
 static const int input_size_canvas_h = 240;
 static const int app_exit_code_7 = 7;
 static const int app_exit_code_5 = 5;
+static const char *empty_token = "";
+static const char *empty_stderr = "";
 static const char *default_program_name = "openshop";
 static const char *default_scene_path = "art/scene.png";
 static const char *default_input_path = "art/input.png";
@@ -359,7 +361,7 @@ int main(void) {
 
     const struct invalid_size_token_case custom_invalid_size_only_width_cases[] = {
         {"custom_program_null_size_only_width", NULL},
-        {"custom_program_empty_size_only_width", ""},
+        {"custom_program_empty_size_only_width", empty_token},
         {"custom_program_bad_size_only_width", bad_width_token},
         {"custom_program_leading_space_size_only_width", leading_space_width_token},
         {"custom_program_trailing_space_size_only_width", trailing_space_width_token},
@@ -381,7 +383,7 @@ int main(void) {
         {"custom_program_negative_size_only_height", negative_size_only_height},
         {"custom_program_trailing_newline_size_only_height", trailing_newline_height_token},
         {"custom_program_leading_tab_size_only_height", leading_tab_height_token},
-        {"custom_program_empty_size_only_height", ""},
+        {"custom_program_empty_size_only_height", empty_token},
         {"custom_program_overflow_size_only_height", overflow_height_token},
     };
     if (!expect_invalid_size_only_cases(custom_invalid_size_only_height_cases,
@@ -398,13 +400,13 @@ int main(void) {
         {"missing_h", 3, 0, NULL, {default_program_name, default_scene_path, default_size_only_width, NULL, NULL}},
         {"extra_args", 5, 0, NULL, {default_program_name, default_scene_path, default_size_only_width, default_size_only_height, "extra"}},
         {"custom_program_extra_args", 5, 0, custom_usage_text, {custom_program_name, default_scene_path, default_size_only_width, default_size_only_height, "extra"}},
-        {"custom_program_empty_input", 2, 0, custom_usage_text, {custom_program_name, "", NULL, NULL, NULL}},
+        {"custom_program_empty_input", 2, 0, custom_usage_text, {custom_program_name, empty_token, NULL, NULL, NULL}},
         {"custom_program_null_input", 2, 0, custom_usage_text, {custom_program_name, NULL, NULL, NULL, NULL}},
         {"null_argv", 1, 1, NULL, {NULL, NULL, NULL, NULL, NULL}},
         {"null_program", 1, 0, NULL, {NULL, NULL, NULL, NULL, NULL}},
         {"zero_argc", 0, 0, NULL, {default_program_name, NULL, NULL, NULL, NULL}},
-        {"empty_program", 1, 0, NULL, {"", NULL, NULL, NULL, NULL}},
-        {"empty_input", 2, 0, NULL, {default_program_name, "", NULL, NULL, NULL}},
+        {"empty_program", 1, 0, NULL, {empty_token, NULL, NULL, NULL, NULL}},
+        {"empty_input", 2, 0, NULL, {default_program_name, empty_token, NULL, NULL, NULL}},
         {"null_input", 2, 0, NULL, {default_program_name, NULL, NULL, NULL, NULL}},
     };
     if (!expect_invalid_argv_cases(invalid_argv_cases,
@@ -415,7 +417,7 @@ int main(void) {
 
     const struct invalid_size_token_case invalid_size_only_height_cases[] = {
         {"null_size_only_height", NULL},
-        {"empty_size_only_height", ""},
+        {"empty_size_only_height", empty_token},
         {"zero_size_only_height", zero_token},
         {"negative_size_only_height", negative_size_only_height},
         {"bad_size_only_height", bad_height_token},
@@ -432,7 +434,7 @@ int main(void) {
 
     const struct invalid_size_token_case invalid_size_only_width_cases[] = {
         {"null_size_only_width", NULL},
-        {"empty_size_only_width", ""},
+        {"empty_size_only_width", empty_token},
         {"zero_size_only_width", zero_token},
         {"negative_size_only_width", negative_size_only_width},
         {"bad_size_only_width", bad_width_token},
@@ -476,7 +478,7 @@ int main(void) {
         {"bad_width_token", bad_width_token, default_size_only_height},
         {"bad_height_value", default_size_only_width, negative_input_size_height},
         {"negative_height_value", default_size_only_width, negative_size_only_height},
-        {"empty_width", "", default_size_only_height},
+        {"empty_width", empty_token, default_size_only_height},
         {"null_width", NULL, default_size_only_height},
         {"null_height", default_size_only_width, NULL},
         {"overflow_width", overflow_width_token, default_size_only_height},
@@ -495,21 +497,21 @@ int main(void) {
     }
 
     const struct success_case success_cases[] = {
-        {"default", 1, default_program_name, NULL, NULL, NULL, 0, 0, NULL, 0, 0, ""},
-        {"custom_program_input", 2, custom_program_name, custom_input_path, NULL, NULL, 0, 0, custom_input_path, 0, 0, ""},
-        {"custom_program_default", 1, custom_program_name, NULL, NULL, NULL, 0, 0, NULL, 0, 0, ""},
-        {"custom_program_numeric_input", 2, custom_program_name, numeric_input_token, NULL, NULL, 0, 0, numeric_input_token, 0, 0, ""},
+        {"default", 1, default_program_name, NULL, NULL, NULL, 0, 0, NULL, 0, 0, empty_stderr},
+        {"custom_program_input", 2, custom_program_name, custom_input_path, NULL, NULL, 0, 0, custom_input_path, 0, 0, empty_stderr},
+        {"custom_program_default", 1, custom_program_name, NULL, NULL, NULL, 0, 0, NULL, 0, 0, empty_stderr},
+        {"custom_program_numeric_input", 2, custom_program_name, numeric_input_token, NULL, NULL, 0, 0, numeric_input_token, 0, 0, empty_stderr},
         {"custom_program_nonzero", 2, custom_program_name, custom_input_path, NULL, NULL, app_exit_code_5, app_exit_code_5, custom_input_path, 0, 0, app_exit_code_5_stderr},
-        {"input_only", 2, default_program_name, default_input_path, NULL, NULL, 0, 0, default_input_path, 0, 0, ""},
-        {"numeric_input", 2, default_program_name, numeric_input_token, NULL, NULL, 0, 0, numeric_input_token, 0, 0, ""},
+        {"input_only", 2, default_program_name, default_input_path, NULL, NULL, 0, 0, default_input_path, 0, 0, empty_stderr},
+        {"numeric_input", 2, default_program_name, numeric_input_token, NULL, NULL, 0, 0, numeric_input_token, 0, 0, empty_stderr},
         {"size_only", 3, default_program_name, default_size_only_width, default_size_only_height, NULL, app_exit_code_7, app_exit_code_7, NULL, default_size_only_canvas_w, default_size_only_canvas_h, app_exit_code_7_stderr},
-        {"plus_prefixed_size_only", 3, default_program_name, default_plus_prefixed_size_only_width, default_size_only_height, NULL, 0, 0, NULL, default_size_only_canvas_w, default_size_only_canvas_h, ""},
-        {"custom_program_size_only", 3, custom_program_name, custom_size_only_width, custom_size_only_height, NULL, 0, 0, NULL, custom_size_only_canvas_w, custom_size_only_canvas_h, ""},
-        {"custom_program_plus_prefixed_size_only", 3, custom_program_name, custom_plus_prefixed_size_only_width, custom_size_only_height, NULL, 0, 0, NULL, custom_size_only_canvas_w, custom_size_only_canvas_h, ""},
-        {"custom_program_input_size", 4, custom_program_name, custom_input_path, input_size_width_token, input_size_height_token, 0, 0, custom_input_path, input_size_canvas_w, input_size_canvas_h, ""},
-        {"custom_program_plus_prefixed", 4, custom_program_name, custom_input_path, custom_plus_prefixed_input_size_width, input_size_height_token, 0, 0, custom_input_path, input_size_canvas_w, input_size_canvas_h, ""},
-        {"input_size", 4, default_program_name, default_scene_path, input_size_width_token, input_size_height_token, 0, 0, default_scene_path, input_size_canvas_w, input_size_canvas_h, ""},
-        {"plus_prefixed", 4, default_program_name, default_scene_path, default_plus_prefixed_input_size_width, default_size_only_height, 0, 0, default_scene_path, default_size_only_canvas_w, default_size_only_canvas_h, ""},
+        {"plus_prefixed_size_only", 3, default_program_name, default_plus_prefixed_size_only_width, default_size_only_height, NULL, 0, 0, NULL, default_size_only_canvas_w, default_size_only_canvas_h, empty_stderr},
+        {"custom_program_size_only", 3, custom_program_name, custom_size_only_width, custom_size_only_height, NULL, 0, 0, NULL, custom_size_only_canvas_w, custom_size_only_canvas_h, empty_stderr},
+        {"custom_program_plus_prefixed_size_only", 3, custom_program_name, custom_plus_prefixed_size_only_width, custom_size_only_height, NULL, 0, 0, NULL, custom_size_only_canvas_w, custom_size_only_canvas_h, empty_stderr},
+        {"custom_program_input_size", 4, custom_program_name, custom_input_path, input_size_width_token, input_size_height_token, 0, 0, custom_input_path, input_size_canvas_w, input_size_canvas_h, empty_stderr},
+        {"custom_program_plus_prefixed", 4, custom_program_name, custom_input_path, custom_plus_prefixed_input_size_width, input_size_height_token, 0, 0, custom_input_path, input_size_canvas_w, input_size_canvas_h, empty_stderr},
+        {"input_size", 4, default_program_name, default_scene_path, input_size_width_token, input_size_height_token, 0, 0, default_scene_path, input_size_canvas_w, input_size_canvas_h, empty_stderr},
+        {"plus_prefixed", 4, default_program_name, default_scene_path, default_plus_prefixed_input_size_width, default_size_only_height, 0, 0, default_scene_path, default_size_only_canvas_w, default_size_only_canvas_h, empty_stderr},
     };
     if (!expect_success_cases(success_cases,
                               ARRAY_LEN(success_cases),
