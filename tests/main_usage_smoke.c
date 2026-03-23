@@ -272,6 +272,14 @@ int main(void) {
         return 1;
     }
 
+    char *argv_custom_program_trailing_space_size_only_width[] = {
+        (char *)custom_program_name, "640 ", (char *)default_size_only_height};
+    reset_app_state(0, NULL, 0, 0, stderr_text);
+    if (!capture_main_stderr(3, argv_custom_program_trailing_space_size_only_width, stderr_text, sizeof(stderr_text), &exit_code) ||
+        !expect_invalid_run_with_usage("custom_program_trailing_space_size_only_width", exit_code, stderr_text, custom_usage_text)) {
+        return 1;
+    }
+
     char *argv_custom_program_bad_size_only_height[] = {
         (char *)custom_program_name, (char *)default_size_only_width, "48px"};
     reset_app_state(0, NULL, 0, 0, stderr_text);
