@@ -1210,6 +1210,30 @@ int main(void) {
     }
     canvas_free(&emboss_c);
 
+    /* --- canvas_pixelate: each block becomes its average color --- */
+    Canvas pixel_c;
+    if (!canvas_init(&pixel_c, 4, 2)) {
+        fprintf(stderr, "pixelate canvas init failed\n");
+        return 1;
+    }
+    canvas_set_pixel_raw(&pixel_c, 0, 0, 0xFF100000);
+    canvas_set_pixel_raw(&pixel_c, 1, 0, 0xFF300000);
+    canvas_set_pixel_raw(&pixel_c, 2, 0, 0xFF001000);
+    canvas_set_pixel_raw(&pixel_c, 3, 0, 0xFF003000);
+    canvas_set_pixel_raw(&pixel_c, 0, 1, 0xFF500000);
+    canvas_set_pixel_raw(&pixel_c, 1, 1, 0xFF700000);
+    canvas_set_pixel_raw(&pixel_c, 2, 1, 0xFF005000);
+    canvas_set_pixel_raw(&pixel_c, 3, 1, 0xFF007000);
+    canvas_pixelate(&pixel_c, 2);
+    if (!expect_pixel_eq("pixelate_left_tl", canvas_get_pixel(&pixel_c, 0, 0), 0xFF400000) ||
+        !expect_pixel_eq("pixelate_left_br", canvas_get_pixel(&pixel_c, 1, 1), 0xFF400000) ||
+        !expect_pixel_eq("pixelate_right_tl", canvas_get_pixel(&pixel_c, 2, 0), 0xFF004000) ||
+        !expect_pixel_eq("pixelate_right_br", canvas_get_pixel(&pixel_c, 3, 1), 0xFF004000)) {
+        canvas_free(&pixel_c);
+        return 1;
+    }
+    canvas_free(&pixel_c);
+
     /* --- canvas_flood_fill_tol ---
        3x3 canvas: centre column is slightly off-white (0xFFFEFEFE),
        rest is pure white (0xFFFFFFFF). tolerance=5 should fill all;

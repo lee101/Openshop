@@ -41,5 +41,6 @@ void canvas_blur(Canvas *c, int radius);
 void canvas_sharpen(Canvas *c);
 void canvas_edge_detect(Canvas *c);
 void canvas_emboss(Canvas *c);
+void canvas_pixelate(Canvas *c, int block_size);
 
 #endif

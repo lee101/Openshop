@@ -890,3 +890,55 @@ void canvas_emboss(Canvas *c) {
 
     free(orig);
 }
+
+void canvas_pixelate(Canvas *c, int block_size) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    if (block_size < 2) {
+        block_size = 2;
+    }
+
+    int width = c->width;
+    int height = c->height;
+    for (int y0 = 0; y0 < height; y0 += block_size) {
+        int y1 = y0 + block_size;
+        if (y1 > height) {
+            y1 = height;
+        }
+        for (int x0 = 0; x0 < width; x0 += block_size) {
+            int x1 = x0 + block_size;
+            if (x1 > width) {
+                x1 = width;
+            }
+
+            unsigned long sum_a = 0;
+            unsigned long sum_r = 0;
+            unsigned long sum_g = 0;
+            unsigned long sum_b = 0;
+            int n = 0;
+            for (int y = y0; y < y1; y++) {
+                for (int x = x0; x < x1; x++) {
+                    uint32_t p = c->pixels[(size_t)y * (size_t)width + (size_t)x];
+                    sum_a += (p >> 24) & 0xFF;
+                    sum_r += (p >> 16) & 0xFF;
+                    sum_g += (p >> 8) & 0xFF;
+                    sum_b += p & 0xFF;
+                    n++;
+                }
+            }
+
+            uint32_t avg =
+                (uint32_t)((sum_a / (unsigned long)n) << 24) |
+                (uint32_t)((sum_r / (unsigned long)n) << 16) |
+                (uint32_t)((sum_g / (unsigned long)n) << 8) |
+                (uint32_t)(sum_b / (unsigned long)n);
+
+            for (int y = y0; y < y1; y++) {
+                for (int x = x0; x < x1; x++) {
+                    c->pixels[(size_t)y * (size_t)width + (size_t)x] = avg;
+                }
+            }
+        }
+    }
+}

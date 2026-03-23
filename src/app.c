@@ -968,6 +968,16 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (ctrl && shift && key == SDLK_p) {
+                    Layer *active = layer_stack_active(&layers);
+                    if (active && !active->locked && active->canvas.pixels) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        canvas_pixelate(&active->canvas, 8);
+                        needs_composite = 1;
+                    }
+                    break;
+                }
+
                 if (key == SDLK_DELETE || key == SDLK_BACKSPACE) {
                     push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!layer_stack_delete(&layers, layers.active_layer)) {
