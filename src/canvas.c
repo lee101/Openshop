@@ -255,6 +255,92 @@ int canvas_flood_fill(Canvas *c, int x, int y, uint32_t new_color) {
     return 1;
 }
 
+static int color_within_tolerance(uint32_t a, uint32_t b, int tol) {
+    int dr = (int)((a >> 16) & 0xFF) - (int)((b >> 16) & 0xFF);
+    int dg = (int)((a >> 8) & 0xFF) - (int)((b >> 8) & 0xFF);
+    int db = (int)(a & 0xFF) - (int)(b & 0xFF);
+    int da = (int)((a >> 24) & 0xFF) - (int)((b >> 24) & 0xFF);
+    return dr * dr + dg * dg + db * db + da * da <= tol * tol * 4;
+}
+
+int canvas_flood_fill_tol(Canvas *c, int x, int y, uint32_t new_color, int tolerance) {
+    if (!c || !c->pixels) {
+        return 0;
+    }
+    if (x < 0 || y < 0 || x >= c->width || y >= c->height) {
+        return 0;
+    }
+    if (tolerance <= 0) {
+        return canvas_flood_fill(c, x, y, new_color);
+    }
+
+    {
+        uint32_t target = canvas_get_pixel(c, x, y);
+        size_t total = (size_t)c->width * (size_t)c->height;
+        size_t capacity = 1024;
+        size_t count = 0;
+        unsigned char *visited = NULL;
+        FillPoint *stack = NULL;
+
+        if (target == new_color) {
+            return 1;
+        }
+
+        visited = (unsigned char *)calloc(total, sizeof(unsigned char));
+        stack = (FillPoint *)malloc(capacity * sizeof(FillPoint));
+        if (!visited || !stack) {
+            free(visited);
+            free(stack);
+            return 0;
+        }
+
+        stack[count++] = (FillPoint){x, y};
+        visited[(size_t)y * (size_t)c->width + (size_t)x] = 1;
+
+        while (count > 0) {
+            FillPoint p = stack[--count];
+            uint32_t cur = canvas_get_pixel(c, p.x, p.y);
+            if (!color_within_tolerance(cur, target, tolerance)) {
+                continue;
+            }
+            canvas_set_pixel_raw(c, p.x, p.y, new_color);
+
+            if (count + 4 >= capacity) {
+                size_t new_capacity = capacity * 2;
+                FillPoint *next = (FillPoint *)realloc(stack, new_capacity * sizeof(FillPoint));
+                if (!next) {
+                    free(visited);
+                    free(stack);
+                    return 0;
+                }
+                stack = next;
+                capacity = new_capacity;
+            }
+
+            {
+                int nx[4] = {p.x + 1, p.x - 1, p.x, p.x};
+                int ny[4] = {p.y, p.y, p.y + 1, p.y - 1};
+                for (int i = 0; i < 4; i++) {
+                    if (nx[i] < 0 || ny[i] < 0 || nx[i] >= c->width || ny[i] >= c->height) {
+                        continue;
+                    }
+                    size_t nidx = (size_t)ny[i] * (size_t)c->width + (size_t)nx[i];
+                    if (visited[nidx]) {
+                        continue;
+                    }
+                    visited[nidx] = 1;
+                    stack[count++] = (FillPoint){nx[i], ny[i]};
+                }
+            }
+        }
+
+        free(visited);
+        free(stack);
+    }
+
+    return 1;
+}
+
 void canvas_flip_horizontal(Canvas *c) {
     if (!c || !c->pixels || c->width <= 1 || c->height <= 0) {
         return;

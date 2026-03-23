@@ -1321,6 +1321,30 @@ int app_run(const char *input_path, int canvas_w, int canvas_h) {
                     break;
                 }
 
+                if (ctrl && key == SDLK_f) {
+                    int mx = 0;
+                    int my = 0;
+                    SDL_GetMouseState(&mx, &my);
+                    mx = sc_to_cx(mx, view_x, 1 << zoom_level);
+                    my = sc_to_cy(my, view_y, 1 << zoom_level);
+                    if (mx >= 0 && my >= 0 && mx < canvas_w && my < canvas_h) {
+                        Layer *active = layer_stack_active(&layers);
+                        Snapshot before = {0};
+                        int filled = 0;
+                        if (active && !active->locked && prepare_snapshot(&layers, &before)) {
+                            filled = canvas_flood_fill_tol(&active->canvas, mx, my, brush_color, 30);
+                        }
+                        if (!active || active->locked || !filled) {
+                            snapshot_free(&before);
+                            fprintf(stderr, "Fill failed\n");
+                        } else {
+                            push_snapshot_entry(before, undo_stack, &undo_count, redo_stack, &redo_count);
+                            needs_composite = 1;
+                        }
+                    }
+                    break;
+                }
+
                 if (key == SDLK_UP || key == SDLK_DOWN || key == SDLK_LEFT || key == SDLK_RIGHT) {
                     int step = shift ? 10 : 1;
                     int dx = 0;
