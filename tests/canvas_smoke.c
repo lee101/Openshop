@@ -1320,6 +1320,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!stack.layers[2].visible || stack.layers[2].locked || stack.layers[2].opacity_percent != 100 || stack.solo_index != -1) {
+        fprintf(stderr, "stamp visible new should normalize new layer state\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!expect_pixel_eq("stamp_visible_new_pixel", canvas_get_pixel(&stack.layers[2].canvas, 0, 0), 0xFF0D6740)) {
         canvas_free(&composite);
         layer_stack_free(&stack);
