@@ -1008,6 +1008,211 @@ static int handle_translation_shortcut(
     return 1;
 }
 
+static void sample_canvas_color(
+    const Canvas *sample,
+    int x,
+    int y,
+    Tool *tool,
+    uint32_t *brush_color,
+    uint32_t *brush_color_rgb,
+    int *brush_opacity
+) {
+    if (!sample || !brush_color || !brush_color_rgb || !brush_opacity || !tool) {
+        return;
+    }
+    *brush_color = canvas_get_pixel(sample, x, y);
+    *brush_color_rgb = *brush_color & 0x00FFFFFF;
+    *brush_opacity = (int)((((*brush_color >> 24) & 0xFF) * 100 + 127) / 255);
+    if (*brush_opacity < 1) {
+        *brush_opacity = 1;
+    }
+    *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+    *tool = TOOL_BRUSH;
+}
+
+static void handle_mouse_down(
+    const SDL_MouseButtonEvent *button,
+    int *drawing,
+    int *last_x,
+    int *last_y,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *shaping,
+    int *shape_start_x,
+    int *shape_start_y,
+    uint32_t *shape_base_pixels,
+    const Canvas *composite,
+    int *preview_active,
+    Tool *tool,
+    BrushShape brush_shape,
+    int brush_radius,
+    uint32_t *brush_color,
+    uint32_t *brush_color_rgb,
+    int *brush_opacity,
+    const Canvas *preview_canvas,
+    int *needs_composite,
+    SDL_Window *window
+) {
+    if (!button || !drawing || !last_x || !last_y || !layers || !tool || !brush_color || !brush_color_rgb ||
+        !brush_opacity || !needs_composite || !window) {
+        return;
+    }
+
+    if (button->button == SDL_BUTTON_LEFT) {
+        *last_x = button->x;
+        *last_y = button->y;
+        if (*tool == TOOL_BRUSH || *tool == TOOL_ERASER) {
+            Layer *active = layer_stack_active(layers);
+            if (active && !active->locked && active->canvas.pixels) {
+                push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+                *drawing = 1;
+                if (*tool == TOOL_ERASER) {
+                    erase_stamp(&active->canvas, *last_x, *last_y, brush_radius, active_layer_clear_color(layers), brush_shape);
+                } else {
+                    stamp_brush(&active->canvas, *last_x, *last_y, brush_radius, *brush_color, brush_shape);
+                }
+                *needs_composite = 1;
+            }
+        } else if (active_layer_editable(layers)) {
+            *shaping = 1;
+            *shape_start_x = *last_x;
+            *shape_start_y = *last_y;
+            if (shape_base_pixels && composite && composite->pixels) {
+                memcpy(
+                    shape_base_pixels,
+                    composite->pixels,
+                    (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t)
+                );
+            }
+        }
+        return;
+    }
+
+    if (button->button != SDL_BUTTON_RIGHT) {
+        return;
+    }
+    if (shaping && preview_active && *shaping) {
+        cancel_shape_preview(shaping, preview_active);
+        return;
+    }
+    if (button->x < 0 || button->y < 0 || button->x >= CANVAS_WIDTH || button->y >= CANVAS_HEIGHT) {
+        return;
+    }
+    const Canvas *sample = (preview_active && *preview_active && preview_canvas && preview_canvas->pixels) ? preview_canvas : composite;
+    sample_canvas_color(sample, button->x, button->y, tool, brush_color, brush_color_rgb, brush_opacity);
+    update_window_title(window, layers, *tool, brush_shape, brush_radius, *brush_color, *brush_opacity);
+}
+
+static void handle_mouse_up(
+    const SDL_MouseButtonEvent *button,
+    int *drawing,
+    int *shaping,
+    int *preview_active,
+    Tool tool,
+    int shape_start_x,
+    int shape_start_y,
+    int brush_radius,
+    uint32_t brush_color,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+) {
+    if (!button || !drawing || !shaping || !preview_active || !layers || !needs_composite) {
+        return;
+    }
+    if (button->button != SDL_BUTTON_LEFT) {
+        return;
+    }
+
+    *drawing = 0;
+    if (!*shaping) {
+        return;
+    }
+
+    const Uint8 *state = SDL_GetKeyboardState(NULL);
+    int shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
+    int end_x = button->x;
+    int end_y = button->y;
+    constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
+    Layer *active = layer_stack_active(layers);
+    if (active && !active->locked && active->canvas.pixels) {
+        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        draw_shape(&active->canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
+        *needs_composite = 1;
+    }
+    cancel_shape_preview(shaping, preview_active);
+}
+
+static void handle_mouse_motion(
+    const SDL_MouseMotionEvent *motion,
+    int drawing,
+    int *last_x,
+    int *last_y,
+    LayerStack *layers,
+    Tool tool,
+    BrushShape brush_shape,
+    int brush_radius,
+    uint32_t brush_color,
+    int *needs_composite,
+    int shaping,
+    uint32_t *shape_base_pixels,
+    Canvas *preview_canvas,
+    int shape_start_x,
+    int shape_start_y,
+    int *preview_active
+) {
+    if (!motion || !last_x || !last_y || !layers || !needs_composite || !preview_active) {
+        return;
+    }
+
+    if (drawing) {
+        int x = motion->x;
+        int y = motion->y;
+        if (x >= 0 && y >= 0 && x < CANVAS_WIDTH && y < CANVAS_HEIGHT) {
+            Layer *active = layer_stack_active(layers);
+            if (active && !active->locked && active->canvas.pixels) {
+                if (tool == TOOL_ERASER) {
+                    erase_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, active_layer_clear_color(layers), brush_shape);
+                } else {
+                    draw_brush_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, brush_color, brush_shape);
+                }
+                *last_x = x;
+                *last_y = y;
+                *needs_composite = 1;
+            }
+        }
+        return;
+    }
+
+    if (!shaping || !shape_base_pixels || !preview_canvas || !preview_canvas->pixels) {
+        return;
+    }
+
+    int x = motion->x;
+    int y = motion->y;
+    if (x < 0 || y < 0 || x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT) {
+        return;
+    }
+    const Uint8 *state = SDL_GetKeyboardState(NULL);
+    int shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
+    int end_x = x;
+    int end_y = y;
+    constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
+    memcpy(
+        preview_canvas->pixels,
+        shape_base_pixels,
+        (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t)
+    );
+    draw_shape(preview_canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
+    *preview_active = 1;
+}
+
 static void handle_keydown_shortcut(
     SDL_Keycode key,
     int ctrl,
@@ -1353,113 +1558,71 @@ int app_run(const char *input_path) {
                 running = 0;
                 break;
             case SDL_MOUSEBUTTONDOWN:
-                if (e.button.button == SDL_BUTTON_LEFT) {
-                    last_x = e.button.x;
-                    last_y = e.button.y;
-                    if (tool == TOOL_BRUSH || tool == TOOL_ERASER) {
-                        Layer *active = layer_stack_active(&layers);
-                        if (active && !active->locked && active->canvas.pixels) {
-                            push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                            drawing = 1;
-                            if (tool == TOOL_ERASER) {
-                                erase_stamp(&active->canvas, last_x, last_y, brush_radius, active_layer_clear_color(&layers), brush_shape);
-                            } else {
-                                stamp_brush(&active->canvas, last_x, last_y, brush_radius, brush_color, brush_shape);
-                            }
-                            needs_composite = 1;
-                        }
-                    } else if (active_layer_editable(&layers)) {
-                        shaping = 1;
-                        shape_start_x = last_x;
-                        shape_start_y = last_y;
-                        if (shape_base_pixels) {
-                            memcpy(
-                                shape_base_pixels,
-                                composite.pixels,
-                                (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t)
-                            );
-                        }
-                    }
-                } else if (e.button.button == SDL_BUTTON_RIGHT) {
-                    if (shaping) {
-                        cancel_shape_preview(&shaping, &preview_active);
-                        break;
-                    }
-                    int x = e.button.x;
-                    int y = e.button.y;
-                    if (x >= 0 && y >= 0 && x < CANVAS_WIDTH && y < CANVAS_HEIGHT) {
-                        const Canvas *sample = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
-                        brush_color = canvas_get_pixel(sample, x, y);
-                        brush_color_rgb = brush_color & 0x00FFFFFF;
-                        int sampled_alpha = (int)((brush_color >> 24) & 0xFF);
-                        brush_opacity = (sampled_alpha * 100 + 127) / 255;
-                        if (brush_opacity < 1) {
-                            brush_opacity = 1;
-                        }
-                        brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                        tool = TOOL_BRUSH;
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
-                }
+                handle_mouse_down(
+                    &e.button,
+                    &drawing,
+                    &last_x,
+                    &last_y,
+                    &layers,
+                    undo_stack,
+                    &undo_count,
+                    redo_stack,
+                    &redo_count,
+                    &shaping,
+                    &shape_start_x,
+                    &shape_start_y,
+                    shape_base_pixels,
+                    &composite,
+                    &preview_active,
+                    &tool,
+                    brush_shape,
+                    brush_radius,
+                    &brush_color,
+                    &brush_color_rgb,
+                    &brush_opacity,
+                    &preview_canvas,
+                    &needs_composite,
+                    window
+                );
                 break;
             case SDL_MOUSEBUTTONUP:
-                if (e.button.button == SDL_BUTTON_LEFT) {
-                    drawing = 0;
-                    if (shaping) {
-                        const Uint8 *state = SDL_GetKeyboardState(NULL);
-                        int shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
-                        int end_x = e.button.x;
-                        int end_y = e.button.y;
-                        constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
-                        Layer *active = layer_stack_active(&layers);
-                        if (active && !active->locked && active->canvas.pixels) {
-                            push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                            draw_shape(&active->canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
-                            needs_composite = 1;
-                        }
-                        cancel_shape_preview(&shaping, &preview_active);
-                    }
-                }
+                handle_mouse_up(
+                    &e.button,
+                    &drawing,
+                    &shaping,
+                    &preview_active,
+                    tool,
+                    shape_start_x,
+                    shape_start_y,
+                    brush_radius,
+                    brush_color,
+                    &layers,
+                    undo_stack,
+                    &undo_count,
+                    redo_stack,
+                    &redo_count,
+                    &needs_composite
+                );
                 break;
             case SDL_MOUSEMOTION:
-                if (drawing) {
-                    int x = e.motion.x;
-                    int y = e.motion.y;
-                    if (x >= 0 && y >= 0 && x < CANVAS_WIDTH && y < CANVAS_HEIGHT) {
-                        Layer *active = layer_stack_active(&layers);
-                        if (active && !active->locked && active->canvas.pixels) {
-                            if (tool == TOOL_ERASER) {
-                                erase_line(&active->canvas, last_x, last_y, x, y, brush_radius, active_layer_clear_color(&layers), brush_shape);
-                            } else {
-                                draw_brush_line(&active->canvas, last_x, last_y, x, y, brush_radius, brush_color, brush_shape);
-                            }
-                            last_x = x;
-                            last_y = y;
-                            needs_composite = 1;
-                        }
-                    }
-                } else if (shaping) {
-                    if (!shape_base_pixels || !preview_canvas.pixels) {
-                        break;
-                    }
-                    int x = e.motion.x;
-                    int y = e.motion.y;
-                    if (x < 0 || y < 0 || x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT) {
-                        break;
-                    }
-                    const Uint8 *state = SDL_GetKeyboardState(NULL);
-                    int shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
-                    int end_x = x;
-                    int end_y = y;
-                    constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
-                    memcpy(
-                        preview_pixels,
-                        shape_base_pixels,
-                        (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t)
-                    );
-                    draw_shape(&preview_canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
-                    preview_active = 1;
-                }
+                handle_mouse_motion(
+                    &e.motion,
+                    drawing,
+                    &last_x,
+                    &last_y,
+                    &layers,
+                    tool,
+                    brush_shape,
+                    brush_radius,
+                    brush_color,
+                    &needs_composite,
+                    shaping,
+                    shape_base_pixels,
+                    &preview_canvas,
+                    shape_start_x,
+                    shape_start_y,
+                    &preview_active
+                );
                 break;
             case SDL_KEYDOWN: {
                 SDL_Keycode key = e.key.keysym.sym;
