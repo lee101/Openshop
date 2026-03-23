@@ -6,6 +6,7 @@
 
 static int layer_stack_cycle_bool_field(LayerStack *stack, int direction, int want_value, int use_locked);
 static int layer_stack_select_bool_edge(LayerStack *stack, int want_value, int from_top, int use_locked);
+static int layer_stack_matches_bool_filter(int value, int required_value);
 
 typedef enum {
     EDITABLE_ANY_VISIBILITY = 0,
@@ -75,6 +76,33 @@ static int layer_stack_cycle_filtered(LayerStack *stack, int direction, int want
 
 static int layer_stack_select_edge_filtered(LayerStack *stack, int want_visible, int from_top) {
     return layer_stack_select_bool_edge(stack, want_visible, from_top, 0);
+}
+
+static int layer_stack_cycle_combined_filter(LayerStack *stack, int direction, int required_hidden, int required_locked) {
+    if (!stack || stack->layer_count <= 0) {
+        return -1;
+    }
+    for (int offset = 1; offset <= stack->layer_count; offset++) {
+        int idx = stack->active_layer + (direction * offset);
+        while (idx < 0) {
+            idx += stack->layer_count;
+        }
+        idx %= stack->layer_count;
+        int is_hidden = stack->layers[idx].visible ? 0 : 1;
+        if (layer_stack_matches_bool_filter(is_hidden, required_hidden) &&
+            layer_stack_matches_bool_filter(stack->layers[idx].locked ? 1 : 0, required_locked)) {
+            stack->active_layer = idx;
+            return idx;
+        }
+    }
+    {
+        int active_hidden = stack->layers[stack->active_layer].visible ? 0 : 1;
+        if (layer_stack_matches_bool_filter(active_hidden, required_hidden) &&
+            layer_stack_matches_bool_filter(stack->layers[stack->active_layer].locked ? 1 : 0, required_locked)) {
+            return stack->active_layer;
+        }
+    }
+    return -1;
 }
 
 static int layer_stack_cycle_bool_field(LayerStack *stack, int direction, int want_value, int use_locked) {
@@ -406,6 +434,14 @@ int layer_stack_cycle_locked(LayerStack *stack, int direction) {
 
 int layer_stack_cycle_unlocked(LayerStack *stack, int direction) {
     return layer_stack_cycle_bool_field(stack, direction, 0, 1);
+}
+
+int layer_stack_cycle_hidden_locked(LayerStack *stack, int direction) {
+    return layer_stack_cycle_combined_filter(stack, direction, 1, 1);
+}
+
+int layer_stack_cycle_hidden_unlocked(LayerStack *stack, int direction) {
+    return layer_stack_cycle_combined_filter(stack, direction, 1, 0);
 }
 
 int layer_stack_cycle_editable(LayerStack *stack, int direction) {
