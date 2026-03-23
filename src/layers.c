@@ -523,6 +523,31 @@ int layer_stack_reveal_hidden(LayerStack *stack, int direction) {
     return 1;
 }
 
+int layer_stack_reveal_editable(LayerStack *stack, int direction) {
+    if (!stack || stack->layer_count <= 0) {
+        return 0;
+    }
+    for (int offset = 1; offset <= stack->layer_count; offset++) {
+        int idx = stack->active_layer + (direction * offset);
+        while (idx < 0) {
+            idx += stack->layer_count;
+        }
+        idx %= stack->layer_count;
+        if (!stack->layers[idx].locked) {
+            stack->layers[idx].visible = 1;
+            stack->active_layer = idx;
+            stack->solo_index = -1;
+            return 1;
+        }
+    }
+    if (!stack->layers[stack->active_layer].locked) {
+        stack->layers[stack->active_layer].visible = 1;
+        stack->solo_index = -1;
+        return 1;
+    }
+    return 0;
+}
+
 int layer_stack_hide_and_advance(LayerStack *stack, int index) {
     return layer_stack_hide_and_focus_direction(stack, index, 1);
 }
