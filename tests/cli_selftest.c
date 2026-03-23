@@ -27,14 +27,28 @@ static int expect_str(const char *label, const char *actual, const char *expecte
 
 int main(void) {
     CliOptions options = {0};
+    char *argv_default[] = {"openshop"};
 
     if (!expect_str("usage_suffix", cli_usage_suffix(),
                     "[input_path] [width height]\n"
                     "       or: WIDTH HEIGHT")) {
         return 1;
     }
+    if (!expect_str("program_name_default", cli_program_name(argv_default), "openshop")) {
+        return 1;
+    }
+    if (!expect_str("program_name_null_argv", cli_program_name(NULL), "openshop")) {
+        return 1;
+    }
+    char *argv_null_program_name[] = {NULL};
+    if (!expect_str("program_name_null_slot", cli_program_name(argv_null_program_name), "openshop")) {
+        return 1;
+    }
+    char *argv_empty_program_name[] = {""};
+    if (!expect_str("program_name_empty_slot", cli_program_name(argv_empty_program_name), "openshop")) {
+        return 1;
+    }
 
-    char *argv_default[] = {"openshop"};
     if (!expect_int("default_ok", parse_cli_args(1, argv_default, &options), 1) ||
         !expect_str("default_input", options.input_path, NULL) ||
         !expect_int("default_w", options.canvas_w, 0) ||

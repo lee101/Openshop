@@ -5,6 +5,8 @@
 #include <limits.h>
 #include <stdlib.h>
 
+#define CLI_DEFAULT_PROGRAM_NAME "openshop"
+
 static int parse_positive_int(const char *text, int *value) {
     char *end = NULL;
     long parsed = 0;
@@ -35,6 +37,13 @@ static int parse_positive_int(const char *text, int *value) {
 const char *cli_usage_suffix(void) {
     return "[input_path] [width height]\n"
            "       or: WIDTH HEIGHT";
+}
+
+const char *cli_program_name(char **argv) {
+    if (!argv || !argv[0] || !argv[0][0]) {
+        return CLI_DEFAULT_PROGRAM_NAME;
+    }
+    return argv[0];
 }
 
 int parse_cli_args(int argc, char **argv, CliOptions *options) {
