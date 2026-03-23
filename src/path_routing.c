@@ -153,6 +153,14 @@ RoutedPath resolve_routed_pair_choice(
     return resolve_routed_choice(bmp_path, png_path, prefer_png);
 }
 
+RoutedPath resolve_default_input_pair_choice(const RoutedPathPair *paths, int prefer_png) {
+    return resolve_routed_pair_choice(paths, DEFAULT_INPUT_BMP_PATH, DEFAULT_INPUT_PNG_PATH, prefer_png);
+}
+
+RoutedPath resolve_default_output_pair_choice(const RoutedPathPair *paths, int prefer_png) {
+    return resolve_routed_pair_choice(paths, DEFAULT_OUTPUT_BMP_PATH, DEFAULT_OUTPUT_PNG_PATH, prefer_png);
+}
+
 RoutedPath resolve_default_input_choice(int prefer_png) {
     return resolve_routed_choice(DEFAULT_INPUT_BMP_PATH, DEFAULT_INPUT_PNG_PATH, prefer_png);
 }

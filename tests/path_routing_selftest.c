@@ -305,6 +305,18 @@ int main(void) {
         return 1;
     }
 
+    choice = resolve_default_input_pair_choice(&pair, 0);
+    if (!expect_str("resolve_default_input_pair_missing_bmp", choice.path, "draft.png") ||
+        !expect_int("resolve_default_input_pair_missing_bmp_alt", choice.used_alternate, 1)) {
+        return 1;
+    }
+
+    choice = resolve_default_output_pair_choice(NULL, 1);
+    if (!expect_str("resolve_default_output_pair_prefer_png", choice.path, "output.png") ||
+        !expect_int("resolve_default_output_pair_prefer_png_alt", choice.used_alternate, 0)) {
+        return 1;
+    }
+
     init_routed_path_pair(&pair, NULL, NULL);
     choice = resolve_routed_pair_choice(&pair, NULL, NULL, 0);
     if (!expect_str("resolve_pair_no_paths", choice.path, NULL) ||

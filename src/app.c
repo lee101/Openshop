@@ -483,7 +483,7 @@ static int canvas_load_default_input(
     const char **loaded_path,
     int *used_alternate
 ) {
-    RoutedPath choice = resolve_routed_pair_choice(paths, "input.bmp", "input.png", prefer_png);
+    RoutedPath choice = resolve_default_input_pair_choice(paths, prefer_png);
     const char *path = choice.path;
     if (loaded_path) {
         *loaded_path = path;
@@ -507,7 +507,7 @@ static int canvas_save_default_output(
     const char **saved_path,
     int *used_alternate
 ) {
-    RoutedPath choice = resolve_routed_pair_choice(paths, "output.bmp", "output.png", prefer_png);
+    RoutedPath choice = resolve_default_output_pair_choice(paths, prefer_png);
     const char *path = choice.path;
     if (saved_path) {
         *saved_path = path;
