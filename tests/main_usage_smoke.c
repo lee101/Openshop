@@ -239,6 +239,8 @@ struct invalid_size_token_case {
     const char *token;
 };
 
+#define INVALID_SIZE_TOKEN_CASE(label, token) {label, token}
+
 struct invalid_input_size_case {
     const char *label_prefix;
     const char *width_token;
@@ -363,14 +365,14 @@ int main(void) {
     }
 
     const struct invalid_size_token_case custom_invalid_size_only_width_cases[] = {
-        {"custom_program_null_size_only_width", NULL},
-        {"custom_program_empty_size_only_width", empty_token},
-        {"custom_program_bad_size_only_width", bad_width_token},
-        {"custom_program_leading_space_size_only_width", leading_space_width_token},
-        {"custom_program_trailing_space_size_only_width", trailing_space_width_token},
-        {"custom_program_zero_size_only_width", zero_token},
-        {"custom_program_negative_size_only_width", negative_size_only_width},
-        {"custom_program_overflow_size_only_width", overflow_width_token},
+        INVALID_SIZE_TOKEN_CASE("custom_program_null_size_only_width", NULL),
+        INVALID_SIZE_TOKEN_CASE("custom_program_empty_size_only_width", empty_token),
+        INVALID_SIZE_TOKEN_CASE("custom_program_bad_size_only_width", bad_width_token),
+        INVALID_SIZE_TOKEN_CASE("custom_program_leading_space_size_only_width", leading_space_width_token),
+        INVALID_SIZE_TOKEN_CASE("custom_program_trailing_space_size_only_width", trailing_space_width_token),
+        INVALID_SIZE_TOKEN_CASE("custom_program_zero_size_only_width", zero_token),
+        INVALID_SIZE_TOKEN_CASE("custom_program_negative_size_only_width", negative_size_only_width),
+        INVALID_SIZE_TOKEN_CASE("custom_program_overflow_size_only_width", overflow_width_token),
     };
     if (!expect_invalid_size_only_cases(custom_invalid_size_only_width_cases,
                                         ARRAY_LEN(custom_invalid_size_only_width_cases),
@@ -380,14 +382,14 @@ int main(void) {
     }
 
     const struct invalid_size_token_case custom_invalid_size_only_height_cases[] = {
-        {"custom_program_null_size_only_height", NULL},
-        {"custom_program_bad_size_only_height", bad_height_token},
-        {"custom_program_zero_size_only_height", zero_token},
-        {"custom_program_negative_size_only_height", negative_size_only_height},
-        {"custom_program_trailing_newline_size_only_height", trailing_newline_height_token},
-        {"custom_program_leading_tab_size_only_height", leading_tab_height_token},
-        {"custom_program_empty_size_only_height", empty_token},
-        {"custom_program_overflow_size_only_height", overflow_height_token},
+        INVALID_SIZE_TOKEN_CASE("custom_program_null_size_only_height", NULL),
+        INVALID_SIZE_TOKEN_CASE("custom_program_bad_size_only_height", bad_height_token),
+        INVALID_SIZE_TOKEN_CASE("custom_program_zero_size_only_height", zero_token),
+        INVALID_SIZE_TOKEN_CASE("custom_program_negative_size_only_height", negative_size_only_height),
+        INVALID_SIZE_TOKEN_CASE("custom_program_trailing_newline_size_only_height", trailing_newline_height_token),
+        INVALID_SIZE_TOKEN_CASE("custom_program_leading_tab_size_only_height", leading_tab_height_token),
+        INVALID_SIZE_TOKEN_CASE("custom_program_empty_size_only_height", empty_token),
+        INVALID_SIZE_TOKEN_CASE("custom_program_overflow_size_only_height", overflow_height_token),
     };
     if (!expect_invalid_size_only_cases(custom_invalid_size_only_height_cases,
                                         ARRAY_LEN(custom_invalid_size_only_height_cases),
@@ -419,14 +421,14 @@ int main(void) {
     }
 
     const struct invalid_size_token_case invalid_size_only_height_cases[] = {
-        {"null_size_only_height", NULL},
-        {"empty_size_only_height", empty_token},
-        {"zero_size_only_height", zero_token},
-        {"negative_size_only_height", negative_size_only_height},
-        {"bad_size_only_height", bad_height_token},
-        {"overflow_size_only_height", overflow_height_token},
-        {"trailing_newline_size_only_height", trailing_newline_height_token},
-        {"leading_tab_size_only_height", leading_tab_height_token},
+        INVALID_SIZE_TOKEN_CASE("null_size_only_height", NULL),
+        INVALID_SIZE_TOKEN_CASE("empty_size_only_height", empty_token),
+        INVALID_SIZE_TOKEN_CASE("zero_size_only_height", zero_token),
+        INVALID_SIZE_TOKEN_CASE("negative_size_only_height", negative_size_only_height),
+        INVALID_SIZE_TOKEN_CASE("bad_size_only_height", bad_height_token),
+        INVALID_SIZE_TOKEN_CASE("overflow_size_only_height", overflow_height_token),
+        INVALID_SIZE_TOKEN_CASE("trailing_newline_size_only_height", trailing_newline_height_token),
+        INVALID_SIZE_TOKEN_CASE("leading_tab_size_only_height", leading_tab_height_token),
     };
     if (!expect_invalid_size_only_cases(invalid_size_only_height_cases,
                                         ARRAY_LEN(invalid_size_only_height_cases),
@@ -436,14 +438,14 @@ int main(void) {
     }
 
     const struct invalid_size_token_case invalid_size_only_width_cases[] = {
-        {"null_size_only_width", NULL},
-        {"empty_size_only_width", empty_token},
-        {"zero_size_only_width", zero_token},
-        {"negative_size_only_width", negative_size_only_width},
-        {"bad_size_only_width", bad_width_token},
-        {"overflow_size_only_width", overflow_width_token},
-        {"leading_space_size_only_width", leading_space_width_token},
-        {"trailing_space_size_only_width", trailing_space_width_token},
+        INVALID_SIZE_TOKEN_CASE("null_size_only_width", NULL),
+        INVALID_SIZE_TOKEN_CASE("empty_size_only_width", empty_token),
+        INVALID_SIZE_TOKEN_CASE("zero_size_only_width", zero_token),
+        INVALID_SIZE_TOKEN_CASE("negative_size_only_width", negative_size_only_width),
+        INVALID_SIZE_TOKEN_CASE("bad_size_only_width", bad_width_token),
+        INVALID_SIZE_TOKEN_CASE("overflow_size_only_width", overflow_width_token),
+        INVALID_SIZE_TOKEN_CASE("leading_space_size_only_width", leading_space_width_token),
+        INVALID_SIZE_TOKEN_CASE("trailing_space_size_only_width", trailing_space_width_token),
     };
     if (!expect_invalid_size_only_cases(invalid_size_only_width_cases,
                                         ARRAY_LEN(invalid_size_only_width_cases),
