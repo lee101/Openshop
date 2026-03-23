@@ -249,6 +249,7 @@ struct invalid_input_size_case {
 
 #define INVALID_INPUT_WIDTH_CASE(label, width) {label, width, default_size_only_height}
 #define INVALID_INPUT_HEIGHT_CASE(label, height) {label, default_size_only_width, height}
+#define INVALID_INPUT_WIDTH_VALUE_CASE(label, width) {label, width, invalid_probe_token}
 
 struct invalid_argv_case {
     const char *label_prefix;
@@ -488,8 +489,8 @@ int main(void) {
     }
 
     const struct invalid_input_size_case invalid_input_size_cases[] = {
-        {"bad_width_value", zero_token, invalid_probe_token},
-        {"negative_width_value", negative_size_only_width, invalid_probe_token},
+        INVALID_INPUT_WIDTH_VALUE_CASE("bad_width_value", zero_token),
+        INVALID_INPUT_WIDTH_VALUE_CASE("negative_width_value", negative_size_only_width),
         INVALID_INPUT_WIDTH_CASE("bad_width_token", bad_width_token),
         INVALID_INPUT_HEIGHT_CASE("bad_height_value", negative_input_size_height),
         INVALID_INPUT_HEIGHT_CASE("negative_height_value", negative_size_only_height),
