@@ -1361,6 +1361,38 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_add(&stack, "Upper Hidden Merge", 0x00000000) != 1) {
+        fprintf(stderr, "add hidden merge layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    canvas_clear(&stack.layers[0].canvas, 0xFF123456);
+    canvas_clear(&stack.layers[1].canvas, 0xFF00FF00);
+    if (!layer_stack_toggle_visibility(&stack, 1) || stack.layers[1].visible) {
+        fprintf(stderr, "prepare hidden merge state failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_merge_down(&stack, 1)) {
+        fprintf(stderr, "merge down hidden non-solo failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layer_count != 1 || stack.active_layer != 0 || stack.solo_index != -1 ||
+        !stack.layers[0].visible || stack.layers[0].opacity_percent != 100) {
+        fprintf(stderr, "merge down hidden non-solo bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("merge_down_hidden_non_solo_pixel", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF00FF00)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_add(&stack, "Upper Merge", 0x00000000) != 1) {
         fprintf(stderr, "add upper merge layer failed\n");
         canvas_free(&composite);
