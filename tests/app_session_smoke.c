@@ -37,11 +37,43 @@ static int test_escape_cancels_shape_or_stops_running(void) {
            expect_int_eq("unrelated_stop", unrelated.stop_running, 0);
 }
 
+static int test_apply_updates_session_state(void) {
+    AppSessionState shaping = {.shaping = 1, .preview_active = 1, .running = 1};
+    AppSessionState idle = {.shaping = 0, .preview_active = 0, .running = 1};
+    AppSessionState untouched = {.shaping = 1, .preview_active = 1, .running = 1};
+
+    if (!app_session_apply((AppSessionCommand){.handled = 1, .cancel_shape = 1, .stop_running = 0}, &shaping) ||
+        !expect_int_eq("apply_shape_shaping", shaping.shaping, 0) ||
+        !expect_int_eq("apply_shape_preview", shaping.preview_active, 0) ||
+        !expect_int_eq("apply_shape_running", shaping.running, 1)) {
+        return 0;
+    }
+
+    if (!app_session_apply((AppSessionCommand){.handled = 1, .cancel_shape = 0, .stop_running = 1}, &idle) ||
+        !expect_int_eq("apply_idle_shaping", idle.shaping, 0) ||
+        !expect_int_eq("apply_idle_preview", idle.preview_active, 0) ||
+        !expect_int_eq("apply_idle_running", idle.running, 0)) {
+        return 0;
+    }
+
+    if (app_session_apply((AppSessionCommand){.handled = 0, .cancel_shape = 1, .stop_running = 1}, &untouched) ||
+        !expect_int_eq("apply_unhandled_shaping", untouched.shaping, 1) ||
+        !expect_int_eq("apply_unhandled_preview", untouched.preview_active, 1) ||
+        !expect_int_eq("apply_unhandled_running", untouched.running, 1)) {
+        return 0;
+    }
+
+    return 1;
+}
+
 int main(void) {
     if (!test_shape_cancel_shortcuts()) {
         return 1;
     }
     if (!test_escape_cancels_shape_or_stops_running()) {
+        return 1;
+    }
+    if (!test_apply_updates_session_state()) {
         return 1;
     }
     return 0;

@@ -77,3 +77,18 @@ AppSessionCommand app_session_command_for_key(int key, int ctrl, int shaping) {
     }
     return command;
 }
+
+int app_session_apply(AppSessionCommand command, AppSessionState *state) {
+    if (!state || !command.handled) {
+        return 0;
+    }
+
+    if (command.cancel_shape) {
+        state->shaping = 0;
+        state->preview_active = 0;
+    }
+    if (command.stop_running) {
+        state->running = 0;
+    }
+    return 1;
+}

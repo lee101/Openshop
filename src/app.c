@@ -683,13 +683,23 @@ static int handle_session_shortcut(
     int *running
 ) {
     AppSessionCommand command = app_session_command_for_key((int)key, ctrl, shaping ? *shaping : 0);
+    AppSessionState state = {
+        .shaping = shaping ? *shaping : 0,
+        .preview_active = preview_active ? *preview_active : 0,
+        .running = running ? *running : 0,
+    };
 
-    if (shaping && preview_active && command.cancel_shape) {
-        cancel_shape_preview(shaping, preview_active);
-    }
-
-    if (running && command.stop_running) {
-        *running = 0;
+    if (command.handled) {
+        app_session_apply(command, &state);
+        if (shaping) {
+            *shaping = state.shaping;
+        }
+        if (preview_active) {
+            *preview_active = state.preview_active;
+        }
+        if (running) {
+            *running = state.running;
+        }
     }
     return command.handled;
 }
