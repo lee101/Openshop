@@ -3998,6 +3998,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_lock_and_advance(&stack, 2)) {
+        fprintf(stderr, "redundant lock and advance should no-op when already locked\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[0].locked = 1;
     stack.layers[1].locked = 0;
     stack.layers[2].locked = 1;
@@ -4012,6 +4018,12 @@ static int test_layers_basic(void) {
     }
     if (!stack.layers[1].locked || stack.active_layer != 1 || stack.solo_index != 0) {
         fprintf(stderr, "lock and retreat should stay on the active layer when it is the last unlocked layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_lock_and_retreat(&stack, 1)) {
+        fprintf(stderr, "redundant lock and retreat should no-op when already locked\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;

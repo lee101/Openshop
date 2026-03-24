@@ -219,13 +219,20 @@ static int layer_stack_hide_and_focus_direction(LayerStack *stack, int index, in
 
 static int layer_stack_lock_and_focus_direction(LayerStack *stack, int index, int direction) {
     int next;
+    int changed = 0;
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
     }
-    stack->layers[index].locked = 1;
+    if (!stack->layers[index].locked) {
+        stack->layers[index].locked = 1;
+        changed = 1;
+    }
     next = layer_stack_find_combined_filter_from(stack, index, direction, 0, -1, 0);
+    if ((next >= 0 ? next : index) != stack->active_layer) {
+        changed = 1;
+    }
     stack->active_layer = next >= 0 ? next : index;
-    return 1;
+    return changed;
 }
 
 static int layer_stack_matches_bool_filter(int value, int required_value) {
