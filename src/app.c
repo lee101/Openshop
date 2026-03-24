@@ -1328,10 +1328,6 @@ static int handle_translation_hotkey(SDL_Keycode key,
         return 0;
     }
 
-    if (key != SDLK_UP && key != SDLK_DOWN && key != SDLK_LEFT && key != SDLK_RIGHT) {
-        return 0;
-    }
-
     step = shift ? 10 : 1;
     if (app_key_translation_delta(key, step, &dx, &dy) &&
         active_layer_apply_translation(action_state->layers, action_state->undo_stack, action_state->undo_count,
