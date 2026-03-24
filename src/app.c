@@ -1273,8 +1273,17 @@ static void handle_mouse_button_down(
                 drawing,
                 needs_composite
             );
-        } else if (app_active_layer_editable(layers)) {
-            app_begin_shape_preview_from_canvas(*last_x, *last_y, shaping, shape_start_x, shape_start_y, shape_base_pixels, composite);
+        } else {
+            app_begin_shape_preview_to_active_layer(
+                layers,
+                *last_x,
+                *last_y,
+                shaping,
+                shape_start_x,
+                shape_start_y,
+                shape_base_pixels,
+                composite
+            );
         }
         return;
     }

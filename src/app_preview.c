@@ -55,6 +55,32 @@ void app_begin_shape_preview_from_canvas(
     );
 }
 
+int app_begin_shape_preview_to_active_layer(
+    LayerStack *layers,
+    int start_x,
+    int start_y,
+    int *shaping,
+    int *shape_start_x,
+    int *shape_start_y,
+    uint32_t *shape_base_pixels,
+    const Canvas *composite
+) {
+    if (!app_active_layer_editable(layers)) {
+        return 0;
+    }
+
+    app_begin_shape_preview_from_canvas(
+        start_x,
+        start_y,
+        shaping,
+        shape_start_x,
+        shape_start_y,
+        shape_base_pixels,
+        composite
+    );
+    return 1;
+}
+
 void app_cancel_shape_preview(int *shaping, int *preview_active) {
     if (shaping) {
         *shaping = 0;

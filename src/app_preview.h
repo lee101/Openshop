@@ -29,6 +29,17 @@ void app_begin_shape_preview_from_canvas(
     const Canvas *composite
 );
 
+int app_begin_shape_preview_to_active_layer(
+    LayerStack *layers,
+    int start_x,
+    int start_y,
+    int *shaping,
+    int *shape_start_x,
+    int *shape_start_y,
+    uint32_t *shape_base_pixels,
+    const Canvas *composite
+);
+
 void app_cancel_shape_preview(int *shaping, int *preview_active);
 
 const Canvas *app_preview_canvas_or_composite(

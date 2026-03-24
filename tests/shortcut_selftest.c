@@ -609,6 +609,62 @@ static int expect_begin_shape_preview_from_canvas(
     return 1;
 }
 
+static int expect_begin_shape_preview_to_active_layer(
+    const char *label,
+    LayerStack *layers,
+    int start_x,
+    int start_y,
+    int *shaping,
+    int *shape_start_x,
+    int *shape_start_y,
+    uint32_t *shape_base_pixels,
+    const Canvas *composite,
+    int want_started,
+    int want_shaping,
+    int want_shape_start_x,
+    int want_shape_start_y,
+    const uint32_t *want_shape_base_pixels,
+    size_t want_pixel_count
+) {
+    size_t i;
+    int started = app_begin_shape_preview_to_active_layer(
+        layers,
+        start_x,
+        start_y,
+        shaping,
+        shape_start_x,
+        shape_start_y,
+        shape_base_pixels,
+        composite
+    );
+
+    if (started != want_started) {
+        fprintf(stderr, "%s started mismatch: got %d want %d\n", label, started, want_started);
+        return 0;
+    }
+    if (shaping && *shaping != want_shaping) {
+        fprintf(stderr, "%s shaping mismatch: got %d want %d\n", label, *shaping, want_shaping);
+        return 0;
+    }
+    if (shape_start_x && *shape_start_x != want_shape_start_x) {
+        fprintf(stderr, "%s shape_start_x mismatch: got %d want %d\n", label, *shape_start_x, want_shape_start_x);
+        return 0;
+    }
+    if (shape_start_y && *shape_start_y != want_shape_start_y) {
+        fprintf(stderr, "%s shape_start_y mismatch: got %d want %d\n", label, *shape_start_y, want_shape_start_y);
+        return 0;
+    }
+    if (shape_base_pixels && want_shape_base_pixels) {
+        for (i = 0; i < want_pixel_count; i++) {
+            if (shape_base_pixels[i] != want_shape_base_pixels[i]) {
+                fprintf(stderr, "%s shape_base_pixels[%zu] mismatch: got 0x%08X want 0x%08X\n", label, i, shape_base_pixels[i], want_shape_base_pixels[i]);
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
 typedef struct {
     const char *label;
     int start_x;
@@ -2209,6 +2265,83 @@ int main(void) {
             );
         }
     }
+    {
+        LayerStack stack;
+        Canvas canvas;
+        uint32_t pixels[4];
+
+        init_single_layer_stack(&stack, &canvas, pixels, 2, 2, 0x00000000u, 0);
+        memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
+        shaping = 20;
+        shape_start_x = 29;
+        shape_start_y = 30;
+        ok = ok && expect_begin_shape_preview_to_active_layer(
+            "begin_shape_preview_to_active_layer_editable",
+            &stack,
+            240,
+            250,
+            &shaping,
+            &shape_start_x,
+            &shape_start_y,
+            preview_copy,
+            &begin_preview_canvas,
+            1,
+            1,
+            240,
+            250,
+            preview_source,
+            4
+        );
+    }
+    {
+        LayerStack stack;
+        Canvas canvas;
+        uint32_t pixels[4];
+
+        init_single_layer_stack(&stack, &canvas, pixels, 2, 2, 0x00000000u, 1);
+        memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
+        shaping = 21;
+        shape_start_x = 31;
+        shape_start_y = 32;
+        ok = ok && expect_begin_shape_preview_to_active_layer(
+            "begin_shape_preview_to_active_layer_locked_noop",
+            &stack,
+            260,
+            270,
+            &shaping,
+            &shape_start_x,
+            &shape_start_y,
+            preview_copy,
+            &begin_preview_canvas,
+            0,
+            21,
+            31,
+            32,
+            preview_sentinel,
+            4
+        );
+    }
+    memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
+    shaping = 22;
+    shape_start_x = 33;
+    shape_start_y = 34;
+    ok = ok && expect_begin_shape_preview_to_active_layer(
+        "begin_shape_preview_to_active_layer_null_stack_noop",
+        NULL,
+        280,
+        290,
+        &shaping,
+        &shape_start_x,
+        &shape_start_y,
+        preview_copy,
+        &begin_preview_canvas,
+        0,
+        22,
+        33,
+        34,
+        preview_sentinel,
+        4
+    );
     ok = ok && expect_cancel_shape_preview("cancel_shape_preview_both", &shaping, &preview_active, 0, 0);
     shaping = 7;
     preview_active = 9;
