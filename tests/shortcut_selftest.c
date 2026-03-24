@@ -2311,6 +2311,59 @@ static int expect_prepare_shape_preview_motion(
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    int canvas_width;
+    int canvas_height;
+    uint32_t *preview_canvas_pixels;
+    uint32_t *preview_pixels;
+    const uint32_t *shape_base_pixels;
+    size_t pixel_count;
+    int initial_preview_active;
+    Tool tool;
+    int shape_start_x;
+    int shape_start_y;
+    int x;
+    int y;
+    int shift;
+    int want_prepared;
+    int want_preview_active;
+    int want_x;
+    int want_y;
+    const uint32_t *want_preview_pixels;
+    size_t want_preview_pixel_count;
+} PrepareShapePreviewMotionCase;
+
+static int run_prepare_shape_preview_motion_case(const PrepareShapePreviewMotionCase *test_case) {
+    Canvas preview_canvas = {
+        test_case->canvas_width,
+        test_case->canvas_height,
+        test_case->preview_canvas_pixels
+    };
+    int preview_active = test_case->initial_preview_active;
+
+    return expect_prepare_shape_preview_motion(
+        test_case->label,
+        &preview_canvas,
+        test_case->preview_pixels,
+        test_case->shape_base_pixels,
+        test_case->pixel_count,
+        &preview_active,
+        test_case->tool,
+        test_case->shape_start_x,
+        test_case->shape_start_y,
+        test_case->x,
+        test_case->y,
+        test_case->shift,
+        test_case->want_prepared,
+        test_case->want_preview_active,
+        test_case->want_x,
+        test_case->want_y,
+        test_case->want_preview_pixels,
+        test_case->want_preview_pixel_count
+    );
+}
+
 static int expect_prepare_shape_preview_motion_rejection(
     const char *label,
     Canvas *preview_canvas,
@@ -3784,31 +3837,48 @@ int main(void) {
         }
     }
     {
-        Canvas prep_preview_canvas = {2, 2, preview_restore_copy};
-        int prep_preview_active = 0;
         uint32_t prep_preview_pixels[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
         uint32_t prep_shape_base[4] = {0x01010101u, 0x02020202u, 0x03030303u, 0x04040404u};
+        const PrepareShapePreviewMotionCase prepare_shape_preview_motion_cases[] = {
+            {
+                "prepare_shape_preview_motion_success",
+                2, 2,
+                prep_preview_pixels,
+                prep_preview_pixels,
+                prep_shape_base,
+                4,
+                0,
+                TOOL_RECT,
+                0, 0,
+                1, 1,
+                0,
+                1, 1, 1, 1,
+                prep_shape_base,
+                4,
+            },
+            {
+                "prepare_shape_preview_motion_shift_constrained",
+                4, 4,
+                prep_preview_pixels,
+                prep_preview_pixels,
+                prep_shape_base,
+                4,
+                0,
+                TOOL_LINE,
+                1, 1,
+                3, 2,
+                1,
+                1, 1, 3, 3,
+                prep_shape_base,
+                4,
+            },
+        };
+        size_t i;
 
-        ok = ok && expect_prepare_shape_preview_motion(
-            "prepare_shape_preview_motion_success",
-            &prep_preview_canvas,
-            prep_preview_pixels,
-            prep_shape_base,
-            4,
-            &prep_preview_active,
-            TOOL_RECT,
-            0,
-            0,
-            1,
-            1,
-            0,
-            1,
-            1,
-            1,
-            1,
-            prep_shape_base,
-            4
-        );
+        for (i = 0; i < sizeof(prepare_shape_preview_motion_cases) / sizeof(prepare_shape_preview_motion_cases[0]); i++) {
+            memcpy(prep_preview_pixels, (uint32_t[]){0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu}, sizeof(prep_preview_pixels));
+            ok = ok && run_prepare_shape_preview_motion_case(&prepare_shape_preview_motion_cases[i]);
+        }
     }
     {
         const PrepareShapeCommitCase prepare_shape_commit_cases[] = {
@@ -3965,33 +4035,6 @@ int main(void) {
         for (i = 0; i < sizeof(finalize_cases) / sizeof(finalize_cases[0]); i++) {
             ok = ok && run_finalize_shape_preview_case(&finalize_cases[i]);
         }
-    }
-    {
-        Canvas prep_preview_canvas = {4, 4, preview_restore_copy};
-        int prep_preview_active = 0;
-        uint32_t prep_preview_pixels[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
-        uint32_t prep_shape_base[4] = {0x01010101u, 0x02020202u, 0x03030303u, 0x04040404u};
-
-        ok = ok && expect_prepare_shape_preview_motion(
-            "prepare_shape_preview_motion_shift_constrained",
-            &prep_preview_canvas,
-            prep_preview_pixels,
-            prep_shape_base,
-            4,
-            &prep_preview_active,
-            TOOL_LINE,
-            1,
-            1,
-            3,
-            2,
-            1,
-            1,
-            1,
-            3,
-            3,
-            prep_shape_base,
-            4
-        );
     }
     {
         Canvas prep_preview_canvas = {4, 4, preview_restore_copy};
