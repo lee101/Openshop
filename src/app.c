@@ -1972,31 +1972,24 @@ static void destroy_app_graphics(
 }
 
 static void shutdown_app(
-    uint32_t *shape_base_pixels,
-    uint32_t *preview_pixels,
+    AppRuntime *runtime,
     Canvas *composite,
     LayerStack *layers,
-    Snapshot *undo_stack,
-    int *undo_count,
-    Snapshot *redo_stack,
-    int *redo_count,
     SDL_Texture *texture,
     SDL_Renderer *renderer,
     SDL_Window *window
 ) {
-    free(shape_base_pixels);
-    free(preview_pixels);
+    if (runtime) {
+        free(runtime->shape_base_pixels);
+        free(runtime->preview_pixels);
+        snapshot_stack_clear(runtime->undo_stack, &runtime->undo_count);
+        snapshot_stack_clear(runtime->redo_stack, &runtime->redo_count);
+    }
     if (composite) {
         canvas_free(composite);
     }
     if (layers) {
         layer_stack_free(layers);
-    }
-    if (undo_stack && undo_count) {
-        snapshot_stack_clear(undo_stack, undo_count);
-    }
-    if (redo_stack && redo_count) {
-        snapshot_stack_clear(redo_stack, redo_count);
     }
     destroy_app_graphics(texture, renderer, window);
     SDL_Quit();
@@ -2105,6 +2098,8 @@ static void initialize_app_runtime(AppRuntime *runtime) {
         return;
     }
 
+    runtime->shape_base_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
+    runtime->preview_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
     runtime->running = 1;
     runtime->drawing = 0;
     runtime->last_x = 0;
@@ -2146,11 +2141,6 @@ static int initialize_app(
             NULL,
             NULL,
             NULL,
-            NULL,
-            NULL,
-            NULL,
-            NULL,
-            NULL,
             *texture_out,
             *renderer_out,
             *window_out
@@ -2182,8 +2172,6 @@ int app_run(const char *input_path) {
         return 1;
     }
 
-    runtime.shape_base_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
-    runtime.preview_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
     initialize_app_runtime(&runtime);
     refresh_app_title(window, &layers, runtime.tool, runtime.brush_shape, runtime.brush_radius, runtime.brush_color, runtime.brush_opacity);
 
@@ -2306,14 +2294,9 @@ int app_run(const char *input_path) {
     }
 
     shutdown_app(
-        runtime.shape_base_pixels,
-        runtime.preview_pixels,
+        &runtime,
         &composite,
         &layers,
-        runtime.undo_stack,
-        &runtime.undo_count,
-        runtime.redo_stack,
-        &runtime.redo_count,
         texture,
         renderer,
         window
