@@ -250,6 +250,10 @@ static int test_layer_snapshot_capture_apply_guard_paths(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!expect_pixel_eq("snapshot_apply_rejected_null_or_empty_preserves_stack", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF102030)) {
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     snapshot.width = stack.width + 1;
     snapshot.height = stack.height;
