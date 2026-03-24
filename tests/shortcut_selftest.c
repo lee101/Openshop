@@ -2219,6 +2219,34 @@ static int expect_restore_shape_preview(
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    uint32_t *preview_pixels;
+    const uint32_t *shape_base_pixels;
+    size_t pixel_count;
+    int initial_preview_active;
+    int use_preview_active_flag;
+    int want_preview_active;
+    const uint32_t *want_preview_pixels;
+    size_t want_pixel_count;
+} RestoreShapePreviewCase;
+
+static int run_restore_shape_preview_case(const RestoreShapePreviewCase *test_case) {
+    int preview_active = test_case->initial_preview_active;
+    int *preview_active_ptr = test_case->use_preview_active_flag ? &preview_active : NULL;
+
+    return expect_restore_shape_preview(
+        test_case->label,
+        test_case->preview_pixels,
+        test_case->shape_base_pixels,
+        test_case->pixel_count,
+        preview_active_ptr,
+        test_case->want_preview_active,
+        test_case->want_preview_pixels,
+        test_case->want_pixel_count
+    );
+}
+
 static int expect_prepare_shape_preview_motion(
     const char *label,
     Canvas *preview_canvas,
@@ -3591,78 +3619,70 @@ int main(void) {
     );
     ok = ok && expect_preview_canvas_selection("preview_canvas_null_preview_falls_back", &composite_canvas, NULL, 1, &composite_canvas);
     ok = ok && expect_preview_canvas_selection("preview_canvas_null_composite_allowed", NULL, &preview_canvas, 0, NULL);
-    preview_active = 0;
-    memcpy(preview_restore_copy, preview_restore_sentinel, sizeof(preview_restore_copy));
-    ok = ok && expect_restore_shape_preview(
-        "restore_shape_preview_copy",
-        preview_restore_copy,
-        preview_restore_source,
-        4,
-        &preview_active,
-        1,
-        preview_restore_source,
-        4
-    );
-    preview_active = 0;
-    memcpy(preview_restore_copy, preview_restore_sentinel, sizeof(preview_restore_copy));
-    ok = ok && expect_restore_shape_preview(
-        "restore_shape_preview_partial_copy",
-        preview_restore_copy,
-        preview_restore_source,
-        2,
-        &preview_active,
-        1,
-        (const uint32_t[]){0x01010101u, 0x02020202u, 0xCCCCCCCCu, 0xDDDDDDDDu},
-        4
-    );
-    preview_active = 0;
-    memcpy(preview_restore_copy, preview_restore_sentinel, sizeof(preview_restore_copy));
-    ok = ok && expect_restore_shape_preview(
-        "restore_shape_preview_zero_length",
-        preview_restore_copy,
-        preview_restore_source,
-        0,
-        &preview_active,
-        1,
-        preview_restore_sentinel,
-        4
-    );
-    preview_active = 0;
-    memcpy(preview_restore_copy, preview_restore_sentinel, sizeof(preview_restore_copy));
-    ok = ok && expect_restore_shape_preview(
-        "restore_shape_preview_null_destination",
-        NULL,
-        preview_restore_source,
-        4,
-        &preview_active,
-        1,
-        NULL,
-        0
-    );
-    preview_active = 0;
-    memcpy(preview_restore_copy, preview_restore_sentinel, sizeof(preview_restore_copy));
-    ok = ok && expect_restore_shape_preview(
-        "restore_shape_preview_null_source",
-        preview_restore_copy,
-        NULL,
-        4,
-        &preview_active,
-        1,
-        preview_restore_sentinel,
-        4
-    );
-    preview_active = 9;
-    memcpy(preview_restore_copy, preview_restore_sentinel, sizeof(preview_restore_copy));
-    ok = ok && expect_restore_shape_preview(
-        "restore_shape_preview_null_flag",
-        preview_restore_copy,
-        preview_restore_source,
-        4,
-        NULL,
-        0,
-        preview_restore_sentinel,
-        4
-    );
+    {
+        const RestoreShapePreviewCase restore_shape_preview_cases[] = {
+            {
+                "restore_shape_preview_copy",
+                preview_restore_copy,
+                preview_restore_source,
+                4,
+                0, 1, 1,
+                preview_restore_source,
+                4,
+            },
+            {
+                "restore_shape_preview_partial_copy",
+                preview_restore_copy,
+                preview_restore_source,
+                2,
+                0, 1, 1,
+                (const uint32_t[]){0x01010101u, 0x02020202u, 0xCCCCCCCCu, 0xDDDDDDDDu},
+                4,
+            },
+            {
+                "restore_shape_preview_zero_length",
+                preview_restore_copy,
+                preview_restore_source,
+                0,
+                0, 1, 1,
+                preview_restore_sentinel,
+                4,
+            },
+            {
+                "restore_shape_preview_null_destination",
+                NULL,
+                preview_restore_source,
+                4,
+                0, 1, 1,
+                NULL,
+                0,
+            },
+            {
+                "restore_shape_preview_null_source",
+                preview_restore_copy,
+                NULL,
+                4,
+                0, 1, 1,
+                preview_restore_sentinel,
+                4,
+            },
+            {
+                "restore_shape_preview_null_flag",
+                preview_restore_copy,
+                preview_restore_source,
+                4,
+                9, 0, 0,
+                preview_restore_sentinel,
+                4,
+            },
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(restore_shape_preview_cases) / sizeof(restore_shape_preview_cases[0]); i++) {
+            memcpy(preview_restore_copy, preview_restore_sentinel, sizeof(preview_restore_copy));
+            ok = ok && run_restore_shape_preview_case(&restore_shape_preview_cases[i]);
+        }
+    }
     {
         Canvas prep_preview_canvas = {2, 2, preview_restore_copy};
         int prep_preview_active = 0;
