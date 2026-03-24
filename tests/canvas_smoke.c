@@ -734,6 +734,84 @@ static int test_layer_history_skip_noop_snapshot_commit(void) {
     return 1;
 }
 
+static int test_layer_history_commit_change_helper(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "history commit helper init failed\n");
+        return 0;
+    }
+
+    LayerHistory history = {0};
+    layer_history_record(&history, &stack);
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF0A0B0C);
+    layer_history_record(&history, &stack);
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF0D0E0F);
+
+    if (!layer_history_step_undo(&history, &stack) || history.redo_count != 1) {
+        fprintf(stderr, "history commit helper undo setup failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    LayerSnapshot noop_snapshot = {0};
+    if (!layer_snapshot_capture(&noop_snapshot, &stack)) {
+        fprintf(stderr, "history commit helper noop capture failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_history_commit_change(&history, &noop_snapshot, &stack, 1)) {
+        fprintf(stderr, "history commit helper should skip unchanged state\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (history.redo_count != 1) {
+        fprintf(stderr, "history commit helper should keep redo for unchanged state\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    LayerSnapshot changed_snapshot = {0};
+    if (!layer_snapshot_capture(&changed_snapshot, &stack)) {
+        fprintf(stderr, "history commit helper changed capture failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF101112);
+    if (!layer_history_commit_change(&history, &changed_snapshot, &stack, 1)) {
+        fprintf(stderr, "history commit helper should record changed state\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (history.redo_count != 0) {
+        fprintf(stderr, "history commit helper should clear redo for changed state\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_history_step_undo(&history, &stack) ||
+        !expect_pixel_eq("history_commit_helper_undo", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF0A0B0C)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_history_step_redo(&history, &stack) ||
+        !expect_pixel_eq("history_commit_helper_redo", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF101112)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_reset(&history);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layers_basic(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 16, 16, 0xFFFFFFFF)) {
@@ -1722,6 +1800,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_skip_noop_snapshot_commit()) {
+        return 1;
+    }
+    if (!test_layer_history_commit_change_helper()) {
         return 1;
     }
 

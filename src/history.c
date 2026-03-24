@@ -59,6 +59,14 @@ static int layer_snapshot_equals(const LayerSnapshot *a, const LayerSnapshot *b)
     return memcmp(a->pixels, b->pixels, total_pixels * sizeof(uint32_t)) == 0;
 }
 
+static void layer_snapshot_disown(LayerSnapshot *snapshot) {
+    if (!snapshot) {
+        return;
+    }
+    memset(snapshot, 0, sizeof(*snapshot));
+    snapshot->solo_index = -1;
+}
+
 void layer_snapshot_free(LayerSnapshot *snapshot) {
     if (!snapshot) {
         return;
@@ -72,12 +80,21 @@ void layer_snapshot_free(LayerSnapshot *snapshot) {
     snapshot->solo_index = -1;
 }
 
+void layer_snapshot_reset(LayerSnapshot *snapshot) {
+    if (!snapshot) {
+        return;
+    }
+    layer_snapshot_free(snapshot);
+    memset(snapshot, 0, sizeof(*snapshot));
+    snapshot->solo_index = -1;
+}
+
 int layer_snapshot_capture(LayerSnapshot *snapshot, const LayerStack *stack) {
     if (!snapshot || !stack) {
         return 0;
     }
 
-    memset(snapshot, 0, sizeof(*snapshot));
+    layer_snapshot_reset(snapshot);
     snapshot->width = stack->width;
     snapshot->height = stack->height;
     snapshot->layer_count = stack->layer_count;
@@ -269,8 +286,25 @@ int layer_history_record_snapshot(LayerHistory *history, LayerSnapshot *snapshot
     }
     history_push_existing(history->undo, &history->undo_count, snapshot);
     layer_history_clear(history->redo, &history->redo_count);
-    memset(snapshot, 0, sizeof(*snapshot));
-    snapshot->solo_index = -1;
+    layer_snapshot_disown(snapshot);
+    return 1;
+}
+
+int layer_history_commit_change(LayerHistory *history, LayerSnapshot *snapshot, const LayerStack *layers, int operation_succeeded) {
+    if (!snapshot) {
+        return 0;
+    }
+    if (!operation_succeeded || !layers || layer_snapshot_matches_stack(snapshot, layers)) {
+        layer_snapshot_free(snapshot);
+        return 0;
+    }
+    if (!history) {
+        layer_snapshot_free(snapshot);
+        return 0;
+    }
+    if (!layer_history_record_snapshot(history, snapshot)) {
+        return 0;
+    }
     return 1;
 }
 
