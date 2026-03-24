@@ -65,6 +65,30 @@ static void set_snapshot_marker_state(LayerSnapshot *snapshot) {
     snapshot->pixels = (uint32_t *)1;
 }
 
+static int init_snapshot_metadata_test_stack(LayerStack *stack, const char *label) {
+    if (!layer_stack_init(stack, 3, 3, 0xFFFFFFFF)) {
+        fprintf(stderr, "%s init failed\n", label);
+        return 0;
+    }
+    if (layer_stack_add(stack, "Ink", 0x00000000) != 1) {
+        fprintf(stderr, "%s add layer failed\n", label);
+        layer_stack_free(stack);
+        return 0;
+    }
+    stack->layers[1].visible = 0;
+    stack->layers[1].locked = 1;
+    stack->layers[1].opacity_percent = 42;
+    return 1;
+}
+
+static int snapshot_has_seed_metadata(const LayerSnapshot *snapshot) {
+    return snapshot &&
+           snapshot->visibility[1] == 0 &&
+           snapshot->locked[1] == 1 &&
+           snapshot->opacity_percent[1] == 42 &&
+           strcmp(snapshot->names[1], "Ink") == 0;
+}
+
 static int test_layer_snapshot_restore(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
@@ -383,19 +407,9 @@ static int test_layer_snapshot_capture_reuses_existing_snapshot(void) {
 
 static int test_layer_snapshot_free_preserves_metadata_arrays(void) {
     LayerStack stack;
-    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
-        fprintf(stderr, "snapshot free init failed\n");
+    if (!init_snapshot_metadata_test_stack(&stack, "snapshot free")) {
         return 0;
     }
-    if (layer_stack_add(&stack, "Ink", 0x00000000) != 1) {
-        fprintf(stderr, "snapshot free add layer failed\n");
-        layer_stack_free(&stack);
-        return 0;
-    }
-
-    stack.layers[1].visible = 0;
-    stack.layers[1].locked = 1;
-    stack.layers[1].opacity_percent = 42;
 
     LayerSnapshot snapshot = {0};
     if (!layer_snapshot_capture(&snapshot, &stack)) {
@@ -412,13 +426,8 @@ static int test_layer_snapshot_free_preserves_metadata_arrays(void) {
             layer_stack_free(&stack);
             return 0;
         }
-        if (snapshot.visibility[1] != 0 || snapshot.locked[1] != 1 || snapshot.opacity_percent[1] != 42) {
+        if (!snapshot_has_seed_metadata(&snapshot)) {
             fprintf(stderr, "snapshot free should preserve metadata arrays for callers that reuse them\n");
-            layer_stack_free(&stack);
-            return 0;
-        }
-        if (strcmp(snapshot.names[1], "Ink") != 0) {
-            fprintf(stderr, "snapshot free should preserve layer names\n");
             layer_stack_free(&stack);
             return 0;
         }
@@ -1185,18 +1194,9 @@ static int test_layer_history_skip_noop_snapshot_commit(void) {
 
 static int test_layer_snapshot_reset_clears_allocated_state(void) {
     LayerStack stack;
-    if (!layer_stack_init(&stack, 3, 3, 0xFFFFFFFF)) {
-        fprintf(stderr, "history snapshot reset init failed\n");
+    if (!init_snapshot_metadata_test_stack(&stack, "history snapshot reset")) {
         return 0;
     }
-    if (layer_stack_add(&stack, "Ink", 0x00000000) != 1) {
-        fprintf(stderr, "history snapshot reset add layer failed\n");
-        layer_stack_free(&stack);
-        return 0;
-    }
-    stack.layers[1].visible = 0;
-    stack.layers[1].locked = 1;
-    stack.layers[1].opacity_percent = 42;
 
     LayerSnapshot snapshot = {0};
     if (!layer_snapshot_capture(&snapshot, &stack)) {
