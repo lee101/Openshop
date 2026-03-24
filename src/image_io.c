@@ -3,25 +3,21 @@
 #include <SDL2/SDL.h>
 #include <string.h>
 
-int canvas_load_bmp_with_result(Canvas *c, const char *path, uint32_t background_color, int *changed) {
+ImageLoadResult canvas_load_bmp_action_result(Canvas *c, const char *path, uint32_t background_color) {
     int would_change = 0;
-
-    if (changed) {
-        *changed = 0;
-    }
     if (!path || !c) {
-        return 0;
+        return IMAGE_LOAD_FAILED;
     }
 
     SDL_Surface *bmp = SDL_LoadBMP(path);
     if (!bmp) {
-        return 0;
+        return IMAGE_LOAD_FAILED;
     }
 
     SDL_Surface *converted = SDL_ConvertSurfaceFormat(bmp, SDL_PIXELFORMAT_ARGB8888, 0);
     SDL_FreeSurface(bmp);
     if (!converted) {
-        return 0;
+        return IMAGE_LOAD_FAILED;
     }
 
     int copy_w = converted->w < c->width ? converted->w : c->width;
@@ -40,7 +36,7 @@ int canvas_load_bmp_with_result(Canvas *c, const char *path, uint32_t background
 
     if (!would_change) {
         SDL_FreeSurface(converted);
-        return 1;
+        return IMAGE_LOAD_UNCHANGED;
     }
 
     canvas_clear(c, background_color);
@@ -51,19 +47,24 @@ int canvas_load_bmp_with_result(Canvas *c, const char *path, uint32_t background
     }
 
     SDL_FreeSurface(converted);
+    return IMAGE_LOAD_CHANGED;
+}
+
+int canvas_load_bmp_with_result(Canvas *c, const char *path, uint32_t background_color, int *changed) {
+    ImageLoadResult result;
+
     if (changed) {
+        *changed = 0;
+    }
+    result = canvas_load_bmp_action_result(c, path, background_color);
+    if (result == IMAGE_LOAD_CHANGED && changed) {
         *changed = 1;
     }
-    return 1;
+    return result != IMAGE_LOAD_FAILED;
 }
 
 int canvas_load_bmp(Canvas *c, const char *path, uint32_t background_color) {
-    int changed = 0;
-
-    if (!canvas_load_bmp_with_result(c, path, background_color, &changed)) {
-        return 0;
-    }
-    return changed;
+    return canvas_load_bmp_action_result(c, path, background_color) == IMAGE_LOAD_CHANGED;
 }
 
 int canvas_save_bmp(const Canvas *c, const char *path) {

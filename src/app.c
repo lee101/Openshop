@@ -210,8 +210,7 @@ static int action_move_layer_up(LayerStack *layers, int index) {
 
 typedef struct {
     uint32_t clear_color;
-    int load_succeeded;
-    int load_changed;
+    ImageLoadResult load_result;
 } LoadActiveLayerBmpContext;
 
 static int load_active_layer_bmp_action(LayerStack *layers, void *ctx) {
@@ -225,9 +224,8 @@ static int load_active_layer_bmp_action(LayerStack *layers, void *ctx) {
     if (!active) {
         return 0;
     }
-    load_ctx->load_succeeded = canvas_load_bmp_with_result(&active->canvas, "input.bmp",
-                                                           load_ctx->clear_color, &load_ctx->load_changed);
-    return load_ctx->load_changed;
+    load_ctx->load_result = canvas_load_bmp_action_result(&active->canvas, "input.bmp", load_ctx->clear_color);
+    return load_ctx->load_result == IMAGE_LOAD_CHANGED;
 }
 
 static int handle_add_layer_hotkey(SDL_Keycode key,
@@ -1007,14 +1005,13 @@ static int handle_file_hotkey(SDL_Keycode key,
         }
 
         load_ctx.clear_color = active_layer_clear_color(action_state->layers, COLOR_BG);
-        load_ctx.load_succeeded = 0;
-        load_ctx.load_changed = 0;
+        load_ctx.load_result = IMAGE_LOAD_FAILED;
         result = layer_action_history_apply_custom_with_result(action_state->layers, action_state->undo_stack,
                                                                action_state->undo_count, action_state->redo_stack,
                                                                action_state->redo_count, MAX_HISTORY,
                                                                load_active_layer_bmp_action, &load_ctx);
         if (result == LAYER_ACTION_HISTORY_FAILED) {
-            if (!load_ctx.load_succeeded) {
+            if (load_ctx.load_result == IMAGE_LOAD_FAILED) {
                 fprintf(stderr, "%s\n", status_text_action_error(STATUS_LOAD_INPUT_BMP));
             }
             return 1;
@@ -1360,8 +1357,7 @@ int app_run(const char *input_path) {
 
     if (input_path && input_path[0]) {
         Layer *active = layer_stack_active(&layers);
-        int load_changed = 0;
-        if (active && !canvas_load_bmp_with_result(&active->canvas, input_path, COLOR_BG, &load_changed)) {
+        if (active && canvas_load_bmp_action_result(&active->canvas, input_path, COLOR_BG) == IMAGE_LOAD_FAILED) {
             format_status_text_file_load(input_path, status_message, sizeof(status_message));
             fprintf(stderr, "%s\n", status_message);
         }
