@@ -252,6 +252,30 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
     SDL_SetWindowTitle(window, title);
 }
 
+static void update_window_title_from_brush_state(
+    SDL_Window *window,
+    const LayerStack *layers,
+    const Tool *tool,
+    const BrushShape *brush_shape,
+    const int *brush_radius,
+    const uint32_t *brush_color,
+    const int *brush_opacity
+) {
+    if (!tool || !brush_shape || !brush_radius || !brush_color || !brush_opacity) {
+        return;
+    }
+
+    update_window_title(
+        window,
+        layers,
+        *tool,
+        *brush_shape,
+        *brush_radius,
+        *brush_color,
+        *brush_opacity
+    );
+}
+
 static int refresh_after_shortcut(
     int handled,
     SDL_Window *window,
@@ -1640,7 +1664,15 @@ static void handle_mouse_button_down(
             brush_color_rgb,
             brush_opacity
         ))) {
-            update_window_title(window, layers, *tool, brush_shape, brush_radius, *brush_color, *brush_opacity);
+            update_window_title_from_brush_state(
+                window,
+                layers,
+                tool,
+                &brush_shape,
+                &brush_radius,
+                brush_color,
+                brush_opacity
+            );
         }
     }
 }
@@ -1752,7 +1784,15 @@ static void handle_key_down(
         return;
     }
 
-    update_window_title(window, layers, *tool, *brush_shape, *brush_radius, *brush_color, *brush_opacity);
+    update_window_title_from_brush_state(
+        window,
+        layers,
+        tool,
+        brush_shape,
+        brush_radius,
+        brush_color,
+        brush_opacity
+    );
 }
 
 static void draw_checkerboard_background(SDL_Renderer *renderer) {
