@@ -1527,6 +1527,17 @@ static int test_active_layer_ops_helpers(void) {
     {
         int undo_before = undo_count;
         int redo_before = redo_count;
+        if (active_layer_try_clear_with_result(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                               0xFFFFFFFF, 4) != ACTIVE_LAYER_ACTION_UNCHANGED) {
+            fprintf(stderr, "active_layer_try_clear_with_result no-op result failed\n");
+            layer_stack_free(&single_stack);
+            layer_stack_free(&short_stack);
+            layer_stack_free(&narrow_stack);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
         if (active_layer_try_clear(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0xFFFFFFFF, 4) ||
             undo_count != undo_before || redo_count != redo_before) {
             fprintf(stderr, "active_layer_try_clear no-op failed\n");
@@ -1581,6 +1592,20 @@ static int test_active_layer_ops_helpers(void) {
         }
     }
 
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 0, 0xFF000001);
+    if (active_layer_try_flip_horizontal_with_result(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) !=
+        ACTIVE_LAYER_ACTION_CHANGED) {
+        fprintf(stderr, "active_layer_try_flip_horizontal_with_result changed result failed\n");
+        layer_stack_free(&single_stack);
+        layer_stack_free(&short_stack);
+        layer_stack_free(&narrow_stack);
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
     canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 0, 0xFF000001);
     if (!active_layer_try_flip_horizontal(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
         !expect_pixel_eq("active_flip_h", canvas_get_pixel(&stack.layers[0].canvas, 3, 0), 0xFF000001)) {

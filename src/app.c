@@ -848,31 +848,36 @@ static int handle_brush_state_hotkey(SDL_Keycode key,
     return 1;
 }
 
-static int handle_active_edit_hotkey(SDL_Keycode key,
-                                     LayerStack *layers,
-                                     Snapshot *undo_stack, int *undo_count,
-                                     Snapshot *redo_stack, int *redo_count) {
+static ActiveLayerActionResult handle_active_edit_hotkey(SDL_Keycode key,
+                                                         LayerStack *layers,
+                                                         Snapshot *undo_stack, int *undo_count,
+                                                         Snapshot *redo_stack, int *redo_count) {
     AppActiveEditAction action;
 
     if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_FAILED;
     }
 
     action = app_active_edit_hotkey_action((int)key);
     switch (action) {
     case APP_ACTIVE_EDIT_CLEAR:
-        return try_clear_active_layer(layers, undo_stack, undo_count, redo_stack, redo_count);
+        return active_layer_try_clear_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                  COLOR_BG, MAX_HISTORY);
     case APP_ACTIVE_EDIT_FLIP_HORIZONTAL:
-        return try_flip_horizontal_active_layer(layers, undo_stack, undo_count, redo_stack, redo_count);
+        return active_layer_try_flip_horizontal_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                            MAX_HISTORY);
     case APP_ACTIVE_EDIT_FLIP_VERTICAL:
-        return try_flip_vertical_active_layer(layers, undo_stack, undo_count, redo_stack, redo_count);
+        return active_layer_try_flip_vertical_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                          MAX_HISTORY);
     case APP_ACTIVE_EDIT_ROTATE_180:
-        return try_rotate_active_layer_180(layers, undo_stack, undo_count, redo_stack, redo_count);
+        return active_layer_try_rotate_180_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                       MAX_HISTORY);
     case APP_ACTIVE_EDIT_INVERT_RGB:
-        return try_invert_active_layer_rgb(layers, undo_stack, undo_count, redo_stack, redo_count);
+        return active_layer_try_invert_rgb_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                       MAX_HISTORY);
     case APP_ACTIVE_EDIT_NONE:
     default:
-        return 0;
+        return ACTIVE_LAYER_ACTION_FAILED;
     }
 }
 
@@ -926,6 +931,7 @@ static int handle_general_key_hotkey(SDL_Keycode key,
                                      int *brush_opacity, int *brush_radius,
                                      BrushShape *brush_shape, Tool *tool,
                                      int *needs_composite) {
+    ActiveLayerActionResult active_edit_result = ACTIVE_LAYER_ACTION_FAILED;
     AppMousePositionAction mouse_position_action = APP_MOUSE_POSITION_NONE;
     int mouse_position_changed = 0;
 
@@ -938,10 +944,11 @@ static int handle_general_key_hotkey(SDL_Keycode key,
         return 1;
     }
 
-    if (handle_active_edit_hotkey(key, action_state->layers, action_state->undo_stack,
-                                  action_state->undo_count, action_state->redo_stack,
-                                  action_state->redo_count)) {
-        if (needs_composite) {
+    active_edit_result = handle_active_edit_hotkey(key, action_state->layers, action_state->undo_stack,
+                                                   action_state->undo_count, action_state->redo_stack,
+                                                   action_state->redo_count);
+    if (active_edit_result != ACTIVE_LAYER_ACTION_FAILED) {
+        if (needs_composite && active_edit_result == ACTIVE_LAYER_ACTION_CHANGED) {
             *needs_composite = 1;
         }
         update_title_state(action_state->title_state);

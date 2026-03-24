@@ -247,91 +247,134 @@ static int canvas_ellipse_outline_would_change(const Canvas *canvas,
     return 0;
 }
 
-static int active_layer_apply_transform(LayerStack *layers,
-                                        Snapshot *undo_stack, int *undo_count,
-                                        Snapshot *redo_stack, int *redo_count,
-                                        int max_history,
-                                        void (*transform)(Canvas *)) {
+static ActiveLayerActionResult active_layer_apply_transform_with_result(LayerStack *layers,
+                                                                       Snapshot *undo_stack, int *undo_count,
+                                                                       Snapshot *redo_stack, int *redo_count,
+                                                                       int max_history,
+                                                                       void (*transform)(Canvas *)) {
     Layer *active;
 
     if (!layers || !transform || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_FAILED;
     }
     active = layer_stack_active(layers);
     if (!active || active->locked || !active->canvas.pixels) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_FAILED;
     }
     if ((transform == canvas_flip_horizontal && active->canvas.width <= 1) ||
         (transform == canvas_flip_vertical && active->canvas.height <= 1) ||
         (transform == canvas_rotate_180 &&
          active->canvas.width * active->canvas.height <= 1)) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
     if ((transform == canvas_flip_horizontal || transform == canvas_flip_vertical ||
          transform == canvas_rotate_180) &&
         canvas_is_uniform(&active->canvas)) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
     if (transform == canvas_invert_rgb && !canvas_has_visible_pixel(&active->canvas)) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
     snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
     transform(&active->canvas);
-    return 1;
+    return ACTIVE_LAYER_ACTION_CHANGED;
+}
+
+ActiveLayerActionResult active_layer_try_clear_with_result(LayerStack *layers,
+                                                           Snapshot *undo_stack, int *undo_count,
+                                                           Snapshot *redo_stack, int *redo_count,
+                                                           uint32_t background_color, int max_history) {
+    Layer *active;
+    uint32_t clear_color;
+
+    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
+    active = layer_stack_active(layers);
+    if (!active || active->locked || !active->canvas.pixels) {
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
+    clear_color = active_layer_clear_color(layers, background_color);
+    if (!canvas_has_non_matching_pixel(&active->canvas, clear_color)) {
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
+    }
+    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
+    if (!layer_stack_clear_layer(layers, layers->active_layer, clear_color)) {
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
+    return ACTIVE_LAYER_ACTION_CHANGED;
 }
 
 int active_layer_try_clear(LayerStack *layers,
                            Snapshot *undo_stack, int *undo_count,
                            Snapshot *redo_stack, int *redo_count,
                            uint32_t background_color, int max_history) {
-    Layer *active;
-    uint32_t clear_color;
+    return active_layer_try_clear_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                              background_color, max_history) == ACTIVE_LAYER_ACTION_CHANGED;
+}
 
-    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
-        return 0;
-    }
-    active = layer_stack_active(layers);
-    if (!active || active->locked || !active->canvas.pixels) {
-        return 0;
-    }
-    clear_color = active_layer_clear_color(layers, background_color);
-    if (!canvas_has_non_matching_pixel(&active->canvas, clear_color)) {
-        return 0;
-    }
-    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
-    return layer_stack_clear_layer(layers, layers->active_layer, clear_color);
+ActiveLayerActionResult active_layer_try_flip_horizontal_with_result(LayerStack *layers,
+                                                                     Snapshot *undo_stack, int *undo_count,
+                                                                     Snapshot *redo_stack, int *redo_count,
+                                                                     int max_history) {
+    return active_layer_apply_transform_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                    max_history, canvas_flip_horizontal);
 }
 
 int active_layer_try_flip_horizontal(LayerStack *layers,
                                      Snapshot *undo_stack, int *undo_count,
                                      Snapshot *redo_stack, int *redo_count,
                                      int max_history) {
-    return active_layer_apply_transform(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                        max_history, canvas_flip_horizontal);
+    return active_layer_try_flip_horizontal_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                        max_history) == ACTIVE_LAYER_ACTION_CHANGED;
+}
+
+ActiveLayerActionResult active_layer_try_flip_vertical_with_result(LayerStack *layers,
+                                                                   Snapshot *undo_stack, int *undo_count,
+                                                                   Snapshot *redo_stack, int *redo_count,
+                                                                   int max_history) {
+    return active_layer_apply_transform_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                    max_history, canvas_flip_vertical);
 }
 
 int active_layer_try_flip_vertical(LayerStack *layers,
                                    Snapshot *undo_stack, int *undo_count,
                                    Snapshot *redo_stack, int *redo_count,
                                    int max_history) {
-    return active_layer_apply_transform(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                        max_history, canvas_flip_vertical);
+    return active_layer_try_flip_vertical_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                      max_history) == ACTIVE_LAYER_ACTION_CHANGED;
+}
+
+ActiveLayerActionResult active_layer_try_rotate_180_with_result(LayerStack *layers,
+                                                                Snapshot *undo_stack, int *undo_count,
+                                                                Snapshot *redo_stack, int *redo_count,
+                                                                int max_history) {
+    return active_layer_apply_transform_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                    max_history, canvas_rotate_180);
 }
 
 int active_layer_try_rotate_180(LayerStack *layers,
                                 Snapshot *undo_stack, int *undo_count,
                                 Snapshot *redo_stack, int *redo_count,
                                 int max_history) {
-    return active_layer_apply_transform(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                        max_history, canvas_rotate_180);
+    return active_layer_try_rotate_180_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                   max_history) == ACTIVE_LAYER_ACTION_CHANGED;
+}
+
+ActiveLayerActionResult active_layer_try_invert_rgb_with_result(LayerStack *layers,
+                                                                Snapshot *undo_stack, int *undo_count,
+                                                                Snapshot *redo_stack, int *redo_count,
+                                                                int max_history) {
+    return active_layer_apply_transform_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                    max_history, canvas_invert_rgb);
 }
 
 int active_layer_try_invert_rgb(LayerStack *layers,
                                 Snapshot *undo_stack, int *undo_count,
                                 Snapshot *redo_stack, int *redo_count,
                                 int max_history) {
-    return active_layer_apply_transform(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                        max_history, canvas_invert_rgb);
+    return active_layer_try_invert_rgb_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                   max_history) == ACTIVE_LAYER_ACTION_CHANGED;
 }
 
 int active_layer_try_adjust_opacity(LayerStack *layers,
