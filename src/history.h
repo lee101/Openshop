@@ -34,6 +34,7 @@ void layer_snapshot_reset(LayerSnapshot *snapshot);
 // Null inputs fail without mutating the caller snapshot.
 int layer_snapshot_capture(LayerSnapshot *snapshot, const LayerStack *stack);
 // Applies a populated snapshot back onto a same-sized stack; null inputs, missing pixels, and invalid layer counts fail.
+// Rejected snapshots leave the destination stack unchanged.
 int layer_snapshot_apply(const LayerSnapshot *snapshot, LayerStack *stack);
 // Compares a snapshot to the current stack; null inputs or failed current-state capture return false.
 int layer_snapshot_matches_stack(const LayerSnapshot *snapshot, const LayerStack *stack);
