@@ -367,6 +367,12 @@ static int test_layer_action_history_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_action_history_apply_indexed_with_result(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                       4, layer_stack_show, 1) != LAYER_ACTION_HISTORY_UNCHANGED) {
+        fprintf(stderr, "indexed no-op result should be unchanged\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (undo_count != 0 || redo_count != 0) {
         fprintf(stderr, "indexed no-op should preserve history counts\n");
         layer_stack_free(&stack);
@@ -377,6 +383,12 @@ static int test_layer_action_history_helpers(void) {
     if (!layer_action_history_apply_indexed(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
                                             4, layer_stack_show, 1)) {
         fprintf(stderr, "indexed change should push history\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_action_history_apply_indexed_with_result(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                       4, layer_stack_show, 1) != LAYER_ACTION_HISTORY_UNCHANGED) {
+        fprintf(stderr, "indexed post-change redundant show should be unchanged\n");
         layer_stack_free(&stack);
         return 0;
     }
@@ -402,6 +414,12 @@ static int test_layer_action_history_helpers(void) {
     if (layer_action_history_apply_directional(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
                                                4, layer_stack_reveal_hidden, 1)) {
         fprintf(stderr, "directional no-op should not push history\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_action_history_apply_directional_with_result(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                           4, layer_stack_reveal_hidden, 1) != LAYER_ACTION_HISTORY_UNCHANGED) {
+        fprintf(stderr, "directional no-op result should be unchanged\n");
         layer_stack_free(&stack);
         return 0;
     }
@@ -431,6 +449,12 @@ static int test_layer_action_history_helpers(void) {
     if (layer_action_history_apply_custom(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
                                           4, test_layer_action_history_custom_flip, &custom_flip)) {
         fprintf(stderr, "custom no-op should not push history\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_action_history_apply_custom_with_result(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                      4, test_layer_action_history_custom_flip, &custom_flip) != LAYER_ACTION_HISTORY_UNCHANGED) {
+        fprintf(stderr, "custom no-op result should be unchanged\n");
         layer_stack_free(&stack);
         return 0;
     }

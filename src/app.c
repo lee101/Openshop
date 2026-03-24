@@ -360,10 +360,13 @@ static void run_indexed_layer_action(SDL_Window *window, LayerStack *layers,
                                      int brush_radius, uint32_t brush_color, int brush_opacity,
                                      int *needs_composite, LayerIndexedActionFn action,
                                      StatusTextAction error_action, int mark_composite) {
-    if (!layer_action_history_apply_indexed(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                            MAX_HISTORY, action, layers->active_layer)) {
+    LayerActionHistoryResult result;
+
+    result = layer_action_history_apply_indexed_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                            MAX_HISTORY, action, layers->active_layer);
+    if (result == LAYER_ACTION_HISTORY_FAILED) {
         fprintf(stderr, "%s\n", status_text_action_error(error_action));
-    } else if (mark_composite) {
+    } else if (result == LAYER_ACTION_HISTORY_CHANGED && mark_composite) {
         *needs_composite = 1;
     }
     update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -375,8 +378,8 @@ static void run_directional_layer_action(SDL_Window *window, LayerStack *layers,
                                          Tool tool, BrushShape brush_shape,
                                          int brush_radius, uint32_t brush_color, int brush_opacity,
                                          int *needs_composite, LayerDirectionalActionFn action, int arg) {
-    if (layer_action_history_apply_directional(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                               MAX_HISTORY, action, arg)) {
+    if (layer_action_history_apply_directional_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                           MAX_HISTORY, action, arg) == LAYER_ACTION_HISTORY_CHANGED) {
         *needs_composite = 1;
     }
     update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -389,8 +392,8 @@ static void run_indexed_layer_action_silent(SDL_Window *window, LayerStack *laye
                                             int brush_radius, uint32_t brush_color, int brush_opacity,
                                             int *needs_composite, LayerIndexedActionFn action,
                                             int mark_composite) {
-    if (layer_action_history_apply_indexed(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                           MAX_HISTORY, action, layers->active_layer) &&
+    if (layer_action_history_apply_indexed_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                       MAX_HISTORY, action, layers->active_layer) == LAYER_ACTION_HISTORY_CHANGED &&
         mark_composite) {
         *needs_composite = 1;
     }
