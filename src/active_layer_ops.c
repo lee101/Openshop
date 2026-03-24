@@ -169,6 +169,7 @@ int active_layer_try_commit_shape(LayerStack *layers,
                                   uint32_t brush_color, int max_history) {
     Layer *active;
     int is_shape_tool;
+    uint8_t brush_alpha;
 
     if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
         return 0;
@@ -181,6 +182,10 @@ int active_layer_try_commit_shape(LayerStack *layers,
     is_shape_tool = tool == TOOL_LINE || tool == TOOL_RECT || tool == TOOL_FILLED_RECT ||
                     tool == TOOL_ELLIPSE || tool == TOOL_FILLED_ELLIPSE;
     if (!is_shape_tool) {
+        return 0;
+    }
+    brush_alpha = (uint8_t)((brush_color >> 24) & 0xFF);
+    if (brush_alpha == 0) {
         return 0;
     }
     if ((tool == TOOL_ELLIPSE || tool == TOOL_FILLED_ELLIPSE) &&
@@ -204,6 +209,7 @@ int active_layer_try_begin_brush_stroke(LayerStack *layers,
                                         uint32_t brush_color, BrushShape brush_shape,
                                         uint32_t background_color, int max_history) {
     Layer *active;
+    uint8_t brush_alpha;
 
     if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
         return 0;
@@ -214,6 +220,10 @@ int active_layer_try_begin_brush_stroke(LayerStack *layers,
         return 0;
     }
     if (tool != TOOL_BRUSH && tool != TOOL_ERASER) {
+        return 0;
+    }
+    brush_alpha = (uint8_t)((brush_color >> 24) & 0xFF);
+    if (tool == TOOL_BRUSH && brush_alpha == 0) {
         return 0;
     }
     if (brush_radius <= 0) {

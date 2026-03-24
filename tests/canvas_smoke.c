@@ -1236,6 +1236,22 @@ static int test_active_layer_ops_helpers(void) {
             return 0;
         }
     }
+    {
+        int undo_before = undo_count;
+        int redo_before = redo_count;
+        canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 0, 0xFF010203);
+        if (active_layer_try_begin_brush_stroke(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                TOOL_BRUSH, 0, 0, 1, 0x00556677, BRUSH_SHAPE_SQUARE,
+                                                0xFFFFFFFF, 4) ||
+            !expect_pixel_eq("active_stroke_transparent", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF010203) ||
+            undo_count != undo_before || redo_count != redo_before) {
+            fprintf(stderr, "active_layer_try_begin_brush_stroke transparent no-op failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
 
     canvas_clear(&stack.layers[0].canvas, 0x00000000);
     if (!active_layer_try_commit_shape(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
@@ -1286,6 +1302,21 @@ static int test_active_layer_ops_helpers(void) {
             !expect_pixel_eq("active_commit_shape_degenerate_ellipse", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF010203) ||
             undo_count != undo_before || redo_count != redo_before) {
             fprintf(stderr, "active_layer_try_commit_shape degenerate ellipse no-op failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    {
+        int undo_before = undo_count;
+        int redo_before = redo_count;
+        canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 0, 0xFF010203);
+        if (active_layer_try_commit_shape(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                          TOOL_FILLED_RECT, 0, 0, 2, 2, 1, 0x00998877, 4) ||
+            !expect_pixel_eq("active_commit_shape_transparent", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF010203) ||
+            undo_count != undo_before || redo_count != redo_before) {
+            fprintf(stderr, "active_layer_try_commit_shape transparent no-op failed\n");
             snapshot_stack_clear(undo_stack, &undo_count);
             snapshot_stack_clear(redo_stack, &redo_count);
             layer_stack_free(&stack);
