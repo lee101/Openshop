@@ -987,6 +987,10 @@ int layer_stack_flatten(LayerStack *stack, uint32_t background_color) {
 }
 
 int layer_stack_stamp_visible_into(LayerStack *stack, int index, uint32_t background_color) {
+    size_t total;
+    size_t i;
+    int would_change = 0;
+
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
     }
@@ -998,7 +1002,25 @@ int layer_stack_stamp_visible_into(LayerStack *stack, int index, uint32_t backgr
     layer_stack_composite(stack, &composite, background_color);
 
     Layer *target = &stack->layers[index];
-    if (target->locked || (!target->canvas.pixels && !ensure_layer_canvas(target, stack->width, stack->height))) {
+    if (target->locked) {
+        canvas_free(&composite);
+        return 0;
+    }
+    total = (size_t)stack->width * (size_t)stack->height;
+    if (!target->visible || target->opacity_percent != 100) {
+        would_change = 1;
+    }
+    for (i = 0; i < total && !would_change; i++) {
+        uint32_t current = target->canvas.pixels ? target->canvas.pixels[i] : 0;
+        if (current != composite.pixels[i]) {
+            would_change = 1;
+        }
+    }
+    if (!would_change) {
+        canvas_free(&composite);
+        return 0;
+    }
+    if (!target->canvas.pixels && !ensure_layer_canvas(target, stack->width, stack->height)) {
         canvas_free(&composite);
         return 0;
     }

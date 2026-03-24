@@ -5724,6 +5724,13 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_stamp_visible_into(&stack, 1, 0xFFFFFFFF) ||
+        !expect_pixel_eq("stamp_visible_noop_pixel", canvas_get_pixel(&stack.layers[1].canvas, 0, 0), 0xFF0D6740)) {
+        fprintf(stderr, "stamp visible identical no-op failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_stamp_visible_new(&stack, "Visible Stamp", 0xFFFFFFFF) != 2) {
         fprintf(stderr, "stamp visible new layer failed\n");
         canvas_free(&composite);
