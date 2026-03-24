@@ -4,6 +4,25 @@
 #include "layer_edit_state.h"
 #include "shape_draw.h"
 
+#include <stddef.h>
+
+static int canvas_has_non_matching_pixel(const Canvas *canvas, uint32_t color) {
+    size_t pixel_count;
+    size_t i;
+
+    if (!canvas || !canvas->pixels) {
+        return 0;
+    }
+
+    pixel_count = (size_t)canvas->width * (size_t)canvas->height;
+    for (i = 0; i < pixel_count; i++) {
+        if (canvas->pixels[i] != color) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static int active_layer_apply_transform(LayerStack *layers,
                                         Snapshot *undo_stack, int *undo_count,
                                         Snapshot *redo_stack, int *redo_count,
@@ -27,13 +46,22 @@ int active_layer_try_clear(LayerStack *layers,
                            Snapshot *undo_stack, int *undo_count,
                            Snapshot *redo_stack, int *redo_count,
                            uint32_t background_color, int max_history) {
+    Layer *active;
+    uint32_t clear_color;
+
     if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
         return 0;
     }
-    if (active_layer_editable(layers)) {
-        snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
+    active = layer_stack_active(layers);
+    if (!active || active->locked || !active->canvas.pixels) {
+        return 0;
     }
-    return layer_stack_clear_layer(layers, layers->active_layer, active_layer_clear_color(layers, background_color));
+    clear_color = active_layer_clear_color(layers, background_color);
+    if (!canvas_has_non_matching_pixel(&active->canvas, clear_color)) {
+        return 0;
+    }
+    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
+    return layer_stack_clear_layer(layers, layers->active_layer, clear_color);
 }
 
 int active_layer_try_flip_horizontal(LayerStack *layers,
