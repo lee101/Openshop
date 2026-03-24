@@ -353,6 +353,33 @@ static int apply_active_visible_rank_move(
     return 1;
 }
 
+static int apply_visible_rank_selection(
+    LayerStack *layers,
+    int target_rank,
+    const char *failure_message
+) {
+    int visible_count = layer_stack_visible_count(layers);
+    if (!layers || visible_count <= 0) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    if (target_rank < 0 || target_rank >= visible_count) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    if (layer_stack_select_visible_rank(layers, target_rank) < 0) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    return 1;
+}
+
 static int apply_active_layer_move(
     LayerStack *layers,
     Snapshot *undo_stack,
@@ -1251,7 +1278,7 @@ int app_run(const char *input_path) {
 
                 if (alt && key >= SDLK_1 && key <= SDLK_8) {
                     int target = (int)(key - SDLK_1);
-                    if (layer_stack_select_visible_rank(&layers, target) >= 0) {
+                    if (apply_visible_rank_selection(&layers, target, "Visible layer slot does not exist")) {
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                     break;
