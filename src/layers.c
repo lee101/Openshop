@@ -529,6 +529,9 @@ int layer_stack_show(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
     }
+    if (stack->layers[index].visible) {
+        return 0;
+    }
     stack->layers[index].visible = 1;
     return 1;
 }

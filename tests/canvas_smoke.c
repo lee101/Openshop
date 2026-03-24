@@ -2092,6 +2092,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_show(&stack, 1)) {
+        fprintf(stderr, "show active layer no-op failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_toggle_visibility(&stack, 1)) {
         fprintf(stderr, "rehide top layer after show active failed\n");
         canvas_free(&composite);
@@ -2835,8 +2841,8 @@ static int test_layers_basic(void) {
     stack.layers[0].name[LAYER_NAME_MAX - 1] = '\0';
     strncpy(stack.layers[1].name, "Top", LAYER_NAME_MAX - 1);
     stack.layers[1].name[LAYER_NAME_MAX - 1] = '\0';
-    if (!layer_stack_show(&stack, 1)) {
-        fprintf(stderr, "restore top layer for hide-and-advance failed\n");
+    if (layer_stack_show(&stack, 1)) {
+        fprintf(stderr, "show visible top layer before hide-and-advance should no-op\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
