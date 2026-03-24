@@ -1084,13 +1084,13 @@ static void handle_right_click_down(const MouseState *mouse_state, int x, int y)
         return;
     }
 
-    (void)handle_right_click_sample(mouse_state->window, mouse_state->layers,
-                                    current_display_canvas(*mouse_state->preview_active,
-                                                           mouse_state->preview_canvas,
-                                                           mouse_state->composite),
-                                    x, y, mouse_state->brush_color_rgb, mouse_state->brush_color,
-                                    mouse_state->brush_opacity, *mouse_state->brush_radius,
-                                    *mouse_state->brush_shape, mouse_state->tool);
+    handle_right_click_sample(mouse_state->window, mouse_state->layers,
+                              current_display_canvas(*mouse_state->preview_active,
+                                                     mouse_state->preview_canvas,
+                                                     mouse_state->composite),
+                              x, y, mouse_state->brush_color_rgb, mouse_state->brush_color,
+                              mouse_state->brush_opacity, *mouse_state->brush_radius,
+                              *mouse_state->brush_shape, mouse_state->tool);
 }
 
 static void handle_mouse_button_down(const MouseState *mouse_state, Uint8 button, int x, int y) {
@@ -1297,19 +1297,18 @@ static int handle_history_hotkey(SDL_Keycode key,
     return 1;
 }
 
-static int handle_right_click_sample(SDL_Window *window,
-                                     const LayerStack *layers,
-                                     const Canvas *sample,
-                                     int x, int y,
-                                     uint32_t *brush_color_rgb, uint32_t *brush_color,
-                                     int *brush_opacity, int brush_radius,
-                                     BrushShape brush_shape, Tool *tool) {
+static void handle_right_click_sample(SDL_Window *window,
+                                      const LayerStack *layers,
+                                      const Canvas *sample,
+                                      int x, int y,
+                                      uint32_t *brush_color_rgb, uint32_t *brush_color,
+                                      int *brush_opacity, int brush_radius,
+                                      BrushShape brush_shape, Tool *tool) {
     if (!sample_canvas_brush_state(sample, x, y, brush_color_rgb, brush_color, brush_opacity, tool)) {
-        return 0;
+        return;
     }
 
     update_window_title(window, layers, *tool, brush_shape, brush_radius, *brush_color, *brush_opacity);
-    return 1;
 }
 
 int app_run(const char *input_path) {
