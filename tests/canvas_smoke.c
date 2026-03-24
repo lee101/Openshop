@@ -3363,6 +3363,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_select_top_editable(&stack) != -1 || stack.active_layer != 3) {
+        fprintf(stderr, "select top editable no-op failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_toggle_solo(&stack, 3)) {
         fprintf(stderr, "toggle solo for editable selection failed\n");
         canvas_free(&composite);
