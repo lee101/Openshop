@@ -931,6 +931,191 @@ static int handle_merge_shortcut(
     return 0;
 }
 
+static int handle_view_and_canvas_shortcut(
+    SDL_Keycode key,
+    int shift,
+    LayerStack *layers,
+    const Canvas *composite,
+    const Canvas *preview_canvas,
+    int preview_active,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    Tool *tool,
+    BrushShape *brush_shape,
+    int *brush_radius,
+    uint32_t *brush_color,
+    uint32_t *brush_color_rgb,
+    int *brush_opacity,
+    int *needs_composite
+) {
+    Layer *active = NULL;
+    const Canvas *sample = NULL;
+    int mx = 0;
+    int my = 0;
+    int step = 0;
+    int dx = 0;
+    int dy = 0;
+
+    if (!layers || !tool || !brush_shape || !brush_radius || !brush_color || !brush_color_rgb || !brush_opacity) {
+        return 0;
+    }
+
+    if (key == SDLK_PAGEUP) {
+        return layer_stack_cycle(layers, 1) >= 0;
+    }
+
+    if (key == SDLK_PAGEDOWN) {
+        return layer_stack_cycle(layers, -1) >= 0;
+    }
+
+    if (key == SDLK_UP || key == SDLK_DOWN || key == SDLK_LEFT || key == SDLK_RIGHT) {
+        step = shift ? 10 : 1;
+        if (key == SDLK_UP) {
+            dy = -step;
+        } else if (key == SDLK_DOWN) {
+            dy = step;
+        } else if (key == SDLK_LEFT) {
+            dx = -step;
+        } else {
+            dx = step;
+        }
+        if (apply_canvas_translation(layers, undo_stack, undo_count, redo_stack, redo_count, dx, dy) && needs_composite) {
+            *needs_composite = 1;
+        }
+        return 1;
+    }
+
+    if (key == SDLK_b) {
+        *brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
+        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *tool = TOOL_BRUSH;
+    } else if (key == SDLK_e) {
+        *brush_color_rgb = COLOR_ERASE & 0x00FFFFFF;
+        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *tool = TOOL_ERASER;
+    } else if (key == SDLK_l) {
+        *tool = TOOL_LINE;
+    } else if (key == SDLK_r) {
+        *tool = TOOL_RECT;
+    } else if (key == SDLK_t) {
+        *tool = TOOL_FILLED_RECT;
+    } else if (key == SDLK_o) {
+        *tool = TOOL_ELLIPSE;
+    } else if (key == SDLK_p) {
+        *tool = TOOL_FILLED_ELLIPSE;
+    } else if (key == SDLK_LEFTBRACKET) {
+        if (*brush_radius > 1) {
+            *brush_radius -= 1;
+        }
+    } else if (key == SDLK_RIGHTBRACKET) {
+        if (*brush_radius < 64) {
+            *brush_radius += 1;
+        }
+    } else if (key == SDLK_COMMA) {
+        *brush_shape = cycle_brush_shape(*brush_shape, -1);
+    } else if (key == SDLK_PERIOD) {
+        *brush_shape = cycle_brush_shape(*brush_shape, 1);
+    } else if (key == SDLK_MINUS || key == SDLK_KP_MINUS) {
+        if (*brush_opacity > 1) {
+            *brush_opacity -= 5;
+            if (*brush_opacity < 1) {
+                *brush_opacity = 1;
+            }
+            *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        }
+    } else if (key == SDLK_EQUALS || key == SDLK_KP_PLUS) {
+        if (*brush_opacity < 100) {
+            *brush_opacity += 5;
+            if (*brush_opacity > 100) {
+                *brush_opacity = 100;
+            }
+            *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        }
+    } else if (key == SDLK_1) {
+        *brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
+        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *tool = TOOL_BRUSH;
+    } else if (key == SDLK_2) {
+        *brush_color_rgb = COLOR_RED & 0x00FFFFFF;
+        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *tool = TOOL_BRUSH;
+    } else if (key == SDLK_3) {
+        *brush_color_rgb = COLOR_GREEN & 0x00FFFFFF;
+        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *tool = TOOL_BRUSH;
+    } else if (key == SDLK_4) {
+        *brush_color_rgb = COLOR_BLUE & 0x00FFFFFF;
+        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *tool = TOOL_BRUSH;
+    } else if (key == SDLK_5) {
+        *brush_color_rgb = COLOR_YELLOW & 0x00FFFFFF;
+        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *tool = TOOL_BRUSH;
+    } else if (key == SDLK_6) {
+        *brush_color_rgb = COLOR_PURPLE & 0x00FFFFFF;
+        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *tool = TOOL_BRUSH;
+    } else if (key == SDLK_c) {
+        if (active_layer_editable(layers)) {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        }
+        if (layer_stack_clear_layer(layers, layers->active_layer, active_layer_clear_color(layers)) && needs_composite) {
+            *needs_composite = 1;
+        }
+    } else if (key == SDLK_h) {
+        if (apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_flip_horizontal) && needs_composite) {
+            *needs_composite = 1;
+        }
+    } else if (key == SDLK_v) {
+        if (apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_flip_vertical) && needs_composite) {
+            *needs_composite = 1;
+        }
+    } else if (key == SDLK_j) {
+        if (apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_rotate_180) && needs_composite) {
+            *needs_composite = 1;
+        }
+    } else if (key == SDLK_x) {
+        if (apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_invert_rgb) && needs_composite) {
+            *needs_composite = 1;
+        }
+    } else if (key == SDLK_f) {
+        SDL_GetMouseState(&mx, &my);
+        if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
+            active = layer_stack_active(layers);
+            if (active && !active->locked) {
+                push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            }
+            if (!active || active->locked || !canvas_flood_fill(&active->canvas, mx, my, *brush_color)) {
+                fprintf(stderr, "Fill failed\n");
+            } else if (needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+    } else if (key == SDLK_i) {
+        SDL_GetMouseState(&mx, &my);
+        if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
+            sample = (preview_active && preview_canvas && preview_canvas->pixels) ? preview_canvas : composite;
+            *brush_color = canvas_get_pixel(sample, mx, my);
+            *brush_color_rgb = *brush_color & 0x00FFFFFF;
+            {
+                int sampled_alpha = (int)((*brush_color >> 24) & 0xFF);
+                *brush_opacity = (sampled_alpha * 100 + 127) / 255;
+            }
+            if (*brush_opacity < 1) {
+                *brush_opacity = 1;
+            }
+            *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+            *tool = TOOL_BRUSH;
+        }
+    } else {
+        return 0;
+    }
+
+    return 1;
+}
+
 static uint32_t active_layer_clear_color(const LayerStack *layers) {
     if (!layers) {
         return COLOR_BG;
@@ -1432,163 +1617,26 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (key == SDLK_PAGEUP) {
-                    if (layer_stack_cycle(&layers, 1) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                if (handle_view_and_canvas_shortcut(
+                        key,
+                        shift,
+                        &layers,
+                        &composite,
+                        &preview_canvas,
+                        preview_active,
+                        undo_stack,
+                        &undo_count,
+                        redo_stack,
+                        &redo_count,
+                        &tool,
+                        &brush_shape,
+                        &brush_radius,
+                        &brush_color,
+                        &brush_color_rgb,
+                        &brush_opacity,
+                        &needs_composite)) {
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
-                }
-
-                if (key == SDLK_PAGEDOWN) {
-                    if (layer_stack_cycle(&layers, -1) >= 0) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
-                    break;
-                }
-
-                if (key == SDLK_UP || key == SDLK_DOWN || key == SDLK_LEFT || key == SDLK_RIGHT) {
-                    int step = shift ? 10 : 1;
-                    int dx = 0;
-                    int dy = 0;
-                    if (key == SDLK_UP) {
-                        dy = -step;
-                    } else if (key == SDLK_DOWN) {
-                        dy = step;
-                    } else if (key == SDLK_LEFT) {
-                        dx = -step;
-                    } else {
-                        dx = step;
-                    }
-                    if (apply_canvas_translation(&layers, undo_stack, &undo_count, redo_stack, &redo_count, dx, dy)) {
-                        needs_composite = 1;
-                    }
-                    break;
-                }
-
-                if (key == SDLK_b) {
-                    brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
-                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                    tool = TOOL_BRUSH;
-                } else if (key == SDLK_e) {
-                    brush_color_rgb = COLOR_ERASE & 0x00FFFFFF;
-                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                    tool = TOOL_ERASER;
-                } else if (key == SDLK_l) {
-                    tool = TOOL_LINE;
-                } else if (key == SDLK_r) {
-                    tool = TOOL_RECT;
-                } else if (key == SDLK_t) {
-                    tool = TOOL_FILLED_RECT;
-                } else if (key == SDLK_o) {
-                    tool = TOOL_ELLIPSE;
-                } else if (key == SDLK_p) {
-                    tool = TOOL_FILLED_ELLIPSE;
-                } else if (key == SDLK_LEFTBRACKET) {
-                    if (brush_radius > 1) {
-                        brush_radius -= 1;
-                    }
-                } else if (key == SDLK_RIGHTBRACKET) {
-                    if (brush_radius < 64) {
-                        brush_radius += 1;
-                    }
-                } else if (key == SDLK_COMMA) {
-                    brush_shape = cycle_brush_shape(brush_shape, -1);
-                } else if (key == SDLK_PERIOD) {
-                    brush_shape = cycle_brush_shape(brush_shape, 1);
-                } else if (key == SDLK_MINUS || key == SDLK_KP_MINUS) {
-                    if (brush_opacity > 1) {
-                        brush_opacity -= 5;
-                        if (brush_opacity < 1) {
-                            brush_opacity = 1;
-                        }
-                        brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                    }
-                } else if (key == SDLK_EQUALS || key == SDLK_KP_PLUS) {
-                    if (brush_opacity < 100) {
-                        brush_opacity += 5;
-                        if (brush_opacity > 100) {
-                            brush_opacity = 100;
-                        }
-                        brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                    }
-                } else if (key == SDLK_1) {
-                    brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
-                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                    tool = TOOL_BRUSH;
-                } else if (key == SDLK_2) {
-                    brush_color_rgb = COLOR_RED & 0x00FFFFFF;
-                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                    tool = TOOL_BRUSH;
-                } else if (key == SDLK_3) {
-                    brush_color_rgb = COLOR_GREEN & 0x00FFFFFF;
-                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                    tool = TOOL_BRUSH;
-                } else if (key == SDLK_4) {
-                    brush_color_rgb = COLOR_BLUE & 0x00FFFFFF;
-                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                    tool = TOOL_BRUSH;
-                } else if (key == SDLK_5) {
-                    brush_color_rgb = COLOR_YELLOW & 0x00FFFFFF;
-                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                    tool = TOOL_BRUSH;
-                } else if (key == SDLK_6) {
-                    brush_color_rgb = COLOR_PURPLE & 0x00FFFFFF;
-                    brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                    tool = TOOL_BRUSH;
-                } else if (key == SDLK_c) {
-                    if (active_layer_editable(&layers)) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    }
-                    if (layer_stack_clear_layer(&layers, layers.active_layer, active_layer_clear_color(&layers))) {
-                        needs_composite = 1;
-                    }
-                } else if (key == SDLK_h) {
-                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_flip_horizontal)) {
-                        needs_composite = 1;
-                    }
-                } else if (key == SDLK_v) {
-                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_flip_vertical)) {
-                        needs_composite = 1;
-                    }
-                } else if (key == SDLK_j) {
-                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_rotate_180)) {
-                        needs_composite = 1;
-                    }
-                } else if (key == SDLK_x) {
-                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_invert_rgb)) {
-                        needs_composite = 1;
-                    }
-                } else if (key == SDLK_f) {
-                    int mx = 0;
-                    int my = 0;
-                    SDL_GetMouseState(&mx, &my);
-                    if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
-                        Layer *active = layer_stack_active(&layers);
-                        if (active && !active->locked) {
-                            push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        }
-                        if (!active || active->locked || !canvas_flood_fill(&active->canvas, mx, my, brush_color)) {
-                            fprintf(stderr, "Fill failed\n");
-                        } else {
-                            needs_composite = 1;
-                        }
-                    }
-                } else if (key == SDLK_i) {
-                    int mx = 0;
-                    int my = 0;
-                    SDL_GetMouseState(&mx, &my);
-                    if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
-                        const Canvas *sample = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
-                        brush_color = canvas_get_pixel(sample, mx, my);
-                        brush_color_rgb = brush_color & 0x00FFFFFF;
-                        int sampled_alpha = (int)((brush_color >> 24) & 0xFF);
-                        brush_opacity = (sampled_alpha * 100 + 127) / 255;
-                        if (brush_opacity < 1) {
-                            brush_opacity = 1;
-                        }
-                        brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
-                        tool = TOOL_BRUSH;
-                    }
                 }
 
                 update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
