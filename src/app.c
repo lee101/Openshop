@@ -1395,6 +1395,71 @@ static void handle_canvas_motion(
     }
 }
 
+static void begin_shape_preview(
+    int start_x,
+    int start_y,
+    int *shaping,
+    int *shape_start_x,
+    int *shape_start_y,
+    uint32_t *shape_base_pixels,
+    const Canvas *composite
+) {
+    if (!shaping || !shape_start_x || !shape_start_y) {
+        return;
+    }
+
+    *shaping = 1;
+    *shape_start_x = start_x;
+    *shape_start_y = start_y;
+    if (shape_base_pixels && composite) {
+        memcpy(
+            shape_base_pixels,
+            composite->pixels,
+            (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t)
+        );
+    }
+}
+
+static void finalize_shape_preview(
+    SDL_MouseButtonEvent button,
+    LayerStack *layers,
+    int *shaping,
+    int *preview_active,
+    int shape_start_x,
+    int shape_start_y,
+    Tool tool,
+    int brush_radius,
+    uint32_t brush_color,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+) {
+    const Uint8 *state = NULL;
+    int shift = 0;
+    int end_x = button.x;
+    int end_y = button.y;
+    Layer *active = NULL;
+
+    if (!layers || !shaping || !preview_active || !*shaping) {
+        return;
+    }
+
+    state = SDL_GetKeyboardState(NULL);
+    shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
+    constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
+    active = layer_stack_active(layers);
+    if (active && !active->locked && active->canvas.pixels) {
+        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        draw_shape(&active->canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
+        if (needs_composite) {
+            *needs_composite = 1;
+        }
+    }
+    cancel_shape_preview(shaping, preview_active);
+}
+
 static void handle_mouse_button_down(
     SDL_MouseButtonEvent button,
     LayerStack *layers,
@@ -1445,16 +1510,7 @@ static void handle_mouse_button_down(
                 }
             }
         } else if (active_layer_editable(layers)) {
-            *shaping = 1;
-            *shape_start_x = *last_x;
-            *shape_start_y = *last_y;
-            if (shape_base_pixels && composite) {
-                memcpy(
-                    shape_base_pixels,
-                    composite->pixels,
-                    (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t)
-                );
-            }
+            begin_shape_preview(*last_x, *last_y, shaping, shape_start_x, shape_start_y, shape_base_pixels, composite);
         }
         return;
     }
@@ -1507,24 +1563,22 @@ static void handle_mouse_button_up(
     }
 
     *drawing = 0;
-    if (*shaping) {
-        const Uint8 *state = SDL_GetKeyboardState(NULL);
-        int shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
-        int end_x = button.x;
-        int end_y = button.y;
-        Layer *active = NULL;
-
-        constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
-        active = layer_stack_active(layers);
-        if (active && !active->locked && active->canvas.pixels) {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            draw_shape(&active->canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
-            if (needs_composite) {
-                *needs_composite = 1;
-            }
-        }
-        cancel_shape_preview(shaping, preview_active);
-    }
+    finalize_shape_preview(
+        button,
+        layers,
+        shaping,
+        preview_active,
+        shape_start_x,
+        shape_start_y,
+        tool,
+        brush_radius,
+        brush_color,
+        undo_stack,
+        undo_count,
+        redo_stack,
+        redo_count,
+        needs_composite
+    );
 }
 
 int app_run(const char *input_path) {
