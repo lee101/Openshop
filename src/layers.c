@@ -145,6 +145,65 @@ static void layer_default_name(char *dest, size_t dest_size, const LayerStack *s
     layer_name_copy_unique(dest, dest_size, stack, skip_index, NULL, base);
 }
 
+static int layer_index_matches_reset_scope(const LayerStack *stack, int index, int require_visible, int require_unlocked, int skip_background) {
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    if (skip_background && index == 0) {
+        return 0;
+    }
+    if (require_visible && !stack->layers[index].visible) {
+        return 0;
+    }
+    if (require_unlocked && stack->layers[index].locked) {
+        return 0;
+    }
+    return 1;
+}
+
+static int layer_stack_can_reset_names_in_scope(const LayerStack *stack, int require_visible, int require_unlocked, int skip_background) {
+    char next_name[LAYER_NAME_MAX];
+
+    if (!stack) {
+        return 0;
+    }
+
+    for (int i = 0; i < stack->layer_count; i++) {
+        if (!layer_index_matches_reset_scope(stack, i, require_visible, require_unlocked, skip_background)) {
+            continue;
+        }
+        layer_default_name(next_name, sizeof(next_name), stack, i);
+        if (strcmp(stack->layers[i].name, next_name) != 0) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+static int layer_stack_reset_names_in_scope(LayerStack *stack, int require_visible, int require_unlocked, int skip_background) {
+    char next_name[LAYER_NAME_MAX];
+    int changed = 0;
+
+    if (!stack) {
+        return 0;
+    }
+
+    for (int i = 0; i < stack->layer_count; i++) {
+        if (!layer_index_matches_reset_scope(stack, i, require_visible, require_unlocked, skip_background)) {
+            continue;
+        }
+        layer_default_name(next_name, sizeof(next_name), stack, i);
+        if (strcmp(stack->layers[i].name, next_name) == 0) {
+            continue;
+        }
+        memcpy(stack->layers[i].name, next_name, sizeof(next_name));
+        changed = 1;
+    }
+
+    return changed;
+}
+
 int layer_stack_init(LayerStack *stack, int width, int height, uint32_t background_color) {
     if (!stack || width <= 0 || height <= 0) {
         return 0;
@@ -349,169 +408,35 @@ int layer_stack_reset_name(LayerStack *stack, int index) {
 }
 
 int layer_stack_can_reset_all_names(const LayerStack *stack) {
-    char next_name[LAYER_NAME_MAX];
-
-    if (!stack) {
-        return 0;
-    }
-
-    for (int i = 0; i < stack->layer_count; i++) {
-        layer_default_name(next_name, sizeof(next_name), stack, i);
-        if (strcmp(stack->layers[i].name, next_name) != 0) {
-            return 1;
-        }
-    }
-
-    return 0;
+    return layer_stack_can_reset_names_in_scope(stack, 0, 0, 0);
 }
 
 int layer_stack_reset_all_names(LayerStack *stack) {
-    char next_name[LAYER_NAME_MAX];
-    int changed = 0;
-
-    if (!stack) {
-        return 0;
-    }
-
-    for (int i = 0; i < stack->layer_count; i++) {
-        layer_default_name(next_name, sizeof(next_name), stack, i);
-        if (strcmp(stack->layers[i].name, next_name) == 0) {
-            continue;
-        }
-        memcpy(stack->layers[i].name, next_name, sizeof(next_name));
-        changed = 1;
-    }
-
-    return changed;
+    return layer_stack_reset_names_in_scope(stack, 0, 0, 0);
 }
 
 int layer_stack_can_reset_unlocked_names(const LayerStack *stack) {
-    char next_name[LAYER_NAME_MAX];
-
-    if (!stack) {
-        return 0;
-    }
-
-    for (int i = 0; i < stack->layer_count; i++) {
-        if (stack->layers[i].locked) {
-            continue;
-        }
-        layer_default_name(next_name, sizeof(next_name), stack, i);
-        if (strcmp(stack->layers[i].name, next_name) != 0) {
-            return 1;
-        }
-    }
-
-    return 0;
+    return layer_stack_can_reset_names_in_scope(stack, 0, 1, 0);
 }
 
 int layer_stack_reset_unlocked_names(LayerStack *stack) {
-    char next_name[LAYER_NAME_MAX];
-    int changed = 0;
-
-    if (!stack) {
-        return 0;
-    }
-
-    for (int i = 0; i < stack->layer_count; i++) {
-        if (stack->layers[i].locked) {
-            continue;
-        }
-        layer_default_name(next_name, sizeof(next_name), stack, i);
-        if (strcmp(stack->layers[i].name, next_name) == 0) {
-            continue;
-        }
-        memcpy(stack->layers[i].name, next_name, sizeof(next_name));
-        changed = 1;
-    }
-
-    return changed;
+    return layer_stack_reset_names_in_scope(stack, 0, 1, 0);
 }
 
 int layer_stack_can_reset_visible_names(const LayerStack *stack) {
-    char next_name[LAYER_NAME_MAX];
-
-    if (!stack) {
-        return 0;
-    }
-
-    for (int i = 0; i < stack->layer_count; i++) {
-        if (!stack->layers[i].visible) {
-            continue;
-        }
-        layer_default_name(next_name, sizeof(next_name), stack, i);
-        if (strcmp(stack->layers[i].name, next_name) != 0) {
-            return 1;
-        }
-    }
-
-    return 0;
+    return layer_stack_can_reset_names_in_scope(stack, 1, 0, 0);
 }
 
 int layer_stack_reset_visible_names(LayerStack *stack) {
-    char next_name[LAYER_NAME_MAX];
-    int changed = 0;
-
-    if (!stack) {
-        return 0;
-    }
-
-    for (int i = 0; i < stack->layer_count; i++) {
-        if (!stack->layers[i].visible) {
-            continue;
-        }
-        layer_default_name(next_name, sizeof(next_name), stack, i);
-        if (strcmp(stack->layers[i].name, next_name) == 0) {
-            continue;
-        }
-        memcpy(stack->layers[i].name, next_name, sizeof(next_name));
-        changed = 1;
-    }
-
-    return changed;
+    return layer_stack_reset_names_in_scope(stack, 1, 0, 0);
 }
 
 int layer_stack_can_reset_non_background_unlocked_names(const LayerStack *stack) {
-    char next_name[LAYER_NAME_MAX];
-
-    if (!stack) {
-        return 0;
-    }
-
-    for (int i = 1; i < stack->layer_count; i++) {
-        if (stack->layers[i].locked) {
-            continue;
-        }
-        layer_default_name(next_name, sizeof(next_name), stack, i);
-        if (strcmp(stack->layers[i].name, next_name) != 0) {
-            return 1;
-        }
-    }
-
-    return 0;
+    return layer_stack_can_reset_names_in_scope(stack, 0, 1, 1);
 }
 
 int layer_stack_reset_non_background_unlocked_names(LayerStack *stack) {
-    char next_name[LAYER_NAME_MAX];
-    int changed = 0;
-
-    if (!stack) {
-        return 0;
-    }
-
-    for (int i = 1; i < stack->layer_count; i++) {
-        if (stack->layers[i].locked) {
-            continue;
-        }
-        layer_default_name(next_name, sizeof(next_name), stack, i);
-        if (strcmp(stack->layers[i].name, next_name) == 0) {
-            continue;
-        }
-        memcpy(stack->layers[i].name, next_name, sizeof(next_name));
-        changed = 1;
-    }
-
-    return changed;
+    return layer_stack_reset_names_in_scope(stack, 0, 1, 1);
 }
 
 int layer_stack_toggle_lock(LayerStack *stack, int index) {
