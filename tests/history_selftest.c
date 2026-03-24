@@ -518,6 +518,78 @@ int main(void) {
         return 1;
     }
 
+    {
+        Snapshot invalid = {0};
+        Snapshot saved = {0};
+
+        if (!snapshot_from_layers(&saved, &stack)) {
+            fprintf(stderr, "saved snapshot init failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+
+        invalid = saved;
+        invalid.width += 1;
+        if (snapshot_apply(&invalid, &stack)) {
+            fprintf(stderr, "snapshot apply should reject mismatched width\n");
+            snapshot_free(&saved);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+
+        invalid = saved;
+        invalid.layer_count = 0;
+        if (snapshot_apply(&invalid, &stack)) {
+            fprintf(stderr, "snapshot apply should reject zero layer count\n");
+            snapshot_free(&saved);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+
+        invalid = saved;
+        invalid.layer_count = MAX_LAYERS + 1;
+        if (snapshot_apply(&invalid, &stack)) {
+            fprintf(stderr, "snapshot apply should reject oversized layer count\n");
+            snapshot_free(&saved);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+
+        invalid = saved;
+        invalid.pixels = NULL;
+        if (snapshot_apply(&invalid, &stack)) {
+            fprintf(stderr, "snapshot apply should reject missing pixels\n");
+            snapshot_free(&saved);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+
+        if (!expect_int(stack.layer_count, saved.layer_count, "invalid_apply_layer_count_preserved") ||
+            !expect_int(stack.active_layer, 1, "invalid_apply_active_preserved") ||
+            stack.layers[1].visible ||
+            !stack.layers[1].locked ||
+            !expect_int(stack.layers[1].opacity_percent, 35, "invalid_apply_opacity_preserved")) {
+            fprintf(stderr, "invalid snapshot apply mutated stack\n");
+            snapshot_free(&saved);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+
+        snapshot_free(&saved);
+    }
+
     snapshot_stack_clear(undo_stack, &undo_count);
     snapshot_stack_clear(redo_stack, &redo_count);
     layer_stack_free(&stack);
