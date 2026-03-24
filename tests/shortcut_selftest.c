@@ -917,6 +917,76 @@ static int expect_sampled_brush_color_from_available_canvas(
     return 1;
 }
 
+static int expect_handle_available_canvas_sample(
+    const char *label,
+    int *shaping,
+    int *preview_active,
+    const Canvas *composite,
+    const Canvas *preview_canvas,
+    int preview_canvas_active,
+    int x,
+    int y,
+    Tool initial_tool,
+    unsigned int initial_brush_color,
+    unsigned int initial_brush_color_rgb,
+    int initial_brush_opacity,
+    AppSampleBrushColorResult want_result,
+    int want_shaping,
+    int want_preview_active,
+    Tool want_tool,
+    unsigned int want_brush_color,
+    unsigned int want_brush_color_rgb,
+    int want_brush_opacity
+) {
+    Tool tool = initial_tool;
+    unsigned int brush_color = initial_brush_color;
+    unsigned int brush_color_rgb = initial_brush_color_rgb;
+    int brush_opacity = initial_brush_opacity;
+    AppSampleBrushColorResult got = app_handle_available_canvas_sample(
+        shaping,
+        preview_active,
+        composite,
+        preview_canvas,
+        preview_canvas_active,
+        x,
+        y,
+        &tool,
+        &brush_color,
+        &brush_color_rgb,
+        &brush_opacity
+    );
+
+    if (got != want_result) {
+        fprintf(stderr, "%s result mismatch: got %d want %d\n", label, got, want_result);
+        return 0;
+    }
+    if (shaping && *shaping != want_shaping) {
+        fprintf(stderr, "%s shaping mismatch: got %d want %d\n", label, *shaping, want_shaping);
+        return 0;
+    }
+    if (preview_active && *preview_active != want_preview_active) {
+        fprintf(stderr, "%s preview_active mismatch: got %d want %d\n", label, *preview_active, want_preview_active);
+        return 0;
+    }
+    if (tool != want_tool || brush_color != want_brush_color || brush_color_rgb != want_brush_color_rgb || brush_opacity != want_brush_opacity) {
+        fprintf(
+            stderr,
+            "%s mismatch: got {%d,0x%08X,0x%08X,%d} want {%d,0x%08X,0x%08X,%d}\n",
+            label,
+            tool,
+            brush_color,
+            brush_color_rgb,
+            brush_opacity,
+            want_tool,
+            want_brush_color,
+            want_brush_color_rgb,
+            want_brush_opacity
+        );
+        return 0;
+    }
+    return 1;
+}
+
 static int expect_layer_clear_color(const char *label, int active_layer_index, unsigned int want) {
     unsigned int got = app_active_layer_clear_color(active_layer_index);
     if (got != want) {
@@ -2033,6 +2103,75 @@ int main(void) {
         0xAA112233u,
         0x00112233u,
         42,
+        TOOL_ERASER,
+        0xAA112233u,
+        0x00112233u,
+        42
+    );
+    shaping = 1;
+    preview_active = 1;
+    ok = ok && expect_handle_available_canvas_sample(
+        "handle_available_canvas_sample_cancels_preview",
+        &shaping,
+        &preview_active,
+        &sampled_canvas,
+        &sampled_preview_canvas,
+        1,
+        0,
+        0,
+        TOOL_ERASER,
+        0xAA112233u,
+        0x00112233u,
+        42,
+        APP_SAMPLE_BRUSH_COLOR_PREVIEW_CANCELED,
+        0,
+        0,
+        TOOL_ERASER,
+        0xAA112233u,
+        0x00112233u,
+        42
+    );
+    shaping = 0;
+    preview_active = 1;
+    ok = ok && expect_handle_available_canvas_sample(
+        "handle_available_canvas_sample_applies_preview_color",
+        &shaping,
+        &preview_active,
+        &sampled_canvas,
+        &sampled_preview_canvas,
+        1,
+        0,
+        1,
+        TOOL_ERASER,
+        0xAA112233u,
+        0x00112233u,
+        42,
+        APP_SAMPLE_BRUSH_COLOR_APPLIED,
+        0,
+        1,
+        TOOL_BRUSH,
+        0xFF223344u,
+        0x00223344u,
+        100
+    );
+    shaping = 0;
+    preview_active = 1;
+    ok = ok && expect_handle_available_canvas_sample(
+        "handle_available_canvas_sample_oob_noop",
+        &shaping,
+        &preview_active,
+        &sampled_canvas,
+        &sampled_preview_canvas,
+        1,
+        5,
+        5,
+        TOOL_ERASER,
+        0xAA112233u,
+        0x00112233u,
+        42,
+        APP_SAMPLE_BRUSH_COLOR_NOOP,
+        0,
+        1,
         TOOL_ERASER,
         0xAA112233u,
         0x00112233u,

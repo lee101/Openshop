@@ -1289,15 +1289,9 @@ static void handle_mouse_button_down(
     }
 
     if (button.button == SDL_BUTTON_RIGHT) {
-        if (*shaping) {
-            app_cancel_shape_preview(shaping, preview_active);
-            return;
-        }
-        if (button.x < 0 || button.y < 0 || button.x >= CANVAS_WIDTH || button.y >= CANVAS_HEIGHT) {
-            return;
-        }
-
-        app_apply_sampled_brush_color_from_available_canvas(
+        if (app_handle_available_canvas_sample(
+            shaping,
+            preview_active,
             composite,
             preview_canvas_mut,
             *preview_active,
@@ -1307,8 +1301,9 @@ static void handle_mouse_button_down(
             brush_color,
             brush_color_rgb,
             brush_opacity
-        );
-        update_window_title(window, layers, *tool, brush_shape, brush_radius, *brush_color, *brush_opacity);
+        ) == APP_SAMPLE_BRUSH_COLOR_APPLIED) {
+            update_window_title(window, layers, *tool, brush_shape, brush_radius, *brush_color, *brush_opacity);
+        }
     }
 }
 

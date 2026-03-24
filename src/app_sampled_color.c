@@ -67,3 +67,35 @@ void app_apply_sampled_brush_color_from_available_canvas(
         brush_opacity
     );
 }
+
+AppSampleBrushColorResult app_handle_available_canvas_sample(
+    int *shaping,
+    int *preview_active,
+    const Canvas *composite,
+    const Canvas *preview_canvas,
+    int preview_canvas_active,
+    int x,
+    int y,
+    Tool *tool,
+    uint32_t *brush_color,
+    uint32_t *brush_color_rgb,
+    int *brush_opacity
+) {
+    const Canvas *canvas = NULL;
+
+    if (shaping && *shaping) {
+        app_cancel_shape_preview(shaping, preview_active);
+        return APP_SAMPLE_BRUSH_COLOR_PREVIEW_CANCELED;
+    }
+
+    canvas = app_preview_canvas_or_composite(composite, preview_canvas, preview_canvas_active);
+    if (!canvas || !canvas->pixels) {
+        return APP_SAMPLE_BRUSH_COLOR_NOOP;
+    }
+    if (x < 0 || y < 0 || x >= canvas->width || y >= canvas->height) {
+        return APP_SAMPLE_BRUSH_COLOR_NOOP;
+    }
+
+    app_apply_sampled_brush_color_from_canvas(canvas, x, y, tool, brush_color, brush_color_rgb, brush_opacity);
+    return APP_SAMPLE_BRUSH_COLOR_APPLIED;
+}
