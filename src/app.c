@@ -1298,6 +1298,38 @@ static int handle_layer_navigation_hotkey(SDL_Keycode key,
     return 1;
 }
 
+static int handle_file_hotkey(SDL_Keycode key,
+                              int ctrl, int alt, int shift,
+                              int preview_active,
+                              const Canvas *preview_canvas,
+                              const Canvas *composite,
+                              LayerStack *layers,
+                              Snapshot *undo_stack, int *undo_count,
+                              Snapshot *redo_stack, int *redo_count,
+                              int *needs_composite) {
+    const Canvas *save_canvas;
+
+    if (!ctrl || alt || shift || !layers || !undo_stack || !undo_count || !redo_stack || !redo_count ||
+        !composite || !needs_composite) {
+        return 0;
+    }
+
+    if (key == SDLK_s) {
+        save_canvas = (preview_active && preview_canvas && preview_canvas->pixels) ? preview_canvas : composite;
+        try_save_canvas_to_output(save_canvas);
+        return 1;
+    }
+
+    if (key == SDLK_o) {
+        if (try_load_active_layer_bmp(layers, undo_stack, undo_count, redo_stack, redo_count)) {
+            *needs_composite = 1;
+        }
+        return 1;
+    }
+
+    return 0;
+}
+
 static int handle_right_click_sample(SDL_Window *window,
                                      const LayerStack *layers,
                                      const Canvas *sample,
@@ -1835,16 +1867,9 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (ctrl && key == SDLK_s) {
-                    const Canvas *save_canvas = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
-                    try_save_canvas_to_output(save_canvas);
-                    break;
-                }
-
-                if (ctrl && key == SDLK_o) {
-                    if (try_load_active_layer_bmp(&layers, undo_stack, &undo_count, redo_stack, &redo_count)) {
-                        needs_composite = 1;
-                    }
+                if (handle_file_hotkey(key, ctrl, alt, shift, preview_active, &preview_canvas, &composite,
+                                       &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                       &needs_composite)) {
                     break;
                 }
 
