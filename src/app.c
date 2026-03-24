@@ -1,6 +1,7 @@
 #include "app.h"
 #include "app_brush.h"
 #include "app_color.h"
+#include "app_layer_state.h"
 #include "app_preview.h"
 #include "app_shape.h"
 #include "app_title.h"
@@ -1180,12 +1181,11 @@ static uint32_t active_layer_clear_color(const LayerStack *layers) {
     if (!layers) {
         return COLOR_BG;
     }
-    return (layers->active_layer == 0) ? COLOR_BG : 0x00000000;
+    return app_active_layer_clear_color(layers->active_layer);
 }
 
 static int active_layer_editable(const LayerStack *layers) {
-    const Layer *active = layers ? layer_stack_get(layers, layers->active_layer) : NULL;
-    return active && !active->locked && active->canvas.pixels;
+    return app_layer_editable(layers ? layer_stack_get(layers, layers->active_layer) : NULL);
 }
 
 static int apply_canvas_transform(

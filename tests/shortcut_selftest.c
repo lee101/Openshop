@@ -1,5 +1,6 @@
 #include "../src/app_brush.h"
 #include "../src/app_color.h"
+#include "../src/app_layer_state.h"
 #include "../src/app_preview.h"
 #include "../src/app_shape.h"
 #include "../src/app_title.h"
@@ -123,6 +124,24 @@ static int expect_brush_color(const char *label, unsigned int rgb_color, int opa
     unsigned int got = app_compose_brush_color(rgb_color, opacity_percent);
     if (got != want) {
         fprintf(stderr, "%s mismatch: got 0x%08X want 0x%08X\n", label, got, want);
+        return 0;
+    }
+    return 1;
+}
+
+static int expect_layer_clear_color(const char *label, int active_layer_index, unsigned int want) {
+    unsigned int got = app_active_layer_clear_color(active_layer_index);
+    if (got != want) {
+        fprintf(stderr, "%s mismatch: got 0x%08X want 0x%08X\n", label, got, want);
+        return 0;
+    }
+    return 1;
+}
+
+static int expect_layer_editable(const char *label, Layer *layer, int want) {
+    int got = app_layer_editable(layer);
+    if (got != want) {
+        fprintf(stderr, "%s mismatch: got %d want %d\n", label, got, want);
         return 0;
     }
     return 1;
@@ -413,6 +432,16 @@ int main(void) {
     int sentinel_y = 654;
     int shaping = 1;
     int preview_active = 1;
+    Layer editable_layer = {0};
+    Layer locked_layer = {0};
+    Layer empty_layer = {0};
+
+    editable_layer.locked = 0;
+    editable_layer.canvas.pixels = (uint32_t *)&editable_layer;
+    locked_layer.locked = 1;
+    locked_layer.canvas.pixels = (uint32_t *)&locked_layer;
+    empty_layer.locked = 0;
+    empty_layer.canvas.pixels = NULL;
 
     ok = ok && expect_shortcut("plain_f2", 0, 0, 0, LAYER_NAME_RESET_SHORTCUT_ACTIVE);
     ok = ok && expect_shortcut("ctrl_f2", 1, 0, 0, LAYER_NAME_RESET_SHORTCUT_ALL);
@@ -479,6 +508,12 @@ int main(void) {
     ok = ok && expect_brush_color("brush_color_low_clamp", 0x00123456u, 0, 0x03123456u);
     ok = ok && expect_brush_color("brush_color_mid_round", 0x00ABCDEFu, 50, 0x80ABCDEFu);
     ok = ok && expect_brush_color("brush_color_high_clamp", 0x00FEDCBAu, 150, 0xFFFEDCBAu);
+    ok = ok && expect_layer_clear_color("layer_clear_color_background", 0, 0xFFFFFFFFu);
+    ok = ok && expect_layer_clear_color("layer_clear_color_foreground", 3, 0x00000000u);
+    ok = ok && expect_layer_editable("layer_editable_true", &editable_layer, 1);
+    ok = ok && expect_layer_editable("layer_editable_locked", &locked_layer, 0);
+    ok = ok && expect_layer_editable("layer_editable_missing_pixels", &empty_layer, 0);
+    ok = ok && expect_layer_editable("layer_editable_null", NULL, 0);
     ok = ok && expect_tool_label("tool_brush_label", TOOL_BRUSH, "Brush");
     ok = ok && expect_tool_label("tool_filled_ellipse_label", TOOL_FILLED_ELLIPSE, "Filled Ellipse");
     ok = ok && expect_tool_label("tool_label_default", (Tool)999, "Brush");
