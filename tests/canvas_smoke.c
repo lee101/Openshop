@@ -428,7 +428,26 @@ static int test_layer_creation_helpers(void) {
             return 0;
         }
     }
-    if (layer_creation_try_add(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0x00000000, MAX_LAYERS)) {
+    {
+        int undo_before = undo_count;
+        int redo_before = redo_count;
+
+        if (layer_creation_try_add(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0x00000000, MAX_LAYERS)) {
+            fprintf(stderr, "layer_creation_try_add max layer guard failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        if (undo_count != undo_before || redo_count != redo_before) {
+            fprintf(stderr, "layer_creation_try_add max layer should not mutate history\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    if (undo_count > MAX_LAYERS) {
         fprintf(stderr, "layer_creation_try_add max layer guard failed\n");
         snapshot_stack_clear(undo_stack, &undo_count);
         snapshot_stack_clear(redo_stack, &redo_count);
