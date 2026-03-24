@@ -1918,6 +1918,26 @@ static void handle_key_down(
     refresh_app_title(window, layers, *tool, *brush_shape, *brush_radius, *brush_color, *brush_opacity);
 }
 
+static void draw_checkerboard_background(SDL_Renderer *renderer) {
+    if (!renderer) {
+        return;
+    }
+
+    SDL_SetRenderDrawColor(renderer, 30, 30, 34, 255);
+    for (int y = 0; y < CANVAS_HEIGHT; y += CHECKER_SIZE) {
+        for (int x = 0; x < CANVAS_WIDTH; x += CHECKER_SIZE) {
+            int even = ((x / CHECKER_SIZE) + (y / CHECKER_SIZE)) % 2 == 0;
+            if (even) {
+                SDL_SetRenderDrawColor(renderer, 232, 232, 236, 255);
+            } else {
+                SDL_SetRenderDrawColor(renderer, 206, 206, 212, 255);
+            }
+            SDL_Rect cell = {x, y, CHECKER_SIZE, CHECKER_SIZE};
+            SDL_RenderFillRect(renderer, &cell);
+        }
+    }
+}
+
 static void render_app_frame(
     SDL_Renderer *renderer,
     SDL_Texture *texture,
@@ -1943,19 +1963,7 @@ static void render_app_frame(
     }
     SDL_SetRenderDrawColor(renderer, 30, 30, 34, 255);
     SDL_RenderClear(renderer);
-
-    for (int y = 0; y < CANVAS_HEIGHT; y += CHECKER_SIZE) {
-        for (int x = 0; x < CANVAS_WIDTH; x += CHECKER_SIZE) {
-            int even = ((x / CHECKER_SIZE) + (y / CHECKER_SIZE)) % 2 == 0;
-            if (even) {
-                SDL_SetRenderDrawColor(renderer, 232, 232, 236, 255);
-            } else {
-                SDL_SetRenderDrawColor(renderer, 206, 206, 212, 255);
-            }
-            SDL_Rect cell = {x, y, CHECKER_SIZE, CHECKER_SIZE};
-            SDL_RenderFillRect(renderer, &cell);
-        }
-    }
+    draw_checkerboard_background(renderer);
 
     {
         SDL_Rect dest = {0, 0, CANVAS_WIDTH, CANVAS_HEIGHT};
