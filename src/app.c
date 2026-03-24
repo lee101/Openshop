@@ -1140,14 +1140,13 @@ static int handle_right_click_down(const MouseState *mouse_state, int x, int y) 
         return 1;
     }
 
-    handle_right_click_sample(mouse_state->window, mouse_state->layers,
-                              current_display_canvas(*mouse_state->preview_active,
-                                                     mouse_state->preview_canvas,
-                                                     mouse_state->composite),
-                              x, y, mouse_state->brush_color_rgb, mouse_state->brush_color,
-                              mouse_state->brush_opacity, *mouse_state->brush_radius,
-                              *mouse_state->brush_shape, mouse_state->tool);
-    return 1;
+    return handle_right_click_sample(mouse_state->window, mouse_state->layers,
+                                     current_display_canvas(*mouse_state->preview_active,
+                                                            mouse_state->preview_canvas,
+                                                            mouse_state->composite),
+                                     x, y, mouse_state->brush_color_rgb, mouse_state->brush_color,
+                                     mouse_state->brush_opacity, *mouse_state->brush_radius,
+                                     *mouse_state->brush_shape, mouse_state->tool);
 }
 
 static int handle_mouse_button_down(const MouseState *mouse_state, Uint8 button, int x, int y) {
