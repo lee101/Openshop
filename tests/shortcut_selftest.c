@@ -1583,6 +1583,22 @@ static int expect_brush_color(const char *label, unsigned int rgb_color, int opa
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    unsigned int rgb_color;
+    int opacity_percent;
+    unsigned int want;
+} BrushColorCase;
+
+static int run_brush_color_case(const BrushColorCase *test_case) {
+    return expect_brush_color(
+        test_case->label,
+        test_case->rgb_color,
+        test_case->opacity_percent,
+        test_case->want
+    );
+}
+
 static int expect_brush_mask(const char *label, BrushShape shape, int x, int y, int radius, int want) {
     int got = app_brush_mask_contains(shape, x, y, radius);
     if (got != want) {
@@ -2039,6 +2055,20 @@ static int expect_layer_clear_color(const char *label, int active_layer_index, u
         return 0;
     }
     return 1;
+}
+
+typedef struct {
+    const char *label;
+    int active_layer_index;
+    unsigned int want;
+} LayerClearColorCase;
+
+static int run_layer_clear_color_case(const LayerClearColorCase *test_case) {
+    return expect_layer_clear_color(
+        test_case->label,
+        test_case->active_layer_index,
+        test_case->want
+    );
 }
 
 static int expect_layer_editable(const char *label, Layer *layer, int want) {
@@ -4059,11 +4089,25 @@ int main(void) {
             ok = ok && run_sampled_brush_color_noop_case(&sampled_noop_cases[i]);
         }
     }
-    ok = ok && expect_brush_color("brush_color_low_clamp", 0x00123456u, 0, 0x03123456u);
-    ok = ok && expect_brush_color("brush_color_mid_round", 0x00ABCDEFu, 50, 0x80ABCDEFu);
-    ok = ok && expect_brush_color("brush_color_high_clamp", 0x00FEDCBAu, 150, 0xFFFEDCBAu);
-    ok = ok && expect_layer_clear_color("layer_clear_color_background", 0, 0xFFFFFFFFu);
-    ok = ok && expect_layer_clear_color("layer_clear_color_foreground", 3, 0x00000000u);
+    {
+        const BrushColorCase brush_color_cases[] = {
+            {"brush_color_low_clamp", 0x00123456u, 0, 0x03123456u},
+            {"brush_color_mid_round", 0x00ABCDEFu, 50, 0x80ABCDEFu},
+            {"brush_color_high_clamp", 0x00FEDCBAu, 150, 0xFFFEDCBAu},
+        };
+        const LayerClearColorCase layer_clear_color_cases[] = {
+            {"layer_clear_color_background", 0, 0xFFFFFFFFu},
+            {"layer_clear_color_foreground", 3, 0x00000000u},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(brush_color_cases) / sizeof(brush_color_cases[0]); i++) {
+            ok = ok && run_brush_color_case(&brush_color_cases[i]);
+        }
+        for (i = 0; i < sizeof(layer_clear_color_cases) / sizeof(layer_clear_color_cases[0]); i++) {
+            ok = ok && run_layer_clear_color_case(&layer_clear_color_cases[i]);
+        }
+    }
     ok = ok && expect_layer_editable("layer_editable_true", &editable_layer, 1);
     ok = ok && expect_layer_editable("layer_editable_locked", &locked_layer, 0);
     ok = ok && expect_layer_editable("layer_editable_missing_pixels", &empty_layer, 0);
