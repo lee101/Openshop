@@ -1,5 +1,6 @@
 #include "app.h"
 #include "active_layer_ops.h"
+#include "app_hotkey.h"
 #include "app_input_rules.h"
 #include "brush_render.h"
 #include "brush_state.h"
@@ -876,10 +877,8 @@ static int handle_selector_hotkey(SDL_Keycode key,
     for (i = 0; i < sizeof(SELECTOR_HOTKEYS) / sizeof(SELECTOR_HOTKEYS[0]); i++) {
         const SelectorHotkey *hotkey = &SELECTOR_HOTKEYS[i];
 
-        if (hotkey->key == key &&
-            hotkey->ctrl == ctrl &&
-            hotkey->alt == alt &&
-            hotkey->shift == shift) {
+        if (app_hotkey_matches(key, ctrl, alt, shift,
+                               hotkey->key, hotkey->ctrl, hotkey->alt, hotkey->shift)) {
             refresh_title_state_on_change(action_state->title_state,
                                           hotkey->action(action_state->layers, hotkey->arg) >= 0);
             return 1;
@@ -903,10 +902,8 @@ static int handle_reveal_hotkey(SDL_Keycode key,
     for (i = 0; i < sizeof(REVEAL_HOTKEYS) / sizeof(REVEAL_HOTKEYS[0]); i++) {
         const RevealHotkey *hotkey = &REVEAL_HOTKEYS[i];
 
-        if (hotkey->key == key &&
-            hotkey->ctrl == ctrl &&
-            hotkey->alt == alt &&
-            hotkey->shift == shift) {
+        if (app_hotkey_matches(key, ctrl, alt, shift,
+                               hotkey->key, hotkey->ctrl, hotkey->alt, hotkey->shift)) {
             run_directional_layer_action(action_state->title_state->window, action_state->layers,
                                          action_state->undo_stack, action_state->undo_count,
                                          action_state->redo_stack, action_state->redo_count,
@@ -969,10 +966,8 @@ static int handle_indexed_layer_hotkey(SDL_Keycode key,
     for (i = 0; i < sizeof(INDEXED_LAYER_HOTKEYS) / sizeof(INDEXED_LAYER_HOTKEYS[0]); i++) {
         const IndexedLayerHotkey *hotkey = &INDEXED_LAYER_HOTKEYS[i];
 
-        if (hotkey->key == key &&
-            hotkey->ctrl == ctrl &&
-            hotkey->alt == alt &&
-            hotkey->shift == shift) {
+        if (app_hotkey_matches(key, ctrl, alt, shift,
+                               hotkey->key, hotkey->ctrl, hotkey->alt, hotkey->shift)) {
             run_indexed_layer_action(action_state->title_state->window, action_state->layers,
                                      action_state->undo_stack, action_state->undo_count,
                                      action_state->redo_stack, action_state->redo_count,
@@ -1002,10 +997,8 @@ static int handle_indexed_layer_silent_hotkey(SDL_Keycode key,
     for (i = 0; i < sizeof(INDEXED_LAYER_SILENT_HOTKEYS) / sizeof(INDEXED_LAYER_SILENT_HOTKEYS[0]); i++) {
         const IndexedLayerSilentHotkey *hotkey = &INDEXED_LAYER_SILENT_HOTKEYS[i];
 
-        if (hotkey->key == key &&
-            hotkey->ctrl == ctrl &&
-            hotkey->alt == alt &&
-            hotkey->shift == shift) {
+        if (app_hotkey_matches(key, ctrl, alt, shift,
+                               hotkey->key, hotkey->ctrl, hotkey->alt, hotkey->shift)) {
             run_indexed_layer_action_silent(action_state->title_state->window, action_state->layers,
                                             action_state->undo_stack, action_state->undo_count,
                                             action_state->redo_stack, action_state->redo_count,

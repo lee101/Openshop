@@ -1,4 +1,5 @@
 #include "../src/active_layer_ops.h"
+#include "../src/app_hotkey.h"
 #include "../src/app_input_rules.h"
 #include "../src/brush_render.h"
 #include "../src/brush_state.h"
@@ -83,6 +84,20 @@ static int test_app_input_rules(void) {
         return 0;
     }
 
+    return 1;
+}
+
+static int test_app_hotkey_helpers(void) {
+    if (!app_hotkey_matches('x', 1, 0, 1, 'x', 1, 0, 1)) {
+        fprintf(stderr, "hotkey exact match failed\n");
+        return 0;
+    }
+    if (app_hotkey_matches('x', 0, 0, 1, 'x', 1, 0, 1) ||
+        app_hotkey_matches('x', 1, 1, 1, 'x', 1, 0, 1) ||
+        app_hotkey_matches('y', 1, 0, 1, 'x', 1, 0, 1)) {
+        fprintf(stderr, "hotkey mismatch detection failed\n");
+        return 0;
+    }
     return 1;
 }
 
@@ -5235,6 +5250,10 @@ int main(void) {
     }
 
     if (!test_app_input_rules()) {
+        return 1;
+    }
+
+    if (!test_app_hotkey_helpers()) {
         return 1;
     }
 
