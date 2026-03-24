@@ -1369,6 +1369,24 @@ static int test_snapshot_history_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    {
+        int width_before = stack.width;
+        int undo_before = undo_count;
+        uint32_t oldest_before = undo_stack[0].pixels[0];
+        uint32_t newest_before = undo_stack[1].pixels[0];
+
+        stack.width = -1;
+        snapshot_push(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 2);
+        stack.width = width_before;
+        if (undo_count != undo_before || undo_stack[0].pixels[0] != oldest_before ||
+            undo_stack[1].pixels[0] != newest_before) {
+            fprintf(stderr, "snapshot_push should not evict history when capture fails\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
 
     {
         Snapshot bad = {0};

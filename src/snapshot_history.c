@@ -149,15 +149,14 @@ void snapshot_push(const LayerStack *layers, Snapshot *stack, int *count,
     if (!layers || !stack || !count || max_history <= 0) {
         return;
     }
+    if (!snapshot_from_layers(&s, layers)) {
+        snapshot_free(&s);
+        return;
+    }
     if (*count == max_history) {
         snapshot_free(&stack[0]);
         memmove(&stack[0], &stack[1], sizeof(Snapshot) * (size_t)(max_history - 1));
         *count = max_history - 1;
-    }
-
-    if (!snapshot_from_layers(&s, layers)) {
-        snapshot_free(&s);
-        return;
     }
     stack[(*count)++] = s;
     if (redo && redo_count) {
