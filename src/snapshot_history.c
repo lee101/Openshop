@@ -169,29 +169,26 @@ int snapshot_restore(LayerStack *layers,
                      Snapshot *target_stack, int *target_count,
                      int max_history) {
     Snapshot current = {0};
-    int captured_current = 0;
 
     if (!layers || !source_stack || !source_count || !target_stack || !target_count ||
         *source_count <= 0 || max_history <= 0) {
         return 0;
     }
 
-    captured_current = snapshot_from_layers(&current, layers);
+    if (!snapshot_from_layers(&current, layers)) {
+        return 0;
+    }
     if (!snapshot_apply(&source_stack[*source_count - 1], layers)) {
-        if (captured_current) {
-            snapshot_free(&current);
-        }
+        snapshot_free(&current);
         return 0;
     }
 
-    if (captured_current) {
-        if (*target_count == max_history) {
-            snapshot_free(&target_stack[0]);
-            memmove(&target_stack[0], &target_stack[1], sizeof(Snapshot) * (size_t)(max_history - 1));
-            *target_count = max_history - 1;
-        }
-        target_stack[(*target_count)++] = current;
+    if (*target_count == max_history) {
+        snapshot_free(&target_stack[0]);
+        memmove(&target_stack[0], &target_stack[1], sizeof(Snapshot) * (size_t)(max_history - 1));
+        *target_count = max_history - 1;
     }
+    target_stack[(*target_count)++] = current;
 
     (*source_count)--;
     snapshot_free(&source_stack[*source_count]);

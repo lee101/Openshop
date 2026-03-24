@@ -1354,6 +1354,16 @@ static int test_snapshot_history_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.width = -1;
+    if (snapshot_restore(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 2) ||
+        undo_count != 1 || redo_count != 0) {
+        fprintf(stderr, "snapshot_restore should fail cleanly when redo capture fails\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.width = 3;
     snapshot_stack_clear(undo_stack, &undo_count);
     snapshot_stack_clear(redo_stack, &redo_count);
     canvas_set_pixel_raw(&stack.layers[1].canvas, 0, 0, 0xFF000001);
