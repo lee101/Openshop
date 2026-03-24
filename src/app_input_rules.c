@@ -281,8 +281,8 @@ AppBrushToolAction app_brush_tool_hotkey_action(int key, int ctrl, int alt) {
     return APP_BRUSH_TOOL_NONE;
 }
 
-AppEscapeAction app_escape_action(int key, int shaping) {
-    if (key != APP_KEY_ESCAPE) {
+AppEscapeAction app_escape_action(int key, int ctrl, int alt, int shaping) {
+    if (key != APP_KEY_ESCAPE || ctrl || alt) {
         return APP_ESCAPE_NONE;
     }
     return shaping ? APP_ESCAPE_CANCEL_SHAPE : APP_ESCAPE_QUIT;

@@ -1428,7 +1428,7 @@ int app_run(const char *input_path) {
                     shape_preview_cancel(&shaping, &preview_active);
                 }
 
-                escape_action = app_escape_action((int)key, shaping);
+                escape_action = app_escape_action((int)key, ctrl, alt, shaping);
                 if (escape_action == APP_ESCAPE_CANCEL_SHAPE) {
                     shape_preview_cancel(&shaping, &preview_active);
                     break;

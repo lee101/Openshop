@@ -151,6 +151,6 @@ AppMousePositionAction app_mouse_position_hotkey_action(int key, int ctrl, int a
 int app_mouse_position_marks_composite(AppMousePositionAction action, int changed);
 AppBrushPresetAction app_brush_preset_hotkey_action(int key, int ctrl, int alt);
 AppBrushToolAction app_brush_tool_hotkey_action(int key, int ctrl, int alt);
-AppEscapeAction app_escape_action(int key, int shaping);
+AppEscapeAction app_escape_action(int key, int ctrl, int alt, int shaping);
 
 #endif
