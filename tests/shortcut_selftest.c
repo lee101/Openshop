@@ -2238,6 +2238,34 @@ int main(void) {
         );
     }
     {
+        int prep_preview_active = 7;
+        uint32_t prep_preview_pixels[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
+        uint32_t prep_shape_base[4] = {0x01010101u, 0x02020202u, 0x03030303u, 0x04040404u};
+        uint32_t prep_preview_want[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
+        int out_x = -999;
+        int out_y = -999;
+
+        ok = ok && expect_prepare_shape_preview_motion_rejection(
+            "prepare_shape_preview_motion_canvas_without_pixels",
+            &preview_canvas_without_pixels,
+            prep_preview_pixels,
+            prep_shape_base,
+            4,
+            &prep_preview_active,
+            TOOL_RECT,
+            1,
+            1,
+            2,
+            2,
+            0,
+            &out_x,
+            &out_y,
+            7,
+            prep_preview_want,
+            4
+        );
+    }
+    {
         Canvas prep_preview_canvas = {4, 4, preview_restore_copy};
         int prep_preview_active = 7;
         uint32_t prep_shape_base[4] = {0x01010101u, 0x02020202u, 0x03030303u, 0x04040404u};
