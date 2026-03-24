@@ -273,6 +273,18 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
     SDL_SetWindowTitle(window, title);
 }
 
+static void refresh_app_title(
+    SDL_Window *window,
+    const LayerStack *layers,
+    Tool tool,
+    BrushShape brush_shape,
+    int brush_radius,
+    uint32_t brush_color,
+    int brush_opacity
+) {
+    update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+}
+
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
     switch (shape) {
     case BRUSH_SHAPE_ROUND:
@@ -1406,7 +1418,7 @@ int app_run(const char *input_path) {
     Canvas preview_canvas = {CANVAS_WIDTH, CANVAS_HEIGHT, preview_pixels};
     memset(undo_stack, 0, sizeof(undo_stack));
     memset(redo_stack, 0, sizeof(redo_stack));
-    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
 
     while (running) {
         SDL_Event e;
@@ -1461,7 +1473,7 @@ int app_run(const char *input_path) {
                         }
                         brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
                         tool = TOOL_BRUSH;
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                 }
                 break;
@@ -1554,7 +1566,7 @@ int app_run(const char *input_path) {
                         redo_stack,
                         &redo_count,
                         &needs_composite)) {
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
@@ -1568,7 +1580,7 @@ int app_run(const char *input_path) {
                         redo_stack,
                         &redo_count,
                         &needs_composite)) {
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
@@ -1582,7 +1594,7 @@ int app_run(const char *input_path) {
                         redo_stack,
                         &redo_count,
                         &needs_composite)) {
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
@@ -1610,7 +1622,7 @@ int app_run(const char *input_path) {
                         redo_stack,
                         &redo_count,
                         &needs_composite)) {
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
@@ -1623,7 +1635,7 @@ int app_run(const char *input_path) {
                         redo_stack,
                         &redo_count,
                         &needs_composite)) {
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
@@ -1639,7 +1651,7 @@ int app_run(const char *input_path) {
                         &redo_count,
                         &needs_composite
                     )) {
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
@@ -1653,7 +1665,7 @@ int app_run(const char *input_path) {
                         &redo_count,
                         &needs_composite
                     )) {
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
@@ -1668,7 +1680,7 @@ int app_run(const char *input_path) {
                         redo_stack,
                         &redo_count
                     )) {
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
@@ -1683,7 +1695,7 @@ int app_run(const char *input_path) {
                         &redo_count,
                         &needs_composite
                     )) {
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
@@ -1705,11 +1717,11 @@ int app_run(const char *input_path) {
                         &brush_color_rgb,
                         &brush_opacity,
                         &needs_composite)) {
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
-                update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                 break;
             }
             default:
