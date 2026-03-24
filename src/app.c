@@ -1359,23 +1359,15 @@ static int handle_view_and_canvas_shortcut(
     }
 
     view_result = view_shortcut_result(view_shortcut_key_from_sdl(key), shift);
-    if (view_result.action == VIEW_SHORTCUT_CYCLE) {
-        return layer_stack_cycle(layers, view_result.cycle_direction) >= 0;
-    }
-
-    if (view_result.action == VIEW_SHORTCUT_TRANSLATE) {
-        if (app_apply_canvas_translation(
-                layers,
-                undo_stack,
-                undo_count,
-                MAX_HISTORY,
-                redo_stack,
-                redo_count,
-                view_result.dx,
-                view_result.dy
-            ) && needs_composite) {
-            *needs_composite = 1;
-        }
+    if (app_handle_view_shortcut(
+            view_result,
+            layers,
+            undo_stack,
+            undo_count,
+            MAX_HISTORY,
+            redo_stack,
+            redo_count,
+            needs_composite)) {
         return 1;
     }
 

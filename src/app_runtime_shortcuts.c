@@ -182,3 +182,40 @@ int app_handle_canvas_sample_shortcut_at(
     );
     return 1;
 }
+
+int app_handle_view_shortcut(
+    ViewShortcutResult view_result,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    int undo_capacity,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+) {
+    if (!layers) {
+        return 0;
+    }
+
+    if (view_result.action == VIEW_SHORTCUT_CYCLE) {
+        return layer_stack_cycle(layers, view_result.cycle_direction) >= 0;
+    }
+
+    if (view_result.action == VIEW_SHORTCUT_TRANSLATE) {
+        if (app_apply_canvas_translation(
+                layers,
+                undo_stack,
+                undo_count,
+                undo_capacity,
+                redo_stack,
+                redo_count,
+                view_result.dx,
+                view_result.dy
+            ) && needs_composite) {
+            *needs_composite = 1;
+        }
+        return 1;
+    }
+
+    return 0;
+}

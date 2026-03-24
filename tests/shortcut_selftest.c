@@ -1697,6 +1697,121 @@ static int run_canvas_sample_shortcut_case(const CanvasSampleShortcutCase *test_
     );
 }
 
+static int expect_view_shortcut_runtime(
+    const char *label,
+    ViewShortcutResult view_result,
+    int layer_count,
+    int active_layer,
+    int locked,
+    const uint32_t *initial_pixels,
+    int want_handled,
+    int want_needs_composite,
+    int want_active_layer,
+    int want_undo_count,
+    const uint32_t *want_pixels
+) {
+    LayerStack stack = {0};
+    uint32_t pixels0[4] = {0};
+    uint32_t pixels1[4] = {0};
+    Snapshot undo_stack[2] = {0};
+    Snapshot redo_stack[2] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+    int needs_composite = 0;
+    int handled = 0;
+    size_t i;
+
+    stack.width = 2;
+    stack.height = 2;
+    stack.layer_count = layer_count;
+    stack.active_layer = active_layer;
+    stack.solo_index = -1;
+
+    stack.layers[0].canvas.width = 2;
+    stack.layers[0].canvas.height = 2;
+    stack.layers[0].canvas.pixels = pixels0;
+    stack.layers[0].visible = 1;
+    stack.layers[0].opacity_percent = 100;
+    stack.layers[0].locked = locked;
+
+    stack.layers[1].canvas.width = 2;
+    stack.layers[1].canvas.height = 2;
+    stack.layers[1].canvas.pixels = pixels1;
+    stack.layers[1].visible = 1;
+    stack.layers[1].opacity_percent = 100;
+    stack.layers[1].locked = 0;
+
+    for (i = 0; i < 4; i++) {
+        pixels0[i] = initial_pixels[i];
+        pixels1[i] = 0xFF100000u + (uint32_t)i;
+    }
+
+    handled = app_handle_view_shortcut(
+        view_result,
+        &stack,
+        undo_stack,
+        &undo_count,
+        2,
+        redo_stack,
+        &redo_count,
+        &needs_composite
+    );
+
+    if (handled != want_handled) {
+        fprintf(stderr, "%s handled mismatch: got %d want %d\n", label, handled, want_handled);
+        return 0;
+    }
+    if (needs_composite != want_needs_composite) {
+        fprintf(stderr, "%s needs_composite mismatch: got %d want %d\n", label, needs_composite, want_needs_composite);
+        return 0;
+    }
+    if (stack.active_layer != want_active_layer) {
+        fprintf(stderr, "%s active layer mismatch: got %d want %d\n", label, stack.active_layer, want_active_layer);
+        return 0;
+    }
+    if (undo_count != want_undo_count || redo_count != 0) {
+        fprintf(stderr, "%s history count mismatch: undo %d/%d redo %d/0\n", label, undo_count, want_undo_count, redo_count);
+        return 0;
+    }
+    for (i = 0; i < 4; i++) {
+        if (pixels0[i] != want_pixels[i]) {
+            fprintf(stderr, "%s pixels[%zu] mismatch: got 0x%08X want 0x%08X\n", label, i, pixels0[i], want_pixels[i]);
+            return 0;
+        }
+    }
+    return 1;
+}
+
+typedef struct {
+    const char *label;
+    ViewShortcutResult view_result;
+    int layer_count;
+    int active_layer;
+    int locked;
+    uint32_t initial_pixels[4];
+    int want_handled;
+    int want_needs_composite;
+    int want_active_layer;
+    int want_undo_count;
+    uint32_t want_pixels[4];
+} ViewShortcutRuntimeCase;
+
+static int run_view_shortcut_runtime_case(const ViewShortcutRuntimeCase *test_case) {
+    return expect_view_shortcut_runtime(
+        test_case->label,
+        test_case->view_result,
+        test_case->layer_count,
+        test_case->active_layer,
+        test_case->locked,
+        test_case->initial_pixels,
+        test_case->want_handled,
+        test_case->want_needs_composite,
+        test_case->want_active_layer,
+        test_case->want_undo_count,
+        test_case->want_pixels
+    );
+}
+
 static int expect_shape_cancel(const char *label, int key, int ctrl, int want) {
     int got = app_should_cancel_shape_on_key(key, ctrl);
     if (got != want) {
@@ -4417,6 +4532,47 @@ int main(void) {
 
         for (i = 0; i < sizeof(canvas_sample_cases) / sizeof(canvas_sample_cases[0]); i++) {
             ok = ok && run_canvas_sample_shortcut_case(&canvas_sample_cases[i]);
+        }
+    }
+    {
+        const ViewShortcutRuntimeCase view_shortcut_runtime_cases[] = {
+            {
+                "view_shortcut_cycle_forward",
+                {VIEW_SHORTCUT_CYCLE, 1, 0, 0},
+                2, 0, 0,
+                {0xFF000001u, 0xFF000002u, 0xFF000003u, 0xFF000004u},
+                1, 0, 1, 0,
+                {0xFF000001u, 0xFF000002u, 0xFF000003u, 0xFF000004u},
+            },
+            {
+                "view_shortcut_translate_editable",
+                {VIEW_SHORTCUT_TRANSLATE, 0, 1, 0},
+                1, 0, 0,
+                {0xFF000001u, 0xFF000002u, 0xFF000003u, 0xFF000004u},
+                1, 1, 0, 1,
+                {0xFFFFFFFFu, 0xFF000001u, 0xFFFFFFFFu, 0xFF000003u},
+            },
+            {
+                "view_shortcut_translate_locked_noop",
+                {VIEW_SHORTCUT_TRANSLATE, 0, 1, 0},
+                1, 0, 1,
+                {0xFF000001u, 0xFF000002u, 0xFF000003u, 0xFF000004u},
+                1, 0, 0, 0,
+                {0xFF000001u, 0xFF000002u, 0xFF000003u, 0xFF000004u},
+            },
+            {
+                "view_shortcut_none_noop",
+                {VIEW_SHORTCUT_NONE, 0, 0, 0},
+                1, 0, 0,
+                {0xFF000001u, 0xFF000002u, 0xFF000003u, 0xFF000004u},
+                0, 0, 0, 0,
+                {0xFF000001u, 0xFF000002u, 0xFF000003u, 0xFF000004u},
+            },
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(view_shortcut_runtime_cases) / sizeof(view_shortcut_runtime_cases[0]); i++) {
+            ok = ok && run_view_shortcut_runtime_case(&view_shortcut_runtime_cases[i]);
         }
     }
     {
