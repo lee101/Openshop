@@ -1938,6 +1938,18 @@ static void draw_checkerboard_background(SDL_Renderer *renderer) {
     }
 }
 
+static void present_canvas_texture(SDL_Renderer *renderer, SDL_Texture *texture) {
+    if (!renderer || !texture) {
+        return;
+    }
+
+    {
+        SDL_Rect dest = {0, 0, CANVAS_WIDTH, CANVAS_HEIGHT};
+        SDL_RenderCopy(renderer, texture, NULL, &dest);
+    }
+    SDL_RenderPresent(renderer);
+}
+
 static void render_app_frame(
     SDL_Renderer *renderer,
     SDL_Texture *texture,
@@ -1964,12 +1976,7 @@ static void render_app_frame(
     SDL_SetRenderDrawColor(renderer, 30, 30, 34, 255);
     SDL_RenderClear(renderer);
     draw_checkerboard_background(renderer);
-
-    {
-        SDL_Rect dest = {0, 0, CANVAS_WIDTH, CANVAS_HEIGHT};
-        SDL_RenderCopy(renderer, texture, NULL, &dest);
-    }
-    SDL_RenderPresent(renderer);
+    present_canvas_texture(renderer, texture);
 }
 
 static void destroy_app_graphics(
