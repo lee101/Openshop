@@ -1,6 +1,7 @@
 #include "app_sampled_color.h"
 
 #include "app_color.h"
+#include "app_preview.h"
 
 void app_apply_sampled_brush_color(
     uint32_t sampled_color,
@@ -43,4 +44,26 @@ void app_apply_sampled_brush_color_from_canvas(
     }
 
     app_apply_sampled_brush_color(canvas_get_pixel(canvas, x, y), tool, brush_color, brush_color_rgb, brush_opacity);
+}
+
+void app_apply_sampled_brush_color_from_available_canvas(
+    const Canvas *composite,
+    const Canvas *preview_canvas,
+    int preview_active,
+    int x,
+    int y,
+    Tool *tool,
+    uint32_t *brush_color,
+    uint32_t *brush_color_rgb,
+    int *brush_opacity
+) {
+    app_apply_sampled_brush_color_from_canvas(
+        app_preview_canvas_or_composite(composite, preview_canvas, preview_active),
+        x,
+        y,
+        tool,
+        brush_color,
+        brush_color_rgb,
+        brush_opacity
+    );
 }

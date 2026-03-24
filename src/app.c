@@ -163,8 +163,17 @@ static int handle_canvas_sample_shortcut(
         return 1;
     }
 
-    sample = app_preview_canvas_or_composite(composite, preview_canvas, preview_active);
-    app_apply_sampled_brush_color_from_canvas(sample, mx, my, tool, brush_color, brush_color_rgb, brush_opacity);
+    app_apply_sampled_brush_color_from_available_canvas(
+        composite,
+        preview_canvas,
+        preview_active,
+        mx,
+        my,
+        tool,
+        brush_color,
+        brush_color_rgb,
+        brush_opacity
+    );
     return 1;
 }
 
@@ -1393,8 +1402,6 @@ static void handle_mouse_button_down(
     }
 
     if (button.button == SDL_BUTTON_RIGHT) {
-        const Canvas *sample = NULL;
-
         if (*shaping) {
             app_cancel_shape_preview(shaping, preview_active);
             return;
@@ -1403,8 +1410,17 @@ static void handle_mouse_button_down(
             return;
         }
 
-        sample = app_preview_canvas_or_composite(composite, preview_canvas_mut, *preview_active);
-        app_apply_sampled_brush_color_from_canvas(sample, button.x, button.y, tool, brush_color, brush_color_rgb, brush_opacity);
+        app_apply_sampled_brush_color_from_available_canvas(
+            composite,
+            preview_canvas_mut,
+            *preview_active,
+            button.x,
+            button.y,
+            tool,
+            brush_color,
+            brush_color_rgb,
+            brush_opacity
+        );
         update_window_title(window, layers, *tool, brush_shape, brush_radius, *brush_color, *brush_opacity);
     }
 }

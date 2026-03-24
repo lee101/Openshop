@@ -23,4 +23,16 @@ void app_apply_sampled_brush_color_from_canvas(
     int *brush_opacity
 );
 
+void app_apply_sampled_brush_color_from_available_canvas(
+    const Canvas *composite,
+    const Canvas *preview_canvas,
+    int preview_active,
+    int x,
+    int y,
+    Tool *tool,
+    uint32_t *brush_color,
+    uint32_t *brush_color_rgb,
+    int *brush_opacity
+);
+
 #endif
