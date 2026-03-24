@@ -183,10 +183,10 @@ static int handle_canvas_mutation_shortcut(
     }
 
     if (canvas_action == CANVAS_SHORTCUT_CLEAR) {
-        if (active_layer_editable(layers)) {
+        if (app_layer_editable(layer_stack_get(layers, layers->active_layer))) {
             push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
         }
-        changed = layer_stack_clear_layer(layers, layers->active_layer, active_layer_clear_color(layers));
+        changed = layer_stack_clear_layer(layers, layers->active_layer, app_active_layer_clear_color(layers->active_layer));
     } else if (canvas_action == CANVAS_SHORTCUT_FLIP_HORIZONTAL) {
         changed = apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_flip_horizontal);
     } else if (canvas_action == CANVAS_SHORTCUT_FLIP_VERTICAL) {
@@ -810,7 +810,7 @@ static int handle_file_shortcut(
             return 1;
         }
         push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-        if (!canvas_load_bmp(&active->canvas, "input.bmp", active_layer_clear_color(layers))) {
+        if (!canvas_load_bmp(&active->canvas, "input.bmp", app_active_layer_clear_color(layers->active_layer))) {
             fprintf(stderr, "Failed to load input.bmp\n");
         } else if (needs_composite) {
             *needs_composite = 1;
@@ -1143,17 +1143,6 @@ static int handle_view_and_canvas_shortcut(
     return 1;
 }
 
-static uint32_t active_layer_clear_color(const LayerStack *layers) {
-    if (!layers) {
-        return COLOR_BG;
-    }
-    return app_active_layer_clear_color(layers->active_layer);
-}
-
-static int active_layer_editable(const LayerStack *layers) {
-    return app_layer_editable(layers ? layer_stack_get(layers, layers->active_layer) : NULL);
-}
-
 static int apply_canvas_transform(
     LayerStack *layers,
     Snapshot *undo_stack,
@@ -1279,7 +1268,7 @@ static void handle_canvas_motion(
         active = layer_stack_active(layers);
         if (active && !active->locked && active->canvas.pixels) {
             if (tool == TOOL_ERASER) {
-                erase_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, active_layer_clear_color(layers), brush_shape);
+                erase_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, app_active_layer_clear_color(layers->active_layer), brush_shape);
             } else {
                 draw_brush_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, brush_color, brush_shape);
             }
@@ -1424,7 +1413,7 @@ static void handle_mouse_button_down(
                 push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
                 *drawing = 1;
                 if (*tool == TOOL_ERASER) {
-                    erase_stamp(&active->canvas, *last_x, *last_y, brush_radius, active_layer_clear_color(layers), brush_shape);
+                    erase_stamp(&active->canvas, *last_x, *last_y, brush_radius, app_active_layer_clear_color(layers->active_layer), brush_shape);
                 } else {
                     stamp_brush(&active->canvas, *last_x, *last_y, brush_radius, *brush_color, brush_shape);
                 }
@@ -1432,7 +1421,7 @@ static void handle_mouse_button_down(
                     *needs_composite = 1;
                 }
             }
-        } else if (active_layer_editable(layers)) {
+        } else if (app_layer_editable(layer_stack_get(layers, layers->active_layer))) {
             begin_shape_preview(*last_x, *last_y, shaping, shape_start_x, shape_start_y, shape_base_pixels, composite);
         }
         return;
