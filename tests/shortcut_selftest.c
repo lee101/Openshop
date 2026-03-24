@@ -1,4 +1,5 @@
 #include "../src/app_brush.h"
+#include "../src/app_preview.h"
 #include "../src/app_shape.h"
 #include "../src/app_title.h"
 #include "../src/brush_shortcuts.h"
@@ -377,10 +378,31 @@ static int expect_constrained_shape_end_no_output(
     return 1;
 }
 
+static int expect_cancel_shape_preview(
+    const char *label,
+    int *shaping,
+    int *preview_active,
+    int want_shaping,
+    int want_preview_active
+) {
+    app_cancel_shape_preview(shaping, preview_active);
+    if (shaping && *shaping != want_shaping) {
+        fprintf(stderr, "%s shaping mismatch: got %d want %d\n", label, *shaping, want_shaping);
+        return 0;
+    }
+    if (preview_active && *preview_active != want_preview_active) {
+        fprintf(stderr, "%s preview mismatch: got %d want %d\n", label, *preview_active, want_preview_active);
+        return 0;
+    }
+    return 1;
+}
+
 int main(void) {
     int ok = 1;
     int sentinel_x = 321;
     int sentinel_y = 654;
+    int shaping = 1;
+    int preview_active = 1;
 
     ok = ok && expect_shortcut("plain_f2", 0, 0, 0, LAYER_NAME_RESET_SHORTCUT_ACTIVE);
     ok = ok && expect_shortcut("ctrl_f2", 1, 0, 0, LAYER_NAME_RESET_SHORTCUT_ALL);
@@ -460,6 +482,11 @@ int main(void) {
     ok = ok && expect_constrained_shape_end("shape_no_shift_passthrough", TOOL_ELLIPSE, 10, 10, 14, 18, 0, 14, 18);
     ok = ok && expect_constrained_shape_end_no_output("shape_null_out_x", TOOL_LINE, 10, 10, 25, 13, 1, NULL, &sentinel_y, 0, 654);
     ok = ok && expect_constrained_shape_end_no_output("shape_null_out_y", TOOL_LINE, 10, 10, 25, 13, 1, &sentinel_x, NULL, 321, 0);
+    ok = ok && expect_cancel_shape_preview("cancel_shape_preview_both", &shaping, &preview_active, 0, 0);
+    shaping = 7;
+    preview_active = 9;
+    ok = ok && expect_cancel_shape_preview("cancel_shape_preview_null_shape", NULL, &preview_active, 0, 0);
+    ok = ok && expect_cancel_shape_preview("cancel_shape_preview_null_preview", &shaping, NULL, 0, 0);
     ok = ok && expect_title(
         "title_visible_locked_solo",
         "Brush",

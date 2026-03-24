@@ -1,5 +1,6 @@
 #include "app.h"
 #include "app_brush.h"
+#include "app_preview.h"
 #include "app_shape.h"
 #include "app_title.h"
 #include "brush_shortcuts.h"
@@ -367,15 +368,6 @@ static void draw_shape(Canvas *c, Tool tool, int x0, int y0, int x1, int y1, int
     }
     default:
         break;
-    }
-}
-
-static void cancel_shape_preview(int *shaping, int *preview_active) {
-    if (shaping) {
-        *shaping = 0;
-    }
-    if (preview_active) {
-        *preview_active = 0;
     }
 }
 
@@ -1449,7 +1441,7 @@ static void finalize_shape_preview(
             *needs_composite = 1;
         }
     }
-    cancel_shape_preview(shaping, preview_active);
+    app_cancel_shape_preview(shaping, preview_active);
 }
 
 static void handle_mouse_button_down(
@@ -1511,7 +1503,7 @@ static void handle_mouse_button_down(
         const Canvas *sample = NULL;
 
         if (*shaping) {
-            cancel_shape_preview(shaping, preview_active);
+            app_cancel_shape_preview(shaping, preview_active);
             return;
         }
         if (button.x < 0 || button.y < 0 || button.x >= CANVAS_WIDTH || button.y >= CANVAS_HEIGHT) {
@@ -1598,12 +1590,12 @@ static void handle_key_down(
     }
 
     if (*shaping && should_cancel_shape_on_key(key, ctrl)) {
-        cancel_shape_preview(shaping, preview_active_flag);
+        app_cancel_shape_preview(shaping, preview_active_flag);
     }
 
     if (key == SDLK_ESCAPE) {
         if (*shaping) {
-            cancel_shape_preview(shaping, preview_active_flag);
+            app_cancel_shape_preview(shaping, preview_active_flag);
             return;
         }
         *running = 0;
