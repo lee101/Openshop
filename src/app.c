@@ -316,6 +316,43 @@ static int apply_active_layer_opacity_delta(
     return layer_stack_adjust_opacity(layers, layers->active_layer, delta_percent);
 }
 
+static int apply_active_visible_rank_move(
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int target_rank,
+    const char *failure_message
+) {
+    int current_rank = layer_stack_visible_rank(layers, layers->active_layer);
+    int visible_count = layer_stack_visible_count(layers);
+    if (current_rank < 0) {
+        fprintf(stderr, "Active layer is hidden; visible-only move is unavailable\n");
+        return 0;
+    }
+    if (target_rank < 0 || target_rank >= visible_count) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    if (target_rank == current_rank) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    if (!layer_stack_move_to_visible_rank(layers, layers->active_layer, target_rank)) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    return 1;
+}
+
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
     switch (shape) {
     case BRUSH_SHAPE_ROUND:
@@ -935,12 +972,15 @@ int app_run(const char *input_path) {
 
                 if (ctrl && key == SDLK_HOME) {
                     if (shift) {
-                        int current_rank = layer_stack_visible_rank(&layers, layers.active_layer);
-                        if (current_rank >= 0 && current_rank != layer_stack_visible_count(&layers) - 1) {
-                            push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                            if (layer_stack_move_to_visible_rank(&layers, layers.active_layer, layer_stack_visible_count(&layers) - 1)) {
-                                needs_composite = 1;
-                            }
+                        if (apply_active_visible_rank_move(
+                                &layers,
+                                undo_stack,
+                                &undo_count,
+                                redo_stack,
+                                &redo_count,
+                                layer_stack_visible_count(&layers) - 1,
+                                "Layer is already at the top visible slot")) {
+                            needs_composite = 1;
                         }
                     } else {
                         push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
@@ -956,12 +996,15 @@ int app_run(const char *input_path) {
 
                 if (ctrl && key == SDLK_END) {
                     if (shift) {
-                        int current_rank = layer_stack_visible_rank(&layers, layers.active_layer);
-                        if (current_rank > 0) {
-                            push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                            if (layer_stack_move_to_visible_rank(&layers, layers.active_layer, 0)) {
-                                needs_composite = 1;
-                            }
+                        if (apply_active_visible_rank_move(
+                                &layers,
+                                undo_stack,
+                                &undo_count,
+                                redo_stack,
+                                &redo_count,
+                                0,
+                                "Layer is already at the bottom visible slot")) {
+                            needs_composite = 1;
                         }
                     } else {
                         push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
@@ -1124,15 +1167,17 @@ int app_run(const char *input_path) {
 
                 if (alt && shift && key >= SDLK_1 && key <= SDLK_8) {
                     int target = (int)(key - SDLK_1);
-                    int current_rank = layer_stack_visible_rank(&layers, layers.active_layer);
-                    int visible_count = layer_stack_visible_count(&layers);
-                    if (current_rank >= 0 && target < visible_count && target != current_rank) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        if (layer_stack_move_to_visible_rank(&layers, layers.active_layer, target)) {
-                            needs_composite = 1;
-                        }
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    if (apply_active_visible_rank_move(
+                            &layers,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count,
+                            target,
+                            "Visible slot move did not change the active layer")) {
+                        needs_composite = 1;
                     }
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
