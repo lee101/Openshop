@@ -1,6 +1,7 @@
 #include "app.h"
 #include "app_brush.h"
 #include "app_brush_mask.h"
+#include "app_canvas_ops.h"
 #include "app_color.h"
 #include "app_layer_state.h"
 #include "app_preview.h"
@@ -1161,16 +1162,7 @@ static int apply_canvas_transform(
     int *redo_count,
     void (*transform)(Canvas *)
 ) {
-    if (!layers || !transform) {
-        return 0;
-    }
-    Layer *active = layer_stack_active(layers);
-    if (!active || active->locked || !active->canvas.pixels) {
-        return 0;
-    }
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-    transform(&active->canvas);
-    return 1;
+    return app_apply_canvas_transform(layers, undo_stack, undo_count, MAX_HISTORY, redo_stack, redo_count, transform);
 }
 
 static int apply_canvas_translation(
@@ -1182,16 +1174,7 @@ static int apply_canvas_translation(
     int dx,
     int dy
 ) {
-    if (!layers || (dx == 0 && dy == 0)) {
-        return 0;
-    }
-    Layer *active = layer_stack_active(layers);
-    if (!active || active->locked || !active->canvas.pixels) {
-        return 0;
-    }
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-    canvas_translate(&active->canvas, dx, dy, active_layer_clear_color(layers));
-    return 1;
+    return app_apply_canvas_translation(layers, undo_stack, undo_count, MAX_HISTORY, redo_stack, redo_count, dx, dy);
 }
 
 static void erase_stamp(Canvas *c, int cx, int cy, int radius, uint32_t clear_color, BrushShape shape) {
