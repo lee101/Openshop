@@ -343,6 +343,23 @@ int main(void) {
         0x00000000u,
         "Openshop - Brush (Round) | size 5 | brush 20% | layer 2/2 Layer [visible 100%] | visible 2/2 | #00000000"
     );
+    ok = ok && expect_title(
+        "title_extreme_numeric_values",
+        "Ellipse",
+        "Diamond",
+        0,
+        0,
+        98,
+        120,
+        "Edge",
+        0,
+        1,
+        0,
+        0,
+        0,
+        0xFFFFFFFFu,
+        "Openshop - Ellipse (Diamond) | size 0 | brush 0% | layer 99/120 Edge [hidden, locked 0%] | visible 0/120 | #FFFFFFFF"
+    );
 
     if (!ok) {
         return 1;
