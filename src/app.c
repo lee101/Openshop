@@ -977,7 +977,7 @@ static int handle_layer_opacity_hotkey(SDL_Keycode key,
     AppOpacityHotkeyAction opacity_action;
     int changed = 0;
 
-    if (!ctrl || alt || shift || !action_state || !action_state->title_state || !action_state->layers ||
+    if (!action_state || !action_state->title_state || !action_state->layers ||
         !action_state->undo_stack || !action_state->undo_count || !action_state->redo_stack ||
         !action_state->redo_count || !action_state->needs_composite) {
         return 0;
@@ -1067,7 +1067,7 @@ static int handle_layer_navigation_hotkey(SDL_Keycode key,
     int arg = 0;
     int changed = 0;
 
-    if (!action_state || !action_state->title_state || !action_state->layers || alt || shift) {
+    if (!action_state || !action_state->title_state || !action_state->layers) {
         return 0;
     }
 
@@ -1092,7 +1092,7 @@ static int handle_file_hotkey(SDL_Keycode key,
     AppFileHotkeyAction file_action;
     const Canvas *save_canvas;
 
-    if (!ctrl || alt || shift || !action_state || !action_state->layers || !action_state->undo_stack ||
+    if (!action_state || !action_state->layers || !action_state->undo_stack ||
         !action_state->undo_count || !action_state->redo_stack || !action_state->redo_count ||
         !action_state->composite || !action_state->needs_composite) {
         return 0;
@@ -1345,7 +1345,7 @@ static int handle_history_hotkey(SDL_Keycode key,
     AppHistoryHotkeyAction history_action;
     int changed = 0;
 
-    if (!ctrl || alt || shift || !action_state || !action_state->title_state || !action_state->layers ||
+    if (!action_state || !action_state->title_state || !action_state->layers ||
         !action_state->undo_stack || !action_state->undo_count || !action_state->redo_stack ||
         !action_state->redo_count || !action_state->needs_composite) {
         return 0;
