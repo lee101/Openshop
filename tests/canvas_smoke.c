@@ -3657,6 +3657,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_reveal_hidden_editable(&stack, 1)) {
+        fprintf(stderr, "reveal hidden editable from top should fail when no hidden unlocked layers exist\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[0].visible = 0;
     stack.layers[1].visible = 1;
     stack.layers[2].visible = 0;
@@ -3728,6 +3734,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_reveal_hidden_locked(&stack, 1)) {
+        fprintf(stderr, "reveal hidden locked from top should fail when no hidden locked layers exist\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[0].visible = 1;
     stack.layers[1].visible = 1;
     stack.layers[2].visible = 0;
@@ -3790,6 +3802,12 @@ static int test_layers_basic(void) {
     stack.active_layer = 1;
     if (layer_stack_reveal_hidden_unlocked(&stack, 0)) {
         fprintf(stderr, "reveal hidden unlocked should fail when no hidden unlocked layers exist\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_reveal_hidden_unlocked(&stack, 1)) {
+        fprintf(stderr, "reveal hidden unlocked from top should fail when no hidden unlocked layers exist\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
