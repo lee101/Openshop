@@ -518,9 +518,12 @@ int main(void) {
     ok = ok && expect_brush_mask("brush_mask_round_inside", BRUSH_SHAPE_ROUND, 1, 1, 2, 1);
     ok = ok && expect_brush_mask("brush_mask_round_edge", BRUSH_SHAPE_ROUND, 2, 0, 2, 1);
     ok = ok && expect_brush_mask("brush_mask_round_outside", BRUSH_SHAPE_ROUND, 2, 1, 2, 0);
+    ok = ok && expect_brush_mask("brush_mask_round_negative_symmetry", BRUSH_SHAPE_ROUND, -1, -1, 2, 1);
     ok = ok && expect_brush_mask("brush_mask_square_corner", BRUSH_SHAPE_SQUARE, 2, 2, 2, 1);
+    ok = ok && expect_brush_mask("brush_mask_square_negative_symmetry", BRUSH_SHAPE_SQUARE, -2, -2, 2, 1);
     ok = ok && expect_brush_mask("brush_mask_diamond_edge", BRUSH_SHAPE_DIAMOND, 2, 0, 2, 1);
     ok = ok && expect_brush_mask("brush_mask_diamond_outside", BRUSH_SHAPE_DIAMOND, 2, 1, 2, 0);
+    ok = ok && expect_brush_mask("brush_mask_diamond_negative_symmetry", BRUSH_SHAPE_DIAMOND, -1, -1, 2, 1);
     ok = ok && expect_brush_mask("brush_mask_default", (BrushShape)999, 0, 0, 2, 0);
     ok = ok && expect_brush_color("brush_color_low_clamp", 0x00123456u, 0, 0x03123456u);
     ok = ok && expect_brush_color("brush_color_mid_round", 0x00ABCDEFu, 50, 0x80ABCDEFu);
