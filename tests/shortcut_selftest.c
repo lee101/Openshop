@@ -567,6 +567,87 @@ static int expect_handle_left_canvas_release(
 
 typedef struct {
     const char *label;
+    int width;
+    int height;
+    uint32_t initial_fill;
+    int locked;
+    size_t preset_pixel_index;
+    uint32_t preset_pixel_value;
+    int initial_drawing;
+    int initial_shaping;
+    int initial_preview_active;
+    int shape_start_x;
+    int shape_start_y;
+    int x;
+    int y;
+    int shift;
+    Tool tool;
+    int brush_radius;
+    uint32_t brush_color;
+    int undo_capacity;
+    AppCanvasClickResult want_result;
+    int want_drawing;
+    int want_shaping;
+    int want_preview_active;
+    int want_needs_composite;
+    int want_undo_count;
+    size_t snapshot_index;
+    uint32_t want_snapshot;
+    size_t pixel_index;
+    uint32_t want_pixel;
+} HandleLeftCanvasReleaseCase;
+
+static int run_handle_left_canvas_release_case(const HandleLeftCanvasReleaseCase *test_case) {
+    LayerStack stack;
+    Canvas canvas;
+    uint32_t pixels[9];
+    int drawing = test_case->initial_drawing;
+    int shaping = test_case->initial_shaping;
+    int preview_active = test_case->initial_preview_active;
+
+    init_single_layer_stack(
+        &stack,
+        &canvas,
+        pixels,
+        test_case->width,
+        test_case->height,
+        test_case->initial_fill,
+        test_case->locked
+    );
+    if (test_case->preset_pixel_index < (size_t)test_case->width * (size_t)test_case->height) {
+        pixels[test_case->preset_pixel_index] = test_case->preset_pixel_value;
+    }
+
+    return expect_handle_left_canvas_release(
+        test_case->label,
+        &drawing,
+        &stack,
+        &shaping,
+        &preview_active,
+        test_case->shape_start_x,
+        test_case->shape_start_y,
+        test_case->x,
+        test_case->y,
+        test_case->shift,
+        test_case->tool,
+        test_case->brush_radius,
+        test_case->brush_color,
+        test_case->undo_capacity,
+        test_case->want_result,
+        test_case->want_drawing,
+        test_case->want_shaping,
+        test_case->want_preview_active,
+        test_case->want_needs_composite,
+        test_case->want_undo_count,
+        test_case->snapshot_index,
+        test_case->want_snapshot,
+        test_case->pixel_index,
+        test_case->want_pixel
+    );
+}
+
+typedef struct {
+    const char *label;
     int initial_shaping;
     int initial_preview_active;
     const Canvas *composite;
@@ -2586,106 +2667,52 @@ int main(void) {
         }
     }
     {
-        LayerStack stack;
-        Canvas canvas;
-        uint32_t pixels[9];
-        int drawing_state;
+        const HandleLeftCanvasReleaseCase release_cases[] = {
+            {
+                "handle_left_canvas_release_drawing_only",
+                3, 3, 0xFF010203u, 0,
+                4, 0xFF112233u,
+                1, 0, 0,
+                0, 0, 2, 2, 0,
+                TOOL_BRUSH, 1, 0xFFFFFFFFu,
+                2,
+                APP_CANVAS_CLICK_NOOP,
+                0, 0, 0, 0, 0,
+                0, 0u,
+                4, 0xFF112233u,
+            },
+            {
+                "handle_left_canvas_release_finalizes_shape",
+                3, 3, 0xFF123456u, 0,
+                0, 0x01020304u,
+                1, 1, 1,
+                0, 0, 2, 0, 0,
+                TOOL_LINE, 1, 0xFFAABBCCu,
+                2,
+                APP_CANVAS_CLICK_SHAPE_FINALIZED,
+                0, 0, 0, 1, 1,
+                0, 0x01020304u,
+                2, 0xFFAABBCCu,
+            },
+            {
+                "handle_left_canvas_release_locked_shape_noop",
+                3, 3, 0xFF123456u, 1,
+                4, 0x55667788u,
+                1, 1, 1,
+                0, 0, 2, 1, 0,
+                TOOL_RECT, 1, 0xFFABCDEFu,
+                2,
+                APP_CANVAS_CLICK_NOOP,
+                0, 0, 0, 0, 0,
+                0, 0u,
+                4, 0x55667788u,
+            },
+        };
+        size_t i;
 
-        init_single_layer_stack(&stack, &canvas, pixels, 3, 3, 0xFF010203u, 0);
-        pixels[4] = 0xFF112233u;
-        drawing_state = 1;
-        shaping = 0;
-        preview_active = 0;
-        ok = ok && expect_handle_left_canvas_release(
-            "handle_left_canvas_release_drawing_only",
-            &drawing_state,
-            &stack,
-            &shaping,
-            &preview_active,
-            0,
-            0,
-            2,
-            2,
-            0,
-            TOOL_BRUSH,
-            1,
-            0xFFFFFFFFu,
-            2,
-            APP_CANVAS_CLICK_NOOP,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0u,
-            4,
-            0xFF112233u
-        );
-
-        init_single_layer_stack(&stack, &canvas, pixels, 3, 3, 0xFF123456u, 0);
-        pixels[0] = 0x01020304u;
-        drawing_state = 1;
-        shaping = 1;
-        preview_active = 1;
-        ok = ok && expect_handle_left_canvas_release(
-            "handle_left_canvas_release_finalizes_shape",
-            &drawing_state,
-            &stack,
-            &shaping,
-            &preview_active,
-            0,
-            0,
-            2,
-            0,
-            0,
-            TOOL_LINE,
-            1,
-            0xFFAABBCCu,
-            2,
-            APP_CANVAS_CLICK_SHAPE_FINALIZED,
-            0,
-            0,
-            0,
-            1,
-            1,
-            0,
-            0x01020304u,
-            2,
-            0xFFAABBCCu
-        );
-
-        init_single_layer_stack(&stack, &canvas, pixels, 3, 3, 0xFF123456u, 1);
-        pixels[4] = 0x55667788u;
-        drawing_state = 1;
-        shaping = 1;
-        preview_active = 1;
-        ok = ok && expect_handle_left_canvas_release(
-            "handle_left_canvas_release_locked_shape_noop",
-            &drawing_state,
-            &stack,
-            &shaping,
-            &preview_active,
-            0,
-            0,
-            2,
-            1,
-            0,
-            TOOL_RECT,
-            1,
-            0xFFABCDEFu,
-            2,
-            APP_CANVAS_CLICK_NOOP,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0u,
-            4,
-            0x55667788u
-        );
+        for (i = 0; i < sizeof(release_cases) / sizeof(release_cases[0]); i++) {
+            ok = ok && run_handle_left_canvas_release_case(&release_cases[i]);
+        }
     }
     {
         ContinueDirectStrokeCase continue_cases[] = {
