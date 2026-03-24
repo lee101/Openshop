@@ -98,11 +98,21 @@ typedef enum {
     APP_BRUSH_ADJUST_OPACITY_UP
 } AppBrushAdjustAction;
 
+typedef enum {
+    APP_ACTIVE_EDIT_NONE = 0,
+    APP_ACTIVE_EDIT_CLEAR,
+    APP_ACTIVE_EDIT_FLIP_HORIZONTAL,
+    APP_ACTIVE_EDIT_FLIP_VERTICAL,
+    APP_ACTIVE_EDIT_ROTATE_180,
+    APP_ACTIVE_EDIT_INVERT_RGB
+} AppActiveEditAction;
+
 AppOpacityHotkeyAction app_opacity_hotkey_action(int key);
 AppLayerNavigationAction app_layer_navigation_action(int key, int ctrl, int alt, int shift, int *arg);
 AppFileHotkeyAction app_file_hotkey_action(int key, int ctrl, int alt, int shift);
 AppHistoryHotkeyAction app_history_hotkey_action(int key, int ctrl, int alt, int shift);
 AppBrushAdjustAction app_brush_adjust_hotkey_action(int key);
 int app_is_add_layer_hotkey(int key, int ctrl, int alt, int shift);
+AppActiveEditAction app_active_edit_hotkey_action(int key);
 
 #endif

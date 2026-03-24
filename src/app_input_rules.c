@@ -165,3 +165,22 @@ AppBrushAdjustAction app_brush_adjust_hotkey_action(int key) {
 int app_is_add_layer_hotkey(int key, int ctrl, int alt, int shift) {
     return ctrl && shift && !alt && key == APP_KEY_n;
 }
+
+AppActiveEditAction app_active_edit_hotkey_action(int key) {
+    if (key == APP_KEY_c) {
+        return APP_ACTIVE_EDIT_CLEAR;
+    }
+    if (key == APP_KEY_h) {
+        return APP_ACTIVE_EDIT_FLIP_HORIZONTAL;
+    }
+    if (key == APP_KEY_v) {
+        return APP_ACTIVE_EDIT_FLIP_VERTICAL;
+    }
+    if (key == APP_KEY_j) {
+        return APP_ACTIVE_EDIT_ROTATE_180;
+    }
+    if (key == APP_KEY_x) {
+        return APP_ACTIVE_EDIT_INVERT_RGB;
+    }
+    return APP_ACTIVE_EDIT_NONE;
+}

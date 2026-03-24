@@ -157,6 +157,18 @@ static int test_app_input_rules(void) {
             fprintf(stderr, "add layer non-hotkey mapping failed\n");
             return 0;
         }
+        if (app_active_edit_hotkey_action(APP_KEY_c) != APP_ACTIVE_EDIT_CLEAR ||
+            app_active_edit_hotkey_action(APP_KEY_h) != APP_ACTIVE_EDIT_FLIP_HORIZONTAL ||
+            app_active_edit_hotkey_action(APP_KEY_v) != APP_ACTIVE_EDIT_FLIP_VERTICAL ||
+            app_active_edit_hotkey_action(APP_KEY_j) != APP_ACTIVE_EDIT_ROTATE_180 ||
+            app_active_edit_hotkey_action(APP_KEY_x) != APP_ACTIVE_EDIT_INVERT_RGB) {
+            fprintf(stderr, "active edit hotkey mapping failed\n");
+            return 0;
+        }
+        if (app_active_edit_hotkey_action(APP_KEY_b) != APP_ACTIVE_EDIT_NONE) {
+            fprintf(stderr, "active edit non-hotkey mapping failed\n");
+            return 0;
+        }
     }
 
     return 1;

@@ -784,19 +784,28 @@ static int handle_active_edit_hotkey(SDL_Keycode key,
                                      LayerStack *layers,
                                      Snapshot *undo_stack, int *undo_count,
                                      Snapshot *redo_stack, int *redo_count) {
-    size_t i;
+    AppActiveEditAction action;
 
     if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count) {
         return 0;
     }
 
-    for (i = 0; i < sizeof(ACTIVE_EDIT_HOTKEYS) / sizeof(ACTIVE_EDIT_HOTKEYS[0]); i++) {
-        if (ACTIVE_EDIT_HOTKEYS[i].key == key) {
-            return ACTIVE_EDIT_HOTKEYS[i].action(layers, undo_stack, undo_count, redo_stack, redo_count);
-        }
+    action = app_active_edit_hotkey_action((int)key);
+    switch (action) {
+    case APP_ACTIVE_EDIT_CLEAR:
+        return try_clear_active_layer(layers, undo_stack, undo_count, redo_stack, redo_count);
+    case APP_ACTIVE_EDIT_FLIP_HORIZONTAL:
+        return try_flip_horizontal_active_layer(layers, undo_stack, undo_count, redo_stack, redo_count);
+    case APP_ACTIVE_EDIT_FLIP_VERTICAL:
+        return try_flip_vertical_active_layer(layers, undo_stack, undo_count, redo_stack, redo_count);
+    case APP_ACTIVE_EDIT_ROTATE_180:
+        return try_rotate_active_layer_180(layers, undo_stack, undo_count, redo_stack, redo_count);
+    case APP_ACTIVE_EDIT_INVERT_RGB:
+        return try_invert_active_layer_rgb(layers, undo_stack, undo_count, redo_stack, redo_count);
+    case APP_ACTIVE_EDIT_NONE:
+    default:
+        return 0;
     }
-
-    return 0;
 }
 
 static int handle_mouse_position_hotkey(SDL_Keycode key,
