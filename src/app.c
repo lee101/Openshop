@@ -264,23 +264,11 @@ static int try_load_active_layer_bmp(LayerStack *layers,
     return result == LAYER_ACTION_HISTORY_CHANGED;
 }
 
-static int try_add_layer(LayerStack *layers,
-                         Snapshot *undo_stack, int *undo_count,
-                         Snapshot *redo_stack, int *redo_count) {
-    char status_message[64];
-
-    if (!layer_creation_try_add(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                0x00000000, MAX_HISTORY)) {
-        format_status_text_max_layers(MAX_LAYERS, status_message, sizeof(status_message));
-        fprintf(stderr, "%s\n", status_message);
-        return 0;
-    }
-    return 1;
-}
-
 static int handle_add_layer_hotkey(SDL_Keycode key,
                                    int ctrl, int alt, int shift,
                                    const ActionState *action_state) {
+    char status_message[64];
+
     if (!app_is_add_layer_hotkey((int)key, ctrl, alt, shift) ||
         !action_state || !action_state->title_state || !action_state->layers ||
         !action_state->undo_stack || !action_state->undo_count ||
@@ -288,10 +276,13 @@ static int handle_add_layer_hotkey(SDL_Keycode key,
         return 0;
     }
 
-    if (try_add_layer(action_state->layers, action_state->undo_stack,
-                      action_state->undo_count, action_state->redo_stack,
-                      action_state->redo_count)) {
+    if (layer_creation_try_add(action_state->layers, action_state->undo_stack,
+                               action_state->undo_count, action_state->redo_stack,
+                               action_state->redo_count, 0x00000000, MAX_HISTORY)) {
         *action_state->needs_composite = 1;
+    } else {
+        format_status_text_max_layers(MAX_LAYERS, status_message, sizeof(status_message));
+        fprintf(stderr, "%s\n", status_message);
     }
     update_title_state(action_state->title_state);
     return 1;
@@ -434,21 +425,6 @@ static int mouse_position_fill_hotkey(LayerStack *layers,
     (void)tool;
     return active_layer_try_flood_fill_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
                                                    mx, my, *brush_color, MAX_HISTORY, changed);
-}
-
-static int mouse_position_sample_hotkey(LayerStack *layers,
-                                        Snapshot *undo_stack, int *undo_count,
-                                        Snapshot *redo_stack, int *redo_count,
-                                        const Canvas *sample,
-                                        int mx, int my,
-                                        uint32_t *brush_color_rgb, uint32_t *brush_color,
-                                        int *brush_opacity, Tool *tool) {
-    (void)layers;
-    (void)undo_stack;
-    (void)undo_count;
-    (void)redo_stack;
-    (void)redo_count;
-    return sample_canvas_brush_state(sample, mx, my, brush_color_rgb, brush_color, brush_opacity, tool);
 }
 
 static int select_bottom_visible_hotkey(LayerStack *layers, int arg) {
@@ -821,9 +797,7 @@ static int handle_mouse_position_hotkey(SDL_Keycode key,
                                           sample, mx, my, brush_color_rgb, brush_color,
                                           brush_opacity, tool, changed);
     case APP_MOUSE_POSITION_SAMPLE:
-        return mouse_position_sample_hotkey(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                            sample, mx, my, brush_color_rgb, brush_color,
-                                            brush_opacity, tool);
+        return sample_canvas_brush_state(sample, mx, my, brush_color_rgb, brush_color, brush_opacity, tool);
     case APP_MOUSE_POSITION_NONE:
     default:
         return 0;
