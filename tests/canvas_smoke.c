@@ -2191,6 +2191,110 @@ static int test_layer_history_step_undo_redo_preserve_state_on_capture_failure(v
 #endif
 }
 
+static int test_layer_history_low_level_undo_redo_evict_destination_at_capacity(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 2, 2, 0xFFFFFFFF)) {
+        fprintf(stderr, "history low-level capacity init failed\n");
+        return 0;
+    }
+
+    LayerSnapshot undo_stack[HISTORY_CAPACITY] = {0};
+    LayerSnapshot redo_stack[HISTORY_CAPACITY] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+
+    for (int i = 0; i < HISTORY_CAPACITY; i++) {
+        canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF100000u | (uint32_t)i);
+        if (!layer_snapshot_capture(&redo_stack[redo_count++], &stack)) {
+            fprintf(stderr, "history low-level redo capacity seed failed at %d\n", i);
+            layer_history_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFFFFFFFF);
+    if (!layer_snapshot_capture(&undo_stack[undo_count++], &stack)) {
+        fprintf(stderr, "history low-level undo capacity seed failed\n");
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF010203);
+
+    if (!layer_history_undo(&stack, undo_stack, &undo_count, redo_stack, &redo_count)) {
+        fprintf(stderr, "history low-level undo should succeed with full redo stack\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (undo_count != 0 || redo_count != HISTORY_CAPACITY) {
+        fprintf(stderr, "history low-level undo should keep redo capped at capacity\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("history_low_level_undo_capacity_applies_snapshot", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFFFFFFFF) ||
+        !expect_pixel_eq("history_low_level_undo_capacity_evicts_oldest_redo", redo_stack[0].pixels[0], 0xFF100001) ||
+        !expect_pixel_eq("history_low_level_undo_capacity_pushes_current", redo_stack[redo_count - 1].pixels[0], 0xFF010203)) {
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_clear(redo_stack, &redo_count);
+
+    for (int i = 0; i < HISTORY_CAPACITY; i++) {
+        canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF200000u | (uint32_t)i);
+        if (!layer_snapshot_capture(&undo_stack[undo_count++], &stack)) {
+            fprintf(stderr, "history low-level undo capacity refill failed at %d\n", i);
+            layer_history_clear(undo_stack, &undo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF112233);
+    if (!layer_snapshot_capture(&redo_stack[redo_count++], &stack)) {
+        fprintf(stderr, "history low-level redo capacity seed failed\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF040506);
+
+    if (!layer_history_redo(&stack, undo_stack, &undo_count, redo_stack, &redo_count)) {
+        fprintf(stderr, "history low-level redo should succeed with full undo stack\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (undo_count != HISTORY_CAPACITY || redo_count != 0) {
+        fprintf(stderr, "history low-level redo should keep undo capped at capacity\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("history_low_level_redo_capacity_applies_snapshot", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF112233) ||
+        !expect_pixel_eq("history_low_level_redo_capacity_evicts_oldest_undo", undo_stack[0].pixels[0], 0xFF200001) ||
+        !expect_pixel_eq("history_low_level_redo_capacity_pushes_current", undo_stack[undo_count - 1].pixels[0], 0xFF040506)) {
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_clear(undo_stack, &undo_count);
+    layer_history_clear(redo_stack, &redo_count);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layer_history_low_level_undo_redo_guard_paths(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
@@ -3589,6 +3693,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_low_level_undo_redo_preserve_state_on_capture_failure()) {
+        return 1;
+    }
+    if (!test_layer_history_low_level_undo_redo_evict_destination_at_capacity()) {
         return 1;
     }
     if (!test_layer_history_step_undo_redo_preserve_state_on_capture_failure()) {

@@ -5,6 +5,7 @@
 
 static int layer_snapshot_equals(const LayerSnapshot *a, const LayerSnapshot *b);
 static int layer_snapshot_compare_current(const LayerSnapshot *snapshot, const LayerStack *stack, int *equal_out);
+static void layer_snapshot_disown(LayerSnapshot *snapshot);
 
 typedef enum {
     HISTORY_CAPTURE_ERROR = -1,
@@ -103,6 +104,7 @@ static int history_step_apply(
         return 0;
     }
     snapshot = from_stack[--(*from_count)];
+    layer_snapshot_disown(&from_stack[*from_count]);
     ok = layer_snapshot_apply(&snapshot, layers);
     if (!ok) {
         from_stack[(*from_count)++] = snapshot;
