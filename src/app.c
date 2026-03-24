@@ -7,6 +7,7 @@
 #include "app_preview.h"
 #include "app_sampled_color.h"
 #include "app_shape.h"
+#include "app_shape_cancel.h"
 #include "app_title.h"
 #include "brush_shortcuts.h"
 #include "canvas.h"
@@ -305,54 +306,62 @@ static void draw_shape(Canvas *c, Tool tool, int x0, int y0, int x1, int y1, int
     }
 }
 
-static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
-    if (key == SDLK_ESCAPE || key == SDLK_LSHIFT || key == SDLK_RSHIFT) {
-        return 0;
-    }
-    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_u || key == SDLK_v || key == SDLK_m || key == SDLK_d || key == SDLK_e || key == SDLK_g || key == SDLK_h || key == SDLK_l || key == SDLK_a || key == SDLK_r || key == SDLK_0 || key == SDLK_COMMA || key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET || key == SDLK_MINUS || key == SDLK_KP_MINUS || key == SDLK_EQUALS || key == SDLK_KP_PLUS || key == SDLK_SLASH || key == SDLK_1 || key == SDLK_2 || key == SDLK_3 || key == SDLK_4 || key == SDLK_5 || key == SDLK_6 || key == SDLK_7 || key == SDLK_8)) {
-        return 1;
-    }
+static AppShapeCancelKey app_shape_cancel_key_from_sdl(SDL_Keycode key) {
     switch (key) {
-    case SDLK_b:
-    case SDLK_e:
-    case SDLK_l:
-    case SDLK_r:
-    case SDLK_t:
-    case SDLK_o:
-    case SDLK_p:
-    case SDLK_LEFTBRACKET:
-    case SDLK_RIGHTBRACKET:
-    case SDLK_COMMA:
-    case SDLK_PERIOD:
-    case SDLK_MINUS:
-    case SDLK_KP_MINUS:
-    case SDLK_EQUALS:
-    case SDLK_KP_PLUS:
-    case SDLK_1:
-    case SDLK_2:
-    case SDLK_3:
-    case SDLK_4:
-    case SDLK_5:
-    case SDLK_6:
-    case SDLK_c:
-    case SDLK_h:
-    case SDLK_v:
-    case SDLK_j:
-    case SDLK_x:
-    case SDLK_f:
-    case SDLK_i:
-    case SDLK_UP:
-    case SDLK_DOWN:
-    case SDLK_LEFT:
-    case SDLK_RIGHT:
-    case SDLK_PAGEUP:
-    case SDLK_PAGEDOWN:
-    case SDLK_F2:
-    case SDLK_DELETE:
-    case SDLK_BACKSPACE:
-        return 1;
-    default:
-        return 0;
+    case SDLK_ESCAPE: return APP_SHAPE_CANCEL_KEY_ESCAPE;
+    case SDLK_LSHIFT: return APP_SHAPE_CANCEL_KEY_LSHIFT;
+    case SDLK_RSHIFT: return APP_SHAPE_CANCEL_KEY_RSHIFT;
+    case SDLK_s: return APP_SHAPE_CANCEL_KEY_S;
+    case SDLK_o: return APP_SHAPE_CANCEL_KEY_O;
+    case SDLK_z: return APP_SHAPE_CANCEL_KEY_Z;
+    case SDLK_y: return APP_SHAPE_CANCEL_KEY_Y;
+    case SDLK_n: return APP_SHAPE_CANCEL_KEY_N;
+    case SDLK_u: return APP_SHAPE_CANCEL_KEY_U;
+    case SDLK_v: return APP_SHAPE_CANCEL_KEY_V;
+    case SDLK_m: return APP_SHAPE_CANCEL_KEY_M;
+    case SDLK_d: return APP_SHAPE_CANCEL_KEY_D;
+    case SDLK_e: return APP_SHAPE_CANCEL_KEY_E;
+    case SDLK_g: return APP_SHAPE_CANCEL_KEY_G;
+    case SDLK_h: return APP_SHAPE_CANCEL_KEY_H;
+    case SDLK_l: return APP_SHAPE_CANCEL_KEY_L;
+    case SDLK_a: return APP_SHAPE_CANCEL_KEY_A;
+    case SDLK_r: return APP_SHAPE_CANCEL_KEY_R;
+    case SDLK_0: return APP_SHAPE_CANCEL_KEY_0;
+    case SDLK_COMMA: return APP_SHAPE_CANCEL_KEY_COMMA;
+    case SDLK_LEFTBRACKET: return APP_SHAPE_CANCEL_KEY_LEFTBRACKET;
+    case SDLK_RIGHTBRACKET: return APP_SHAPE_CANCEL_KEY_RIGHTBRACKET;
+    case SDLK_MINUS: return APP_SHAPE_CANCEL_KEY_MINUS;
+    case SDLK_KP_MINUS: return APP_SHAPE_CANCEL_KEY_KP_MINUS;
+    case SDLK_EQUALS: return APP_SHAPE_CANCEL_KEY_EQUALS;
+    case SDLK_KP_PLUS: return APP_SHAPE_CANCEL_KEY_KP_PLUS;
+    case SDLK_SLASH: return APP_SHAPE_CANCEL_KEY_SLASH;
+    case SDLK_1: return APP_SHAPE_CANCEL_KEY_1;
+    case SDLK_2: return APP_SHAPE_CANCEL_KEY_2;
+    case SDLK_3: return APP_SHAPE_CANCEL_KEY_3;
+    case SDLK_4: return APP_SHAPE_CANCEL_KEY_4;
+    case SDLK_5: return APP_SHAPE_CANCEL_KEY_5;
+    case SDLK_6: return APP_SHAPE_CANCEL_KEY_6;
+    case SDLK_7: return APP_SHAPE_CANCEL_KEY_7;
+    case SDLK_8: return APP_SHAPE_CANCEL_KEY_8;
+    case SDLK_b: return APP_SHAPE_CANCEL_KEY_B;
+    case SDLK_t: return APP_SHAPE_CANCEL_KEY_T;
+    case SDLK_p: return APP_SHAPE_CANCEL_KEY_P;
+    case SDLK_PERIOD: return APP_SHAPE_CANCEL_KEY_PERIOD;
+    case SDLK_c: return APP_SHAPE_CANCEL_KEY_C;
+    case SDLK_j: return APP_SHAPE_CANCEL_KEY_J;
+    case SDLK_x: return APP_SHAPE_CANCEL_KEY_X;
+    case SDLK_f: return APP_SHAPE_CANCEL_KEY_F;
+    case SDLK_i: return APP_SHAPE_CANCEL_KEY_I;
+    case SDLK_UP: return APP_SHAPE_CANCEL_KEY_UP;
+    case SDLK_DOWN: return APP_SHAPE_CANCEL_KEY_DOWN;
+    case SDLK_LEFT: return APP_SHAPE_CANCEL_KEY_LEFT;
+    case SDLK_RIGHT: return APP_SHAPE_CANCEL_KEY_RIGHT;
+    case SDLK_PAGEUP: return APP_SHAPE_CANCEL_KEY_PAGEUP;
+    case SDLK_PAGEDOWN: return APP_SHAPE_CANCEL_KEY_PAGEDOWN;
+    case SDLK_F2: return APP_SHAPE_CANCEL_KEY_F2;
+    case SDLK_DELETE: return APP_SHAPE_CANCEL_KEY_DELETE;
+    case SDLK_BACKSPACE: return APP_SHAPE_CANCEL_KEY_BACKSPACE;
+    default: return APP_SHAPE_CANCEL_KEY_OTHER;
     }
 }
 
@@ -1471,7 +1480,7 @@ static void handle_key_down(
         return;
     }
 
-    if (*shaping && should_cancel_shape_on_key(key, ctrl)) {
+    if (*shaping && app_should_cancel_shape_on_key(app_shape_cancel_key_from_sdl(key), ctrl)) {
         app_cancel_shape_preview(shaping, preview_active_flag);
     }
 

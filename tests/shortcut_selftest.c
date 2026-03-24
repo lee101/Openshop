@@ -5,6 +5,7 @@
 #include "../src/app_preview.h"
 #include "../src/app_sampled_color.h"
 #include "../src/app_shape.h"
+#include "../src/app_shape_cancel.h"
 #include "../src/app_title.h"
 #include "../src/brush_shortcuts.h"
 #include "../src/canvas_shortcuts.h"
@@ -83,6 +84,15 @@ static int expect_brush_action(const char *label, int key, BrushShortcutAction w
 
 static int expect_canvas_action(const char *label, int key, CanvasShortcutAction want) {
     CanvasShortcutAction got = canvas_shortcut_action(key);
+    if (got != want) {
+        fprintf(stderr, "%s mismatch: got %d want %d\n", label, got, want);
+        return 0;
+    }
+    return 1;
+}
+
+static int expect_shape_cancel(const char *label, int key, int ctrl, int want) {
+    int got = app_should_cancel_shape_on_key(key, ctrl);
     if (got != want) {
         fprintf(stderr, "%s mismatch: got %d want %d\n", label, got, want);
         return 0;
@@ -589,6 +599,11 @@ int main(void) {
     ok = ok && expect_view_result("left", VIEW_SHORTCUT_KEY_LEFT, 0, VIEW_SHORTCUT_TRANSLATE, 0, -1, 0);
     ok = ok && expect_view_result("right_shift", VIEW_SHORTCUT_KEY_RIGHT, 1, VIEW_SHORTCUT_TRANSLATE, 0, 10, 0);
     ok = ok && expect_view_result("view_none", VIEW_SHORTCUT_KEY_NONE, 0, VIEW_SHORTCUT_NONE, 0, 0, 0);
+    ok = ok && expect_shape_cancel("shape_cancel_ctrl_save", APP_SHAPE_CANCEL_KEY_S, 1, 1);
+    ok = ok && expect_shape_cancel("shape_cancel_tool_switch", APP_SHAPE_CANCEL_KEY_B, 0, 1);
+    ok = ok && expect_shape_cancel("shape_cancel_escape_exempt", APP_SHAPE_CANCEL_KEY_ESCAPE, 0, 0);
+    ok = ok && expect_shape_cancel("shape_cancel_shift_exempt", APP_SHAPE_CANCEL_KEY_LSHIFT, 0, 0);
+    ok = ok && expect_shape_cancel("shape_cancel_plain_save_not_cancel", APP_SHAPE_CANCEL_KEY_S, 0, 0);
     ok = ok && expect_brush_mask("brush_mask_round_inside", BRUSH_SHAPE_ROUND, 1, 1, 2, 1);
     ok = ok && expect_brush_mask("brush_mask_round_edge", BRUSH_SHAPE_ROUND, 2, 0, 2, 1);
     ok = ok && expect_brush_mask("brush_mask_round_outside", BRUSH_SHAPE_ROUND, 2, 1, 2, 0);
