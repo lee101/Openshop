@@ -1019,6 +1019,55 @@ static int test_layer_history_commit_change_helper(void) {
     return 1;
 }
 
+static int test_layer_history_commit_change_resets_without_history_or_layers(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 3, 3, 0xFFFFFFFF)) {
+        fprintf(stderr, "history commit null-path init failed\n");
+        return 0;
+    }
+
+    LayerSnapshot null_history_snapshot = {0};
+    if (!layer_snapshot_capture(&null_history_snapshot, &stack)) {
+        fprintf(stderr, "history commit null-path capture failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_history_commit_change(NULL, &null_history_snapshot, &stack, 1)) {
+        fprintf(stderr, "history commit should fail without history state\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (null_history_snapshot.pixels || null_history_snapshot.width != 0 || null_history_snapshot.height != 0 ||
+        null_history_snapshot.layer_count != 0 || null_history_snapshot.solo_index != -1 ||
+        null_history_snapshot.visibility[0] != 0 || null_history_snapshot.names[0][0] != '\0') {
+        fprintf(stderr, "history commit should fully reset snapshot when history is null\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    LayerSnapshot null_layers_snapshot = {0};
+    if (!layer_snapshot_capture(&null_layers_snapshot, &stack)) {
+        fprintf(stderr, "history commit null-layers capture failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_history_commit_change(&(LayerHistory){0}, &null_layers_snapshot, NULL, 1)) {
+        fprintf(stderr, "history commit should fail without layer state\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (null_layers_snapshot.pixels || null_layers_snapshot.width != 0 || null_layers_snapshot.height != 0 ||
+        null_layers_snapshot.layer_count != 0 || null_layers_snapshot.solo_index != -1 ||
+        null_layers_snapshot.visibility[0] != 0 || null_layers_snapshot.names[0][0] != '\0') {
+        fprintf(stderr, "history commit should fully reset snapshot when layers are null\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layer_history_visibility_commit_change(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
@@ -2133,6 +2182,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_commit_change_helper()) {
+        return 1;
+    }
+    if (!test_layer_history_commit_change_resets_without_history_or_layers()) {
         return 1;
     }
     if (!test_layer_history_visibility_commit_change()) {
