@@ -5,7 +5,9 @@
 #include "layer_edit_state.h"
 #include "shape_draw.h"
 
+#include <math.h>
 #include <stddef.h>
+#include <stdlib.h>
 
 static int canvas_has_non_matching_pixel(const Canvas *canvas, uint32_t color) {
     size_t pixel_count;
@@ -135,6 +137,52 @@ static int canvas_filled_rect_would_change(const Canvas *canvas,
                 continue;
             }
             if (canvas_get_pixel(canvas, x, y) != color) {
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+static int canvas_filled_ellipse_would_change(const Canvas *canvas,
+                                              int x0, int y0, int x1, int y1,
+                                              uint32_t color) {
+    int cx;
+    int cy;
+    int rx;
+    int ry;
+    int y;
+
+    if (!canvas || !canvas->pixels) {
+        return 0;
+    }
+
+    cx = (x0 + x1) / 2;
+    cy = (y0 + y1) / 2;
+    rx = abs(x1 - x0) / 2;
+    ry = abs(y1 - y0) / 2;
+    if (rx <= 0 || ry <= 0) {
+        return 0;
+    }
+
+    for (y = -ry; y <= ry; y++) {
+        double norm = 1.0 - ((double)(y * y) / (double)(ry * ry));
+        int x;
+        int fill_x;
+
+        if (norm < 0.0) {
+            continue;
+        }
+        x = (int)((double)rx * sqrt(norm) + 0.5);
+        for (fill_x = -x; fill_x <= x; fill_x++) {
+            int px = cx + fill_x;
+            int py = cy + y;
+
+            if (px < 0 || py < 0 || px >= canvas->width || py >= canvas->height) {
+                continue;
+            }
+            if (canvas_get_pixel(canvas, px, py) != color) {
                 return 1;
             }
         }
@@ -325,6 +373,10 @@ int active_layer_try_commit_shape(LayerStack *layers,
     }
     if (tool == TOOL_FILLED_RECT &&
         !canvas_filled_rect_would_change(&active->canvas, shape_start_x, shape_start_y, end_x, end_y, brush_color)) {
+        return 0;
+    }
+    if (tool == TOOL_FILLED_ELLIPSE &&
+        !canvas_filled_ellipse_would_change(&active->canvas, shape_start_x, shape_start_y, end_x, end_y, brush_color)) {
         return 0;
     }
     if (brush_radius <= 0 &&
