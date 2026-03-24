@@ -140,6 +140,7 @@ int active_layer_try_commit_shape(LayerStack *layers,
                                   int end_x, int end_y, int brush_radius,
                                   uint32_t brush_color, int max_history) {
     Layer *active;
+    int is_shape_tool;
 
     if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
         return 0;
@@ -147,6 +148,11 @@ int active_layer_try_commit_shape(LayerStack *layers,
 
     active = layer_stack_active(layers);
     if (!active || active->locked || !active->canvas.pixels) {
+        return 0;
+    }
+    is_shape_tool = tool == TOOL_LINE || tool == TOOL_RECT || tool == TOOL_FILLED_RECT ||
+                    tool == TOOL_ELLIPSE || tool == TOOL_FILLED_ELLIPSE;
+    if (!is_shape_tool) {
         return 0;
     }
 
