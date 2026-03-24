@@ -1545,6 +1545,158 @@ static int run_canvas_mutation_shortcut_case(const CanvasMutationShortcutCase *t
     );
 }
 
+static int expect_canvas_sample_shortcut(
+    const char *label,
+    CanvasShortcutAction action,
+    int locked,
+    const uint32_t *initial_pixels,
+    const Canvas *composite,
+    const Canvas *preview_canvas,
+    int preview_active,
+    int x,
+    int y,
+    Tool initial_tool,
+    uint32_t initial_brush_color,
+    uint32_t initial_brush_color_rgb,
+    int initial_brush_opacity,
+    int want_handled,
+    int want_needs_composite,
+    int want_undo_count,
+    const uint32_t *want_pixels,
+    Tool want_tool,
+    uint32_t want_brush_color,
+    uint32_t want_brush_color_rgb,
+    int want_brush_opacity
+) {
+    LayerStack stack;
+    Canvas canvas;
+    uint32_t pixels[4];
+    Snapshot undo_stack[2] = {0};
+    Snapshot redo_stack[2] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+    int needs_composite = 0;
+    int handled = 0;
+    Tool tool = initial_tool;
+    uint32_t brush_color = initial_brush_color;
+    uint32_t brush_color_rgb = initial_brush_color_rgb;
+    int brush_opacity = initial_brush_opacity;
+    size_t i;
+
+    init_single_layer_stack(&stack, &canvas, pixels, 2, 2, 0x00000000u, locked);
+    for (i = 0; i < 4; i++) {
+        pixels[i] = initial_pixels[i];
+    }
+
+    handled = app_handle_canvas_sample_shortcut_at(
+        action,
+        &stack,
+        composite,
+        preview_canvas,
+        preview_active,
+        x,
+        y,
+        2,
+        2,
+        undo_stack,
+        &undo_count,
+        2,
+        redo_stack,
+        &redo_count,
+        &tool,
+        &brush_color,
+        &brush_color_rgb,
+        &brush_opacity,
+        &needs_composite
+    );
+
+    if (handled != want_handled) {
+        fprintf(stderr, "%s handled mismatch: got %d want %d\n", label, handled, want_handled);
+        return 0;
+    }
+    if (needs_composite != want_needs_composite) {
+        fprintf(stderr, "%s needs_composite mismatch: got %d want %d\n", label, needs_composite, want_needs_composite);
+        return 0;
+    }
+    if (undo_count != want_undo_count || redo_count != 0) {
+        fprintf(stderr, "%s history count mismatch: undo %d/%d redo %d/0\n", label, undo_count, want_undo_count, redo_count);
+        return 0;
+    }
+    for (i = 0; i < 4; i++) {
+        if (pixels[i] != want_pixels[i]) {
+            fprintf(stderr, "%s pixels[%zu] mismatch: got 0x%08X want 0x%08X\n", label, i, pixels[i], want_pixels[i]);
+            return 0;
+        }
+    }
+    if (tool != want_tool || brush_color != want_brush_color || brush_color_rgb != want_brush_color_rgb || brush_opacity != want_brush_opacity) {
+        fprintf(
+            stderr,
+            "%s brush state mismatch: got {%d,0x%08X,0x%08X,%d} want {%d,0x%08X,0x%08X,%d}\n",
+            label,
+            tool,
+            brush_color,
+            brush_color_rgb,
+            brush_opacity,
+            want_tool,
+            want_brush_color,
+            want_brush_color_rgb,
+            want_brush_opacity
+        );
+        return 0;
+    }
+    return 1;
+}
+
+typedef struct {
+    const char *label;
+    CanvasShortcutAction action;
+    int locked;
+    uint32_t initial_pixels[4];
+    const Canvas *composite;
+    const Canvas *preview_canvas;
+    int preview_active;
+    int x;
+    int y;
+    Tool initial_tool;
+    uint32_t initial_brush_color;
+    uint32_t initial_brush_color_rgb;
+    int initial_brush_opacity;
+    int want_handled;
+    int want_needs_composite;
+    int want_undo_count;
+    uint32_t want_pixels[4];
+    Tool want_tool;
+    uint32_t want_brush_color;
+    uint32_t want_brush_color_rgb;
+    int want_brush_opacity;
+} CanvasSampleShortcutCase;
+
+static int run_canvas_sample_shortcut_case(const CanvasSampleShortcutCase *test_case) {
+    return expect_canvas_sample_shortcut(
+        test_case->label,
+        test_case->action,
+        test_case->locked,
+        test_case->initial_pixels,
+        test_case->composite,
+        test_case->preview_canvas,
+        test_case->preview_active,
+        test_case->x,
+        test_case->y,
+        test_case->initial_tool,
+        test_case->initial_brush_color,
+        test_case->initial_brush_color_rgb,
+        test_case->initial_brush_opacity,
+        test_case->want_handled,
+        test_case->want_needs_composite,
+        test_case->want_undo_count,
+        test_case->want_pixels,
+        test_case->want_tool,
+        test_case->want_brush_color,
+        test_case->want_brush_color_rgb,
+        test_case->want_brush_opacity
+    );
+}
+
 static int expect_shape_cancel(const char *label, int key, int ctrl, int want) {
     int got = app_should_cancel_shape_on_key(key, ctrl);
     if (got != want) {
@@ -4176,6 +4328,95 @@ int main(void) {
 
         for (i = 0; i < sizeof(canvas_mutation_cases) / sizeof(canvas_mutation_cases[0]); i++) {
             ok = ok && run_canvas_mutation_shortcut_case(&canvas_mutation_cases[i]);
+        }
+    }
+    {
+        const CanvasSampleShortcutCase canvas_sample_cases[] = {
+            {
+                "canvas_sample_fill_editable",
+                CANVAS_SHORTCUT_FILL,
+                0,
+                {0xFF000001u, 0xFF000002u, 0xFF000003u, 0xFF000004u},
+                &sampled_canvas,
+                &sampled_preview_canvas,
+                0,
+                0, 0,
+                TOOL_ERASER,
+                0xFF556677u,
+                0x00556677u,
+                50,
+                1, 1, 1,
+                {0xFF556677u, 0xFF000002u, 0xFF000003u, 0xFF000004u},
+                TOOL_ERASER,
+                0xFF556677u,
+                0x00556677u,
+                50,
+            },
+            {
+                "canvas_sample_fill_locked_noop",
+                CANVAS_SHORTCUT_FILL,
+                1,
+                {0xFF000001u, 0xFF000002u, 0xFF000003u, 0xFF000004u},
+                &sampled_canvas,
+                &sampled_preview_canvas,
+                0,
+                0, 0,
+                TOOL_ERASER,
+                0xFF556677u,
+                0x00556677u,
+                50,
+                1, 0, 0,
+                {0xFF000001u, 0xFF000002u, 0xFF000003u, 0xFF000004u},
+                TOOL_ERASER,
+                0xFF556677u,
+                0x00556677u,
+                50,
+            },
+            {
+                "canvas_sample_eyedropper_preview",
+                CANVAS_SHORTCUT_EYEDROPPER,
+                0,
+                {0xFF000001u, 0xFF000002u, 0xFF000003u, 0xFF000004u},
+                &sampled_canvas,
+                &sampled_preview_canvas,
+                1,
+                0, 1,
+                TOOL_ERASER,
+                0xAA112233u,
+                0x00112233u,
+                42,
+                1, 0, 0,
+                {0xFF000001u, 0xFF000002u, 0xFF000003u, 0xFF000004u},
+                TOOL_BRUSH,
+                0xFF223344u,
+                0x00223344u,
+                100,
+            },
+            {
+                "canvas_sample_oob_handled",
+                CANVAS_SHORTCUT_EYEDROPPER,
+                0,
+                {0xFF000001u, 0xFF000002u, 0xFF000003u, 0xFF000004u},
+                &sampled_canvas,
+                &sampled_preview_canvas,
+                1,
+                9, 9,
+                TOOL_ERASER,
+                0xAA112233u,
+                0x00112233u,
+                42,
+                1, 0, 0,
+                {0xFF000001u, 0xFF000002u, 0xFF000003u, 0xFF000004u},
+                TOOL_ERASER,
+                0xAA112233u,
+                0x00112233u,
+                42,
+            },
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(canvas_sample_cases) / sizeof(canvas_sample_cases[0]); i++) {
+            ok = ok && run_canvas_sample_shortcut_case(&canvas_sample_cases[i]);
         }
     }
     {

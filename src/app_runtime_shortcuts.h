@@ -1,10 +1,12 @@
 #ifndef APP_RUNTIME_SHORTCUTS_H
 #define APP_RUNTIME_SHORTCUTS_H
 
+#include "app_brush.h"
 #include "canvas_shortcuts.h"
 #include "history_shortcuts.h"
 #include "history_state.h"
 #include "layers.h"
+#include <stdint.h>
 
 int app_handle_history_navigation_shortcut(
     int key,
@@ -26,6 +28,28 @@ int app_handle_canvas_mutation_shortcut(
     int undo_capacity,
     Snapshot *redo_stack,
     int *redo_count,
+    int *needs_composite
+);
+
+int app_handle_canvas_sample_shortcut_at(
+    CanvasShortcutAction canvas_action,
+    LayerStack *layers,
+    const Canvas *composite,
+    const Canvas *preview_canvas,
+    int preview_active,
+    int x,
+    int y,
+    int canvas_width,
+    int canvas_height,
+    Snapshot *undo_stack,
+    int *undo_count,
+    int undo_capacity,
+    Snapshot *redo_stack,
+    int *redo_count,
+    Tool *tool,
+    uint32_t *brush_color,
+    uint32_t *brush_color_rgb,
+    int *brush_opacity,
     int *needs_composite
 );
 

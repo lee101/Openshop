@@ -2,6 +2,9 @@
 
 #include "app_canvas_ops.h"
 #include "app_layer_state.h"
+#include "app_sampled_color.h"
+
+#include <stdio.h>
 
 int app_handle_history_navigation_shortcut(
     int key,
@@ -115,5 +118,67 @@ int app_handle_canvas_mutation_shortcut(
     if (changed && needs_composite) {
         *needs_composite = 1;
     }
+    return 1;
+}
+
+int app_handle_canvas_sample_shortcut_at(
+    CanvasShortcutAction canvas_action,
+    LayerStack *layers,
+    const Canvas *composite,
+    const Canvas *preview_canvas,
+    int preview_active,
+    int x,
+    int y,
+    int canvas_width,
+    int canvas_height,
+    Snapshot *undo_stack,
+    int *undo_count,
+    int undo_capacity,
+    Snapshot *redo_stack,
+    int *redo_count,
+    Tool *tool,
+    uint32_t *brush_color,
+    uint32_t *brush_color_rgb,
+    int *brush_opacity,
+    int *needs_composite
+) {
+    Layer *active = NULL;
+
+    if (!layers || !tool || !brush_color || !brush_color_rgb || !brush_opacity) {
+        return 0;
+    }
+    if (canvas_action != CANVAS_SHORTCUT_FILL && canvas_action != CANVAS_SHORTCUT_EYEDROPPER) {
+        return 0;
+    }
+    if (x < 0 || y < 0 || x >= canvas_width || y >= canvas_height) {
+        return 1;
+    }
+
+    if (canvas_action == CANVAS_SHORTCUT_FILL) {
+        active = app_active_editable_layer(layers);
+        if (!active) {
+            return 1;
+        }
+
+        snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
+        if (!canvas_flood_fill(&active->canvas, x, y, *brush_color)) {
+            fprintf(stderr, "Fill failed\n");
+        } else if (needs_composite) {
+            *needs_composite = 1;
+        }
+        return 1;
+    }
+
+    app_apply_sampled_brush_color_from_available_canvas(
+        composite,
+        preview_canvas,
+        preview_active,
+        x,
+        y,
+        tool,
+        brush_color,
+        brush_color_rgb,
+        brush_opacity
+    );
     return 1;
 }

@@ -96,48 +96,31 @@ static int handle_canvas_sample_shortcut(
     int *brush_opacity,
     int *needs_composite
 ) {
-    Layer *active = NULL;
-    const Canvas *sample = NULL;
     int mx = 0;
     int my = 0;
 
-    if (!layers || !tool || !brush_color || !brush_color_rgb || !brush_opacity) {
-        return 0;
-    }
-    if (canvas_action != CANVAS_SHORTCUT_FILL && canvas_action != CANVAS_SHORTCUT_EYEDROPPER) {
-        return 0;
-    }
-
     SDL_GetMouseState(&mx, &my);
-    if (mx < 0 || my < 0 || mx >= CANVAS_WIDTH || my >= CANVAS_HEIGHT) {
-        return 1;
-    }
-
-    if (canvas_action == CANVAS_SHORTCUT_FILL) {
-        active = app_active_editable_layer(layers);
-        if (active) {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-        }
-        if (!active || !canvas_flood_fill(&active->canvas, mx, my, *brush_color)) {
-            fprintf(stderr, "Fill failed\n");
-        } else if (needs_composite) {
-            *needs_composite = 1;
-        }
-        return 1;
-    }
-
-    app_apply_sampled_brush_color_from_available_canvas(
+    return app_handle_canvas_sample_shortcut_at(
+        canvas_action,
+        layers,
         composite,
         preview_canvas,
         preview_active,
         mx,
         my,
+        CANVAS_WIDTH,
+        CANVAS_HEIGHT,
+        undo_stack,
+        undo_count,
+        MAX_HISTORY,
+        redo_stack,
+        redo_count,
         tool,
         brush_color,
         brush_color_rgb,
-        brush_opacity
+        brush_opacity,
+        needs_composite
     );
-    return 1;
 }
 
 static void update_window_title(SDL_Window *window, const LayerStack *layers, Tool tool, BrushShape brush_shape, int radius, uint32_t color, int opacity_percent) {
