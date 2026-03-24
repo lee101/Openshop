@@ -2089,6 +2089,38 @@ static int expect_handle_shape_preview_key(
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    AppShapeCancelKey key;
+    int ctrl;
+    int initial_shaping;
+    int initial_preview_active;
+    int initial_running;
+    AppPreviewKeyResult want_result;
+    int want_shaping;
+    int want_preview_active;
+    int want_running;
+} HandleShapePreviewKeyCase;
+
+static int run_handle_shape_preview_key_case(const HandleShapePreviewKeyCase *test_case) {
+    int shaping = test_case->initial_shaping;
+    int preview_active = test_case->initial_preview_active;
+    int running = test_case->initial_running;
+
+    return expect_handle_shape_preview_key(
+        test_case->label,
+        test_case->key,
+        test_case->ctrl,
+        &shaping,
+        &preview_active,
+        &running,
+        test_case->want_result,
+        test_case->want_shaping,
+        test_case->want_preview_active,
+        test_case->want_running
+    );
+}
+
 static int expect_preview_canvas_selection(
     const char *label,
     const Canvas *composite,
@@ -3018,76 +3050,45 @@ int main(void) {
     ok = ok && expect_shape_cancel("shape_cancel_plain_save_not_cancel", APP_SHAPE_CANCEL_KEY_S, 0, 0);
     ok = ok && expect_shape_cancel("shape_cancel_unmapped_key", APP_SHAPE_CANCEL_KEY_OTHER, 0, 0);
     {
-        int shaping = 1;
-        int preview_active = 1;
-        int running = 1;
+        HandleShapePreviewKeyCase preview_key_cases[] = {
+            {
+                "shape_preview_key_cancel_continue",
+                APP_SHAPE_CANCEL_KEY_B,
+                0,
+                1, 1, 1,
+                APP_PREVIEW_KEY_RESULT_STATE_CHANGED,
+                0, 0, 1,
+            },
+            {
+                "shape_preview_key_escape_cancel_handled",
+                APP_SHAPE_CANCEL_KEY_ESCAPE,
+                0,
+                1, 1, 1,
+                APP_PREVIEW_KEY_RESULT_HANDLED,
+                0, 0, 1,
+            },
+            {
+                "shape_preview_key_escape_exit",
+                APP_SHAPE_CANCEL_KEY_ESCAPE,
+                0,
+                0, 1, 1,
+                APP_PREVIEW_KEY_RESULT_HANDLED,
+                0, 1, 0,
+            },
+            {
+                "shape_preview_key_unmapped_noop",
+                APP_SHAPE_CANCEL_KEY_OTHER,
+                0,
+                0, 1, 1,
+                APP_PREVIEW_KEY_RESULT_NONE,
+                0, 1, 1,
+            },
+        };
+        size_t i;
 
-        ok = ok && expect_handle_shape_preview_key(
-            "shape_preview_key_cancel_continue",
-            APP_SHAPE_CANCEL_KEY_B,
-            0,
-            &shaping,
-            &preview_active,
-            &running,
-            APP_PREVIEW_KEY_RESULT_STATE_CHANGED,
-            0,
-            0,
-            1
-        );
-    }
-    {
-        int shaping = 1;
-        int preview_active = 1;
-        int running = 1;
-
-        ok = ok && expect_handle_shape_preview_key(
-            "shape_preview_key_escape_cancel_handled",
-            APP_SHAPE_CANCEL_KEY_ESCAPE,
-            0,
-            &shaping,
-            &preview_active,
-            &running,
-            APP_PREVIEW_KEY_RESULT_HANDLED,
-            0,
-            0,
-            1
-        );
-    }
-    {
-        int shaping = 0;
-        int preview_active = 1;
-        int running = 1;
-
-        ok = ok && expect_handle_shape_preview_key(
-            "shape_preview_key_escape_exit",
-            APP_SHAPE_CANCEL_KEY_ESCAPE,
-            0,
-            &shaping,
-            &preview_active,
-            &running,
-            APP_PREVIEW_KEY_RESULT_HANDLED,
-            0,
-            1,
-            0
-        );
-    }
-    {
-        int shaping = 0;
-        int preview_active = 1;
-        int running = 1;
-
-        ok = ok && expect_handle_shape_preview_key(
-            "shape_preview_key_unmapped_noop",
-            APP_SHAPE_CANCEL_KEY_OTHER,
-            0,
-            &shaping,
-            &preview_active,
-            &running,
-            APP_PREVIEW_KEY_RESULT_NONE,
-            0,
-            1,
-            1
-        );
+        for (i = 0; i < sizeof(preview_key_cases) / sizeof(preview_key_cases[0]); i++) {
+            ok = ok && run_handle_shape_preview_key_case(&preview_key_cases[i]);
+        }
     }
     ok = ok && expect_brush_mask("brush_mask_round_inside", BRUSH_SHAPE_ROUND, 1, 1, 2, 1);
     ok = ok && expect_brush_mask("brush_mask_round_edge", BRUSH_SHAPE_ROUND, 2, 0, 2, 1);
