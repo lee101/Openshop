@@ -914,6 +914,45 @@ static int handle_merge_shortcut(
     return 0;
 }
 
+static int handle_layer_visibility_shortcut(
+    SDL_Keycode key,
+    int ctrl,
+    int shift,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+) {
+    if (!layers || !ctrl) {
+        return 0;
+    }
+
+    if (key == SDLK_a) {
+        if (layers->solo_index >= 0 || layer_stack_visible_count(layers) != layers->layer_count) {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            if (layer_stack_show_all(layers) && needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (shift && key == SDLK_r) {
+        const Layer *active = layer_stack_get(layers, layers->active_layer);
+        if (active && !active->visible) {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            if (layer_stack_show(layers, layers->active_layer) && needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    return 0;
+}
+
 static int handle_brush_and_paint_shortcut(
     PaintShortcutAction paint_action,
     BrushShortcutAction brush_action,
@@ -1603,25 +1642,17 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (ctrl && key == SDLK_a) {
-                    if (layers.solo_index >= 0 || layer_stack_visible_count(&layers) != layers.layer_count) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        if (layer_stack_show_all(&layers)) {
-                            needs_composite = 1;
-                        }
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (ctrl && shift && key == SDLK_r) {
-                    const Layer *active = layer_stack_get(&layers, layers.active_layer);
-                    if (active && !active->visible) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        if (layer_stack_show(&layers, layers.active_layer)) {
-                            needs_composite = 1;
-                        }
-                    }
+                if (handle_layer_visibility_shortcut(
+                        key,
+                        ctrl,
+                        shift,
+                        &layers,
+                        undo_stack,
+                        &undo_count,
+                        redo_stack,
+                        &redo_count,
+                        &needs_composite
+                    )) {
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
