@@ -10,6 +10,7 @@
 #include "layers.h"
 #include "merge_shortcuts.h"
 #include "paint_shortcuts.h"
+#include "view_shortcuts.h"
 
 #include <SDL2/SDL.h>
 #include <stdio.h>
@@ -834,38 +835,55 @@ static int handle_view_and_canvas_shortcut(
 ) {
     BrushShortcutAction brush_action;
     PaintShortcutAction paint_action;
+    ViewShortcutKey view_key = VIEW_SHORTCUT_KEY_NONE;
+    ViewShortcutResult view_result;
     Layer *active = NULL;
     const Canvas *sample = NULL;
     int mx = 0;
     int my = 0;
-    int step = 0;
-    int dx = 0;
-    int dy = 0;
 
     if (!layers || !tool || !brush_shape || !brush_radius || !brush_color || !brush_color_rgb || !brush_opacity) {
         return 0;
     }
 
-    if (key == SDLK_PAGEUP) {
-        return layer_stack_cycle(layers, 1) >= 0;
+    switch (key) {
+    case SDLK_PAGEUP:
+        view_key = VIEW_SHORTCUT_KEY_PAGEUP;
+        break;
+    case SDLK_PAGEDOWN:
+        view_key = VIEW_SHORTCUT_KEY_PAGEDOWN;
+        break;
+    case SDLK_UP:
+        view_key = VIEW_SHORTCUT_KEY_UP;
+        break;
+    case SDLK_DOWN:
+        view_key = VIEW_SHORTCUT_KEY_DOWN;
+        break;
+    case SDLK_LEFT:
+        view_key = VIEW_SHORTCUT_KEY_LEFT;
+        break;
+    case SDLK_RIGHT:
+        view_key = VIEW_SHORTCUT_KEY_RIGHT;
+        break;
+    default:
+        break;
     }
 
-    if (key == SDLK_PAGEDOWN) {
-        return layer_stack_cycle(layers, -1) >= 0;
+    view_result = view_shortcut_result(view_key, shift);
+    if (view_result.action == VIEW_SHORTCUT_CYCLE) {
+        return layer_stack_cycle(layers, view_result.cycle_direction) >= 0;
     }
 
-    if (key == SDLK_UP || key == SDLK_DOWN || key == SDLK_LEFT || key == SDLK_RIGHT) {
-        step = shift ? 10 : 1;
-        if (key == SDLK_UP) {
-            dy = -step;
-        } else if (key == SDLK_DOWN) {
-            dy = step;
-        } else if (key == SDLK_LEFT) {
-            dx = -step;
-        } else {
-            dx = step;
-        }
-        if (apply_canvas_translation(layers, undo_stack, undo_count, redo_stack, redo_count, dx, dy) && needs_composite) {
+    if (view_result.action == VIEW_SHORTCUT_TRANSLATE) {
+        if (apply_canvas_translation(
+                layers,
+                undo_stack,
+                undo_count,
+                redo_stack,
+                redo_count,
+                view_result.dx,
+                view_result.dy
+            ) && needs_composite) {
             *needs_composite = 1;
         }
         return 1;

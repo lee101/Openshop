@@ -5,6 +5,7 @@
 #include "../src/layer_name_shortcuts.h"
 #include "../src/merge_shortcuts.h"
 #include "../src/paint_shortcuts.h"
+#include "../src/view_shortcuts.h"
 #include <stdio.h>
 
 static int expect_shortcut(const char *label, int ctrl, int alt, int shift, LayerNameResetShortcut want) {
@@ -70,6 +71,38 @@ static int expect_brush_action(const char *label, int key, BrushShortcutAction w
     return 1;
 }
 
+static int expect_view_result(
+    const char *label,
+    ViewShortcutKey key,
+    int shift,
+    ViewShortcutAction want_action,
+    int want_cycle_direction,
+    int want_dx,
+    int want_dy
+) {
+    ViewShortcutResult got = view_shortcut_result(key, shift);
+    if (got.action != want_action ||
+        got.cycle_direction != want_cycle_direction ||
+        got.dx != want_dx ||
+        got.dy != want_dy) {
+        fprintf(
+            stderr,
+            "%s mismatch: got {%d,%d,%d,%d} want {%d,%d,%d,%d}\n",
+            label,
+            got.action,
+            got.cycle_direction,
+            got.dx,
+            got.dy,
+            want_action,
+            want_cycle_direction,
+            want_dx,
+            want_dy
+        );
+        return 0;
+    }
+    return 1;
+}
+
 int main(void) {
     int ok = 1;
 
@@ -120,6 +153,13 @@ int main(void) {
     ok = ok && expect_brush_action("opacity_up_equals", '=', BRUSH_SHORTCUT_OPACITY_UP);
     ok = ok && expect_brush_action("opacity_up_plus", '+', BRUSH_SHORTCUT_OPACITY_UP);
     ok = ok && expect_brush_action("brush_other_key", '/', BRUSH_SHORTCUT_NONE);
+    ok = ok && expect_view_result("pageup", VIEW_SHORTCUT_KEY_PAGEUP, 0, VIEW_SHORTCUT_CYCLE, 1, 0, 0);
+    ok = ok && expect_view_result("pagedown", VIEW_SHORTCUT_KEY_PAGEDOWN, 1, VIEW_SHORTCUT_CYCLE, -1, 0, 0);
+    ok = ok && expect_view_result("up", VIEW_SHORTCUT_KEY_UP, 0, VIEW_SHORTCUT_TRANSLATE, 0, 0, -1);
+    ok = ok && expect_view_result("down_shift", VIEW_SHORTCUT_KEY_DOWN, 1, VIEW_SHORTCUT_TRANSLATE, 0, 0, 10);
+    ok = ok && expect_view_result("left", VIEW_SHORTCUT_KEY_LEFT, 0, VIEW_SHORTCUT_TRANSLATE, 0, -1, 0);
+    ok = ok && expect_view_result("right_shift", VIEW_SHORTCUT_KEY_RIGHT, 1, VIEW_SHORTCUT_TRANSLATE, 0, 10, 0);
+    ok = ok && expect_view_result("view_none", VIEW_SHORTCUT_KEY_NONE, 0, VIEW_SHORTCUT_NONE, 0, 0, 0);
 
     if (!ok) {
         return 1;
