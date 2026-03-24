@@ -794,6 +794,88 @@ int main(void) {
         snapshot_stack_clear(temp_stack, &temp_count);
     }
 
+    {
+        Snapshot temp_undo[2] = {0};
+        Snapshot temp_redo[2] = {0};
+        int temp_undo_count = 0;
+        int temp_redo_count = 0;
+
+        if (!layer_stack_rename(&stack, 1, "Redo Old 1") ||
+            !snapshot_from_layers(&temp_redo[temp_redo_count++], &stack) ||
+            !layer_stack_rename(&stack, 1, "Redo Old 2") ||
+            !snapshot_from_layers(&temp_redo[temp_redo_count++], &stack) ||
+            !layer_stack_rename(&stack, 1, "Undo Target") ||
+            !snapshot_from_layers(&temp_undo[temp_undo_count++], &stack) ||
+            !layer_stack_rename(&stack, 1, "Undo Current")) {
+            fprintf(stderr, "undo redo-rollover setup failed\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+
+        if (!snapshot_undo(&stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count) ||
+            !expect_name(&stack, 1, "Undo Target", "redo_rollover_undo_name") ||
+            !expect_int(temp_undo_count, 0, "redo_rollover_undo_count") ||
+            !expect_int(temp_redo_count, 2, "redo_rollover_redo_count") ||
+            strcmp(temp_redo[0].names[1], "Redo Old 2") != 0 ||
+            strcmp(temp_redo[1].names[1], "Undo Current") != 0) {
+            fprintf(stderr, "snapshot_undo should roll redo stack forward\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+
+        snapshot_stack_clear(temp_undo, &temp_undo_count);
+        snapshot_stack_clear(temp_redo, &temp_redo_count);
+    }
+
+    {
+        Snapshot temp_undo[2] = {0};
+        Snapshot temp_redo[2] = {0};
+        int temp_undo_count = 0;
+        int temp_redo_count = 0;
+
+        if (!layer_stack_rename(&stack, 1, "Undo Old 1") ||
+            !snapshot_from_layers(&temp_undo[temp_undo_count++], &stack) ||
+            !layer_stack_rename(&stack, 1, "Undo Old 2") ||
+            !snapshot_from_layers(&temp_undo[temp_undo_count++], &stack) ||
+            !layer_stack_rename(&stack, 1, "Redo Target") ||
+            !snapshot_from_layers(&temp_redo[temp_redo_count++], &stack) ||
+            !layer_stack_rename(&stack, 1, "Redo Current")) {
+            fprintf(stderr, "redo undo-rollover setup failed\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+
+        if (!snapshot_redo(&stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count) ||
+            !expect_name(&stack, 1, "Redo Target", "undo_rollover_redo_name") ||
+            !expect_int(temp_undo_count, 2, "undo_rollover_undo_count") ||
+            !expect_int(temp_redo_count, 0, "undo_rollover_redo_count") ||
+            strcmp(temp_undo[0].names[1], "Undo Old 2") != 0 ||
+            strcmp(temp_undo[1].names[1], "Redo Current") != 0) {
+            fprintf(stderr, "snapshot_redo should roll undo stack forward\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+
+        snapshot_stack_clear(temp_undo, &temp_undo_count);
+        snapshot_stack_clear(temp_redo, &temp_redo_count);
+    }
+
     snapshot_stack_clear(undo_stack, &undo_count);
     snapshot_stack_clear(redo_stack, &redo_count);
     layer_stack_free(&stack);
