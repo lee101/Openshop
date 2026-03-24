@@ -1,4 +1,5 @@
 #include "app.h"
+#include "active_layer_ops.h"
 #include "brush_render.h"
 #include "brush_state.h"
 #include "canvas.h"
@@ -238,48 +239,39 @@ static int try_flood_fill_active_layer(LayerStack *layers,
 static int try_clear_active_layer(LayerStack *layers,
                                   Snapshot *undo_stack, int *undo_count,
                                   Snapshot *redo_stack, int *redo_count) {
-    if (active_layer_editable(layers)) {
-        snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, MAX_HISTORY);
-    }
-    return layer_stack_clear_layer(layers, layers->active_layer, active_layer_clear_color(layers, COLOR_BG));
+    return active_layer_try_clear(layers, undo_stack, undo_count, redo_stack, redo_count, COLOR_BG, MAX_HISTORY);
 }
 
 static int try_flip_horizontal_active_layer(LayerStack *layers,
                                             Snapshot *undo_stack, int *undo_count,
                                             Snapshot *redo_stack, int *redo_count) {
-    return apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_flip_horizontal);
+    return active_layer_try_flip_horizontal(layers, undo_stack, undo_count, redo_stack, redo_count, MAX_HISTORY);
 }
 
 static int try_flip_vertical_active_layer(LayerStack *layers,
                                           Snapshot *undo_stack, int *undo_count,
                                           Snapshot *redo_stack, int *redo_count) {
-    return apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_flip_vertical);
+    return active_layer_try_flip_vertical(layers, undo_stack, undo_count, redo_stack, redo_count, MAX_HISTORY);
 }
 
 static int try_rotate_active_layer_180(LayerStack *layers,
                                        Snapshot *undo_stack, int *undo_count,
                                        Snapshot *redo_stack, int *redo_count) {
-    return apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_rotate_180);
+    return active_layer_try_rotate_180(layers, undo_stack, undo_count, redo_stack, redo_count, MAX_HISTORY);
 }
 
 static int try_invert_active_layer_rgb(LayerStack *layers,
                                        Snapshot *undo_stack, int *undo_count,
                                        Snapshot *redo_stack, int *redo_count) {
-    return apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_invert_rgb);
+    return active_layer_try_invert_rgb(layers, undo_stack, undo_count, redo_stack, redo_count, MAX_HISTORY);
 }
 
 static int try_adjust_active_layer_opacity(LayerStack *layers,
                                            Snapshot *undo_stack, int *undo_count,
                                            Snapshot *redo_stack, int *redo_count,
                                            int target_opacity) {
-    Layer *active = layer_stack_active(layers);
-
-    if (!active || active->opacity_percent == target_opacity) {
-        return 0;
-    }
-
-    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, MAX_HISTORY);
-    return layer_stack_set_opacity(layers, layers->active_layer, target_opacity);
+    return active_layer_try_adjust_opacity(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                           target_opacity, MAX_HISTORY);
 }
 
 static int try_add_layer(LayerStack *layers,
@@ -436,19 +428,8 @@ static int try_nudge_active_layer_opacity(LayerStack *layers,
                                           Snapshot *undo_stack, int *undo_count,
                                           Snapshot *redo_stack, int *redo_count,
                                           int delta_percent) {
-    Layer *active;
-
-    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count) {
-        return 0;
-    }
-
-    active = layer_stack_active(layers);
-    if (!active) {
-        return 0;
-    }
-
-    return try_adjust_active_layer_opacity(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                           active->opacity_percent + delta_percent);
+    return active_layer_try_nudge_opacity(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                          delta_percent, MAX_HISTORY);
 }
 
 static int try_commit_shape(LayerStack *layers,
@@ -1356,8 +1337,9 @@ static int handle_translation_hotkey(SDL_Keycode key,
 
     step = shift ? 10 : 1;
     if (key_translation_delta(key, step, &dx, &dy) &&
-        apply_canvas_translation(action_state->layers, action_state->undo_stack, action_state->undo_count,
-                                 action_state->redo_stack, action_state->redo_count, dx, dy)) {
+        active_layer_apply_translation(action_state->layers, action_state->undo_stack, action_state->undo_count,
+                                       action_state->redo_stack, action_state->redo_count,
+                                       dx, dy, COLOR_BG, MAX_HISTORY)) {
         *action_state->needs_composite = 1;
     }
 
@@ -1468,47 +1450,6 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     default:
         return 0;
     }
-}
-
-static int apply_canvas_transform(
-    LayerStack *layers,
-    Snapshot *undo_stack,
-    int *undo_count,
-    Snapshot *redo_stack,
-    int *redo_count,
-    void (*transform)(Canvas *)
-) {
-    if (!layers || !transform) {
-        return 0;
-    }
-    Layer *active = layer_stack_active(layers);
-    if (!active || active->locked || !active->canvas.pixels) {
-        return 0;
-    }
-    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, MAX_HISTORY);
-    transform(&active->canvas);
-    return 1;
-}
-
-static int apply_canvas_translation(
-    LayerStack *layers,
-    Snapshot *undo_stack,
-    int *undo_count,
-    Snapshot *redo_stack,
-    int *redo_count,
-    int dx,
-    int dy
-) {
-    if (!layers || (dx == 0 && dy == 0)) {
-        return 0;
-    }
-    Layer *active = layer_stack_active(layers);
-    if (!active || active->locked || !active->canvas.pixels) {
-        return 0;
-    }
-    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, MAX_HISTORY);
-    canvas_translate(&active->canvas, dx, dy, active_layer_clear_color(layers, COLOR_BG));
-    return 1;
 }
 
 int app_run(const char *input_path) {

@@ -1,0 +1,40 @@
+#ifndef ACTIVE_LAYER_OPS_H
+#define ACTIVE_LAYER_OPS_H
+
+#include "snapshot_history.h"
+
+int active_layer_try_clear(LayerStack *layers,
+                           Snapshot *undo_stack, int *undo_count,
+                           Snapshot *redo_stack, int *redo_count,
+                           uint32_t background_color, int max_history);
+int active_layer_try_flip_horizontal(LayerStack *layers,
+                                     Snapshot *undo_stack, int *undo_count,
+                                     Snapshot *redo_stack, int *redo_count,
+                                     int max_history);
+int active_layer_try_flip_vertical(LayerStack *layers,
+                                   Snapshot *undo_stack, int *undo_count,
+                                   Snapshot *redo_stack, int *redo_count,
+                                   int max_history);
+int active_layer_try_rotate_180(LayerStack *layers,
+                                Snapshot *undo_stack, int *undo_count,
+                                Snapshot *redo_stack, int *redo_count,
+                                int max_history);
+int active_layer_try_invert_rgb(LayerStack *layers,
+                                Snapshot *undo_stack, int *undo_count,
+                                Snapshot *redo_stack, int *redo_count,
+                                int max_history);
+int active_layer_try_adjust_opacity(LayerStack *layers,
+                                    Snapshot *undo_stack, int *undo_count,
+                                    Snapshot *redo_stack, int *redo_count,
+                                    int target_opacity, int max_history);
+int active_layer_try_nudge_opacity(LayerStack *layers,
+                                   Snapshot *undo_stack, int *undo_count,
+                                   Snapshot *redo_stack, int *redo_count,
+                                   int delta_percent, int max_history);
+int active_layer_apply_translation(LayerStack *layers,
+                                   Snapshot *undo_stack, int *undo_count,
+                                   Snapshot *redo_stack, int *redo_count,
+                                   int dx, int dy,
+                                   uint32_t background_color, int max_history);
+
+#endif

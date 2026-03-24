@@ -1,3 +1,4 @@
+#include "../src/active_layer_ops.h"
 #include "../src/brush_render.h"
 #include "../src/brush_state.h"
 #include "../src/canvas.h"
@@ -370,6 +371,73 @@ static int test_snapshot_history_helpers(void) {
     snapshot_push(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 2);
     if (undo_count != 2 || redo_count != 0) {
         fprintf(stderr, "snapshot_push max history failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    layer_stack_free(&stack);
+    return 1;
+}
+
+static int test_active_layer_ops_helpers(void) {
+    LayerStack stack;
+    Snapshot undo_stack[4] = {0};
+    Snapshot redo_stack[4] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "active layer ops stack init failed\n");
+        return 0;
+    }
+
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFF112233);
+    if (!active_layer_try_clear(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0xFFFFFFFF, 4) ||
+        !expect_pixel_eq("active_clear_base", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFFFFFFFF) ||
+        undo_count != 1) {
+        fprintf(stderr, "active_layer_try_clear failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 0, 0xFF000001);
+    if (!active_layer_try_flip_horizontal(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+        !expect_pixel_eq("active_flip_h", canvas_get_pixel(&stack.layers[0].canvas, 3, 0), 0xFF000001)) {
+        fprintf(stderr, "active_layer_try_flip_horizontal failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (!active_layer_try_adjust_opacity(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 55, 4) ||
+        stack.layers[0].opacity_percent != 55) {
+        fprintf(stderr, "active_layer_try_adjust_opacity failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!active_layer_try_nudge_opacity(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 10, 4) ||
+        stack.layers[0].opacity_percent != 65) {
+        fprintf(stderr, "active_layer_try_nudge_opacity failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFFABCDEF);
+    if (!active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                        1, 1, 0xFFFFFFFF, 4) ||
+        !expect_pixel_eq("active_translate", canvas_get_pixel(&stack.layers[0].canvas, 2, 2), 0xFFABCDEF)) {
+        fprintf(stderr, "active_layer_apply_translation failed\n");
         snapshot_stack_clear(undo_stack, &undo_count);
         snapshot_stack_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
@@ -3011,6 +3079,10 @@ int main(void) {
     }
 
     if (!test_snapshot_history_helpers()) {
+        return 1;
+    }
+
+    if (!test_active_layer_ops_helpers()) {
         return 1;
     }
 
