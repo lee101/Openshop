@@ -1270,6 +1270,34 @@ static int handle_indexed_layer_silent_hotkey(SDL_Keycode key,
     return 0;
 }
 
+static int handle_layer_navigation_hotkey(SDL_Keycode key,
+                                          int ctrl, int alt, int shift,
+                                          SDL_Window *window,
+                                          LayerStack *layers,
+                                          Tool tool, BrushShape brush_shape,
+                                          int brush_radius, uint32_t brush_color,
+                                          int brush_opacity) {
+    int changed = 0;
+
+    if (!window || !layers || alt || shift) {
+        return 0;
+    }
+
+    if (ctrl && key >= SDLK_1 && key <= SDLK_8) {
+        changed = try_select_layer_index(layers, (int)(key - SDLK_1));
+    } else if (!ctrl && key == SDLK_PAGEUP) {
+        changed = layer_stack_cycle(layers, 1) >= 0;
+    } else if (!ctrl && key == SDLK_PAGEDOWN) {
+        changed = layer_stack_cycle(layers, -1) >= 0;
+    } else {
+        return 0;
+    }
+
+    refresh_title_on_change(window, layers, tool, brush_shape, brush_radius, brush_color,
+                            brush_opacity, changed);
+    return 1;
+}
+
 static int handle_right_click_sample(SDL_Window *window,
                                      const LayerStack *layers,
                                      const Canvas *sample,
@@ -1840,12 +1868,6 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (ctrl && key >= SDLK_1 && key <= SDLK_8) {
-                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
-                                            brush_opacity, try_select_layer_index(&layers, (int)(key - SDLK_1)));
-                    break;
-                }
-
                 if (handle_indexed_layer_silent_hotkey(key, ctrl, alt, shift, window, &layers,
                                                        undo_stack, &undo_count, redo_stack, &redo_count,
                                                        tool, brush_shape, brush_radius, brush_color,
@@ -1865,15 +1887,9 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (key == SDLK_PAGEUP) {
-                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
-                                            brush_opacity, layer_stack_cycle(&layers, 1) >= 0);
-                    break;
-                }
-
-                if (key == SDLK_PAGEDOWN) {
-                    refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
-                                            brush_opacity, layer_stack_cycle(&layers, -1) >= 0);
+                if (handle_layer_navigation_hotkey(key, ctrl, alt, shift, window, &layers,
+                                                   tool, brush_shape, brush_radius, brush_color,
+                                                   brush_opacity)) {
                     break;
                 }
 
