@@ -346,12 +346,13 @@ static int handle_key_down_layer_shortcuts(
     }
 
     if (refresh_after_shortcut(
-            handle_layer_opacity_reset_shortcut(
-                key,
+            app_handle_layer_opacity_reset_shortcut(
+                (int)key,
                 ctrl,
                 layers,
                 undo_stack,
                 undo_count,
+                MAX_HISTORY,
                 redo_stack,
                 redo_count,
                 needs_composite),
@@ -1191,33 +1192,6 @@ static int handle_layer_visibility_shortcut(
     }
 
     return 0;
-}
-
-static int handle_layer_opacity_reset_shortcut(
-    SDL_Keycode key,
-    int ctrl,
-    LayerStack *layers,
-    Snapshot *undo_stack,
-    int *undo_count,
-    Snapshot *redo_stack,
-    int *redo_count,
-    int *needs_composite
-) {
-    Layer *active = NULL;
-
-    if (!layers || !ctrl || key != SDLK_0) {
-        return 0;
-    }
-
-    active = layer_stack_active(layers);
-    if (active && active->opacity_percent != 100) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-        layer_stack_set_opacity(layers, layers->active_layer, 100);
-        if (needs_composite) {
-            *needs_composite = 1;
-        }
-    }
-    return 1;
 }
 
 static ViewShortcutKey view_shortcut_key_from_sdl(SDL_Keycode key) {

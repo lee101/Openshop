@@ -221,6 +221,34 @@ int app_handle_brush_and_paint_shortcut(
     return 1;
 }
 
+int app_handle_layer_opacity_reset_shortcut(
+    int key,
+    int ctrl,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    int undo_capacity,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+) {
+    Layer *active = NULL;
+
+    if (!layers || !ctrl || key != '0') {
+        return 0;
+    }
+
+    active = layer_stack_active(layers);
+    if (active && active->opacity_percent != 100) {
+        snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
+        layer_stack_set_opacity(layers, layers->active_layer, 100);
+        if (needs_composite) {
+            *needs_composite = 1;
+        }
+    }
+    return 1;
+}
+
 int app_handle_canvas_sample_shortcut_at(
     CanvasShortcutAction canvas_action,
     LayerStack *layers,

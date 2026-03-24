@@ -1648,6 +1648,83 @@ static int run_brush_and_paint_shortcut_runtime_case(const BrushAndPaintShortcut
     );
 }
 
+static int expect_layer_opacity_reset_shortcut(
+    const char *label,
+    int key,
+    int ctrl,
+    int initial_opacity,
+    int want_handled,
+    int want_needs_composite,
+    int want_undo_count,
+    int want_opacity
+) {
+    LayerStack stack = {0};
+    uint32_t pixels[4] = {0};
+    Snapshot undo_stack[2] = {0};
+    Snapshot redo_stack[2] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+    int needs_composite = 0;
+    int handled = 0;
+
+    init_single_layer_stack(&stack, &stack.layers[0].canvas, pixels, 2, 2, 0xFF112233u, 0);
+    stack.layers[0].opacity_percent = initial_opacity;
+
+    handled = app_handle_layer_opacity_reset_shortcut(
+        key,
+        ctrl,
+        &stack,
+        undo_stack,
+        &undo_count,
+        2,
+        redo_stack,
+        &redo_count,
+        &needs_composite
+    );
+
+    if (handled != want_handled) {
+        fprintf(stderr, "%s handled mismatch: got %d want %d\n", label, handled, want_handled);
+        return 0;
+    }
+    if (needs_composite != want_needs_composite) {
+        fprintf(stderr, "%s needs_composite mismatch: got %d want %d\n", label, needs_composite, want_needs_composite);
+        return 0;
+    }
+    if (undo_count != want_undo_count || redo_count != 0) {
+        fprintf(stderr, "%s history count mismatch: undo %d/%d redo %d/0\n", label, undo_count, want_undo_count, redo_count);
+        return 0;
+    }
+    if (stack.layers[0].opacity_percent != want_opacity) {
+        fprintf(stderr, "%s opacity mismatch: got %d want %d\n", label, stack.layers[0].opacity_percent, want_opacity);
+        return 0;
+    }
+    return 1;
+}
+
+typedef struct {
+    const char *label;
+    int key;
+    int ctrl;
+    int initial_opacity;
+    int want_handled;
+    int want_needs_composite;
+    int want_undo_count;
+    int want_opacity;
+} LayerOpacityResetShortcutCase;
+
+static int run_layer_opacity_reset_shortcut_case(const LayerOpacityResetShortcutCase *test_case) {
+    return expect_layer_opacity_reset_shortcut(
+        test_case->label,
+        test_case->key,
+        test_case->ctrl,
+        test_case->initial_opacity,
+        test_case->want_handled,
+        test_case->want_needs_composite,
+        test_case->want_undo_count,
+        test_case->want_opacity
+    );
+}
+
 static int expect_canvas_sample_shortcut(
     const char *label,
     CanvasShortcutAction action,
@@ -4594,6 +4671,19 @@ int main(void) {
             brush_color != 0xAA123456u || brush_color_rgb != 0x00123456u || brush_opacity != 50) {
             fprintf(stderr, "runtime_shortcut_null_tool mutated state unexpectedly\n");
             ok = 0;
+        }
+    }
+    {
+        const LayerOpacityResetShortcutCase layer_opacity_reset_cases[] = {
+            {"layer_opacity_reset_changes_active", '0', 1, 35, 1, 1, 1, 100},
+            {"layer_opacity_reset_already_full", '0', 1, 100, 1, 0, 0, 100},
+            {"layer_opacity_reset_missing_ctrl", '0', 0, 35, 0, 0, 0, 35},
+            {"layer_opacity_reset_other_key", '9', 1, 35, 0, 0, 0, 35},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(layer_opacity_reset_cases) / sizeof(layer_opacity_reset_cases[0]); i++) {
+            ok = ok && run_layer_opacity_reset_shortcut_case(&layer_opacity_reset_cases[i]);
         }
     }
     {
