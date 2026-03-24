@@ -424,6 +424,27 @@ static int test_layer_history_struct_api(void) {
         return 0;
     }
 
+    if (!layer_history_step_undo(&history, &stack) || history.redo_count != 1) {
+        fprintf(stderr, "history struct redo population failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    layer_history_reset(&history);
+    if (history.undo_count != 0 || history.redo_count != 0) {
+        fprintf(stderr, "history struct reset should clear populated redo\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_record(&history, &stack);
+    if (layer_history_step_redo(&history, &stack) || history.redo_count != 0) {
+        fprintf(stderr, "history struct redo should stay empty after reset\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
     layer_history_record(&history, &stack);
     if (history.redo_count != 0) {
         fprintf(stderr, "history struct record should clear redo\n");
