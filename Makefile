@@ -15,6 +15,7 @@ BIN = openshop
 
 TEST_BIN = canvas_smoke
 TEST_SRC = tests/canvas_smoke.c src/canvas.c src/history.c src/layers.c
+TEST_CFLAGS = -std=c11 -O2 -Wall -Wextra -DOPENSHOP_TESTING
 IMAGE_TEST_BIN = image_selftest
 IMAGE_TEST_SRC = tests/image_selftest.c src/canvas.c
 SDL_TEST_BIN = image_io_smoke
@@ -46,7 +47,7 @@ test-sdl: check-sdl2 $(SDL_TEST_BIN)
 	./$(SDL_TEST_BIN)
 
 $(TEST_BIN): $(TEST_SRC)
-	$(CC) -std=c11 -O2 -Wall -Wextra $(TEST_SRC) -o $(TEST_BIN) -lm
+	$(CC) $(TEST_CFLAGS) $(TEST_SRC) -o $(TEST_BIN) -lm
 
 $(IMAGE_TEST_BIN): $(IMAGE_TEST_SRC)
 	$(CC) -std=c11 -O2 -Wall -Wextra $(IMAGE_TEST_SRC) -o $(IMAGE_TEST_BIN) -lm

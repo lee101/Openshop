@@ -5,6 +5,18 @@
 
 static int layer_snapshot_equals(const LayerSnapshot *a, const LayerSnapshot *b);
 
+static void *layer_snapshot_alloc_default(size_t size) {
+    return malloc(size);
+}
+
+static void *(*layer_snapshot_alloc_pixels)(size_t size) = layer_snapshot_alloc_default;
+
+#ifdef OPENSHOP_TESTING
+void layer_snapshot_set_alloc_for_tests(layer_snapshot_alloc_fn alloc_fn) {
+    layer_snapshot_alloc_pixels = alloc_fn ? alloc_fn : layer_snapshot_alloc_default;
+}
+#endif
+
 static void snapshot_drop_top_layer(LayerStack *stack) {
     int last_index = stack->layer_count - 1;
     canvas_free(&stack->layers[last_index].canvas);
@@ -162,7 +174,7 @@ int layer_snapshot_capture(LayerSnapshot *snapshot, const LayerStack *stack) {
     size_t per_layer = (size_t)stack->width * (size_t)stack->height;
     size_t total_pixels = per_layer * (size_t)stack->layer_count;
     if (total_pixels > 0) {
-        snapshot->pixels = (uint32_t *)malloc(total_pixels * sizeof(uint32_t));
+        snapshot->pixels = (uint32_t *)layer_snapshot_alloc_pixels(total_pixels * sizeof(uint32_t));
         if (!snapshot->pixels) {
             layer_snapshot_reset(snapshot);
             return 0;

@@ -108,6 +108,13 @@ static int snapshot_has_cleared_scalar_state(const LayerSnapshot *snapshot) {
            snapshot->solo_index == -1;
 }
 
+#ifdef OPENSHOP_TESTING
+static void *always_fail_snapshot_alloc(size_t size) {
+    (void)size;
+    return NULL;
+}
+#endif
+
 static int test_layer_snapshot_restore(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
@@ -422,6 +429,63 @@ static int test_layer_snapshot_capture_reuses_existing_snapshot(void) {
     layer_snapshot_free(&snapshot);
     layer_stack_free(&stack);
     return 1;
+}
+
+static int test_layer_snapshot_capture_resets_state_on_alloc_failure(void) {
+#ifndef OPENSHOP_TESTING
+    fprintf(stderr, "snapshot alloc failure test requires OPENSHOP_TESTING\n");
+    return 0;
+#else
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "snapshot alloc-failure init failed\n");
+        return 0;
+    }
+    if (layer_stack_add(&stack, "Ink", 0x00000000) != 1) {
+        fprintf(stderr, "snapshot alloc-failure add layer failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    LayerSnapshot snapshot = {0};
+    snapshot.width = 9;
+    snapshot.height = 7;
+    snapshot.layer_count = 3;
+    snapshot.active_layer = 2;
+    snapshot.solo_index = 1;
+    snapshot.visibility[1] = 1;
+    snapshot.locked[1] = 1;
+    snapshot.opacity_percent[1] = 77;
+    strcpy(snapshot.names[1], "stale");
+    snapshot.pixels = (uint32_t *)malloc(sizeof(uint32_t));
+    if (!snapshot.pixels) {
+        fprintf(stderr, "snapshot alloc-failure seed allocation failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    snapshot.pixels[0] = 0xDEADBEEF;
+
+    layer_snapshot_set_alloc_for_tests(always_fail_snapshot_alloc);
+    if (layer_snapshot_capture(&snapshot, &stack)) {
+        fprintf(stderr, "snapshot capture should fail when allocation fails\n");
+        layer_snapshot_set_alloc_for_tests(NULL);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    layer_snapshot_set_alloc_for_tests(NULL);
+
+    if (!snapshot_is_reset(&snapshot) ||
+        snapshot.locked[1] != 0 ||
+        snapshot.opacity_percent[1] != 0 ||
+        snapshot.names[1][0] != '\0') {
+        fprintf(stderr, "snapshot capture should fully reset snapshot after allocation failure\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    return 1;
+#endif
 }
 
 static int test_layer_snapshot_apply_clamps_invalid_focus_indices(void) {
@@ -2926,6 +2990,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_snapshot_capture_reuses_existing_snapshot()) {
+        return 1;
+    }
+    if (!test_layer_snapshot_capture_resets_state_on_alloc_failure()) {
         return 1;
     }
     if (!test_layer_snapshot_apply_clamps_invalid_focus_indices()) {
