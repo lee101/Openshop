@@ -1240,6 +1240,8 @@ static int test_snapshot_history_helpers(void) {
     snapshot_push(NULL, undo_stack, &undo_count, redo_stack, &redo_count, 2);
     snapshot_push(&stack, NULL, &undo_count, redo_stack, &redo_count, 2);
     snapshot_push(&stack, undo_stack, NULL, redo_stack, &redo_count, 2);
+    snapshot_push(&stack, undo_stack, &undo_count, undo_stack, &redo_count, 2);
+    snapshot_push(&stack, undo_stack, &undo_count, redo_stack, &undo_count, 2);
     snapshot_push(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0);
     if (undo_count != 0 || redo_count != 0) {
         fprintf(stderr, "snapshot_push guard checks failed\n");
@@ -1327,6 +1329,38 @@ static int test_snapshot_history_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (redo_count != 0) {
+        fprintf(stderr, "snapshot_push redo clear failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    redo_count = 1;
+    redo_stack[0].pixels = (uint32_t *)malloc(sizeof(uint32_t));
+    if (!redo_stack[0].pixels) {
+        fprintf(stderr, "snapshot_push alias guard allocation failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    redo_stack[0].pixels[0] = 0xABCDEF01u;
+    snapshot_push(&stack, undo_stack, &undo_count, undo_stack, &redo_count, 2);
+    if (undo_count != 1 || redo_count != 1 || redo_stack[0].pixels[0] != 0xABCDEF01u) {
+        fprintf(stderr, "snapshot_push should reject aliased history stacks\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    snapshot_push(&stack, undo_stack, &undo_count, redo_stack, &undo_count, 2);
+    if (undo_count != 1 || redo_count != 1 || redo_stack[0].pixels[0] != 0xABCDEF01u) {
+        fprintf(stderr, "snapshot_push should reject aliased history counts\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    snapshot_stack_clear(redo_stack, &redo_count);
 
     canvas_set_pixel_raw(&stack.layers[1].canvas, 1, 1, 0xFF556677);
     if (!snapshot_restore(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 2) ||

@@ -149,6 +149,9 @@ void snapshot_push(const LayerStack *layers, Snapshot *stack, int *count,
     if (!layers || !stack || !count || max_history <= 0) {
         return;
     }
+    if ((redo && redo == stack) || (redo_count && redo_count == count)) {
+        return;
+    }
     if (!snapshot_from_layers(&s, layers)) {
         snapshot_free(&s);
         return;
