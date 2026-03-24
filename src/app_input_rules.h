@@ -62,4 +62,13 @@ enum {
 int app_key_translation_delta(int key, int step, int *dx, int *dy);
 int app_should_cancel_shape_on_key(int key, int ctrl);
 
+typedef enum {
+    APP_OPACITY_HOTKEY_NONE = 0,
+    APP_OPACITY_HOTKEY_SET_MAX,
+    APP_OPACITY_HOTKEY_NUDGE_DOWN,
+    APP_OPACITY_HOTKEY_NUDGE_UP
+} AppOpacityHotkeyAction;
+
+AppOpacityHotkeyAction app_opacity_hotkey_action(int key);
+
 #endif

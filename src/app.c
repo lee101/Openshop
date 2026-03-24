@@ -921,6 +921,7 @@ static int handle_reveal_hotkey(SDL_Keycode key,
 static int handle_layer_opacity_hotkey(SDL_Keycode key,
                                        int ctrl, int alt, int shift,
                                        const ActionState *action_state) {
+    AppOpacityHotkeyAction opacity_action;
     int changed = 0;
 
     if (!ctrl || alt || shift || !action_state || !action_state->title_state || !action_state->layers ||
@@ -929,15 +930,16 @@ static int handle_layer_opacity_hotkey(SDL_Keycode key,
         return 0;
     }
 
-    if (key == SDLK_0) {
+    opacity_action = app_opacity_hotkey_action(key);
+    if (opacity_action == APP_OPACITY_HOTKEY_SET_MAX) {
         changed = try_adjust_active_layer_opacity(action_state->layers, action_state->undo_stack,
                                                   action_state->undo_count, action_state->redo_stack,
                                                   action_state->redo_count, 100);
-    } else if (key == SDLK_MINUS || key == SDLK_KP_MINUS) {
+    } else if (opacity_action == APP_OPACITY_HOTKEY_NUDGE_DOWN) {
         changed = try_nudge_active_layer_opacity(action_state->layers, action_state->undo_stack,
                                                  action_state->undo_count, action_state->redo_stack,
                                                  action_state->redo_count, -10);
-    } else if (key == SDLK_EQUALS || key == SDLK_KP_PLUS) {
+    } else if (opacity_action == APP_OPACITY_HOTKEY_NUDGE_UP) {
         changed = try_nudge_active_layer_opacity(action_state->layers, action_state->undo_stack,
                                                  action_state->undo_count, action_state->redo_stack,
                                                  action_state->redo_count, 10);

@@ -78,3 +78,16 @@ int app_should_cancel_shape_on_key(int key, int ctrl) {
         return 0;
     }
 }
+
+AppOpacityHotkeyAction app_opacity_hotkey_action(int key) {
+    if (key == APP_KEY_0) {
+        return APP_OPACITY_HOTKEY_SET_MAX;
+    }
+    if (key == APP_KEY_MINUS || key == APP_KEY_KP_MINUS) {
+        return APP_OPACITY_HOTKEY_NUDGE_DOWN;
+    }
+    if (key == APP_KEY_EQUALS || key == APP_KEY_KP_PLUS) {
+        return APP_OPACITY_HOTKEY_NUDGE_UP;
+    }
+    return APP_OPACITY_HOTKEY_NONE;
+}

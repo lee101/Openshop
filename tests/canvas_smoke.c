@@ -83,6 +83,18 @@ static int test_app_input_rules(void) {
         fprintf(stderr, "shape cancel non-hotkeys should fail cleanly\n");
         return 0;
     }
+    if (app_opacity_hotkey_action(APP_KEY_0) != APP_OPACITY_HOTKEY_SET_MAX ||
+        app_opacity_hotkey_action(APP_KEY_MINUS) != APP_OPACITY_HOTKEY_NUDGE_DOWN ||
+        app_opacity_hotkey_action(APP_KEY_KP_MINUS) != APP_OPACITY_HOTKEY_NUDGE_DOWN ||
+        app_opacity_hotkey_action(APP_KEY_EQUALS) != APP_OPACITY_HOTKEY_NUDGE_UP ||
+        app_opacity_hotkey_action(APP_KEY_KP_PLUS) != APP_OPACITY_HOTKEY_NUDGE_UP) {
+        fprintf(stderr, "opacity hotkey mapping failed\n");
+        return 0;
+    }
+    if (app_opacity_hotkey_action(APP_KEY_b) != APP_OPACITY_HOTKEY_NONE) {
+        fprintf(stderr, "opacity non-hotkey mapping failed\n");
+        return 0;
+    }
 
     return 1;
 }
