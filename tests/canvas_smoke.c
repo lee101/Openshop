@@ -416,6 +416,36 @@ static int test_active_layer_ops_helpers(void) {
         return 0;
     }
 
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 2, 0, 0xFF010203);
+    if (!active_layer_try_flip_vertical(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+        !expect_pixel_eq("active_flip_v", canvas_get_pixel(&stack.layers[0].canvas, 2, 3), 0xFF010203)) {
+        fprintf(stderr, "active_layer_try_flip_vertical failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 1, 0xFF0A0B0C);
+    if (!active_layer_try_rotate_180(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+        !expect_pixel_eq("active_rotate_180", canvas_get_pixel(&stack.layers[0].canvas, 3, 2), 0xFF0A0B0C)) {
+        fprintf(stderr, "active_layer_try_rotate_180 failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 0, 0xFF102030);
+    if (!active_layer_try_invert_rgb(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+        !expect_pixel_eq("active_invert_rgb", canvas_get_pixel(&stack.layers[0].canvas, 1, 0), 0xFFEFDFCF)) {
+        fprintf(stderr, "active_layer_try_invert_rgb failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
     if (!active_layer_try_adjust_opacity(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 55, 4) ||
         stack.layers[0].opacity_percent != 55) {
         fprintf(stderr, "active_layer_try_adjust_opacity failed\n");
@@ -432,12 +462,68 @@ static int test_active_layer_ops_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (active_layer_try_adjust_opacity(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 65, 4)) {
+        fprintf(stderr, "active_layer_try_adjust_opacity no-op failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFFABCDEF);
     if (!active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
                                         1, 1, 0xFFFFFFFF, 4) ||
         !expect_pixel_eq("active_translate", canvas_get_pixel(&stack.layers[0].canvas, 2, 2), 0xFFABCDEF)) {
         fprintf(stderr, "active_layer_apply_translation failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                       0, 0, 0xFFFFFFFF, 4)) {
+        fprintf(stderr, "active_layer_apply_translation no-op failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (layer_stack_add(&stack, "Overlay", 0x00000000) < 0) {
+        fprintf(stderr, "active layer overlay add failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.active_layer = 1;
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 0, 0xFFFFFFFF);
+    canvas_set_pixel_raw(&stack.layers[1].canvas, 0, 0, 0xFFFFFFFF);
+    if (!active_layer_try_clear(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0xFF123456, 4) ||
+        !expect_pixel_eq("active_clear_transparent", canvas_get_pixel(&stack.layers[1].canvas, 0, 0), 0x00000000)) {
+        fprintf(stderr, "active_layer_try_clear transparent failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    stack.layers[1].locked = 1;
+    if (active_layer_try_flip_horizontal(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+        active_layer_try_invert_rgb(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+        active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 1, 0, 0xFFFFFFFF, 4)) {
+        fprintf(stderr, "active layer locked guards failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[1].locked = 0;
+    canvas_free(&stack.layers[1].canvas);
+    if (active_layer_try_flip_vertical(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+        active_layer_try_rotate_180(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+        active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, &redo_count, -1, 0, 0xFFFFFFFF, 4)) {
+        fprintf(stderr, "active layer null pixel guards failed\n");
         snapshot_stack_clear(undo_stack, &undo_count);
         snapshot_stack_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
