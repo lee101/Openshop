@@ -1923,6 +1923,113 @@ static int run_active_layer_opacity_step_runtime_case(const ActiveLayerOpacitySt
     );
 }
 
+static int expect_active_layer_reorder_shortcut_runtime(
+    const char *label,
+    int key,
+    int shift,
+    int active_layer,
+    int solo_index,
+    int want_handled,
+    int want_needs_composite,
+    int want_undo_count,
+    int want_active_layer,
+    int want_solo_index
+) {
+    LayerStack stack = {0};
+    uint32_t pixels0[4] = {0};
+    uint32_t pixels1[4] = {0};
+    uint32_t pixels2[4] = {0};
+    Snapshot undo_stack[2] = {0};
+    Snapshot redo_stack[2] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+    int needs_composite = 0;
+    int handled = 0;
+
+    stack.width = 2;
+    stack.height = 2;
+    stack.layer_count = 3;
+    stack.active_layer = active_layer;
+    stack.solo_index = solo_index;
+
+    stack.layers[0].canvas.width = 2;
+    stack.layers[0].canvas.height = 2;
+    stack.layers[0].canvas.pixels = pixels0;
+    stack.layers[0].visible = 1;
+    stack.layers[0].opacity_percent = 100;
+
+    stack.layers[1].canvas.width = 2;
+    stack.layers[1].canvas.height = 2;
+    stack.layers[1].canvas.pixels = pixels1;
+    stack.layers[1].visible = 1;
+    stack.layers[1].opacity_percent = 100;
+
+    stack.layers[2].canvas.width = 2;
+    stack.layers[2].canvas.height = 2;
+    stack.layers[2].canvas.pixels = pixels2;
+    stack.layers[2].visible = 1;
+    stack.layers[2].opacity_percent = 100;
+
+    handled = app_handle_active_layer_reorder_shortcut(
+        key,
+        shift,
+        &stack,
+        undo_stack,
+        &undo_count,
+        2,
+        redo_stack,
+        &redo_count,
+        &needs_composite
+    );
+
+    if (handled != want_handled) {
+        fprintf(stderr, "%s handled mismatch: got %d want %d\n", label, handled, want_handled);
+        return 0;
+    }
+    if (needs_composite != want_needs_composite) {
+        fprintf(stderr, "%s needs_composite mismatch: got %d want %d\n", label, needs_composite, want_needs_composite);
+        return 0;
+    }
+    if (undo_count != want_undo_count || redo_count != 0) {
+        fprintf(stderr, "%s history count mismatch: undo %d/%d redo %d/0\n", label, undo_count, want_undo_count, redo_count);
+        return 0;
+    }
+    if (stack.active_layer != want_active_layer || stack.solo_index != want_solo_index) {
+        fprintf(stderr, "%s layer indices mismatch: got active %d solo %d want active %d solo %d\n",
+            label, stack.active_layer, stack.solo_index, want_active_layer, want_solo_index);
+        return 0;
+    }
+    return 1;
+}
+
+typedef struct {
+    const char *label;
+    int key;
+    int shift;
+    int active_layer;
+    int solo_index;
+    int want_handled;
+    int want_needs_composite;
+    int want_undo_count;
+    int want_active_layer;
+    int want_solo_index;
+} ActiveLayerReorderShortcutRuntimeCase;
+
+static int run_active_layer_reorder_shortcut_runtime_case(const ActiveLayerReorderShortcutRuntimeCase *test_case) {
+    return expect_active_layer_reorder_shortcut_runtime(
+        test_case->label,
+        test_case->key,
+        test_case->shift,
+        test_case->active_layer,
+        test_case->solo_index,
+        test_case->want_handled,
+        test_case->want_needs_composite,
+        test_case->want_undo_count,
+        test_case->want_active_layer,
+        test_case->want_solo_index
+    );
+}
+
 static int expect_canvas_sample_shortcut(
     const char *label,
     CanvasShortcutAction action,
@@ -4920,6 +5027,26 @@ int main(void) {
         }
         if (app_handle_active_layer_opacity_step(&layer_stack, 0, NULL, NULL, 0, NULL, NULL, NULL) != 0) {
             fprintf(stderr, "active_layer_opacity_step_zero_delta should reject zero delta\n");
+            ok = 0;
+        }
+    }
+    {
+        const ActiveLayerReorderShortcutRuntimeCase active_layer_reorder_cases[] = {
+            {"active_layer_reorder_down", '[', 0, 1, -1, 1, 1, 1, 0, -1},
+            {"active_layer_reorder_up", ']', 0, 1, -1, 1, 1, 1, 2, -1},
+            {"active_layer_reorder_to_bottom", '[', 1, 2, 2, 1, 1, 1, 0, 0},
+            {"active_layer_reorder_to_top", ']', 1, 0, 0, 1, 1, 1, 2, 2},
+            {"active_layer_reorder_bottom_noop", '[', 0, 0, -1, 1, 0, 0, 0, -1},
+            {"active_layer_reorder_other_key", 'x', 0, 1, -1, 0, 0, 0, 1, -1},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(active_layer_reorder_cases) / sizeof(active_layer_reorder_cases[0]); i++) {
+            ok = ok && run_active_layer_reorder_shortcut_runtime_case(&active_layer_reorder_cases[i]);
+        }
+
+        if (app_handle_active_layer_reorder_shortcut('[', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL) != 0) {
+            fprintf(stderr, "active_layer_reorder_null_layers should reject null layer stack\n");
             ok = 0;
         }
     }

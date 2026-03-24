@@ -330,6 +330,64 @@ int app_handle_active_layer_opacity_step(
     return 1;
 }
 
+int app_handle_active_layer_reorder_shortcut(
+    int key,
+    int shift,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    int undo_capacity,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+) {
+    if (!layers) {
+        return 0;
+    }
+
+    if (shift && key == '[') {
+        if (layers->active_layer > 0) {
+            snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
+            if (layer_stack_move_to_edge(layers, layers->active_layer, -1) && needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (shift && key == ']') {
+        if (layers->active_layer + 1 < layers->layer_count) {
+            snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
+            if (layer_stack_move_to_edge(layers, layers->active_layer, 1) && needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (key == '[') {
+        if (layers->active_layer > 0) {
+            snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
+            if (layer_stack_move(layers, layers->active_layer, -1) && needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (key == ']') {
+        if (layers->active_layer + 1 < layers->layer_count) {
+            snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
+            if (layer_stack_move(layers, layers->active_layer, 1) && needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    return 0;
+}
+
 int app_handle_canvas_sample_shortcut_at(
     CanvasShortcutAction canvas_action,
     LayerStack *layers,

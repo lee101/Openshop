@@ -878,51 +878,19 @@ static int handle_active_layer_structure_shortcut(
         return 1;
     }
 
-    if (shift && key == SDLK_LEFTBRACKET) {
-        if (layers->active_layer > 0) {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            if (!layer_stack_move_to_edge(layers, layers->active_layer, -1)) {
-                fprintf(stderr, "Layer is already at the bottom\n");
-            } else if (needs_composite) {
-                *needs_composite = 1;
-            }
-        }
-        return 1;
-    }
-
-    if (shift && key == SDLK_RIGHTBRACKET) {
-        if (layers->active_layer + 1 < layers->layer_count) {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            if (!layer_stack_move_to_edge(layers, layers->active_layer, 1)) {
-                fprintf(stderr, "Layer is already at the top\n");
-            } else if (needs_composite) {
-                *needs_composite = 1;
-            }
-        }
-        return 1;
-    }
-
-    if (key == SDLK_LEFTBRACKET) {
-        if (layers->active_layer > 0) {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            if (!layer_stack_move(layers, layers->active_layer, -1)) {
-                fprintf(stderr, "Layer is already at the bottom\n");
-            } else if (needs_composite) {
-                *needs_composite = 1;
-            }
-        }
-        return 1;
-    }
-
-    if (key == SDLK_RIGHTBRACKET) {
-        if (layers->active_layer + 1 < layers->layer_count) {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            if (!layer_stack_move(layers, layers->active_layer, 1)) {
-                fprintf(stderr, "Layer is already at the top\n");
-            } else if (needs_composite) {
-                *needs_composite = 1;
-            }
-        }
+    if (app_handle_active_layer_reorder_shortcut(
+            key == SDLK_LEFTBRACKET ? '[' :
+            key == SDLK_RIGHTBRACKET ? ']' :
+            0,
+            shift,
+            layers,
+            undo_stack,
+            undo_count,
+            MAX_HISTORY,
+            redo_stack,
+            redo_count,
+            needs_composite
+        )) {
         return 1;
     }
 
