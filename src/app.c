@@ -476,6 +476,12 @@ static int apply_active_layer_move(
     return 1;
 }
 
+static const char *max_layers_message(void) {
+    static char message[64];
+    snprintf(message, sizeof(message), "Max layers reached (%d)", MAX_LAYERS);
+    return message;
+}
+
 static int apply_layer_add(
     LayerStack *layers,
     Snapshot *undo_stack,
@@ -1247,7 +1253,7 @@ int app_run(const char *input_path) {
                             &redo_count,
                             NULL,
                             0x00000000,
-                            "Max layers reached (8)")) {
+                            max_layers_message())) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
