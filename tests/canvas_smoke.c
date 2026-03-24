@@ -4276,6 +4276,19 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_clear_layer(&stack, 0, 0xFF556677) ||
+        !expect_pixel_eq("clear_changed_pixel", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF556677)) {
+        fprintf(stderr, "clear changed layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_clear_layer(&stack, 0, 0xFF556677)) {
+        fprintf(stderr, "clear same-color no-op failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_add(&stack, "Upper Merge", 0x00000000) != 1) {
         fprintf(stderr, "add upper merge layer failed\n");
         canvas_free(&composite);

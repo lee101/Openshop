@@ -622,12 +622,27 @@ int layer_stack_toggle_visibility(LayerStack *stack, int index) {
 }
 
 int layer_stack_clear_layer(LayerStack *stack, int index, uint32_t color) {
+    size_t pixel_count;
+    size_t i;
+    int had_pixels;
+
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
     }
 
     Layer *layer = &stack->layers[index];
+    had_pixels = layer->canvas.pixels != NULL;
     if (layer->locked || (!layer->canvas.pixels && !ensure_layer_canvas(layer, stack->width, stack->height))) {
+        return 0;
+    }
+    if (had_pixels) {
+        pixel_count = (size_t)layer->canvas.width * (size_t)layer->canvas.height;
+        for (i = 0; i < pixel_count; i++) {
+            if (layer->canvas.pixels[i] != color) {
+                canvas_clear(&layer->canvas, color);
+                return 1;
+            }
+        }
         return 0;
     }
     canvas_clear(&layer->canvas, color);
