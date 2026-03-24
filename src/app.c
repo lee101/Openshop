@@ -614,6 +614,41 @@ static int apply_toggle_solo(
     return 1;
 }
 
+static int apply_show_all_layers(
+    LayerStack *layers,
+    LayerHistory *history,
+    const char *failure_message
+) {
+    LayerSnapshot snapshot = {0};
+    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int changed = layer_stack_show_all(layers);
+    if (have_snapshot) {
+        layer_history_commit_change(history, &snapshot, layers, changed);
+    }
+    if (!changed && failure_message) {
+        fprintf(stderr, "%s\n", failure_message);
+    }
+    return changed;
+}
+
+static int apply_show_layer(
+    LayerStack *layers,
+    LayerHistory *history,
+    int index,
+    const char *failure_message
+) {
+    LayerSnapshot snapshot = {0};
+    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int changed = layer_stack_show(layers, index);
+    if (have_snapshot) {
+        layer_history_commit_change(history, &snapshot, layers, changed);
+    }
+    if (!changed && failure_message) {
+        fprintf(stderr, "%s\n", failure_message);
+    }
+    return changed;
+}
+
 static int apply_layer_delete(
     LayerStack *layers,
     LayerHistory *history,
@@ -1586,27 +1621,16 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_a) {
-                    if (layers.solo_index != -1 || layer_stack_visible_count(&layers) != layers.layer_count) {
-                        layer_history_record(&history, &layers);
-                    }
-                    if (layer_stack_show_all(&layers)) {
+                    if (apply_show_all_layers(&layers, &history, "All layers are already visible")) {
                         needs_composite = 1;
-                    } else {
-                        fprintf(stderr, "All layers are already visible\n");
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
                 if (ctrl && shift && key == SDLK_r) {
-                    const Layer *active = layer_stack_get(&layers, layers.active_layer);
-                    if (active && !active->visible) {
-                        layer_history_record(&history, &layers);
-                    }
-                    if (layer_stack_show(&layers, layers.active_layer)) {
+                    if (apply_show_layer(&layers, &history, layers.active_layer, "Active layer is already visible")) {
                         needs_composite = 1;
-                    } else {
-                        fprintf(stderr, "Active layer is already visible\n");
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
