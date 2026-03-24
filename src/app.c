@@ -144,6 +144,67 @@ static BrushShape cycle_brush_shape(BrushShape shape, int direction) {
     return (BrushShape)idx;
 }
 
+static int handle_canvas_sample_shortcut(
+    CanvasShortcutAction canvas_action,
+    LayerStack *layers,
+    const Canvas *composite,
+    const Canvas *preview_canvas,
+    int preview_active,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    Tool *tool,
+    uint32_t *brush_color,
+    uint32_t *brush_color_rgb,
+    int *brush_opacity,
+    int *needs_composite
+) {
+    Layer *active = NULL;
+    const Canvas *sample = NULL;
+    int mx = 0;
+    int my = 0;
+
+    if (!layers || !tool || !brush_color || !brush_color_rgb || !brush_opacity) {
+        return 0;
+    }
+    if (canvas_action != CANVAS_SHORTCUT_FILL && canvas_action != CANVAS_SHORTCUT_EYEDROPPER) {
+        return 0;
+    }
+
+    SDL_GetMouseState(&mx, &my);
+    if (mx < 0 || my < 0 || mx >= CANVAS_WIDTH || my >= CANVAS_HEIGHT) {
+        return 1;
+    }
+
+    if (canvas_action == CANVAS_SHORTCUT_FILL) {
+        active = layer_stack_active(layers);
+        if (active && !active->locked) {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        }
+        if (!active || active->locked || !canvas_flood_fill(&active->canvas, mx, my, *brush_color)) {
+            fprintf(stderr, "Fill failed\n");
+        } else if (needs_composite) {
+            *needs_composite = 1;
+        }
+        return 1;
+    }
+
+    sample = (preview_active && preview_canvas && preview_canvas->pixels) ? preview_canvas : composite;
+    *brush_color = canvas_get_pixel(sample, mx, my);
+    *brush_color_rgb = *brush_color & 0x00FFFFFF;
+    {
+        int sampled_alpha = (int)((*brush_color >> 24) & 0xFF);
+        *brush_opacity = (sampled_alpha * 100 + 127) / 255;
+    }
+    if (*brush_opacity < 1) {
+        *brush_opacity = 1;
+    }
+    *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+    *tool = TOOL_BRUSH;
+    return 1;
+}
+
 static void update_window_title(SDL_Window *window, const LayerStack *layers, Tool tool, BrushShape brush_shape, int radius, uint32_t color, int opacity_percent) {
     if (!window || !layers) {
         return;
@@ -839,10 +900,6 @@ static int handle_view_and_canvas_shortcut(
     PaintShortcutAction paint_action;
     ViewShortcutKey view_key = VIEW_SHORTCUT_KEY_NONE;
     ViewShortcutResult view_result;
-    Layer *active = NULL;
-    const Canvas *sample = NULL;
-    int mx = 0;
-    int my = 0;
 
     if (!layers || !tool || !brush_shape || !brush_radius || !brush_color || !brush_color_rgb || !brush_opacity) {
         return 0;
@@ -988,35 +1045,22 @@ static int handle_view_and_canvas_shortcut(
         if (apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_invert_rgb) && needs_composite) {
             *needs_composite = 1;
         }
-    } else if (canvas_action == CANVAS_SHORTCUT_FILL) {
-        SDL_GetMouseState(&mx, &my);
-        if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
-            active = layer_stack_active(layers);
-            if (active && !active->locked) {
-                push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            }
-            if (!active || active->locked || !canvas_flood_fill(&active->canvas, mx, my, *brush_color)) {
-                fprintf(stderr, "Fill failed\n");
-            } else if (needs_composite) {
-                *needs_composite = 1;
-            }
-        }
-    } else if (canvas_action == CANVAS_SHORTCUT_EYEDROPPER) {
-        SDL_GetMouseState(&mx, &my);
-        if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
-            sample = (preview_active && preview_canvas && preview_canvas->pixels) ? preview_canvas : composite;
-            *brush_color = canvas_get_pixel(sample, mx, my);
-            *brush_color_rgb = *brush_color & 0x00FFFFFF;
-            {
-                int sampled_alpha = (int)((*brush_color >> 24) & 0xFF);
-                *brush_opacity = (sampled_alpha * 100 + 127) / 255;
-            }
-            if (*brush_opacity < 1) {
-                *brush_opacity = 1;
-            }
-            *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
-            *tool = TOOL_BRUSH;
-        }
+    } else if (handle_canvas_sample_shortcut(
+                   canvas_action,
+                   layers,
+                   composite,
+                   preview_canvas,
+                   preview_active,
+                   undo_stack,
+                   undo_count,
+                   redo_stack,
+                   redo_count,
+                   tool,
+                   brush_color,
+                   brush_color_rgb,
+                   brush_opacity,
+                   needs_composite
+               )) {
     } else {
         return 0;
     }
