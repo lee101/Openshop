@@ -661,6 +661,70 @@ static const IndexedLayerSilentHotkey INDEXED_LAYER_SILENT_HOTKEYS[] = {
     {SDLK_i, 1, 1, 0, action_show_hidden_only, 1},
 };
 
+static const SelectorHotkey *find_matching_selector_hotkey(SDL_Keycode key,
+                                                           int ctrl, int alt, int shift) {
+    size_t i;
+
+    for (i = 0; i < sizeof(SELECTOR_HOTKEYS) / sizeof(SELECTOR_HOTKEYS[0]); i++) {
+        const SelectorHotkey *hotkey = &SELECTOR_HOTKEYS[i];
+
+        if (app_hotkey_matches(key, ctrl, alt, shift,
+                               hotkey->key, hotkey->ctrl, hotkey->alt, hotkey->shift)) {
+            return hotkey;
+        }
+    }
+
+    return NULL;
+}
+
+static const RevealHotkey *find_matching_reveal_hotkey(SDL_Keycode key,
+                                                       int ctrl, int alt, int shift) {
+    size_t i;
+
+    for (i = 0; i < sizeof(REVEAL_HOTKEYS) / sizeof(REVEAL_HOTKEYS[0]); i++) {
+        const RevealHotkey *hotkey = &REVEAL_HOTKEYS[i];
+
+        if (app_hotkey_matches(key, ctrl, alt, shift,
+                               hotkey->key, hotkey->ctrl, hotkey->alt, hotkey->shift)) {
+            return hotkey;
+        }
+    }
+
+    return NULL;
+}
+
+static const IndexedLayerHotkey *find_matching_indexed_layer_hotkey(SDL_Keycode key,
+                                                                    int ctrl, int alt, int shift) {
+    size_t i;
+
+    for (i = 0; i < sizeof(INDEXED_LAYER_HOTKEYS) / sizeof(INDEXED_LAYER_HOTKEYS[0]); i++) {
+        const IndexedLayerHotkey *hotkey = &INDEXED_LAYER_HOTKEYS[i];
+
+        if (app_hotkey_matches(key, ctrl, alt, shift,
+                               hotkey->key, hotkey->ctrl, hotkey->alt, hotkey->shift)) {
+            return hotkey;
+        }
+    }
+
+    return NULL;
+}
+
+static const IndexedLayerSilentHotkey *find_matching_indexed_layer_silent_hotkey(SDL_Keycode key,
+                                                                                  int ctrl, int alt, int shift) {
+    size_t i;
+
+    for (i = 0; i < sizeof(INDEXED_LAYER_SILENT_HOTKEYS) / sizeof(INDEXED_LAYER_SILENT_HOTKEYS[0]); i++) {
+        const IndexedLayerSilentHotkey *hotkey = &INDEXED_LAYER_SILENT_HOTKEYS[i];
+
+        if (app_hotkey_matches(key, ctrl, alt, shift,
+                               hotkey->key, hotkey->ctrl, hotkey->alt, hotkey->shift)) {
+            return hotkey;
+        }
+    }
+
+    return NULL;
+}
+
 static int handle_brush_state_hotkey(SDL_Keycode key,
                                      uint32_t *brush_color_rgb, uint32_t *brush_color,
                                      int *brush_opacity, int *brush_radius,
@@ -855,30 +919,26 @@ static int handle_general_key_hotkey(SDL_Keycode key,
 static int handle_selector_hotkey(SDL_Keycode key,
                                   int ctrl, int alt, int shift,
                                   const ActionState *action_state) {
-    size_t i;
+    const SelectorHotkey *hotkey;
 
     if (!action_state || !action_state->title_state || !action_state->layers) {
         return 0;
     }
 
-    for (i = 0; i < sizeof(SELECTOR_HOTKEYS) / sizeof(SELECTOR_HOTKEYS[0]); i++) {
-        const SelectorHotkey *hotkey = &SELECTOR_HOTKEYS[i];
-
-        if (app_hotkey_matches(key, ctrl, alt, shift,
-                               hotkey->key, hotkey->ctrl, hotkey->alt, hotkey->shift)) {
-            refresh_title_state_on_change(action_state->title_state,
-                                          hotkey->action(action_state->layers, hotkey->arg) >= 0);
-            return 1;
-        }
+    hotkey = find_matching_selector_hotkey(key, ctrl, alt, shift);
+    if (!hotkey) {
+        return 0;
     }
 
-    return 0;
+    refresh_title_state_on_change(action_state->title_state,
+                                  hotkey->action(action_state->layers, hotkey->arg) >= 0);
+    return 1;
 }
 
 static int handle_reveal_hotkey(SDL_Keycode key,
                                 int ctrl, int alt, int shift,
                                 const ActionState *action_state) {
-    size_t i;
+    const RevealHotkey *hotkey;
 
     if (!action_state || !action_state->title_state || !action_state->title_state->window ||
         !action_state->layers || !action_state->undo_stack || !action_state->undo_count ||
@@ -886,23 +946,19 @@ static int handle_reveal_hotkey(SDL_Keycode key,
         return 0;
     }
 
-    for (i = 0; i < sizeof(REVEAL_HOTKEYS) / sizeof(REVEAL_HOTKEYS[0]); i++) {
-        const RevealHotkey *hotkey = &REVEAL_HOTKEYS[i];
-
-        if (app_hotkey_matches(key, ctrl, alt, shift,
-                               hotkey->key, hotkey->ctrl, hotkey->alt, hotkey->shift)) {
-            run_directional_layer_action(action_state->title_state->window, action_state->layers,
-                                         action_state->undo_stack, action_state->undo_count,
-                                         action_state->redo_stack, action_state->redo_count,
-                                         *action_state->title_state->tool, *action_state->title_state->brush_shape,
-                                         *action_state->title_state->brush_radius, *action_state->title_state->brush_color,
-                                         *action_state->title_state->brush_opacity,
-                                         action_state->needs_composite, hotkey->action, hotkey->direction);
-            return 1;
-        }
+    hotkey = find_matching_reveal_hotkey(key, ctrl, alt, shift);
+    if (!hotkey) {
+        return 0;
     }
 
-    return 0;
+    run_directional_layer_action(action_state->title_state->window, action_state->layers,
+                                 action_state->undo_stack, action_state->undo_count,
+                                 action_state->redo_stack, action_state->redo_count,
+                                 *action_state->title_state->tool, *action_state->title_state->brush_shape,
+                                 *action_state->title_state->brush_radius, *action_state->title_state->brush_color,
+                                 *action_state->title_state->brush_opacity,
+                                 action_state->needs_composite, hotkey->action, hotkey->direction);
+    return 1;
 }
 
 static int handle_layer_opacity_hotkey(SDL_Keycode key,
@@ -944,7 +1000,7 @@ static int handle_layer_opacity_hotkey(SDL_Keycode key,
 static int handle_indexed_layer_hotkey(SDL_Keycode key,
                                        int ctrl, int alt, int shift,
                                        const ActionState *action_state) {
-    size_t i;
+    const IndexedLayerHotkey *hotkey;
 
     if (!action_state || !action_state->title_state || !action_state->title_state->window ||
         !action_state->layers || !action_state->undo_stack || !action_state->undo_count ||
@@ -952,30 +1008,26 @@ static int handle_indexed_layer_hotkey(SDL_Keycode key,
         return 0;
     }
 
-    for (i = 0; i < sizeof(INDEXED_LAYER_HOTKEYS) / sizeof(INDEXED_LAYER_HOTKEYS[0]); i++) {
-        const IndexedLayerHotkey *hotkey = &INDEXED_LAYER_HOTKEYS[i];
-
-        if (app_hotkey_matches(key, ctrl, alt, shift,
-                               hotkey->key, hotkey->ctrl, hotkey->alt, hotkey->shift)) {
-            run_indexed_layer_action(action_state->title_state->window, action_state->layers,
-                                     action_state->undo_stack, action_state->undo_count,
-                                     action_state->redo_stack, action_state->redo_count,
-                                     *action_state->title_state->tool, *action_state->title_state->brush_shape,
-                                     *action_state->title_state->brush_radius, *action_state->title_state->brush_color,
-                                     *action_state->title_state->brush_opacity,
-                                     action_state->needs_composite, hotkey->action, hotkey->error_action,
-                                     hotkey->mark_composite);
-            return 1;
-        }
+    hotkey = find_matching_indexed_layer_hotkey(key, ctrl, alt, shift);
+    if (!hotkey) {
+        return 0;
     }
 
-    return 0;
+    run_indexed_layer_action(action_state->title_state->window, action_state->layers,
+                             action_state->undo_stack, action_state->undo_count,
+                             action_state->redo_stack, action_state->redo_count,
+                             *action_state->title_state->tool, *action_state->title_state->brush_shape,
+                             *action_state->title_state->brush_radius, *action_state->title_state->brush_color,
+                             *action_state->title_state->brush_opacity,
+                             action_state->needs_composite, hotkey->action, hotkey->error_action,
+                             hotkey->mark_composite);
+    return 1;
 }
 
 static int handle_indexed_layer_silent_hotkey(SDL_Keycode key,
                                               int ctrl, int alt, int shift,
                                               const ActionState *action_state) {
-    size_t i;
+    const IndexedLayerSilentHotkey *hotkey;
 
     if (!action_state || !action_state->title_state || !action_state->title_state->window ||
         !action_state->layers || !action_state->undo_stack || !action_state->undo_count ||
@@ -983,23 +1035,19 @@ static int handle_indexed_layer_silent_hotkey(SDL_Keycode key,
         return 0;
     }
 
-    for (i = 0; i < sizeof(INDEXED_LAYER_SILENT_HOTKEYS) / sizeof(INDEXED_LAYER_SILENT_HOTKEYS[0]); i++) {
-        const IndexedLayerSilentHotkey *hotkey = &INDEXED_LAYER_SILENT_HOTKEYS[i];
-
-        if (app_hotkey_matches(key, ctrl, alt, shift,
-                               hotkey->key, hotkey->ctrl, hotkey->alt, hotkey->shift)) {
-            run_indexed_layer_action_silent(action_state->title_state->window, action_state->layers,
-                                            action_state->undo_stack, action_state->undo_count,
-                                            action_state->redo_stack, action_state->redo_count,
-                                            *action_state->title_state->tool, *action_state->title_state->brush_shape,
-                                            *action_state->title_state->brush_radius, *action_state->title_state->brush_color,
-                                            *action_state->title_state->brush_opacity,
-                                            action_state->needs_composite, hotkey->action, hotkey->mark_composite);
-            return 1;
-        }
+    hotkey = find_matching_indexed_layer_silent_hotkey(key, ctrl, alt, shift);
+    if (!hotkey) {
+        return 0;
     }
 
-    return 0;
+    run_indexed_layer_action_silent(action_state->title_state->window, action_state->layers,
+                                    action_state->undo_stack, action_state->undo_count,
+                                    action_state->redo_stack, action_state->redo_count,
+                                    *action_state->title_state->tool, *action_state->title_state->brush_shape,
+                                    *action_state->title_state->brush_radius, *action_state->title_state->brush_color,
+                                    *action_state->title_state->brush_opacity,
+                                    action_state->needs_composite, hotkey->action, hotkey->mark_composite);
+    return 1;
 }
 
 static int handle_layer_navigation_hotkey(SDL_Keycode key,
