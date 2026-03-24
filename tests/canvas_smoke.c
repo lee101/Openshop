@@ -89,6 +89,16 @@ static int snapshot_has_seed_metadata(const LayerSnapshot *snapshot) {
            strcmp(snapshot->names[1], "Ink") == 0;
 }
 
+static int snapshot_has_cleared_scalar_state(const LayerSnapshot *snapshot) {
+    return snapshot &&
+           snapshot->pixels == NULL &&
+           snapshot->width == 0 &&
+           snapshot->height == 0 &&
+           snapshot->layer_count == 0 &&
+           snapshot->active_layer == 0 &&
+           snapshot->solo_index == -1;
+}
+
 static int test_layer_snapshot_restore(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
@@ -420,8 +430,7 @@ static int test_layer_snapshot_free_preserves_metadata_arrays(void) {
 
     layer_snapshot_free(&snapshot);
     if (!snapshot_is_reset(&snapshot)) {
-        if (snapshot.pixels != NULL || snapshot.width != 0 || snapshot.height != 0 ||
-            snapshot.layer_count != 0 || snapshot.active_layer != 0 || snapshot.solo_index != -1) {
+        if (!snapshot_has_cleared_scalar_state(&snapshot)) {
             fprintf(stderr, "snapshot free should clear owned storage and scalar bookkeeping\n");
             layer_stack_free(&stack);
             return 0;
