@@ -552,54 +552,37 @@ static int handle_layer_name_shortcut(
     Snapshot *redo_stack,
     int *redo_count
 ) {
+    int (*can_reset)(const LayerStack *) = NULL;
+    int (*reset)(LayerStack *) = NULL;
+
     if (!layers || key != SDLK_F2) {
         return 0;
     }
 
     if (alt && shift && !ctrl) {
-        if (layer_stack_can_reset_non_background_visible_names(layers)) {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            layer_stack_reset_non_background_visible_names(layers);
-        }
-        return 1;
+        can_reset = layer_stack_can_reset_non_background_visible_names;
+        reset = layer_stack_reset_non_background_visible_names;
+    } else if (alt && !ctrl && !shift) {
+        can_reset = layer_stack_can_reset_locked_names;
+        reset = layer_stack_reset_locked_names;
+    } else if (ctrl && alt && shift) {
+        can_reset = layer_stack_can_reset_non_background_unlocked_names;
+        reset = layer_stack_reset_non_background_unlocked_names;
+    } else if (ctrl && alt) {
+        can_reset = layer_stack_can_reset_visible_names;
+        reset = layer_stack_reset_visible_names;
+    } else if (ctrl && shift) {
+        can_reset = layer_stack_can_reset_unlocked_names;
+        reset = layer_stack_reset_unlocked_names;
+    } else if (ctrl) {
+        can_reset = layer_stack_can_reset_all_names;
+        reset = layer_stack_reset_all_names;
     }
 
-    if (alt && !ctrl && !shift) {
-        if (layer_stack_can_reset_locked_names(layers)) {
+    if (can_reset && reset) {
+        if (can_reset(layers)) {
             push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            layer_stack_reset_locked_names(layers);
-        }
-        return 1;
-    }
-
-    if (ctrl && alt && shift) {
-        if (layer_stack_can_reset_non_background_unlocked_names(layers)) {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            layer_stack_reset_non_background_unlocked_names(layers);
-        }
-        return 1;
-    }
-
-    if (ctrl && alt) {
-        if (layer_stack_can_reset_visible_names(layers)) {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            layer_stack_reset_visible_names(layers);
-        }
-        return 1;
-    }
-
-    if (ctrl && shift) {
-        if (layer_stack_can_reset_unlocked_names(layers)) {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            layer_stack_reset_unlocked_names(layers);
-        }
-        return 1;
-    }
-
-    if (ctrl) {
-        if (layer_stack_can_reset_all_names(layers)) {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            layer_stack_reset_all_names(layers);
+            reset(layers);
         }
         return 1;
     }
