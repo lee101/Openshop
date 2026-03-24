@@ -3417,6 +3417,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_cycle_editable(&stack, 0) != -1 || stack.active_layer != 3) {
+        fprintf(stderr, "editable layer zero-direction cycling should fail\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_select_bottom_editable(&stack) != 0 || stack.active_layer != 0) {
         fprintf(stderr, "select bottom editable failed\n");
         canvas_free(&composite);
