@@ -785,6 +785,38 @@ static int test_active_layer_ops_helpers(void) {
         fprintf(stderr, "active_layer_try_clear null guard failed\n");
         return 0;
     }
+    if (active_layer_try_flip_horizontal(NULL, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+        active_layer_try_flip_horizontal(&stack, NULL, &undo_count, redo_stack, &redo_count, 4) ||
+        active_layer_try_flip_horizontal(&stack, undo_stack, NULL, redo_stack, &redo_count, 4) ||
+        active_layer_try_flip_horizontal(&stack, undo_stack, &undo_count, NULL, &redo_count, 4) ||
+        active_layer_try_flip_horizontal(&stack, undo_stack, &undo_count, redo_stack, NULL, 4)) {
+        fprintf(stderr, "active_layer_try_flip_horizontal null guard failed\n");
+        return 0;
+    }
+    if (active_layer_try_flip_vertical(NULL, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+        active_layer_try_flip_vertical(&stack, NULL, &undo_count, redo_stack, &redo_count, 4) ||
+        active_layer_try_flip_vertical(&stack, undo_stack, NULL, redo_stack, &redo_count, 4) ||
+        active_layer_try_flip_vertical(&stack, undo_stack, &undo_count, NULL, &redo_count, 4) ||
+        active_layer_try_flip_vertical(&stack, undo_stack, &undo_count, redo_stack, NULL, 4)) {
+        fprintf(stderr, "active_layer_try_flip_vertical null guard failed\n");
+        return 0;
+    }
+    if (active_layer_try_rotate_180(NULL, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+        active_layer_try_rotate_180(&stack, NULL, &undo_count, redo_stack, &redo_count, 4) ||
+        active_layer_try_rotate_180(&stack, undo_stack, NULL, redo_stack, &redo_count, 4) ||
+        active_layer_try_rotate_180(&stack, undo_stack, &undo_count, NULL, &redo_count, 4) ||
+        active_layer_try_rotate_180(&stack, undo_stack, &undo_count, redo_stack, NULL, 4)) {
+        fprintf(stderr, "active_layer_try_rotate_180 null guard failed\n");
+        return 0;
+    }
+    if (active_layer_try_invert_rgb(NULL, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+        active_layer_try_invert_rgb(&stack, NULL, &undo_count, redo_stack, &redo_count, 4) ||
+        active_layer_try_invert_rgb(&stack, undo_stack, NULL, redo_stack, &redo_count, 4) ||
+        active_layer_try_invert_rgb(&stack, undo_stack, &undo_count, NULL, &redo_count, 4) ||
+        active_layer_try_invert_rgb(&stack, undo_stack, &undo_count, redo_stack, NULL, 4)) {
+        fprintf(stderr, "active_layer_try_invert_rgb null guard failed\n");
+        return 0;
+    }
     if (active_layer_try_adjust_opacity(NULL, undo_stack, &undo_count, redo_stack, &redo_count, 50, 4) ||
         active_layer_try_adjust_opacity(&stack, NULL, &undo_count, redo_stack, &redo_count, 50, 4) ||
         active_layer_try_adjust_opacity(&stack, undo_stack, NULL, redo_stack, &redo_count, 50, 4) ||
