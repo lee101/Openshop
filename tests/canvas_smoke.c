@@ -1794,6 +1794,54 @@ static int test_active_layer_ops_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    redo_count = 1;
+    redo_stack[0].pixels = (uint32_t *)malloc(sizeof(uint32_t));
+    if (!redo_stack[0].pixels) {
+        fprintf(stderr, "active layer alias guard allocation failed\n");
+        layer_stack_free(&single_stack);
+        layer_stack_free(&short_stack);
+        layer_stack_free(&narrow_stack);
+        snapshot_stack_clear(undo_stack, &undo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    redo_stack[0].pixels[0] = 0x1122AABBu;
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFF998877);
+    {
+        int undo_before = undo_count;
+        int redo_before = redo_count;
+        if (active_layer_try_clear_with_result(&stack, undo_stack, &undo_count, undo_stack, &redo_count,
+                                               0xFFFFFFFF, 4) != ACTIVE_LAYER_ACTION_FAILED ||
+            undo_count != undo_before || redo_count != redo_before ||
+            !expect_pixel_eq("active_clear_alias_stack_rollback", canvas_get_pixel(&stack.layers[0].canvas, 1, 1),
+                             0xFF998877) ||
+            redo_stack[0].pixels[0] != 0x1122AABBu) {
+            fprintf(stderr, "active_layer_try_clear should reject aliased history stacks\n");
+            layer_stack_free(&single_stack);
+            layer_stack_free(&short_stack);
+            layer_stack_free(&narrow_stack);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        if (active_layer_try_clear_with_result(&stack, undo_stack, &undo_count, redo_stack, &undo_count,
+                                               0xFFFFFFFF, 4) != ACTIVE_LAYER_ACTION_FAILED ||
+            undo_count != undo_before || redo_count != redo_before ||
+            !expect_pixel_eq("active_clear_alias_count_rollback", canvas_get_pixel(&stack.layers[0].canvas, 1, 1),
+                             0xFF998877) ||
+            redo_stack[0].pixels[0] != 0x1122AABBu) {
+            fprintf(stderr, "active_layer_try_clear should reject aliased history counts\n");
+            layer_stack_free(&single_stack);
+            layer_stack_free(&short_stack);
+            layer_stack_free(&narrow_stack);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    snapshot_stack_clear(redo_stack, &redo_count);
     canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFFFFFFFF);
     {
         int undo_before = undo_count;

@@ -24,6 +24,9 @@ static int active_layer_push_captured_snapshot(Snapshot *captured,
     if (!captured || !undo_stack || !undo_count || max_history <= 0) {
         return 0;
     }
+    if ((redo_stack && redo_stack == undo_stack) || (redo_count && redo_count == undo_count)) {
+        return 0;
+    }
 
     if (*undo_count == max_history) {
         snapshot_free(&undo_stack[0]);
