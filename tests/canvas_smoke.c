@@ -177,109 +177,93 @@ static int test_layer_history_stack(void) {
         return 0;
     }
 
-    LayerSnapshot undo[HISTORY_CAPACITY] = {0};
-    LayerSnapshot redo[HISTORY_CAPACITY] = {0};
-    int undo_count = 0;
-    int redo_count = 0;
+    LayerHistory history = {0};
 
     for (int i = 0; i < HISTORY_CAPACITY + 2; i++) {
-        layer_history_push(&stack, undo, &undo_count, redo, &redo_count);
+        layer_history_record(&history, &stack);
         canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF000000u | (uint32_t)i);
     }
 
-    if (undo_count != HISTORY_CAPACITY || redo_count != 0) {
+    if (history.undo_count != HISTORY_CAPACITY || history.redo_count != 0) {
         fprintf(stderr, "history stack capacity bookkeeping failed\n");
-        layer_history_clear(undo, &undo_count);
-        layer_history_clear(redo, &redo_count);
+        layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
     }
 
-    if (!layer_history_undo(&stack, undo, &undo_count, redo, &redo_count)) {
+    if (!layer_history_step_undo(&history, &stack)) {
         fprintf(stderr, "history undo failed\n");
-        layer_history_clear(undo, &undo_count);
-        layer_history_clear(redo, &redo_count);
+        layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
     }
     if (!expect_pixel_eq("history_undo_latest", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF000014)) {
-        layer_history_clear(undo, &undo_count);
-        layer_history_clear(redo, &redo_count);
+        layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
     }
 
-    if (!layer_history_redo(&stack, undo, &undo_count, redo, &redo_count)) {
+    if (!layer_history_step_redo(&history, &stack)) {
         fprintf(stderr, "history redo failed\n");
-        layer_history_clear(undo, &undo_count);
-        layer_history_clear(redo, &redo_count);
+        layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
     }
     if (!expect_pixel_eq("history_redo_latest", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF000015)) {
-        layer_history_clear(undo, &undo_count);
-        layer_history_clear(redo, &redo_count);
+        layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
     }
 
-    while (undo_count > 1) {
-        if (!layer_history_undo(&stack, undo, &undo_count, redo, &redo_count)) {
+    while (history.undo_count > 1) {
+        if (!layer_history_step_undo(&history, &stack)) {
             fprintf(stderr, "history multi-undo failed\n");
-            layer_history_clear(undo, &undo_count);
-            layer_history_clear(redo, &redo_count);
+            layer_history_reset(&history);
             layer_stack_free(&stack);
             return 0;
         }
     }
-    if (!layer_history_undo(&stack, undo, &undo_count, redo, &redo_count)) {
+    if (!layer_history_step_undo(&history, &stack)) {
         fprintf(stderr, "history oldest-retained undo failed\n");
-        layer_history_clear(undo, &undo_count);
-        layer_history_clear(redo, &redo_count);
+        layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
     }
     if (!expect_pixel_eq("history_oldest_retained", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF000001)) {
-        layer_history_clear(undo, &undo_count);
-        layer_history_clear(redo, &redo_count);
+        layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
     }
-    if (layer_history_undo(&stack, undo, &undo_count, redo, &redo_count)) {
+    if (layer_history_step_undo(&history, &stack)) {
         fprintf(stderr, "history undo should stop at retained oldest snapshot\n");
-        layer_history_clear(undo, &undo_count);
-        layer_history_clear(redo, &redo_count);
+        layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
     }
 
-    while (redo_count > 0) {
-        if (!layer_history_redo(&stack, undo, &undo_count, redo, &redo_count)) {
+    while (history.redo_count > 0) {
+        if (!layer_history_step_redo(&history, &stack)) {
             fprintf(stderr, "history multi-redo failed\n");
-            layer_history_clear(undo, &undo_count);
-            layer_history_clear(redo, &redo_count);
+            layer_history_reset(&history);
             layer_stack_free(&stack);
             return 0;
         }
     }
     if (!expect_pixel_eq("history_redo_back_to_latest", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF000015)) {
-        layer_history_clear(undo, &undo_count);
-        layer_history_clear(redo, &redo_count);
+        layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
     }
 
-    layer_history_push(&stack, undo, &undo_count, redo, &redo_count);
-    if (redo_count != 0) {
+    layer_history_record(&history, &stack);
+    if (history.redo_count != 0) {
         fprintf(stderr, "history push should clear redo stack\n");
-        layer_history_clear(undo, &undo_count);
-        layer_history_clear(redo, &redo_count);
+        layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
     }
 
-    layer_history_clear(undo, &undo_count);
-    layer_history_clear(redo, &redo_count);
+    layer_history_reset(&history);
     layer_stack_free(&stack);
     return 1;
 }
@@ -291,16 +275,12 @@ static int test_layer_history_layer_count_roundtrip(void) {
         return 0;
     }
 
-    LayerSnapshot undo[HISTORY_CAPACITY] = {0};
-    LayerSnapshot redo[HISTORY_CAPACITY] = {0};
-    int undo_count = 0;
-    int redo_count = 0;
+    LayerHistory history = {0};
 
-    layer_history_push(&stack, undo, &undo_count, redo, &redo_count);
+    layer_history_record(&history, &stack);
     if (layer_stack_add(&stack, "Sketch", 0x00000000) != 1) {
         fprintf(stderr, "history layer-count add layer failed\n");
-        layer_history_clear(undo, &undo_count);
-        layer_history_clear(redo, &redo_count);
+        layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
     }
@@ -308,11 +288,10 @@ static int test_layer_history_layer_count_roundtrip(void) {
     stack.layers[1].visible = 0;
     stack.active_layer = 1;
 
-    layer_history_push(&stack, undo, &undo_count, redo, &redo_count);
+    layer_history_record(&history, &stack);
     if (layer_stack_add(&stack, "Top", 0x00000000) != 2) {
         fprintf(stderr, "history layer-count add second layer failed\n");
-        layer_history_clear(undo, &undo_count);
-        layer_history_clear(redo, &redo_count);
+        layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
     }
@@ -322,68 +301,59 @@ static int test_layer_history_layer_count_roundtrip(void) {
     stack.active_layer = 2;
     stack.solo_index = 2;
 
-    if (!layer_history_undo(&stack, undo, &undo_count, redo, &redo_count)) {
+    if (!layer_history_step_undo(&history, &stack)) {
         fprintf(stderr, "history layer-count first undo failed\n");
-        layer_history_clear(undo, &undo_count);
-        layer_history_clear(redo, &redo_count);
+        layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
     }
     if (stack.layer_count != 2 || stack.active_layer != 1 || stack.solo_index != -1) {
         fprintf(stderr, "history layer-count first undo bookkeeping failed\n");
-        layer_history_clear(undo, &undo_count);
-        layer_history_clear(redo, &redo_count);
+        layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
     }
     if (!expect_pixel_eq("history_layer_count_first_undo", canvas_get_pixel(&stack.layers[1].canvas, 1, 1), 0xFF556677) ||
         stack.layers[1].visible != 0) {
-        layer_history_clear(undo, &undo_count);
-        layer_history_clear(redo, &redo_count);
+        layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
     }
 
-    if (!layer_history_undo(&stack, undo, &undo_count, redo, &redo_count)) {
+    if (!layer_history_step_undo(&history, &stack)) {
         fprintf(stderr, "history layer-count second undo failed\n");
-        layer_history_clear(undo, &undo_count);
-        layer_history_clear(redo, &redo_count);
+        layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
     }
     if (stack.layer_count != 1 || stack.active_layer != 0) {
         fprintf(stderr, "history layer-count second undo bookkeeping failed\n");
-        layer_history_clear(undo, &undo_count);
-        layer_history_clear(redo, &redo_count);
+        layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
     }
 
-    if (!layer_history_redo(&stack, undo, &undo_count, redo, &redo_count) ||
-        !layer_history_redo(&stack, undo, &undo_count, redo, &redo_count)) {
+    if (!layer_history_step_redo(&history, &stack) ||
+        !layer_history_step_redo(&history, &stack)) {
         fprintf(stderr, "history layer-count redo failed\n");
-        layer_history_clear(undo, &undo_count);
-        layer_history_clear(redo, &redo_count);
+        layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
     }
     if (stack.layer_count != 3 || stack.active_layer != 2 || stack.solo_index != 2) {
         fprintf(stderr, "history layer-count redo bookkeeping failed\n");
-        layer_history_clear(undo, &undo_count);
-        layer_history_clear(redo, &redo_count);
+        layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
     }
     if (!stack.layers[2].locked || stack.layers[2].opacity_percent != 42 ||
         !expect_pixel_eq("history_layer_count_redo", canvas_get_pixel(&stack.layers[2].canvas, 2, 2), 0xFF8899AA)) {
-        layer_history_clear(undo, &undo_count);
-        layer_history_clear(redo, &redo_count);
+        layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
     }
 
-    layer_history_clear(undo, &undo_count);
-    layer_history_clear(redo, &redo_count);
+    layer_history_reset(&history);
     layer_stack_free(&stack);
     return 1;
 }
