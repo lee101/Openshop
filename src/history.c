@@ -256,7 +256,7 @@ void layer_history_clear(LayerSnapshot *stack, int *count) {
         return;
     }
     for (int i = 0; i < *count; i++) {
-        layer_snapshot_free(&stack[i]);
+        layer_snapshot_reset(&stack[i]);
     }
     *count = 0;
 }

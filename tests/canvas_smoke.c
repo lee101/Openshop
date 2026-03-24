@@ -1464,6 +1464,53 @@ static int test_layer_history_push_record_guard_paths(void) {
     return 1;
 }
 
+static int test_layer_history_clear_guard_paths(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "history clear guard init failed\n");
+        return 0;
+    }
+
+    LayerSnapshot snapshots[HISTORY_CAPACITY] = {0};
+    int count = 0;
+
+    if (!layer_snapshot_capture(&snapshots[count++], &stack) ||
+        !layer_snapshot_capture(&snapshots[count++], &stack)) {
+        fprintf(stderr, "history clear guard capture failed\n");
+        layer_history_clear(snapshots, &count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_clear(NULL, &count);
+    if (!expect_history_counts("history_clear_null_stack", count, 0, 2, 0)) {
+        layer_history_clear(snapshots, &count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_clear(snapshots, NULL);
+    if (!expect_history_counts("history_clear_null_count", count, 0, 2, 0)) {
+        layer_history_clear(snapshots, &count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_clear(snapshots, &count);
+    if (!expect_history_counts("history_clear_populated_stack", count, 0, 0, 0)) {
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!snapshot_is_reset(&snapshots[0]) || !snapshot_is_reset(&snapshots[1])) {
+        fprintf(stderr, "history clear should reset populated snapshots in place\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layers_basic(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 16, 16, 0xFFFFFFFF)) {
@@ -2488,6 +2535,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_push_record_guard_paths()) {
+        return 1;
+    }
+    if (!test_layer_history_clear_guard_paths()) {
         return 1;
     }
 
