@@ -353,6 +353,40 @@ static int apply_active_visible_rank_move(
     return 1;
 }
 
+static int apply_active_layer_move(
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int target_index,
+    const char *failure_message
+) {
+    if (!layers || layers->layer_count <= 0) {
+        return 0;
+    }
+    int current_index = layers->active_layer;
+    if (target_index < 0) {
+        target_index = 0;
+    } else if (target_index >= layers->layer_count) {
+        target_index = layers->layer_count - 1;
+    }
+    if (target_index == current_index) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    if (!layer_stack_move_to(layers, current_index, target_index)) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    return 1;
+}
+
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
     switch (shape) {
     case BRUSH_SHAPE_ROUND:
@@ -949,10 +983,14 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_LEFTBRACKET) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_move(&layers, layers.active_layer, -1)) {
-                        fprintf(stderr, "Layer is already at the bottom\n");
-                    } else {
+                    if (apply_active_layer_move(
+                            &layers,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count,
+                            layers.active_layer - 1,
+                            "Layer is already at the bottom")) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -960,10 +998,14 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_RIGHTBRACKET) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_move(&layers, layers.active_layer, 1)) {
-                        fprintf(stderr, "Layer is already at the top\n");
-                    } else {
+                    if (apply_active_layer_move(
+                            &layers,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count,
+                            layers.active_layer + 1,
+                            "Layer is already at the top")) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -983,10 +1025,14 @@ int app_run(const char *input_path) {
                             needs_composite = 1;
                         }
                     } else {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        if (!layer_stack_move_to(&layers, layers.active_layer, layers.layer_count - 1)) {
-                            fprintf(stderr, "Layer is already at the top\n");
-                        } else {
+                        if (apply_active_layer_move(
+                                &layers,
+                                undo_stack,
+                                &undo_count,
+                                redo_stack,
+                                &redo_count,
+                                layers.layer_count - 1,
+                                "Layer is already at the top")) {
                             needs_composite = 1;
                         }
                     }
@@ -1007,10 +1053,14 @@ int app_run(const char *input_path) {
                             needs_composite = 1;
                         }
                     } else {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        if (!layer_stack_move_to(&layers, layers.active_layer, 0)) {
-                            fprintf(stderr, "Layer is already at the bottom\n");
-                        } else {
+                        if (apply_active_layer_move(
+                                &layers,
+                                undo_stack,
+                                &undo_count,
+                                redo_stack,
+                                &redo_count,
+                                0,
+                                "Layer is already at the bottom")) {
                             needs_composite = 1;
                         }
                     }
@@ -1184,8 +1234,14 @@ int app_run(const char *input_path) {
                 if (ctrl && shift && key >= SDLK_1 && key <= SDLK_8) {
                     int target = (int)(key - SDLK_1);
                     if (target < layers.layer_count) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        if (layer_stack_move_to(&layers, layers.active_layer, target)) {
+                        if (apply_active_layer_move(
+                                &layers,
+                                undo_stack,
+                                &undo_count,
+                                redo_stack,
+                                &redo_count,
+                                target,
+                                "Layer is already in that slot")) {
                             needs_composite = 1;
                         }
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
