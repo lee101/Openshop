@@ -2099,6 +2099,20 @@ static int expect_active_layer_editable(const char *label, LayerStack *stack, in
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    LayerStack *stack;
+    int active_layer;
+    int want;
+} ActiveLayerEditableCase;
+
+static int run_active_layer_editable_case(const ActiveLayerEditableCase *test_case) {
+    if (test_case->stack) {
+        test_case->stack->active_layer = test_case->active_layer;
+    }
+    return expect_active_layer_editable(test_case->label, test_case->stack, test_case->want);
+}
+
 static int expect_active_editable_layer(const char *label, LayerStack *stack, Layer *want) {
     Layer *got = app_active_editable_layer(stack);
     if (got != want) {
@@ -2106,6 +2120,20 @@ static int expect_active_editable_layer(const char *label, LayerStack *stack, La
         return 0;
     }
     return 1;
+}
+
+typedef struct {
+    const char *label;
+    LayerStack *stack;
+    int active_layer;
+    Layer *want;
+} ActiveEditableLayerCase;
+
+static int run_active_editable_layer_case(const ActiveEditableLayerCase *test_case) {
+    if (test_case->stack) {
+        test_case->stack->active_layer = test_case->active_layer;
+    }
+    return expect_active_editable_layer(test_case->label, test_case->stack, test_case->want);
 }
 
 static int expect_title(
@@ -4131,21 +4159,31 @@ int main(void) {
             ok = ok && run_layer_editable_case(&layer_editable_cases[i]);
         }
     }
-    ok = ok && expect_active_layer_editable("active_layer_editable_true", &layer_stack, 1);
-    ok = ok && expect_active_editable_layer("active_editable_layer_true", &layer_stack, &layer_stack.layers[0]);
-    layer_stack.active_layer = 1;
-    ok = ok && expect_active_layer_editable("active_layer_editable_locked", &layer_stack, 0);
-    ok = ok && expect_active_editable_layer("active_editable_layer_locked", &layer_stack, NULL);
-    layer_stack.active_layer = 2;
-    ok = ok && expect_active_layer_editable("active_layer_editable_missing_pixels", &layer_stack, 0);
-    ok = ok && expect_active_editable_layer("active_editable_layer_missing_pixels", &layer_stack, NULL);
-    layer_stack.active_layer = -1;
-    ok = ok && expect_active_editable_layer("active_editable_layer_negative_index", &layer_stack, NULL);
-    layer_stack.active_layer = 3;
-    ok = ok && expect_active_editable_layer("active_editable_layer_oob_index", &layer_stack, NULL);
-    ok = ok && expect_active_layer_editable("active_layer_editable_null_stack", NULL, 0);
-    ok = ok && expect_active_editable_layer("active_editable_layer_null_stack", NULL, NULL);
-    layer_stack.active_layer = 0;
+    {
+        const ActiveLayerEditableCase active_layer_editable_cases[] = {
+            {"active_layer_editable_true", &layer_stack, 0, 1},
+            {"active_layer_editable_locked", &layer_stack, 1, 0},
+            {"active_layer_editable_missing_pixels", &layer_stack, 2, 0},
+            {"active_layer_editable_null_stack", NULL, 0, 0},
+        };
+        const ActiveEditableLayerCase active_editable_layer_cases[] = {
+            {"active_editable_layer_true", &layer_stack, 0, &layer_stack.layers[0]},
+            {"active_editable_layer_locked", &layer_stack, 1, NULL},
+            {"active_editable_layer_missing_pixels", &layer_stack, 2, NULL},
+            {"active_editable_layer_negative_index", &layer_stack, -1, NULL},
+            {"active_editable_layer_oob_index", &layer_stack, 3, NULL},
+            {"active_editable_layer_null_stack", NULL, 0, NULL},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(active_layer_editable_cases) / sizeof(active_layer_editable_cases[0]); i++) {
+            ok = ok && run_active_layer_editable_case(&active_layer_editable_cases[i]);
+        }
+        for (i = 0; i < sizeof(active_editable_layer_cases) / sizeof(active_editable_layer_cases[0]); i++) {
+            ok = ok && run_active_editable_layer_case(&active_editable_layer_cases[i]);
+        }
+        layer_stack.active_layer = 0;
+    }
     {
         const ToolLabelCase tool_label_cases[] = {
             {"tool_brush_label", TOOL_BRUSH, "Brush"},
