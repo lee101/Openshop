@@ -35,6 +35,7 @@ int layer_snapshot_capture(LayerSnapshot *snapshot, const LayerStack *stack);
 int layer_snapshot_apply(const LayerSnapshot *snapshot, LayerStack *stack);
 int layer_snapshot_matches_stack(const LayerSnapshot *snapshot, const LayerStack *stack);
 // Low-level stack primitives kept for targeted tests and incremental callers.
+// Fully resets each populated entry in `stack` and zeroes `count`; null inputs are ignored.
 void layer_history_clear(LayerSnapshot *stack, int *count);
 // Captures the current stack into `stack` when `layers`, `stack`, and `count` are valid.
 // `redo`/`redo_count` are optional; when both are provided they are cleared only after a new snapshot is pushed.
