@@ -1,5 +1,6 @@
 #include "app.h"
 #include "active_layer_ops.h"
+#include "app_input_rules.h"
 #include "brush_render.h"
 #include "brush_state.h"
 #include "canvas.h"
@@ -367,27 +368,6 @@ static void run_indexed_layer_action_silent(SDL_Window *window, LayerStack *laye
         *needs_composite = 1;
     }
     update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-}
-
-static int key_translation_delta(SDL_Keycode key, int step, int *dx, int *dy) {
-    if (!dx || !dy) {
-        return 0;
-    }
-
-    *dx = 0;
-    *dy = 0;
-    if (key == SDLK_UP) {
-        *dy = -step;
-    } else if (key == SDLK_DOWN) {
-        *dy = step;
-    } else if (key == SDLK_LEFT) {
-        *dx = -step;
-    } else if (key == SDLK_RIGHT) {
-        *dx = step;
-    } else {
-        return 0;
-    }
-    return 1;
 }
 
 static void destroy_sdl_runtime(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *texture) {
@@ -1308,7 +1288,7 @@ static int handle_translation_hotkey(SDL_Keycode key,
     }
 
     step = shift ? 10 : 1;
-    if (key_translation_delta(key, step, &dx, &dy) &&
+    if (app_key_translation_delta(key, step, &dx, &dy) &&
         active_layer_apply_translation(action_state->layers, action_state->undo_stack, action_state->undo_count,
                                        action_state->redo_stack, action_state->redo_count,
                                        dx, dy, COLOR_BG, MAX_HISTORY)) {
@@ -1361,58 +1341,6 @@ static int handle_right_click_sample(SDL_Window *window,
 
     update_window_title(window, layers, *tool, brush_shape, brush_radius, *brush_color, *brush_opacity);
     return 1;
-}
-
-static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
-    if (key == SDLK_ESCAPE || key == SDLK_LSHIFT || key == SDLK_RSHIFT) {
-        return 0;
-    }
-    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_u || key == SDLK_v || key == SDLK_m || key == SDLK_d || key == SDLK_e || key == SDLK_g || key == SDLK_h || key == SDLK_l || key == SDLK_a || key == SDLK_r || key == SDLK_0 || key == SDLK_COMMA || key == SDLK_PERIOD || key == SDLK_SEMICOLON || key == SDLK_QUOTE || key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET || key == SDLK_MINUS || key == SDLK_KP_MINUS || key == SDLK_EQUALS || key == SDLK_KP_PLUS || key == SDLK_SLASH || key == SDLK_1 || key == SDLK_2 || key == SDLK_3 || key == SDLK_4 || key == SDLK_5 || key == SDLK_6 || key == SDLK_7 || key == SDLK_8)) {
-        return 1;
-    }
-    switch (key) {
-    case SDLK_b:
-    case SDLK_e:
-    case SDLK_l:
-    case SDLK_r:
-    case SDLK_t:
-    case SDLK_o:
-    case SDLK_p:
-    case SDLK_LEFTBRACKET:
-    case SDLK_RIGHTBRACKET:
-    case SDLK_COMMA:
-    case SDLK_PERIOD:
-    case SDLK_SEMICOLON:
-    case SDLK_QUOTE:
-    case SDLK_MINUS:
-    case SDLK_KP_MINUS:
-    case SDLK_EQUALS:
-    case SDLK_KP_PLUS:
-    case SDLK_1:
-    case SDLK_2:
-    case SDLK_3:
-    case SDLK_4:
-    case SDLK_5:
-    case SDLK_6:
-    case SDLK_c:
-    case SDLK_h:
-    case SDLK_v:
-    case SDLK_j:
-    case SDLK_x:
-    case SDLK_f:
-    case SDLK_i:
-    case SDLK_UP:
-    case SDLK_DOWN:
-    case SDLK_LEFT:
-    case SDLK_RIGHT:
-    case SDLK_PAGEUP:
-    case SDLK_PAGEDOWN:
-    case SDLK_DELETE:
-    case SDLK_BACKSPACE:
-        return 1;
-    default:
-        return 0;
-    }
 }
 
 int app_run(const char *input_path) {
@@ -1544,7 +1472,7 @@ int app_run(const char *input_path) {
                 int alt = state[SDL_SCANCODE_LALT] || state[SDL_SCANCODE_RALT];
                 action_state.preview_active = preview_active;
 
-                if (shaping && should_cancel_shape_on_key(key, ctrl)) {
+                if (shaping && app_should_cancel_shape_on_key(key, ctrl)) {
                     shape_preview_cancel(&shaping, &preview_active);
                 }
 

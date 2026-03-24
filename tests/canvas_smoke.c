@@ -1,4 +1,5 @@
 #include "../src/active_layer_ops.h"
+#include "../src/app_input_rules.h"
 #include "../src/brush_render.h"
 #include "../src/brush_state.h"
 #include "../src/canvas.h"
@@ -33,6 +34,55 @@ static int test_layer_action_history_custom_flip(LayerStack *layers, void *ctx) 
         return 0;
     }
     layers->active_layer = 0;
+    return 1;
+}
+
+static int test_app_input_rules(void) {
+    int dx = 99;
+    int dy = 99;
+
+    if (!app_key_translation_delta(APP_KEY_UP, 4, &dx, &dy) || dx != 0 || dy != -4) {
+        fprintf(stderr, "translation delta up failed\n");
+        return 0;
+    }
+    if (!app_key_translation_delta(APP_KEY_RIGHT, 3, &dx, &dy) || dx != 3 || dy != 0) {
+        fprintf(stderr, "translation delta right failed\n");
+        return 0;
+    }
+    if (app_key_translation_delta(APP_KEY_b, 2, &dx, &dy) || dx != 0 || dy != 0) {
+        fprintf(stderr, "translation delta non-arrow should fail cleanly\n");
+        return 0;
+    }
+    if (app_key_translation_delta(APP_KEY_LEFT, 1, NULL, &dy) || app_key_translation_delta(APP_KEY_LEFT, 1, &dx, NULL)) {
+        fprintf(stderr, "translation delta null guard failed\n");
+        return 0;
+    }
+
+    if (app_should_cancel_shape_on_key(APP_KEY_ESCAPE, 0) ||
+        app_should_cancel_shape_on_key(APP_KEY_LSHIFT, 0) ||
+        app_should_cancel_shape_on_key(APP_KEY_RSHIFT, 0)) {
+        fprintf(stderr, "shape cancel should ignore escape and shift keys\n");
+        return 0;
+    }
+    if (!app_should_cancel_shape_on_key(APP_KEY_UP, 0) ||
+        !app_should_cancel_shape_on_key(APP_KEY_b, 0) ||
+        !app_should_cancel_shape_on_key(APP_KEY_4, 0)) {
+        fprintf(stderr, "shape cancel plain hotkeys failed\n");
+        return 0;
+    }
+    if (!app_should_cancel_shape_on_key(APP_KEY_s, 1) ||
+        !app_should_cancel_shape_on_key(APP_KEY_8, 1) ||
+        !app_should_cancel_shape_on_key(APP_KEY_SLASH, 1)) {
+        fprintf(stderr, "shape cancel ctrl hotkeys failed\n");
+        return 0;
+    }
+    if (app_should_cancel_shape_on_key(APP_KEY_s, 0) ||
+        app_should_cancel_shape_on_key(APP_KEY_TAB, 0) ||
+        app_should_cancel_shape_on_key(APP_KEY_TAB, 1)) {
+        fprintf(stderr, "shape cancel non-hotkeys should fail cleanly\n");
+        return 0;
+    }
+
     return 1;
 }
 
@@ -5181,6 +5231,10 @@ int main(void) {
     canvas_free(&mask);
 
     if (!test_brush_state_helpers()) {
+        return 1;
+    }
+
+    if (!test_app_input_rules()) {
         return 1;
     }
 
