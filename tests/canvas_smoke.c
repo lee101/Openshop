@@ -281,6 +281,25 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_rename(&stack, 0, "Backdrop Show") || !layer_stack_rename(&stack, 1, "Top Show") ||
+        !layer_stack_can_reset_visible_names(&stack) || !layer_stack_reset_visible_names(&stack)) {
+        fprintf(stderr, "reset visible names after show-all setup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || strcmp(stack.layers[1].name, "Layer") != 0) {
+        fprintf(stderr, "reset visible names after show-all labels failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 1, "Top")) {
+        fprintf(stderr, "reset visible names after show-all cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_show_all(&stack)) {
         fprintf(stderr, "show all should return no-op once everything is visible\n");
         canvas_free(&composite);
@@ -302,6 +321,19 @@ static int test_layers_basic(void) {
     }
     if (!layer_stack_show(&stack, 1) || !stack.layers[1].visible) {
         fprintf(stderr, "show active layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 1, "Top Reveal") || !layer_stack_can_reset_visible_names(&stack) || !layer_stack_reset_visible_names(&stack) ||
+        strcmp(stack.layers[1].name, "Layer") != 0) {
+        fprintf(stderr, "reset visible names after reveal failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 1, "Top")) {
+        fprintf(stderr, "reset visible names after reveal cleanup failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
