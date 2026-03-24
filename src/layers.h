@@ -42,6 +42,8 @@ void layer_stack_composite(const LayerStack *stack, Canvas *dest, uint32_t backg
 int layer_stack_rename(LayerStack *stack, int index, const char *name);
 int layer_stack_can_reset_name(const LayerStack *stack, int index);
 int layer_stack_reset_name(LayerStack *stack, int index);
+int layer_stack_can_reset_all_names(const LayerStack *stack);
+int layer_stack_reset_all_names(LayerStack *stack);
 int layer_stack_clear_layer(LayerStack *stack, int index, uint32_t color);
 int layer_stack_set_opacity(LayerStack *stack, int index, int opacity_percent);
 int layer_stack_can_delete(const LayerStack *stack, int index);

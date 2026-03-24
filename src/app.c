@@ -1170,6 +1170,16 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (ctrl && key == SDLK_F2) {
+                    if (layer_stack_can_reset_all_names(&layers)) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        if (layer_stack_reset_all_names(&layers)) {
+                            update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        }
+                    }
+                    break;
+                }
+
                 if (key == SDLK_F2) {
                     if (layer_stack_can_reset_name(&layers, layers.active_layer)) {
                         push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
