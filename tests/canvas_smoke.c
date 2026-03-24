@@ -734,6 +734,32 @@ static int test_layer_history_skip_noop_snapshot_commit(void) {
     return 1;
 }
 
+static int test_layer_snapshot_reset_clears_allocated_state(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 3, 3, 0xFFFFFFFF)) {
+        fprintf(stderr, "history snapshot reset init failed\n");
+        return 0;
+    }
+
+    LayerSnapshot snapshot = {0};
+    if (!layer_snapshot_capture(&snapshot, &stack)) {
+        fprintf(stderr, "history snapshot reset capture failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_snapshot_reset(&snapshot);
+    if (snapshot.pixels || snapshot.width != 0 || snapshot.height != 0 || snapshot.layer_count != 0 ||
+        snapshot.active_layer != 0 || snapshot.solo_index != -1) {
+        fprintf(stderr, "history snapshot reset should clear captured state\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layer_history_commit_change_helper(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
@@ -1800,6 +1826,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_skip_noop_snapshot_commit()) {
+        return 1;
+    }
+    if (!test_layer_snapshot_reset_clears_allocated_state()) {
         return 1;
     }
     if (!test_layer_history_commit_change_helper()) {
