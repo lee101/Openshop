@@ -89,6 +89,14 @@ static int snapshot_has_seed_metadata(const LayerSnapshot *snapshot) {
            strcmp(snapshot->names[1], "Ink") == 0;
 }
 
+static int snapshot_has_scrubbed_metadata(const LayerSnapshot *snapshot) {
+    return snapshot &&
+           snapshot->visibility[1] == 0 &&
+           snapshot->locked[1] == 0 &&
+           snapshot->opacity_percent[1] == 0 &&
+           snapshot->names[1][0] == '\0';
+}
+
 static int snapshot_has_cleared_scalar_state(const LayerSnapshot *snapshot) {
     return snapshot &&
            snapshot->pixels == NULL &&
@@ -1220,8 +1228,7 @@ static int test_layer_snapshot_reset_clears_allocated_state(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (snapshot.visibility[1] != 0 || snapshot.locked[1] != 0 || snapshot.opacity_percent[1] != 0 ||
-        snapshot.names[1][0] != '\0') {
+    if (!snapshot_has_scrubbed_metadata(&snapshot)) {
         fprintf(stderr, "history snapshot reset should scrub metadata arrays unlike snapshot free\n");
         layer_stack_free(&stack);
         return 0;
