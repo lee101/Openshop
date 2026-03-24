@@ -6,6 +6,29 @@
 
 #define TEST_HISTORY_CAPACITY 4
 
+typedef struct {
+    int reset_history;
+    int layer_index;
+    int clear_indices[4];
+    int clear_count;
+    int seed_x;
+    int seed_y;
+    uint32_t seed_color;
+    int dx;
+    int dy;
+    int want_undo_count;
+    const char *undo_label;
+    int want_shift_x;
+    int want_shift_y;
+    uint32_t want_shift_color;
+    const char *shift_label;
+    int want_fill_x;
+    int want_fill_y;
+    uint32_t want_fill_color;
+    const char *fill_label;
+    const char *failure_label;
+} TranslationCase;
+
 static int expect_name(const LayerStack *stack, int index, const char *want, const char *label) {
     if (strcmp(stack->layers[index].name, want) != 0) {
         fprintf(stderr, "%s mismatch: got %s want %s\n", label, stack->layers[index].name, want);
@@ -28,6 +51,64 @@ static int expect_int(int got, int want, const char *label) {
         fprintf(stderr, "%s mismatch: got %d want %d\n", label, got, want);
         return 0;
     }
+    return 1;
+}
+
+static int run_translation_case(
+    LayerStack *stack,
+    Snapshot *undo_stack,
+    int *undo_count,
+    int history_capacity,
+    Snapshot *redo_stack,
+    int *redo_count,
+    const TranslationCase *test_case
+) {
+    Canvas *canvas = &stack->layers[test_case->layer_index].canvas;
+    int i;
+
+    if (test_case->reset_history) {
+        snapshot_stack_clear(undo_stack, undo_count);
+        snapshot_stack_clear(redo_stack, redo_count);
+    }
+
+    for (i = 0; i < test_case->clear_count; i++) {
+        canvas->pixels[test_case->clear_indices[i]] = 0;
+    }
+    canvas_set_pixel(canvas, test_case->seed_x, test_case->seed_y, test_case->seed_color);
+
+    if (!app_apply_canvas_translation(
+            stack,
+            undo_stack,
+            undo_count,
+            history_capacity,
+            redo_stack,
+            redo_count,
+            test_case->dx,
+            test_case->dy
+        ) ||
+        !expect_int(*undo_count, test_case->want_undo_count, test_case->undo_label) ||
+        !expect_pixel(
+            stack,
+            test_case->layer_index,
+            test_case->want_shift_x,
+            test_case->want_shift_y,
+            test_case->want_shift_color,
+            test_case->shift_label
+        ) ||
+        !expect_pixel(
+            stack,
+            test_case->layer_index,
+            test_case->want_fill_x,
+            test_case->want_fill_y,
+            test_case->want_fill_color,
+            test_case->fill_label
+        )) {
+        fprintf(stderr, "%s\n", test_case->failure_label);
+        snapshot_stack_clear(undo_stack, undo_count);
+        snapshot_stack_clear(redo_stack, redo_count);
+        return 0;
+    }
+
     return 1;
 }
 
@@ -185,92 +266,59 @@ int main(void) {
             return 1;
         }
 
-        snapshot_stack_clear(temp_undo, &temp_undo_count);
-        snapshot_stack_clear(temp_redo, &temp_redo_count);
-        temp_stack.layers[0].canvas.pixels[0] = 0;
-        temp_stack.layers[0].canvas.pixels[4] = 0;
-        canvas_set_pixel(&temp_stack.layers[0].canvas, 0, 1, 0xFF556677);
-        if (!app_apply_canvas_translation(&temp_stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count, 0, -1) ||
-            !expect_int(temp_undo_count, 1, "canvas_translation_background_vertical_undo_count") ||
-            !expect_pixel(&temp_stack, 0, 0, 0, 0xFF556677, "canvas_translation_background_vertical_shifted_pixel") ||
-            !expect_pixel(&temp_stack, 0, 0, 1, 0xFFFFFFFF, "canvas_translation_background_vertical_fill_pixel")) {
-            fprintf(stderr, "canvas translation background vertical helper failed\n");
-            snapshot_stack_clear(temp_undo, &temp_undo_count);
-            snapshot_stack_clear(temp_redo, &temp_redo_count);
-            layer_stack_free(&temp_stack);
-            return 1;
-        }
+        {
+            static const TranslationCase translation_cases[] = {
+                {
+                    1, 0, {0, 4}, 2, 0, 1, 0xFF556677, 0, -1, 1,
+                    "canvas_translation_background_vertical_undo_count",
+                    0, 0, 0xFF556677, "canvas_translation_background_vertical_shifted_pixel",
+                    0, 1, 0xFFFFFFFF, "canvas_translation_background_vertical_fill_pixel",
+                    "canvas translation background vertical helper failed"
+                },
+                {
+                    1, 0, {0, 1, 4, 5}, 4, 1, 1, 0xFF99AABB, -1, -1, 1,
+                    "canvas_translation_background_diagonal_undo_count",
+                    0, 0, 0xFF99AABB, "canvas_translation_background_diagonal_shifted_pixel",
+                    3, 3, 0xFFFFFFFF, "canvas_translation_background_diagonal_fill_pixel",
+                    "canvas translation background diagonal helper failed"
+                },
+                {
+                    1, 0, {0, 1, 4, 5}, 4, 0, 0, 0xFF224466, 1, 1, 1,
+                    "canvas_translation_background_diagonal_positive_undo_count",
+                    1, 1, 0xFF224466, "canvas_translation_background_diagonal_positive_shifted_pixel",
+                    0, 0, 0xFFFFFFFF, "canvas_translation_background_diagonal_positive_fill_pixel",
+                    "canvas translation background positive diagonal helper failed"
+                },
+                {
+                    1, 0, {0, 1, 4, 5}, 4, 0, 1, 0xFF446688, 1, -1, 1,
+                    "canvas_translation_background_diagonal_mixed_undo_count",
+                    1, 0, 0xFF446688, "canvas_translation_background_diagonal_mixed_shifted_pixel",
+                    0, 3, 0xFFFFFFFF, "canvas_translation_background_diagonal_mixed_fill_pixel",
+                    "canvas translation background mixed diagonal helper failed"
+                },
+                {
+                    1, 0, {0, 1, 4, 5}, 4, 1, 0, 0xFF6688AA, -1, 1, 1,
+                    "canvas_translation_background_diagonal_mixed_opposite_undo_count",
+                    0, 1, 0xFF6688AA, "canvas_translation_background_diagonal_mixed_opposite_shifted_pixel",
+                    3, 0, 0xFFFFFFFF, "canvas_translation_background_diagonal_mixed_opposite_fill_pixel",
+                    "canvas translation background opposite mixed diagonal helper failed"
+                }
+            };
+            size_t i;
 
-        snapshot_stack_clear(temp_undo, &temp_undo_count);
-        snapshot_stack_clear(temp_redo, &temp_redo_count);
-        temp_stack.layers[0].canvas.pixels[0] = 0;
-        temp_stack.layers[0].canvas.pixels[1] = 0;
-        temp_stack.layers[0].canvas.pixels[4] = 0;
-        temp_stack.layers[0].canvas.pixels[5] = 0;
-        canvas_set_pixel(&temp_stack.layers[0].canvas, 1, 1, 0xFF99AABB);
-        if (!app_apply_canvas_translation(&temp_stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count, -1, -1) ||
-            !expect_int(temp_undo_count, 1, "canvas_translation_background_diagonal_undo_count") ||
-            !expect_pixel(&temp_stack, 0, 0, 0, 0xFF99AABB, "canvas_translation_background_diagonal_shifted_pixel") ||
-            !expect_pixel(&temp_stack, 0, 3, 3, 0xFFFFFFFF, "canvas_translation_background_diagonal_fill_pixel")) {
-            fprintf(stderr, "canvas translation background diagonal helper failed\n");
-            snapshot_stack_clear(temp_undo, &temp_undo_count);
-            snapshot_stack_clear(temp_redo, &temp_redo_count);
-            layer_stack_free(&temp_stack);
-            return 1;
-        }
-
-        snapshot_stack_clear(temp_undo, &temp_undo_count);
-        snapshot_stack_clear(temp_redo, &temp_redo_count);
-        temp_stack.layers[0].canvas.pixels[0] = 0;
-        temp_stack.layers[0].canvas.pixels[1] = 0;
-        temp_stack.layers[0].canvas.pixels[4] = 0;
-        temp_stack.layers[0].canvas.pixels[5] = 0;
-        canvas_set_pixel(&temp_stack.layers[0].canvas, 0, 0, 0xFF224466);
-        if (!app_apply_canvas_translation(&temp_stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count, 1, 1) ||
-            !expect_int(temp_undo_count, 1, "canvas_translation_background_diagonal_positive_undo_count") ||
-            !expect_pixel(&temp_stack, 0, 1, 1, 0xFF224466, "canvas_translation_background_diagonal_positive_shifted_pixel") ||
-            !expect_pixel(&temp_stack, 0, 0, 0, 0xFFFFFFFF, "canvas_translation_background_diagonal_positive_fill_pixel")) {
-            fprintf(stderr, "canvas translation background positive diagonal helper failed\n");
-            snapshot_stack_clear(temp_undo, &temp_undo_count);
-            snapshot_stack_clear(temp_redo, &temp_redo_count);
-            layer_stack_free(&temp_stack);
-            return 1;
-        }
-
-        snapshot_stack_clear(temp_undo, &temp_undo_count);
-        snapshot_stack_clear(temp_redo, &temp_redo_count);
-        temp_stack.layers[0].canvas.pixels[0] = 0;
-        temp_stack.layers[0].canvas.pixels[1] = 0;
-        temp_stack.layers[0].canvas.pixels[4] = 0;
-        temp_stack.layers[0].canvas.pixels[5] = 0;
-        canvas_set_pixel(&temp_stack.layers[0].canvas, 0, 1, 0xFF446688);
-        if (!app_apply_canvas_translation(&temp_stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count, 1, -1) ||
-            !expect_int(temp_undo_count, 1, "canvas_translation_background_diagonal_mixed_undo_count") ||
-            !expect_pixel(&temp_stack, 0, 1, 0, 0xFF446688, "canvas_translation_background_diagonal_mixed_shifted_pixel") ||
-            !expect_pixel(&temp_stack, 0, 0, 3, 0xFFFFFFFF, "canvas_translation_background_diagonal_mixed_fill_pixel")) {
-            fprintf(stderr, "canvas translation background mixed diagonal helper failed\n");
-            snapshot_stack_clear(temp_undo, &temp_undo_count);
-            snapshot_stack_clear(temp_redo, &temp_redo_count);
-            layer_stack_free(&temp_stack);
-            return 1;
-        }
-
-        snapshot_stack_clear(temp_undo, &temp_undo_count);
-        snapshot_stack_clear(temp_redo, &temp_redo_count);
-        temp_stack.layers[0].canvas.pixels[0] = 0;
-        temp_stack.layers[0].canvas.pixels[1] = 0;
-        temp_stack.layers[0].canvas.pixels[4] = 0;
-        temp_stack.layers[0].canvas.pixels[5] = 0;
-        canvas_set_pixel(&temp_stack.layers[0].canvas, 1, 0, 0xFF6688AA);
-        if (!app_apply_canvas_translation(&temp_stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count, -1, 1) ||
-            !expect_int(temp_undo_count, 1, "canvas_translation_background_diagonal_mixed_opposite_undo_count") ||
-            !expect_pixel(&temp_stack, 0, 0, 1, 0xFF6688AA, "canvas_translation_background_diagonal_mixed_opposite_shifted_pixel") ||
-            !expect_pixel(&temp_stack, 0, 3, 0, 0xFFFFFFFF, "canvas_translation_background_diagonal_mixed_opposite_fill_pixel")) {
-            fprintf(stderr, "canvas translation background opposite mixed diagonal helper failed\n");
-            snapshot_stack_clear(temp_undo, &temp_undo_count);
-            snapshot_stack_clear(temp_redo, &temp_redo_count);
-            layer_stack_free(&temp_stack);
-            return 1;
+            for (i = 0; i < sizeof(translation_cases) / sizeof(translation_cases[0]); i++) {
+                if (!run_translation_case(
+                        &temp_stack,
+                        temp_undo,
+                        &temp_undo_count,
+                        2,
+                        temp_redo,
+                        &temp_redo_count,
+                        &translation_cases[i])) {
+                    layer_stack_free(&temp_stack);
+                    return 1;
+                }
+            }
         }
 
         snapshot_stack_clear(temp_undo, &temp_undo_count);
@@ -294,69 +342,52 @@ int main(void) {
             return 1;
         }
 
-        temp_stack.layers[1].canvas.pixels[0] = 0;
-        canvas_set_pixel(&temp_stack.layers[1].canvas, 1, 0, 0xFF556677);
-        if (!app_apply_canvas_translation(&temp_stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count, -1, 0) ||
-            !expect_int(temp_undo_count, 2, "canvas_translation_negative_undo_count") ||
-            !expect_pixel(&temp_stack, 1, 0, 0, 0xFF556677, "canvas_translation_negative_shifted_pixel") ||
-            !expect_pixel(&temp_stack, 1, 1, 0, 0x00000000, "canvas_translation_negative_fill_pixel")) {
-            fprintf(stderr, "canvas translation negative helper failed\n");
-            snapshot_stack_clear(temp_undo, &temp_undo_count);
-            snapshot_stack_clear(temp_redo, &temp_redo_count);
-            layer_stack_free(&temp_stack);
-            return 1;
-        }
+        {
+            static const TranslationCase translation_cases[] = {
+                {
+                    0, 1, {0}, 1, 1, 0, 0xFF556677, -1, 0, 2,
+                    "canvas_translation_negative_undo_count",
+                    0, 0, 0xFF556677, "canvas_translation_negative_shifted_pixel",
+                    1, 0, 0x00000000, "canvas_translation_negative_fill_pixel",
+                    "canvas translation negative helper failed"
+                },
+                {
+                    1, 1, {0, 1, 4}, 3, 0, 1, 0xFF8899AA, 0, -1, 1,
+                    "canvas_translation_vertical_undo_count",
+                    0, 0, 0xFF8899AA, "canvas_translation_vertical_shifted_pixel",
+                    0, 1, 0x00000000, "canvas_translation_vertical_fill_pixel",
+                    "canvas translation vertical helper failed"
+                },
+                {
+                    1, 1, {0, 1, 4, 5}, 4, 1, 1, 0xFF334455, -1, -1, 1,
+                    "canvas_translation_diagonal_undo_count",
+                    0, 0, 0xFF334455, "canvas_translation_diagonal_shifted_pixel",
+                    1, 1, 0x00000000, "canvas_translation_diagonal_fill_pixel",
+                    "canvas translation diagonal helper failed"
+                },
+                {
+                    1, 1, {0, 4, 8}, 3, 0, 0, 0xFF667788, 0, 1, 1,
+                    "canvas_translation_vertical_positive_undo_count",
+                    0, 1, 0xFF667788, "canvas_translation_vertical_positive_shifted_pixel",
+                    0, 0, 0x00000000, "canvas_translation_vertical_positive_fill_pixel",
+                    "canvas translation positive vertical helper failed"
+                }
+            };
+            size_t i;
 
-        snapshot_stack_clear(temp_undo, &temp_undo_count);
-        snapshot_stack_clear(temp_redo, &temp_redo_count);
-        temp_stack.layers[1].canvas.pixels[0] = 0;
-        temp_stack.layers[1].canvas.pixels[1] = 0;
-        temp_stack.layers[1].canvas.pixels[4] = 0;
-        canvas_set_pixel(&temp_stack.layers[1].canvas, 0, 1, 0xFF8899AA);
-        if (!app_apply_canvas_translation(&temp_stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count, 0, -1) ||
-            !expect_int(temp_undo_count, 1, "canvas_translation_vertical_undo_count") ||
-            !expect_pixel(&temp_stack, 1, 0, 0, 0xFF8899AA, "canvas_translation_vertical_shifted_pixel") ||
-            !expect_pixel(&temp_stack, 1, 0, 1, 0x00000000, "canvas_translation_vertical_fill_pixel")) {
-            fprintf(stderr, "canvas translation vertical helper failed\n");
-            snapshot_stack_clear(temp_undo, &temp_undo_count);
-            snapshot_stack_clear(temp_redo, &temp_redo_count);
-            layer_stack_free(&temp_stack);
-            return 1;
-        }
-
-        snapshot_stack_clear(temp_undo, &temp_undo_count);
-        snapshot_stack_clear(temp_redo, &temp_redo_count);
-        temp_stack.layers[1].canvas.pixels[0] = 0;
-        temp_stack.layers[1].canvas.pixels[1] = 0;
-        temp_stack.layers[1].canvas.pixels[4] = 0;
-        temp_stack.layers[1].canvas.pixels[5] = 0;
-        canvas_set_pixel(&temp_stack.layers[1].canvas, 1, 1, 0xFF334455);
-        if (!app_apply_canvas_translation(&temp_stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count, -1, -1) ||
-            !expect_int(temp_undo_count, 1, "canvas_translation_diagonal_undo_count") ||
-            !expect_pixel(&temp_stack, 1, 0, 0, 0xFF334455, "canvas_translation_diagonal_shifted_pixel") ||
-            !expect_pixel(&temp_stack, 1, 1, 1, 0x00000000, "canvas_translation_diagonal_fill_pixel")) {
-            fprintf(stderr, "canvas translation diagonal helper failed\n");
-            snapshot_stack_clear(temp_undo, &temp_undo_count);
-            snapshot_stack_clear(temp_redo, &temp_redo_count);
-            layer_stack_free(&temp_stack);
-            return 1;
-        }
-
-        snapshot_stack_clear(temp_undo, &temp_undo_count);
-        snapshot_stack_clear(temp_redo, &temp_redo_count);
-        temp_stack.layers[1].canvas.pixels[0] = 0;
-        temp_stack.layers[1].canvas.pixels[4] = 0;
-        temp_stack.layers[1].canvas.pixels[8] = 0;
-        canvas_set_pixel(&temp_stack.layers[1].canvas, 0, 0, 0xFF667788);
-        if (!app_apply_canvas_translation(&temp_stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count, 0, 1) ||
-            !expect_int(temp_undo_count, 1, "canvas_translation_vertical_positive_undo_count") ||
-            !expect_pixel(&temp_stack, 1, 0, 1, 0xFF667788, "canvas_translation_vertical_positive_shifted_pixel") ||
-            !expect_pixel(&temp_stack, 1, 0, 0, 0x00000000, "canvas_translation_vertical_positive_fill_pixel")) {
-            fprintf(stderr, "canvas translation positive vertical helper failed\n");
-            snapshot_stack_clear(temp_undo, &temp_undo_count);
-            snapshot_stack_clear(temp_redo, &temp_redo_count);
-            layer_stack_free(&temp_stack);
-            return 1;
+            for (i = 0; i < sizeof(translation_cases) / sizeof(translation_cases[0]); i++) {
+                if (!run_translation_case(
+                        &temp_stack,
+                        temp_undo,
+                        &temp_undo_count,
+                        2,
+                        temp_redo,
+                        &temp_redo_count,
+                        &translation_cases[i])) {
+                    layer_stack_free(&temp_stack);
+                    return 1;
+                }
+            }
         }
 
         layer_stack_free(&temp_stack);
