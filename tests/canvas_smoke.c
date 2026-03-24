@@ -1197,6 +1197,104 @@ static int test_layer_history_record_snapshot_current_state_clears_redo(void) {
     return 1;
 }
 
+static int test_layer_history_record_snapshot_evicts_oldest_at_capacity(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 2, 2, 0xFFFFFFFF)) {
+        fprintf(stderr, "history capacity snapshot init failed\n");
+        return 0;
+    }
+
+    LayerHistory history = {0};
+    for (int i = 0; i < HISTORY_CAPACITY; i++) {
+        LayerSnapshot snapshot = {0};
+        if (!layer_snapshot_capture(&snapshot, &stack)) {
+            fprintf(stderr, "history capacity snapshot capture failed at %d\n", i);
+            layer_history_reset(&history);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        if (!layer_history_record_snapshot(&history, &snapshot)) {
+            fprintf(stderr, "history capacity snapshot record failed at %d\n", i);
+            layer_history_reset(&history);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF000000u | (uint32_t)i);
+    }
+
+    if (history.undo_count != HISTORY_CAPACITY || history.redo_count != 0) {
+        fprintf(stderr, "history capacity snapshot should fill undo without redo\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (!layer_snapshot_capture(&history.redo[history.redo_count++], &stack)) {
+        fprintf(stderr, "history capacity snapshot redo seed failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    LayerSnapshot snapshot = {0};
+    if (!layer_snapshot_capture(&snapshot, &stack)) {
+        fprintf(stderr, "history capacity snapshot final capture failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF123456);
+
+    if (!layer_history_record_snapshot(&history, &snapshot)) {
+        fprintf(stderr, "history capacity snapshot should record after filling undo\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!snapshot_is_reset(&snapshot)) {
+        fprintf(stderr, "history capacity snapshot should disown caller after full-stack record\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (history.undo_count != HISTORY_CAPACITY || history.redo_count != 0) {
+        fprintf(stderr, "history capacity snapshot should keep undo capped and clear redo\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    while (history.undo_count > 1) {
+        if (!layer_history_step_undo(&history, &stack)) {
+            fprintf(stderr, "history capacity snapshot multi-undo failed\n");
+            layer_history_reset(&history);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    if (!layer_history_step_undo(&history, &stack)) {
+        fprintf(stderr, "history capacity snapshot oldest-retained undo failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("history_capacity_snapshot_oldest_retained", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF000000)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_history_step_undo(&history, &stack)) {
+        fprintf(stderr, "history capacity snapshot should evict the original oldest state\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_reset(&history);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layer_history_discarded_snapshot_keeps_redo(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 3, 3, 0xFFFFFFFF)) {
@@ -3369,6 +3467,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_record_snapshot_current_state_clears_redo()) {
+        return 1;
+    }
+    if (!test_layer_history_record_snapshot_evicts_oldest_at_capacity()) {
         return 1;
     }
     if (!test_layer_history_discarded_snapshot_keeps_redo()) {
