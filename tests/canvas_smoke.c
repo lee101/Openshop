@@ -816,6 +816,8 @@ static int test_layer_creation_helpers(void) {
         layer_creation_try_add(&stack, NULL, &undo_count, redo_stack, &redo_count, 0x00000000, 4) ||
         layer_creation_try_add(&stack, undo_stack, NULL, redo_stack, &redo_count, 0x00000000, 4) ||
         layer_creation_try_add(&stack, undo_stack, &undo_count, NULL, &redo_count, 0x00000000, 4) ||
+        layer_creation_try_add(&stack, undo_stack, &undo_count, undo_stack, &redo_count, 0x00000000, 4) ||
+        layer_creation_try_add(&stack, undo_stack, &undo_count, redo_stack, &undo_count, 0x00000000, 4) ||
         layer_creation_try_add(&stack, undo_stack, &undo_count, redo_stack, NULL, 0x00000000, 4)) {
         fprintf(stderr, "layer_creation_try_add null guard failed\n");
         return 0;
@@ -882,6 +884,40 @@ static int test_layer_creation_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    redo_count = 1;
+    redo_stack[0].pixels = (uint32_t *)malloc(sizeof(uint32_t));
+    if (!redo_stack[0].pixels) {
+        fprintf(stderr, "layer_creation alias guard allocation failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    redo_stack[0].pixels[0] = 0x13579BDFu;
+    {
+        int undo_before = undo_count;
+        int redo_before = redo_count;
+        int layers_before = stack.layer_count;
+
+        if (layer_creation_try_add(&stack, undo_stack, &undo_count, undo_stack, &redo_count, 0x00000000, 4) ||
+            undo_count != undo_before || redo_count != redo_before || stack.layer_count != layers_before ||
+            redo_stack[0].pixels[0] != 0x13579BDFu) {
+            fprintf(stderr, "layer_creation_try_add should reject aliased history stacks\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        if (layer_creation_try_add(&stack, undo_stack, &undo_count, redo_stack, &undo_count, 0x00000000, 4) ||
+            undo_count != undo_before || redo_count != redo_before || stack.layer_count != layers_before ||
+            redo_stack[0].pixels[0] != 0x13579BDFu) {
+            fprintf(stderr, "layer_creation_try_add should reject aliased history counts\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    snapshot_stack_clear(redo_stack, &redo_count);
 
     while (stack.layer_count < MAX_LAYERS) {
         if (!layer_creation_try_add(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0x00000000, MAX_LAYERS)) {

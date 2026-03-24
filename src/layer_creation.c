@@ -12,6 +12,9 @@ int layer_creation_try_add(LayerStack *layers,
     if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
         return 0;
     }
+    if (undo_stack == redo_stack || undo_count == redo_count) {
+        return 0;
+    }
     if (layers->layer_count >= MAX_LAYERS) {
         return 0;
     }
