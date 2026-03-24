@@ -1112,7 +1112,28 @@ static int test_active_layer_ops_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (active_layer_try_adjust_opacity(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 65, 4)) {
+    if (!active_layer_try_adjust_opacity(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 100, 4) ||
+        stack.layers[0].opacity_percent != 100) {
+        fprintf(stderr, "active_layer_try_adjust_opacity max set failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    {
+        int undo_before = undo_count;
+        int redo_before = redo_count;
+        if (active_layer_try_adjust_opacity(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 101, 4) ||
+            stack.layers[0].opacity_percent != 100 ||
+            undo_count != undo_before || redo_count != redo_before) {
+            fprintf(stderr, "active_layer_try_adjust_opacity clamped no-op failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    if (active_layer_try_adjust_opacity(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 100, 4)) {
         fprintf(stderr, "active_layer_try_adjust_opacity no-op failed\n");
         snapshot_stack_clear(undo_stack, &undo_count);
         snapshot_stack_clear(redo_stack, &redo_count);
@@ -1166,7 +1187,7 @@ static int test_active_layer_ops_helpers(void) {
         return 0;
     }
     if (active_layer_try_adjust_opacity(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 10, 0) ||
-        stack.layers[0].opacity_percent != 65) {
+        stack.layers[0].opacity_percent != 100) {
         fprintf(stderr, "active_layer_try_adjust_opacity history guard failed\n");
         snapshot_stack_clear(undo_stack, &undo_count);
         snapshot_stack_clear(redo_stack, &redo_count);
@@ -1174,7 +1195,7 @@ static int test_active_layer_ops_helpers(void) {
         return 0;
     }
     if (active_layer_try_nudge_opacity(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 5, 0) ||
-        stack.layers[0].opacity_percent != 65) {
+        stack.layers[0].opacity_percent != 100) {
         fprintf(stderr, "active_layer_try_nudge_opacity history guard failed\n");
         snapshot_stack_clear(undo_stack, &undo_count);
         snapshot_stack_clear(redo_stack, &redo_count);

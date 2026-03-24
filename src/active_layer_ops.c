@@ -74,6 +74,12 @@ int active_layer_try_adjust_opacity(LayerStack *layers,
                                     int target_opacity, int max_history) {
     Layer *active = layer_stack_active(layers);
 
+    if (target_opacity < 0) {
+        target_opacity = 0;
+    } else if (target_opacity > 100) {
+        target_opacity = 100;
+    }
+
     if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0 ||
         !active || active->opacity_percent == target_opacity) {
         return 0;
