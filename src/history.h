@@ -32,6 +32,7 @@ void layer_snapshot_free(LayerSnapshot *snapshot);
 void layer_snapshot_reset(LayerSnapshot *snapshot);
 // Captures the current layer stack into caller-owned snapshot storage.
 // Null inputs fail without mutating the caller snapshot.
+// Successful captures overwrite any existing snapshot contents.
 int layer_snapshot_capture(LayerSnapshot *snapshot, const LayerStack *stack);
 // Applies a populated snapshot back onto a same-sized stack; null inputs, missing pixels, and invalid layer counts fail.
 // All rejected snapshots, including early null/empty failures, leave the destination stack unchanged.
