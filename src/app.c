@@ -380,6 +380,41 @@ static int apply_visible_rank_selection(
     return 1;
 }
 
+static int apply_visible_edge_selection(
+    LayerStack *layers,
+    int top,
+    const char *failure_message
+) {
+    if (!layers) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    int visible_count = layer_stack_visible_count(layers);
+    if (visible_count <= 0) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    int current_rank = layer_stack_visible_rank(layers, layers->active_layer);
+    int target_rank = top ? (visible_count - 1) : 0;
+    if (current_rank >= 0 && current_rank == target_rank) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    if ((top ? layer_stack_select_top_visible(layers) : layer_stack_select_bottom_visible(layers)) < 0) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    return 1;
+}
+
 static int apply_active_layer_move(
     LayerStack *layers,
     Snapshot *undo_stack,
@@ -1350,14 +1385,18 @@ int app_run(const char *input_path) {
                 }
 
                 if (key == SDLK_HOME) {
-                    if ((shift ? layer_stack_select_top_visible(&layers) : layer_stack_select_top(&layers)) >= 0) {
+                    if ((shift
+                             ? apply_visible_edge_selection(&layers, 1, "Active layer is already at the top visible slot")
+                             : layer_stack_select_top(&layers) >= 0)) {
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                     break;
                 }
 
                 if (key == SDLK_END) {
-                    if ((shift ? layer_stack_select_bottom_visible(&layers) : layer_stack_select_bottom(&layers)) >= 0) {
+                    if ((shift
+                             ? apply_visible_edge_selection(&layers, 0, "Active layer is already at the bottom visible slot")
+                             : layer_stack_select_bottom(&layers) >= 0)) {
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                     break;
