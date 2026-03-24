@@ -12,6 +12,7 @@
 #include "layer_selection.h"
 #include "layers.h"
 #include "shape_draw.h"
+#include "shape_preview_state.h"
 #include "snapshot_history.h"
 #include "status_text.h"
 #include "title_hints.h"
@@ -1091,15 +1092,9 @@ static int handle_left_click_down(const MouseState *mouse_state, int x, int y) {
         return 1;
     }
 
-    if (active_layer_editable(mouse_state->layers)) {
-        *mouse_state->shaping = 1;
-        *mouse_state->shape_start_x = x;
-        *mouse_state->shape_start_y = y;
-        if (mouse_state->shape_base_pixels) {
-            memcpy(mouse_state->shape_base_pixels, mouse_state->composite->pixels,
-                   (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
-        }
-    }
+    shape_preview_begin_if_editable(mouse_state->layers, x, y, mouse_state->composite,
+                                    mouse_state->shape_base_pixels, mouse_state->shaping,
+                                    mouse_state->shape_start_x, mouse_state->shape_start_y);
 
     return 1;
 }
@@ -1113,7 +1108,7 @@ static int handle_right_click_down(const MouseState *mouse_state, int x, int y) 
     }
 
     if (*mouse_state->shaping) {
-        cancel_shape_preview(mouse_state->shaping, mouse_state->preview_active);
+        shape_preview_cancel(mouse_state->shaping, mouse_state->preview_active);
         return 1;
     }
 
@@ -1227,7 +1222,7 @@ static int handle_left_click_up(LayerStack *layers,
                          brush_radius, brush_color)) {
         *needs_composite = 1;
     }
-    cancel_shape_preview(shaping, preview_active);
+    shape_preview_cancel(shaping, preview_active);
     return 1;
 }
 
@@ -1344,15 +1339,6 @@ static int handle_right_click_sample(SDL_Window *window,
 
     update_window_title(window, layers, *tool, brush_shape, brush_radius, *brush_color, *brush_opacity);
     return 1;
-}
-
-static void cancel_shape_preview(int *shaping, int *preview_active) {
-    if (shaping) {
-        *shaping = 0;
-    }
-    if (preview_active) {
-        *preview_active = 0;
-    }
 }
 
 static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
@@ -1537,12 +1523,12 @@ int app_run(const char *input_path) {
                 action_state.preview_active = preview_active;
 
                 if (shaping && should_cancel_shape_on_key(key, ctrl)) {
-                    cancel_shape_preview(&shaping, &preview_active);
+                    shape_preview_cancel(&shaping, &preview_active);
                 }
 
                 if (key == SDLK_ESCAPE) {
                     if (shaping) {
-                        cancel_shape_preview(&shaping, &preview_active);
+                        shape_preview_cancel(&shaping, &preview_active);
                         break;
                     }
                     running = 0;

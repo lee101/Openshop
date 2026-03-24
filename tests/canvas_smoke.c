@@ -10,6 +10,7 @@
 #include "../src/layer_selection.h"
 #include "../src/layers.h"
 #include "../src/shape_draw.h"
+#include "../src/shape_preview_state.h"
 #include "../src/snapshot_history.h"
 #include "../src/status_text.h"
 #include "../src/title_hints.h"
@@ -393,6 +394,80 @@ static int test_layer_creation_helpers(void) {
 
     snapshot_stack_clear(undo_stack, &undo_count);
     snapshot_stack_clear(redo_stack, &redo_count);
+    layer_stack_free(&stack);
+    return 1;
+}
+
+static int test_shape_preview_state_helpers(void) {
+    LayerStack stack;
+    Canvas composite = {0};
+    uint32_t base_pixels[4] = {0};
+    int shaping = 0;
+    int preview_active = 1;
+    int start_x = -1;
+    int start_y = -1;
+
+    shape_preview_cancel(&shaping, &preview_active);
+    if (shaping != 0 || preview_active != 0) {
+        fprintf(stderr, "shape_preview_cancel failed\n");
+        return 0;
+    }
+    shape_preview_cancel(NULL, NULL);
+
+    if (!layer_stack_init(&stack, 2, 2, 0xFFFFFFFF)) {
+        fprintf(stderr, "layer_stack_init for shape preview failed\n");
+        return 0;
+    }
+    if (!canvas_init(&composite, 2, 2)) {
+        fprintf(stderr, "composite init for shape preview failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    composite.pixels[0] = 0xFF010203;
+    composite.pixels[1] = 0xFF040506;
+    composite.pixels[2] = 0xFF070809;
+    composite.pixels[3] = 0xFF0A0B0C;
+
+    if (!shape_preview_begin_if_editable(&stack, 3, 4, &composite, base_pixels, &shaping, &start_x, &start_y) ||
+        !shaping || start_x != 3 || start_y != 4 ||
+        base_pixels[0] != 0xFF010203 || base_pixels[3] != 0xFF0A0B0C) {
+        fprintf(stderr, "shape_preview_begin_if_editable basic start failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    stack.layers[stack.active_layer].locked = 1;
+    shaping = 0;
+    if (shape_preview_begin_if_editable(&stack, 1, 1, &composite, base_pixels, &shaping, &start_x, &start_y) || shaping) {
+        fprintf(stderr, "shape_preview_begin_if_editable locked guard failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[stack.active_layer].locked = 0;
+
+    if (shape_preview_begin_if_editable(&stack, 1, 1, &composite, base_pixels, NULL, &start_x, &start_y) ||
+        shape_preview_begin_if_editable(&stack, 1, 1, &composite, base_pixels, &shaping, NULL, &start_y) ||
+        shape_preview_begin_if_editable(&stack, 1, 1, &composite, base_pixels, &shaping, &start_x, NULL)) {
+        fprintf(stderr, "shape_preview_begin_if_editable null guard failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    shaping = 0;
+    memset(base_pixels, 0, sizeof(base_pixels));
+    if (!shape_preview_begin_if_editable(&stack, 5, 6, NULL, base_pixels, &shaping, &start_x, &start_y) ||
+        !shaping || start_x != 5 || start_y != 6 ||
+        base_pixels[0] != 0 || base_pixels[3] != 0) {
+        fprintf(stderr, "shape_preview_begin_if_editable null composite failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    canvas_free(&composite);
     layer_stack_free(&stack);
     return 1;
 }
@@ -3621,6 +3696,10 @@ int main(void) {
     }
 
     if (!test_layer_creation_helpers()) {
+        return 1;
+    }
+
+    if (!test_shape_preview_state_helpers()) {
         return 1;
     }
 
