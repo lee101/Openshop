@@ -683,6 +683,15 @@ typedef struct {
     Tool tool;
 } ToolHotkey;
 
+typedef int (*ActiveEditHotkeyFn)(LayerStack *layers,
+                                  Snapshot *undo_stack, int *undo_count,
+                                  Snapshot *redo_stack, int *redo_count);
+
+typedef struct {
+    SDL_Keycode key;
+    ActiveEditHotkeyFn action;
+} ActiveEditHotkey;
+
 static const BrushColorHotkey BRUSH_COLOR_HOTKEYS[] = {
     {SDLK_b, COLOR_BRUSH, TOOL_BRUSH},
     {SDLK_e, COLOR_ERASE, TOOL_ERASER},
@@ -700,6 +709,14 @@ static const ToolHotkey TOOL_HOTKEYS[] = {
     {SDLK_t, TOOL_FILLED_RECT},
     {SDLK_o, TOOL_ELLIPSE},
     {SDLK_p, TOOL_FILLED_ELLIPSE},
+};
+
+static const ActiveEditHotkey ACTIVE_EDIT_HOTKEYS[] = {
+    {SDLK_c, try_clear_active_layer},
+    {SDLK_h, try_flip_horizontal_active_layer},
+    {SDLK_v, try_flip_vertical_active_layer},
+    {SDLK_j, try_rotate_active_layer_180},
+    {SDLK_x, try_invert_active_layer_rgb},
 };
 
 static int handle_brush_state_hotkey(SDL_Keycode key,
@@ -758,24 +775,16 @@ static int handle_active_edit_hotkey(SDL_Keycode key,
                                      LayerStack *layers,
                                      Snapshot *undo_stack, int *undo_count,
                                      Snapshot *redo_stack, int *redo_count) {
+    size_t i;
+
     if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count) {
         return 0;
     }
 
-    if (key == SDLK_c) {
-        return try_clear_active_layer(layers, undo_stack, undo_count, redo_stack, redo_count);
-    }
-    if (key == SDLK_h) {
-        return try_flip_horizontal_active_layer(layers, undo_stack, undo_count, redo_stack, redo_count);
-    }
-    if (key == SDLK_v) {
-        return try_flip_vertical_active_layer(layers, undo_stack, undo_count, redo_stack, redo_count);
-    }
-    if (key == SDLK_j) {
-        return try_rotate_active_layer_180(layers, undo_stack, undo_count, redo_stack, redo_count);
-    }
-    if (key == SDLK_x) {
-        return try_invert_active_layer_rgb(layers, undo_stack, undo_count, redo_stack, redo_count);
+    for (i = 0; i < sizeof(ACTIVE_EDIT_HOTKEYS) / sizeof(ACTIVE_EDIT_HOTKEYS[0]); i++) {
+        if (ACTIVE_EDIT_HOTKEYS[i].key == key) {
+            return ACTIVE_EDIT_HOTKEYS[i].action(layers, undo_stack, undo_count, redo_stack, redo_count);
+        }
     }
 
     return 0;
