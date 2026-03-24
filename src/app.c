@@ -2068,6 +2068,59 @@ static int initialize_app_document(
     return 1;
 }
 
+static void initialize_app_runtime(
+    int *running,
+    int *drawing,
+    int *last_x,
+    int *last_y,
+    int *brush_radius,
+    int *brush_opacity,
+    uint32_t *brush_color_rgb,
+    uint32_t *brush_color,
+    BrushShape *brush_shape,
+    Tool *tool,
+    Snapshot *undo_stack,
+    Snapshot *redo_stack,
+    int *undo_count,
+    int *redo_count,
+    int *shaping,
+    int *shape_start_x,
+    int *shape_start_y,
+    int *preview_active,
+    int *needs_composite,
+    uint32_t *preview_pixels,
+    Canvas *preview_canvas
+) {
+    if (!running || !drawing || !last_x || !last_y || !brush_radius || !brush_opacity || !brush_color_rgb ||
+        !brush_color || !brush_shape || !tool || !undo_stack || !redo_stack || !undo_count || !redo_count ||
+        !shaping || !shape_start_x || !shape_start_y || !preview_active || !needs_composite || !preview_canvas) {
+        return;
+    }
+
+    *running = 1;
+    *drawing = 0;
+    *last_x = 0;
+    *last_y = 0;
+    *brush_radius = 6;
+    *brush_opacity = 100;
+    *brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
+    *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+    *brush_shape = BRUSH_SHAPE_ROUND;
+    *tool = TOOL_BRUSH;
+    *undo_count = 0;
+    *redo_count = 0;
+    *shaping = 0;
+    *shape_start_x = 0;
+    *shape_start_y = 0;
+    *preview_active = 0;
+    *needs_composite = 0;
+    memset(undo_stack, 0, sizeof(Snapshot) * MAX_HISTORY);
+    memset(redo_stack, 0, sizeof(Snapshot) * MAX_HISTORY);
+    preview_canvas->width = CANVAS_WIDTH;
+    preview_canvas->height = CANVAS_HEIGHT;
+    preview_canvas->pixels = preview_pixels;
+}
+
 int app_run(const char *input_path) {
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
@@ -2096,14 +2149,14 @@ int app_run(const char *input_path) {
         return 1;
     }
 
-    int running = 1;
+    int running = 0;
     int drawing = 0;
     int last_x = 0;
     int last_y = 0;
-    int brush_radius = 6;
-    int brush_opacity = 100;
-    uint32_t brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
-    uint32_t brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
+    int brush_radius = 0;
+    int brush_opacity = 0;
+    uint32_t brush_color_rgb = 0;
+    uint32_t brush_color = 0;
     BrushShape brush_shape = BRUSH_SHAPE_ROUND;
     Tool tool = TOOL_BRUSH;
     Snapshot undo_stack[MAX_HISTORY];
@@ -2117,9 +2170,30 @@ int app_run(const char *input_path) {
     int needs_composite = 0;
     uint32_t *shape_base_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
     uint32_t *preview_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
-    Canvas preview_canvas = {CANVAS_WIDTH, CANVAS_HEIGHT, preview_pixels};
-    memset(undo_stack, 0, sizeof(undo_stack));
-    memset(redo_stack, 0, sizeof(redo_stack));
+    Canvas preview_canvas = {0};
+    initialize_app_runtime(
+        &running,
+        &drawing,
+        &last_x,
+        &last_y,
+        &brush_radius,
+        &brush_opacity,
+        &brush_color_rgb,
+        &brush_color,
+        &brush_shape,
+        &tool,
+        undo_stack,
+        redo_stack,
+        &undo_count,
+        &redo_count,
+        &shaping,
+        &shape_start_x,
+        &shape_start_y,
+        &preview_active,
+        &needs_composite,
+        preview_pixels,
+        &preview_canvas
+    );
     refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
 
     while (running) {
