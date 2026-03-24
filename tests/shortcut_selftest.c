@@ -313,6 +313,45 @@ static int expect_sampled_brush_color_noop(
     return 1;
 }
 
+static int expect_sampled_brush_color_from_canvas(
+    const char *label,
+    const Canvas *canvas,
+    int x,
+    int y,
+    Tool initial_tool,
+    unsigned int initial_brush_color,
+    unsigned int initial_brush_color_rgb,
+    int initial_brush_opacity,
+    Tool want_tool,
+    unsigned int want_brush_color,
+    unsigned int want_brush_color_rgb,
+    int want_brush_opacity
+) {
+    Tool tool = initial_tool;
+    unsigned int brush_color = initial_brush_color;
+    unsigned int brush_color_rgb = initial_brush_color_rgb;
+    int brush_opacity = initial_brush_opacity;
+
+    app_apply_sampled_brush_color_from_canvas(canvas, x, y, &tool, &brush_color, &brush_color_rgb, &brush_opacity);
+    if (tool != want_tool || brush_color != want_brush_color || brush_color_rgb != want_brush_color_rgb || brush_opacity != want_brush_opacity) {
+        fprintf(
+            stderr,
+            "%s mismatch: got {%d,0x%08X,0x%08X,%d} want {%d,0x%08X,0x%08X,%d}\n",
+            label,
+            tool,
+            brush_color,
+            brush_color_rgb,
+            brush_opacity,
+            want_tool,
+            want_brush_color,
+            want_brush_color_rgb,
+            want_brush_opacity
+        );
+        return 0;
+    }
+    return 1;
+}
+
 static int expect_layer_clear_color(const char *label, int active_layer_index, unsigned int want) {
     unsigned int got = app_active_layer_clear_color(active_layer_index);
     if (got != want) {
@@ -675,6 +714,9 @@ int main(void) {
     Canvas composite_canvas = {4, 4, preview_source};
     Canvas preview_canvas = {4, 4, preview_copy};
     Canvas preview_canvas_without_pixels = {4, 4, NULL};
+    uint32_t sampled_canvas_pixels[4] = {0xFF102030u, 0x80445566u, 0x00000000u, 0xFFABCDEFu};
+    Canvas sampled_canvas = {2, 2, sampled_canvas_pixels};
+    Canvas sampled_canvas_without_pixels = {2, 2, NULL};
     uint32_t preview_restore_copy[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
     uint32_t preview_restore_source[4] = {0x01010101u, 0x02020202u, 0x03030303u, 0x04040404u};
     uint32_t preview_restore_sentinel[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
@@ -791,6 +833,62 @@ int main(void) {
     ok = ok && expect_sampled_brush_color("sampled_brush_color_rounds_down", 0x7F445566u, TOOL_LINE, 0, 0, 0, TOOL_BRUSH, 0x80445566u, 0x00445566u, 50);
     ok = ok && expect_sampled_brush_color("sampled_brush_color_rounds_up", 0x81445566u, TOOL_LINE, 0, 0, 0, TOOL_BRUSH, 0x82445566u, 0x00445566u, 51);
     ok = ok && expect_sampled_brush_color("sampled_brush_color_transparent_clamp", 0x00445566u, TOOL_RECT, 0, 0, 0, TOOL_BRUSH, 0x03445566u, 0x00445566u, 1);
+    ok = ok && expect_sampled_brush_color_from_canvas(
+        "sampled_brush_color_from_canvas",
+        &sampled_canvas,
+        1,
+        0,
+        TOOL_ERASER,
+        0xAA112233u,
+        0x00112233u,
+        42,
+        TOOL_BRUSH,
+        0x80445566u,
+        0x00445566u,
+        50
+    );
+    ok = ok && expect_sampled_brush_color_from_canvas(
+        "sampled_brush_color_from_canvas_null_canvas_noop",
+        NULL,
+        0,
+        0,
+        TOOL_ERASER,
+        0xAA112233u,
+        0x00112233u,
+        42,
+        TOOL_ERASER,
+        0xAA112233u,
+        0x00112233u,
+        42
+    );
+    ok = ok && expect_sampled_brush_color_from_canvas(
+        "sampled_brush_color_from_canvas_missing_pixels_noop",
+        &sampled_canvas_without_pixels,
+        0,
+        0,
+        TOOL_ERASER,
+        0xAA112233u,
+        0x00112233u,
+        42,
+        TOOL_ERASER,
+        0xAA112233u,
+        0x00112233u,
+        42
+    );
+    ok = ok && expect_sampled_brush_color_from_canvas(
+        "sampled_brush_color_from_canvas_oob_noop",
+        &sampled_canvas,
+        2,
+        0,
+        TOOL_ERASER,
+        0xAA112233u,
+        0x00112233u,
+        42,
+        TOOL_ERASER,
+        0xAA112233u,
+        0x00112233u,
+        42
+    );
     ok = ok && expect_sampled_brush_color_noop("sampled_brush_color_null_tool", 0xFF778899u, NULL, &sampled_brush_color, &sampled_brush_color_rgb, &sampled_brush_opacity, TOOL_BRUSH, 0xAA112233u, 0x00112233u, 42);
     ok = ok && expect_sampled_brush_color_noop("sampled_brush_color_null_color", 0xFF778899u, &sampled_tool, NULL, &sampled_brush_color_rgb, &sampled_brush_opacity, TOOL_ERASER, 0, 0x00112233u, 42);
     ok = ok && expect_brush_color("brush_color_low_clamp", 0x00123456u, 0, 0x03123456u);
