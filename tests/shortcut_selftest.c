@@ -2522,6 +2522,65 @@ static int expect_prepare_shape_commit_to_active_layer(
     return ok;
 }
 
+typedef struct {
+    const char *label;
+    int use_stack;
+    int locked;
+    int use_shaping;
+    int shaping_value;
+    Tool tool;
+    int shape_start_x;
+    int shape_start_y;
+    int x;
+    int y;
+    int shift;
+    int undo_capacity;
+    int want_x;
+    int want_y;
+    int want_undo_count;
+    size_t snapshot_index;
+    uint32_t want_snapshot;
+    int want_layer_active;
+} PrepareShapeCommitToActiveLayerCase;
+
+static int run_prepare_shape_commit_to_active_layer_case(
+    const PrepareShapeCommitToActiveLayerCase *test_case
+) {
+    LayerStack stack;
+    Canvas canvas;
+    uint32_t pixels[9];
+    int shaping = test_case->shaping_value;
+    LayerStack *layers = NULL;
+    Layer *want_layer = NULL;
+
+    if (test_case->use_stack) {
+        init_single_layer_stack(&stack, &canvas, pixels, 3, 3, 0xFF123456u, test_case->locked);
+        layers = &stack;
+        if (test_case->want_layer_active) {
+            want_layer = &stack.layers[0];
+        }
+    }
+
+    return expect_prepare_shape_commit_to_active_layer(
+        test_case->label,
+        layers,
+        test_case->use_shaping ? &shaping : NULL,
+        test_case->tool,
+        test_case->shape_start_x,
+        test_case->shape_start_y,
+        test_case->x,
+        test_case->y,
+        test_case->shift,
+        test_case->undo_capacity,
+        test_case->want_x,
+        test_case->want_y,
+        test_case->want_undo_count,
+        test_case->snapshot_index,
+        test_case->want_snapshot,
+        want_layer
+    );
+}
+
 static int expect_finalize_shape_preview(
     const char *label,
     LayerStack *layers,
@@ -3815,82 +3874,52 @@ int main(void) {
         }
     }
     {
-        LayerStack stack;
-        Canvas canvas;
-        uint32_t pixels[9];
+        const PrepareShapeCommitToActiveLayerCase prepare_shape_commit_to_active_layer_cases[] = {
+            {
+                "prepare_shape_commit_to_active_layer_success",
+                1, 0,
+                1, 1,
+                TOOL_LINE,
+                0, 0, 2, 1, 1,
+                2,
+                2, 2,
+                1,
+                4,
+                0xFF123456u,
+                1,
+            },
+            {
+                "prepare_shape_commit_to_active_layer_locked_noop",
+                1, 1,
+                1, 1,
+                TOOL_RECT,
+                0, 0, 2, 1, 0,
+                2,
+                2, 1,
+                0,
+                0,
+                0,
+                0,
+            },
+            {
+                "prepare_shape_commit_to_active_layer_inactive_noop",
+                1, 0,
+                1, 0,
+                TOOL_RECT,
+                0, 0, 2, 1, 0,
+                2,
+                -999, -999,
+                0,
+                0,
+                0,
+                0,
+            },
+        };
+        size_t i;
 
-        shaping = 1;
-        init_single_layer_stack(&stack, &canvas, pixels, 3, 3, 0xFF123456u, 0);
-        ok = ok && expect_prepare_shape_commit_to_active_layer(
-            "prepare_shape_commit_to_active_layer_success",
-            &stack,
-            &shaping,
-            TOOL_LINE,
-            0,
-            0,
-            2,
-            1,
-            1,
-            2,
-            2,
-            2,
-            1,
-            4,
-            0xFF123456u,
-            &stack.layers[0]
-        );
-    }
-    {
-        LayerStack stack;
-        Canvas canvas;
-        uint32_t pixels[9];
-
-        shaping = 1;
-        init_single_layer_stack(&stack, &canvas, pixels, 3, 3, 0xFF123456u, 1);
-        ok = ok && expect_prepare_shape_commit_to_active_layer(
-            "prepare_shape_commit_to_active_layer_locked_noop",
-            &stack,
-            &shaping,
-            TOOL_RECT,
-            0,
-            0,
-            2,
-            1,
-            0,
-            2,
-            2,
-            1,
-            0,
-            0,
-            0,
-            NULL
-        );
-    }
-    {
-        LayerStack stack;
-        Canvas canvas;
-        uint32_t pixels[9];
-
-        shaping = 0;
-        init_single_layer_stack(&stack, &canvas, pixels, 3, 3, 0xFF123456u, 0);
-        ok = ok && expect_prepare_shape_commit_to_active_layer(
-            "prepare_shape_commit_to_active_layer_inactive_noop",
-            &stack,
-            &shaping,
-            TOOL_RECT,
-            0,
-            0,
-            2,
-            1,
-            0,
-            2,
-            -999,
-            -999,
-            0,
-            0,
-            0,
-            NULL
-        );
+        for (i = 0; i < sizeof(prepare_shape_commit_to_active_layer_cases) / sizeof(prepare_shape_commit_to_active_layer_cases[0]); i++) {
+            ok = ok && run_prepare_shape_commit_to_active_layer_case(&prepare_shape_commit_to_active_layer_cases[i]);
+        }
     }
     {
         const FinalizeShapePreviewCase finalize_cases[] = {
