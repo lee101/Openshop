@@ -861,8 +861,6 @@ static int handle_active_layer_structure_shortcut(
     int *redo_count,
     int *needs_composite
 ) {
-    Layer *active = NULL;
-
     if (!layers || !ctrl) {
         return 0;
     }
@@ -928,24 +926,31 @@ static int handle_active_layer_structure_shortcut(
         return 1;
     }
 
-    active = layer_stack_active(layers);
     if (key == SDLK_MINUS || key == SDLK_KP_MINUS) {
-        if (active && active->opacity_percent > 0) {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            if (layer_stack_set_opacity(layers, layers->active_layer, active->opacity_percent - 10) && needs_composite) {
-                *needs_composite = 1;
-            }
-        }
+        app_handle_active_layer_opacity_step(
+            layers,
+            -10,
+            undo_stack,
+            undo_count,
+            MAX_HISTORY,
+            redo_stack,
+            redo_count,
+            needs_composite
+        );
         return 1;
     }
 
     if (key == SDLK_EQUALS || key == SDLK_KP_PLUS) {
-        if (active && active->opacity_percent < 100) {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            if (layer_stack_set_opacity(layers, layers->active_layer, active->opacity_percent + 10) && needs_composite) {
-                *needs_composite = 1;
-            }
-        }
+        app_handle_active_layer_opacity_step(
+            layers,
+            10,
+            undo_stack,
+            undo_count,
+            MAX_HISTORY,
+            redo_stack,
+            redo_count,
+            needs_composite
+        );
         return 1;
     }
 

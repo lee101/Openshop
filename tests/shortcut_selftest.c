@@ -1850,6 +1850,79 @@ static int run_layer_visibility_shortcut_runtime_case(const LayerVisibilityShort
     );
 }
 
+static int expect_active_layer_opacity_step_runtime(
+    const char *label,
+    int initial_opacity,
+    int delta,
+    int want_handled,
+    int want_needs_composite,
+    int want_undo_count,
+    int want_opacity
+) {
+    LayerStack stack = {0};
+    uint32_t pixels[4] = {0};
+    Snapshot undo_stack[2] = {0};
+    Snapshot redo_stack[2] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+    int needs_composite = 0;
+    int handled = 0;
+
+    init_single_layer_stack(&stack, &stack.layers[0].canvas, pixels, 2, 2, 0xFF112233u, 0);
+    stack.layers[0].opacity_percent = initial_opacity;
+
+    handled = app_handle_active_layer_opacity_step(
+        &stack,
+        delta,
+        undo_stack,
+        &undo_count,
+        2,
+        redo_stack,
+        &redo_count,
+        &needs_composite
+    );
+
+    if (handled != want_handled) {
+        fprintf(stderr, "%s handled mismatch: got %d want %d\n", label, handled, want_handled);
+        return 0;
+    }
+    if (needs_composite != want_needs_composite) {
+        fprintf(stderr, "%s needs_composite mismatch: got %d want %d\n", label, needs_composite, want_needs_composite);
+        return 0;
+    }
+    if (undo_count != want_undo_count || redo_count != 0) {
+        fprintf(stderr, "%s history count mismatch: undo %d/%d redo %d/0\n", label, undo_count, want_undo_count, redo_count);
+        return 0;
+    }
+    if (stack.layers[0].opacity_percent != want_opacity) {
+        fprintf(stderr, "%s opacity mismatch: got %d want %d\n", label, stack.layers[0].opacity_percent, want_opacity);
+        return 0;
+    }
+    return 1;
+}
+
+typedef struct {
+    const char *label;
+    int initial_opacity;
+    int delta;
+    int want_handled;
+    int want_needs_composite;
+    int want_undo_count;
+    int want_opacity;
+} ActiveLayerOpacityStepRuntimeCase;
+
+static int run_active_layer_opacity_step_runtime_case(const ActiveLayerOpacityStepRuntimeCase *test_case) {
+    return expect_active_layer_opacity_step_runtime(
+        test_case->label,
+        test_case->initial_opacity,
+        test_case->delta,
+        test_case->want_handled,
+        test_case->want_needs_composite,
+        test_case->want_undo_count,
+        test_case->want_opacity
+    );
+}
+
 static int expect_canvas_sample_shortcut(
     const char *label,
     CanvasShortcutAction action,
@@ -4824,6 +4897,30 @@ int main(void) {
 
         for (i = 0; i < sizeof(layer_visibility_cases) / sizeof(layer_visibility_cases[0]); i++) {
             ok = ok && run_layer_visibility_shortcut_runtime_case(&layer_visibility_cases[i]);
+        }
+    }
+    {
+        const ActiveLayerOpacityStepRuntimeCase active_layer_opacity_step_cases[] = {
+            {"active_layer_opacity_step_down", 70, -10, 1, 1, 1, 60},
+            {"active_layer_opacity_step_up", 70, 10, 1, 1, 1, 80},
+            {"active_layer_opacity_step_down_clamps", 5, -10, 1, 1, 1, 0},
+            {"active_layer_opacity_step_up_clamps", 95, 10, 1, 1, 1, 100},
+            {"active_layer_opacity_step_at_floor_noop", 0, -10, 1, 0, 0, 0},
+            {"active_layer_opacity_step_at_ceiling_noop", 100, 10, 1, 0, 0, 100},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(active_layer_opacity_step_cases) / sizeof(active_layer_opacity_step_cases[0]); i++) {
+            ok = ok && run_active_layer_opacity_step_runtime_case(&active_layer_opacity_step_cases[i]);
+        }
+
+        if (app_handle_active_layer_opacity_step(NULL, 10, NULL, NULL, 0, NULL, NULL, NULL) != 0) {
+            fprintf(stderr, "active_layer_opacity_step_null_layers should reject null layer stack\n");
+            ok = 0;
+        }
+        if (app_handle_active_layer_opacity_step(&layer_stack, 0, NULL, NULL, 0, NULL, NULL, NULL) != 0) {
+            fprintf(stderr, "active_layer_opacity_step_zero_delta should reject zero delta\n");
+            ok = 0;
         }
     }
     {
