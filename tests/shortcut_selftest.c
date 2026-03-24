@@ -517,6 +517,7 @@ int main(void) {
     ok = ok && expect_view_result("view_none", VIEW_SHORTCUT_KEY_NONE, 0, VIEW_SHORTCUT_NONE, 0, 0, 0);
     ok = ok && expect_brush_mask("brush_mask_round_inside", BRUSH_SHAPE_ROUND, 1, 1, 2, 1);
     ok = ok && expect_brush_mask("brush_mask_round_edge", BRUSH_SHAPE_ROUND, 2, 0, 2, 1);
+    ok = ok && expect_brush_mask("brush_mask_round_outside", BRUSH_SHAPE_ROUND, 2, 1, 2, 0);
     ok = ok && expect_brush_mask("brush_mask_square_corner", BRUSH_SHAPE_SQUARE, 2, 2, 2, 1);
     ok = ok && expect_brush_mask("brush_mask_diamond_edge", BRUSH_SHAPE_DIAMOND, 2, 0, 2, 1);
     ok = ok && expect_brush_mask("brush_mask_diamond_outside", BRUSH_SHAPE_DIAMOND, 2, 1, 2, 0);
