@@ -4556,6 +4556,12 @@ int main(void) {
         canvas_free(&c);
         return 1;
     }
+    if (canvas_flood_fill(&c, 1, 1, 0xFFFF0000) ||
+        !expect_pixel_eq("canvas_flood_fill_same_color", canvas_get_pixel(&c, 1, 1), 0xFFFF0000)) {
+        fprintf(stderr, "canvas_flood_fill same-color no-op failed\n");
+        canvas_free(&c);
+        return 1;
+    }
     if (canvas_flood_fill(&c, 1, 1, 0x00FF0000) ||
         !expect_pixel_eq("canvas_flood_fill_transparent", canvas_get_pixel(&c, 1, 1), 0xFFFF0000)) {
         fprintf(stderr, "canvas_flood_fill transparent guard failed\n");

@@ -219,7 +219,7 @@ int canvas_flood_fill(Canvas *c, int x, int y, uint32_t new_color) {
     }
     uint32_t target = canvas_get_pixel(c, x, y);
     if (target == new_color) {
-        return 1;
+        return 0;
     }
 
     size_t capacity = 1024;
