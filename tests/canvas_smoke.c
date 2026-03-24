@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/resource.h>
 
 #ifdef OPENSHOP_TESTING
 typedef void *(*layer_snapshot_alloc_fn)(size_t size);
