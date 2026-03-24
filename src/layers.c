@@ -132,6 +132,9 @@ static int layer_stack_find_combined_filter_from(LayerStack *stack, int start_in
 }
 
 static int layer_stack_cycle_combined_filter(LayerStack *stack, int direction, int required_hidden, int required_locked) {
+    if (!stack || direction == 0) {
+        return -1;
+    }
     int target = layer_stack_find_combined_filter_from(stack, stack ? stack->active_layer : -1, direction, 0,
                                                        required_hidden, required_locked);
     if (target >= 0) {
