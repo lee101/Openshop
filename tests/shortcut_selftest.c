@@ -1,5 +1,6 @@
 #include "../src/app_brush.h"
 #include "../src/app_brush_mask.h"
+#include "../src/app_canvas_click.h"
 #include "../src/app_color.h"
 #include "../src/app_layer_state.h"
 #include "../src/app_preview.h"
@@ -249,6 +250,138 @@ static int expect_begin_direct_stroke(
         }
     } else if (undo_count != 0 || redo_count != 0) {
         fprintf(stderr, "%s no-op snapshot mismatch: undo_count=%d redo_count=%d\n", label, undo_count, redo_count);
+        ok = 0;
+    }
+
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    return ok;
+}
+
+static int expect_handle_left_canvas_press(
+    const char *label,
+    LayerStack *stack,
+    int x,
+    int y,
+    Tool tool,
+    BrushShape shape,
+    int radius,
+    uint32_t brush_color,
+    const Canvas *composite,
+    int initial_drawing,
+    int initial_shaping,
+    int initial_shape_start_x,
+    int initial_shape_start_y,
+    int initial_last_x,
+    int initial_last_y,
+    int initial_needs_composite,
+    uint32_t *shape_base_pixels,
+    const uint32_t *want_shape_base_pixels,
+    size_t want_pixel_count,
+    AppCanvasClickResult want_result,
+    int want_drawing,
+    int want_shaping,
+    int want_shape_start_x,
+    int want_shape_start_y,
+    int want_last_x,
+    int want_last_y,
+    int want_needs_composite,
+    size_t changed_index,
+    uint32_t want_changed,
+    size_t snapshot_index,
+    uint32_t want_snapshot
+) {
+    Snapshot undo_stack[2] = {0};
+    Snapshot redo_stack[2] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+    int drawing = initial_drawing;
+    int shaping = initial_shaping;
+    int shape_start_x = initial_shape_start_x;
+    int shape_start_y = initial_shape_start_y;
+    int last_x = initial_last_x;
+    int last_y = initial_last_y;
+    int needs_composite = initial_needs_composite;
+    AppCanvasClickResult got = app_handle_left_canvas_press(
+        stack,
+        x,
+        y,
+        &last_x,
+        &last_y,
+        tool,
+        shape,
+        radius,
+        brush_color,
+        composite,
+        undo_stack,
+        &undo_count,
+        2,
+        redo_stack,
+        &redo_count,
+        &drawing,
+        &shaping,
+        &shape_start_x,
+        &shape_start_y,
+        shape_base_pixels,
+        &needs_composite
+    );
+    int ok = 1;
+    size_t i;
+
+    if (got != want_result) {
+        fprintf(stderr, "%s result mismatch: got %d want %d\n", label, got, want_result);
+        ok = 0;
+    }
+    if (drawing != want_drawing || shaping != want_shaping || shape_start_x != want_shape_start_x || shape_start_y != want_shape_start_y) {
+        fprintf(
+            stderr,
+            "%s state mismatch: drawing=%d/%d shaping=%d/%d start={%d,%d}/{%d,%d}\n",
+            label,
+            drawing,
+            want_drawing,
+            shaping,
+            want_shaping,
+            shape_start_x,
+            shape_start_y,
+            want_shape_start_x,
+            want_shape_start_y
+        );
+        ok = 0;
+    }
+    if (last_x != want_last_x || last_y != want_last_y || needs_composite != want_needs_composite) {
+        fprintf(
+            stderr,
+            "%s pointer/composite mismatch: last={%d,%d} want {%d,%d} composite=%d want %d\n",
+            label,
+            last_x,
+            last_y,
+            want_last_x,
+            want_last_y,
+            needs_composite,
+            want_needs_composite
+        );
+        ok = 0;
+    }
+    if (shape_base_pixels && want_shape_base_pixels) {
+        for (i = 0; i < want_pixel_count; i++) {
+            if (shape_base_pixels[i] != want_shape_base_pixels[i]) {
+                fprintf(stderr, "%s shape_base_pixels[%zu] mismatch: got 0x%08X want 0x%08X\n", label, i, shape_base_pixels[i], want_shape_base_pixels[i]);
+                ok = 0;
+                break;
+            }
+        }
+    }
+    if (stack && stack->layer_count > 0 && stack->layers[stack->active_layer].canvas.pixels[changed_index] != want_changed) {
+        fprintf(stderr, "%s pixel mismatch: got 0x%08X want 0x%08X\n", label, stack->layers[stack->active_layer].canvas.pixels[changed_index], want_changed);
+        ok = 0;
+    }
+    if (want_result == APP_CANVAS_CLICK_DIRECT_STROKE) {
+        if (undo_count != 1 || redo_count != 0 || !undo_stack[0].pixels || undo_stack[0].pixels[snapshot_index] != want_snapshot) {
+            fprintf(stderr, "%s snapshot mismatch: undo=%d redo=%d pixel=0x%08X want 0x%08X\n", label, undo_count, redo_count, undo_stack[0].pixels ? undo_stack[0].pixels[snapshot_index] : 0u, want_snapshot);
+            ok = 0;
+        }
+    } else if (undo_count != 0 || redo_count != 0) {
+        fprintf(stderr, "%s history mismatch: undo=%d redo=%d want 0/0\n", label, undo_count, redo_count);
         ok = 0;
     }
 
@@ -1976,6 +2109,125 @@ int main(void) {
         for (i = 0; i < sizeof(begin_cases) / sizeof(begin_cases[0]); i++) {
             ok = ok && run_begin_direct_stroke_case(&begin_cases[i]);
         }
+    }
+    {
+        LayerStack stack;
+        Canvas canvas;
+        uint32_t pixels[9];
+        uint32_t shape_base_pixels[4] = {0xDEADBEEFu, 0xC0FFEE00u, 0xAABBCCDDu, 0xEEFF0011u};
+        uint32_t want_shape_base_pixels[4] = {0};
+
+        init_single_layer_stack(&stack, &canvas, pixels, 3, 3, 0xFF000000u, 0);
+        pixels[4] = 0xFF112233u;
+        ok = ok && expect_handle_left_canvas_press(
+            "handle_left_canvas_press_direct_stroke",
+            &stack,
+            1,
+            1,
+            TOOL_BRUSH,
+            BRUSH_SHAPE_ROUND,
+            1,
+            0x80FFFFFFu,
+            &canvas,
+            0,
+            0,
+            7,
+            8,
+            -1,
+            -1,
+            0,
+            shape_base_pixels,
+            shape_base_pixels,
+            4,
+            APP_CANVAS_CLICK_DIRECT_STROKE,
+            1,
+            0,
+            7,
+            8,
+            1,
+            1,
+            1,
+            4,
+            0xFF889199u,
+            4,
+            0xFF112233u
+        );
+
+        init_single_layer_stack(&stack, &canvas, pixels, 2, 2, 0xFF000000u, 0);
+        want_shape_base_pixels[0] = pixels[0];
+        want_shape_base_pixels[1] = pixels[1];
+        want_shape_base_pixels[2] = pixels[2];
+        want_shape_base_pixels[3] = pixels[3];
+        memset(shape_base_pixels, 0, sizeof(shape_base_pixels));
+        ok = ok && expect_handle_left_canvas_press(
+            "handle_left_canvas_press_shape_preview",
+            &stack,
+            1,
+            0,
+            TOOL_RECT,
+            BRUSH_SHAPE_ROUND,
+            1,
+            0xFFFFFFFFu,
+            &canvas,
+            0,
+            0,
+            7,
+            8,
+            -1,
+            -1,
+            0,
+            shape_base_pixels,
+            want_shape_base_pixels,
+            4,
+            APP_CANVAS_CLICK_SHAPE_PREVIEW,
+            0,
+            1,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0xFF000000u,
+            0,
+            0u
+        );
+
+        init_single_layer_stack(&stack, &canvas, pixels, 2, 2, 0xFF010203u, 1);
+        memset(shape_base_pixels, 0x5A, sizeof(shape_base_pixels));
+        ok = ok && expect_handle_left_canvas_press(
+            "handle_left_canvas_press_locked_noop",
+            &stack,
+            1,
+            0,
+            TOOL_RECT,
+            BRUSH_SHAPE_ROUND,
+            1,
+            0xFFFFFFFFu,
+            &canvas,
+            0,
+            0,
+            7,
+            8,
+            -1,
+            -1,
+            0,
+            shape_base_pixels,
+            shape_base_pixels,
+            4,
+            APP_CANVAS_CLICK_NOOP,
+            0,
+            0,
+            7,
+            8,
+            1,
+            0,
+            0,
+            0,
+            0xFF010203u,
+            0,
+            0u
+        );
     }
     {
         ContinueDirectStrokeCase continue_cases[] = {

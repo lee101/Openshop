@@ -1,6 +1,7 @@
 #include "app.h"
 #include "app_brush.h"
 #include "app_brush_mask.h"
+#include "app_canvas_click.h"
 #include "app_canvas_ops.h"
 #include "app_color.h"
 #include "app_layer_state.h"
@@ -1254,37 +1255,29 @@ static void handle_mouse_button_down(
     }
 
     if (button.button == SDL_BUTTON_LEFT) {
-        *last_x = button.x;
-        *last_y = button.y;
-        if (app_tool_draws_directly(*tool)) {
-            app_begin_direct_stroke(
-                layers,
-                *last_x,
-                *last_y,
-                *tool,
-                brush_shape,
-                brush_radius,
-                *brush_color,
-                undo_stack,
-                undo_count,
-                MAX_HISTORY,
-                redo_stack,
-                redo_count,
-                drawing,
-                needs_composite
-            );
-        } else {
-            app_begin_shape_preview_to_active_layer(
-                layers,
-                *last_x,
-                *last_y,
-                shaping,
-                shape_start_x,
-                shape_start_y,
-                shape_base_pixels,
-                composite
-            );
-        }
+        app_handle_left_canvas_press(
+            layers,
+            button.x,
+            button.y,
+            last_x,
+            last_y,
+            *tool,
+            brush_shape,
+            brush_radius,
+            *brush_color,
+            composite,
+            undo_stack,
+            undo_count,
+            MAX_HISTORY,
+            redo_stack,
+            redo_count,
+            drawing,
+            shaping,
+            shape_start_x,
+            shape_start_y,
+            shape_base_pixels,
+            needs_composite
+        );
         return;
     }
 
