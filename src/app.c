@@ -275,6 +275,47 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
     SDL_SetWindowTitle(window, title);
 }
 
+static int apply_active_layer_opacity_value(
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int opacity_percent
+) {
+    Layer *active = layer_stack_active(layers);
+    if (!active || active->opacity_percent == opacity_percent) {
+        return 0;
+    }
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    return layer_stack_set_opacity(layers, layers->active_layer, opacity_percent);
+}
+
+static int apply_active_layer_opacity_delta(
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int delta_percent
+) {
+    Layer *active = layer_stack_active(layers);
+    if (!active) {
+        return 0;
+    }
+    int target = active->opacity_percent + delta_percent;
+    if (target < 0) {
+        target = 0;
+    } else if (target > 100) {
+        target = 100;
+    }
+    if (target == active->opacity_percent) {
+        return 0;
+    }
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    return layer_stack_adjust_opacity(layers, layers->active_layer, delta_percent);
+}
+
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
     switch (shape) {
     case BRUSH_SHAPE_ROUND:
@@ -935,26 +976,18 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && (key == SDLK_MINUS || key == SDLK_KP_MINUS)) {
-                    Layer *active = layer_stack_active(&layers);
                     int delta = shift ? -1 : -10;
-                    if (active && active->opacity_percent > 0) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        if (layer_stack_adjust_opacity(&layers, layers.active_layer, delta)) {
-                            needs_composite = 1;
-                        }
+                    if (apply_active_layer_opacity_delta(&layers, undo_stack, &undo_count, redo_stack, &redo_count, delta)) {
+                        needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
                 if (ctrl && (key == SDLK_EQUALS || key == SDLK_KP_PLUS)) {
-                    Layer *active = layer_stack_active(&layers);
                     int delta = shift ? 1 : 10;
-                    if (active && active->opacity_percent < 100) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        if (layer_stack_adjust_opacity(&layers, layers.active_layer, delta)) {
-                            needs_composite = 1;
-                        }
+                    if (apply_active_layer_opacity_delta(&layers, undo_stack, &undo_count, redo_stack, &redo_count, delta)) {
+                        needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
@@ -1133,10 +1166,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && shift && key == SDLK_0) {
-                    Layer *active = layer_stack_active(&layers);
-                    if (active && active->opacity_percent != 0) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        layer_stack_set_opacity(&layers, layers.active_layer, 0);
+                    if (apply_active_layer_opacity_value(&layers, undo_stack, &undo_count, redo_stack, &redo_count, 0)) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1144,10 +1174,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_9) {
-                    Layer *active = layer_stack_active(&layers);
-                    if (active && active->opacity_percent != 50) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        layer_stack_set_opacity(&layers, layers.active_layer, 50);
+                    if (apply_active_layer_opacity_value(&layers, undo_stack, &undo_count, redo_stack, &redo_count, 50)) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1155,10 +1182,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_0) {
-                    Layer *active = layer_stack_active(&layers);
-                    if (active && active->opacity_percent != 100) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        layer_stack_set_opacity(&layers, layers.active_layer, 100);
+                    if (apply_active_layer_opacity_value(&layers, undo_stack, &undo_count, redo_stack, &redo_count, 100)) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
