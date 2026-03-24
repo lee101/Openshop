@@ -276,6 +276,9 @@ int active_layer_continue_brush_stroke(LayerStack *layers,
     if (!active || active->locked || !active->canvas.pixels) {
         return 0;
     }
+    if (tool != TOOL_BRUSH && tool != TOOL_ERASER) {
+        return 0;
+    }
     if (x < 0 || y < 0 || x >= active->canvas.width || y >= active->canvas.height) {
         return 0;
     }
