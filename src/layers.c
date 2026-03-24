@@ -471,6 +471,49 @@ int layer_stack_reset_visible_names(LayerStack *stack) {
     return changed;
 }
 
+int layer_stack_can_reset_non_background_unlocked_names(const LayerStack *stack) {
+    char next_name[LAYER_NAME_MAX];
+
+    if (!stack) {
+        return 0;
+    }
+
+    for (int i = 1; i < stack->layer_count; i++) {
+        if (stack->layers[i].locked) {
+            continue;
+        }
+        layer_default_name(next_name, sizeof(next_name), stack, i);
+        if (strcmp(stack->layers[i].name, next_name) != 0) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+int layer_stack_reset_non_background_unlocked_names(LayerStack *stack) {
+    char next_name[LAYER_NAME_MAX];
+    int changed = 0;
+
+    if (!stack) {
+        return 0;
+    }
+
+    for (int i = 1; i < stack->layer_count; i++) {
+        if (stack->layers[i].locked) {
+            continue;
+        }
+        layer_default_name(next_name, sizeof(next_name), stack, i);
+        if (strcmp(stack->layers[i].name, next_name) == 0) {
+            continue;
+        }
+        memcpy(stack->layers[i].name, next_name, sizeof(next_name));
+        changed = 1;
+    }
+
+    return changed;
+}
+
 int layer_stack_toggle_lock(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;

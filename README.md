@@ -62,6 +62,7 @@ make test-sdl
 - `Ctrl+- / Ctrl+=`: active layer opacity down/up
 - `Ctrl+0`: reset active layer opacity to 100%
 - `F2`: reset the active layer name to the next available default label
+- `Ctrl+Alt+Shift+F2`: reset non-background unlocked layer names to default labels
 - `Ctrl+Alt+F2`: reset visible layer names to default labels
 - `Ctrl+Shift+F2`: reset unlocked layer names to default labels
 - `Ctrl+F2`: reset all layer names to default labels

@@ -208,6 +208,28 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_rename(&stack, 0, "Backdrop") || !layer_stack_add(&stack, "Mask", 0x00000000) ||
+        !layer_stack_toggle_lock(&stack, 1) || !layer_stack_can_reset_non_background_unlocked_names(&stack) ||
+        !layer_stack_reset_non_background_unlocked_names(&stack)) {
+        fprintf(stderr, "reset non-background unlocked names setup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Backdrop") != 0 || strcmp(stack.layers[1].name, "Top") != 0 ||
+        strcmp(stack.layers[2].name, "Layer") != 0) {
+        fprintf(stderr, "reset non-background unlocked names labels failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_can_reset_non_background_unlocked_names(&stack) || layer_stack_reset_non_background_unlocked_names(&stack) ||
+        !layer_stack_toggle_lock(&stack, 1) || !layer_stack_delete(&stack, 2) || !layer_stack_rename(&stack, 0, "Background")) {
+        fprintf(stderr, "reset non-background unlocked names cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_toggle_solo(&stack, 1)) {
         fprintf(stderr, "solo hidden layer failed\n");
         canvas_free(&composite);
