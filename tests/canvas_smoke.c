@@ -308,6 +308,79 @@ static int test_layer_snapshot_capture_apply_guard_paths(void) {
     return 1;
 }
 
+static int test_layer_snapshot_capture_reuses_existing_snapshot(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "snapshot reuse init failed\n");
+        return 0;
+    }
+    if (layer_stack_add(&stack, "Ink", 0x00000000) != 1) {
+        fprintf(stderr, "snapshot reuse add layer failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF112233);
+    canvas_set_pixel(&stack.layers[1].canvas, 1, 1, 0xFF445566);
+    stack.layers[1].visible = 0;
+    stack.layers[1].locked = 1;
+    stack.layers[1].opacity_percent = 37;
+    stack.active_layer = 1;
+
+    LayerSnapshot snapshot = {0};
+    snapshot.width = 9;
+    snapshot.height = 7;
+    snapshot.layer_count = 3;
+    snapshot.active_layer = 2;
+    snapshot.solo_index = 1;
+    snapshot.visibility[0] = 9;
+    snapshot.names[0][0] = 'x';
+    snapshot.pixels = (uint32_t *)malloc(4 * sizeof(uint32_t));
+    if (!snapshot.pixels) {
+        fprintf(stderr, "snapshot reuse seed allocation failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    snapshot.pixels[0] = 0xDEADBEEF;
+
+    if (!layer_snapshot_capture(&snapshot, &stack)) {
+        fprintf(stderr, "snapshot reuse capture failed\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (snapshot.width != 4 || snapshot.height != 4 || snapshot.layer_count != 2 ||
+        snapshot.active_layer != 1 || snapshot.solo_index != -1) {
+        fprintf(stderr, "snapshot reuse capture should replace scalar metadata\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (snapshot.visibility[1] != 0 || snapshot.locked[1] != 1 || snapshot.opacity_percent[1] != 37) {
+        fprintf(stderr, "snapshot reuse capture should replace layer metadata\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(snapshot.names[0], "Background") != 0 || strcmp(snapshot.names[1], "Ink") != 0) {
+        fprintf(stderr, "snapshot reuse capture should replace layer names\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("snapshot_reuse_background", snapshot.pixels[0], 0xFF112233) ||
+        !expect_pixel_eq("snapshot_reuse_ink", snapshot.pixels[21], 0xFF445566)) {
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_snapshot_free(&snapshot);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layer_history_stack(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 2, 2, 0xFFFFFFFF)) {
@@ -2631,6 +2704,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_snapshot_capture_apply_guard_paths()) {
+        return 1;
+    }
+    if (!test_layer_snapshot_capture_reuses_existing_snapshot()) {
         return 1;
     }
     if (!test_layer_history_stack()) {
