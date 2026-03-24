@@ -53,6 +53,19 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.active_layer = 0;
+    if (!layer_stack_toggle_visibility(&stack, 1) || !stack.layers[1].visible || stack.active_layer != 0) {
+        fprintf(stderr, "direct visibility restore bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_visibility(&stack, 1) || stack.layers[1].visible || stack.active_layer != 0) {
+        fprintf(stderr, "direct visibility hide bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_toggle_solo(&stack, 1)) {
         fprintf(stderr, "solo hidden layer failed\n");
         canvas_free(&composite);

@@ -760,6 +760,7 @@ int app_run(const char *input_path) {
                 SDL_Keycode key = e.key.keysym.sym;
                 const Uint8 *state = SDL_GetKeyboardState(NULL);
                 int ctrl = state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL];
+                int alt = state[SDL_SCANCODE_LALT] || state[SDL_SCANCODE_RALT];
                 int shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
 
                 if (shaping && should_cancel_shape_on_key(key, ctrl)) {
@@ -1078,6 +1079,21 @@ int app_run(const char *input_path) {
                         snapshot_apply(&next, &layers);
                         snapshot_free(&next);
                         needs_composite = 1;
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    }
+                    break;
+                }
+
+                if (ctrl && alt && key >= SDLK_1 && key <= SDLK_8) {
+                    int target = (int)(key - SDLK_1);
+                    const Layer *target_layer = layer_stack_get(&layers, target);
+                    if (target_layer && (!target_layer->visible || layer_stack_visible_count(&layers) > 1)) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        if (!layer_stack_toggle_visibility(&layers, target)) {
+                            fprintf(stderr, "Cannot hide the final visible layer\n");
+                        } else {
+                            needs_composite = 1;
+                        }
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                     break;
