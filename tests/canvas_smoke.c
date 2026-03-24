@@ -27,6 +27,15 @@ static int expect_pixel_eq(const char *label, uint32_t got, uint32_t want) {
     return 1;
 }
 
+static int test_layer_action_history_custom_flip(LayerStack *layers, void *ctx) {
+    int *flip = (int *)ctx;
+    if (!layers || !flip || !*flip) {
+        return 0;
+    }
+    layers->active_layer = 0;
+    return 1;
+}
+
 static int test_brush_state_helpers(void) {
     uint32_t brush_rgb = 0;
     uint32_t brush_color = 0;
@@ -126,6 +135,7 @@ static int test_layer_action_history_helpers(void) {
     Snapshot redo_stack[4] = {0};
     int undo_count = 0;
     int redo_count = 0;
+    int custom_flip = 0;
 
     if (!layer_stack_init(&stack, 3, 3, 0xFFFFFFFF)) {
         fprintf(stderr, "layer action history init failed\n");
@@ -197,6 +207,35 @@ static int test_layer_action_history_helpers(void) {
     }
     if (undo_count != 1 || redo_count != 0 || stack.active_layer != 1 || !stack.layers[1].visible) {
         fprintf(stderr, "directional change history bookkeeping failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    custom_flip = 0;
+    stack.active_layer = 1;
+    if (layer_action_history_apply_custom(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                          4, test_layer_action_history_custom_flip, &custom_flip)) {
+        fprintf(stderr, "custom no-op should not push history\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (undo_count != 0 || redo_count != 0 || stack.active_layer != 1) {
+        fprintf(stderr, "custom no-op should preserve history and state\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    custom_flip = 1;
+    if (!layer_action_history_apply_custom(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                           4, test_layer_action_history_custom_flip, &custom_flip)) {
+        fprintf(stderr, "custom change should push history\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (undo_count != 1 || redo_count != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "custom change history bookkeeping failed\n");
         layer_stack_free(&stack);
         return 0;
     }
