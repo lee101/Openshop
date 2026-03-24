@@ -63,7 +63,7 @@ int snapshot_from_layers(Snapshot *s, const LayerStack *stack) {
     return 1;
 }
 
-int snapshot_apply(const Snapshot *s, LayerStack *stack) {
+static int snapshot_apply_impl(const Snapshot *s, LayerStack *stack) {
     int layer_index;
     size_t per_layer;
 
@@ -109,6 +109,24 @@ int snapshot_apply(const Snapshot *s, LayerStack *stack) {
     if (stack->solo_index >= stack->layer_count) {
         stack->solo_index = -1;
     }
+    return 1;
+}
+
+int snapshot_apply(const Snapshot *s, LayerStack *stack) {
+    Snapshot before = {0};
+
+    if (!s || !stack || !s->pixels) {
+        return 0;
+    }
+    if (!snapshot_from_layers(&before, stack)) {
+        return 0;
+    }
+    if (!snapshot_apply_impl(s, stack)) {
+        snapshot_apply_impl(&before, stack);
+        snapshot_free(&before);
+        return 0;
+    }
+    snapshot_free(&before);
     return 1;
 }
 

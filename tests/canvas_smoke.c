@@ -1292,6 +1292,33 @@ static int test_snapshot_history_helpers(void) {
         return 0;
     }
 
+    if (!snapshot_from_layers(&snap, &stack)) {
+        fprintf(stderr, "snapshot_apply rollback setup failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    snap.pixels[0] = 0xFF445566;
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 0, 0xFF010203);
+    canvas_free(&stack.layers[1].canvas);
+    stack.layers[1].locked = 1;
+    if (snapshot_apply(&snap, &stack) ||
+        !expect_pixel_eq("snapshot_apply_atomic_rollback", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF010203) ||
+        stack.layers[1].canvas.pixels != NULL || !stack.layers[1].locked) {
+        fprintf(stderr, "snapshot_apply should roll back partial restore failures\n");
+        snapshot_free(&snap);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[1].locked = 0;
+    if (!layer_stack_clear_layer(&stack, 1, 0x00000000)) {
+        fprintf(stderr, "snapshot_apply rollback cleanup failed\n");
+        snapshot_free(&snap);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    canvas_set_pixel_raw(&stack.layers[1].canvas, 1, 1, 0xFF112233);
+    snapshot_free(&snap);
+
     snapshot_push(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 2);
     if (undo_count != 1) {
         fprintf(stderr, "snapshot_push count failed\n");
