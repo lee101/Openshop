@@ -180,6 +180,16 @@ static int test_layers_basic(void) {
             return 0;
         }
     }
+    {
+        char hint[2] = {'X', 'Y'};
+        format_hidden_layer_hint(NULL, hint, sizeof(hint));
+        if (hint[0] != '\0' || hint[1] != 'Y') {
+            fprintf(stderr, "null layer hint formatting failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
     stack.layers[0].opacity_percent = 60;
     stack.layers[0].locked = 1;
     stack.active_layer = 0;
@@ -232,6 +242,17 @@ static int test_layers_basic(void) {
         format_window_title(&stack, NULL, NULL, 2, 0xFF445566, 90, title, sizeof(title));
         if (strcmp(title, "Openshop - Tool (Brush) | size 2 | brush 90% | layer 1/2 Background [hidden, locked 55%] | vis 0 hid 2 lock 1 solo off | #FF445566 | hints hu C-A-;/' hl C-S-,/.") != 0) {
             fprintf(stderr, "window title formatting failed for default tool and brush labels\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    {
+        char title[32];
+        memset(title, 'X', sizeof(title));
+        format_window_title(&stack, "Brush", "Round", 2, 0xFF445566, 90, title, sizeof(title));
+        if (title[sizeof(title) - 1] != '\0') {
+            fprintf(stderr, "window title should stay null terminated\n");
             canvas_free(&composite);
             layer_stack_free(&stack);
             return 0;
@@ -318,6 +339,47 @@ static int test_layers_basic(void) {
         format_status_text_file_save("output.bmp", status_message, sizeof(status_message));
         if (strcmp(status_message, "Failed to save output.bmp") != 0) {
             fprintf(stderr, "file save status text formatting failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    {
+        char status_message[64];
+        format_status_text_startup(NULL, status_message, sizeof(status_message));
+        if (strcmp(status_message, "Startup failed") != 0) {
+            fprintf(stderr, "startup fallback status text formatting failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    {
+        char status_message[64];
+        format_status_text_sdl(NULL, NULL, status_message, sizeof(status_message));
+        if (strcmp(status_message, "SDL failed: ") != 0) {
+            fprintf(stderr, "sdl fallback status text formatting failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    {
+        char status_message[32];
+        format_status_text_file_load(NULL, status_message, sizeof(status_message));
+        if (strcmp(status_message, "Failed to load ") != 0) {
+            fprintf(stderr, "file load fallback status text formatting failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    {
+        char status_message[16];
+        memset(status_message, 'X', sizeof(status_message));
+        format_status_text_file_save("very-long-output-name.bmp", status_message, sizeof(status_message));
+        if (status_message[sizeof(status_message) - 1] != '\0') {
+            fprintf(stderr, "file save status text should stay null terminated\n");
             canvas_free(&composite);
             layer_stack_free(&stack);
             return 0;
