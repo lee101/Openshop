@@ -388,6 +388,33 @@ int app_handle_active_layer_reorder_shortcut(
     return 0;
 }
 
+int app_handle_active_layer_duplicate_shortcut(
+    int key,
+    int ctrl,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    int undo_capacity,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+) {
+    if (!layers || !ctrl || key != 'd') {
+        return 0;
+    }
+
+    if (!layer_stack_can_duplicate(layers, layers->active_layer)) {
+        return 1;
+    }
+
+    snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
+    layer_stack_duplicate(layers, layers->active_layer, NULL);
+    if (needs_composite) {
+        *needs_composite = 1;
+    }
+    return 1;
+}
+
 int app_handle_canvas_sample_shortcut_at(
     CanvasShortcutAction canvas_action,
     LayerStack *layers,

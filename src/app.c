@@ -865,16 +865,17 @@ static int handle_active_layer_structure_shortcut(
         return 0;
     }
 
-    if (key == SDLK_d) {
-        if (!layer_stack_can_duplicate(layers, layers->active_layer)) {
-            fprintf(stderr, "Could not duplicate layer\n");
-        } else {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            layer_stack_duplicate(layers, layers->active_layer, NULL);
-            if (needs_composite) {
-                *needs_composite = 1;
-            }
-        }
+    if (app_handle_active_layer_duplicate_shortcut(
+            key == SDLK_d ? 'd' : 0,
+            ctrl,
+            layers,
+            undo_stack,
+            undo_count,
+            MAX_HISTORY,
+            redo_stack,
+            redo_count,
+            needs_composite
+        )) {
         return 1;
     }
 
