@@ -307,32 +307,66 @@ static int test_brush_render_helpers(void) {
 
 static int test_shape_draw_helpers(void) {
     Canvas canvas = {0};
+    Canvas blank = {0};
 
     if (!canvas_init(&canvas, 9, 9)) {
         fprintf(stderr, "shape draw canvas init failed\n");
         return 0;
     }
+    if (!canvas_init(&blank, 9, 9)) {
+        fprintf(stderr, "shape draw blank canvas init failed\n");
+        canvas_free(&canvas);
+        return 0;
+    }
     canvas_clear(&canvas, 0x00000000);
+    canvas_clear(&blank, 0x00000000);
 
     draw_shape(&canvas, TOOL_FILLED_RECT, 2, 2, 5, 5, 1, 0xFF778899);
     if (!expect_pixel_eq("shape_filled_rect_center", canvas_get_pixel(&canvas, 3, 3), 0xFF778899)) {
         canvas_free(&canvas);
+        canvas_free(&blank);
+        return 0;
+    }
+
+    draw_shape(&canvas, TOOL_RECT, 1, 1, 7, 7, 1, 0xFFAA5500);
+    if (!expect_pixel_eq("shape_rect_outline_edge", canvas_get_pixel(&canvas, 1, 4), 0xFFAA5500) ||
+        !expect_pixel_eq("shape_rect_outline_interior", canvas_get_pixel(&canvas, 4, 4), 0xFF778899)) {
+        canvas_free(&canvas);
+        canvas_free(&blank);
         return 0;
     }
 
     draw_shape(&canvas, TOOL_LINE, 0, 0, 8, 8, 1, 0xFF112233);
     if (!expect_pixel_eq("shape_line_mid", canvas_get_pixel(&canvas, 4, 4), 0xFF112233)) {
         canvas_free(&canvas);
+        canvas_free(&blank);
         return 0;
     }
 
     draw_shape(&canvas, TOOL_FILLED_ELLIPSE, 2, 2, 6, 6, 1, 0xFF445566);
     if (!expect_pixel_eq("shape_filled_ellipse_center", canvas_get_pixel(&canvas, 4, 4), 0xFF445566)) {
         canvas_free(&canvas);
+        canvas_free(&blank);
+        return 0;
+    }
+
+    draw_shape(&blank, TOOL_ELLIPSE, 1, 1, 7, 7, 1, 0xFFABCDEF);
+    if (!expect_pixel_eq("shape_ellipse_outline_edge", canvas_get_pixel(&blank, 4, 1), 0xFFABCDEF) ||
+        !expect_pixel_eq("shape_ellipse_outline_center", canvas_get_pixel(&blank, 4, 4), 0x00000000)) {
+        canvas_free(&canvas);
+        canvas_free(&blank);
+        return 0;
+    }
+
+    draw_shape(&blank, TOOL_BRUSH, 0, 0, 8, 8, 1, 0xFFFFFFFF);
+    if (!expect_pixel_eq("shape_default_noop", canvas_get_pixel(&blank, 0, 0), 0x00000000)) {
+        canvas_free(&canvas);
+        canvas_free(&blank);
         return 0;
     }
 
     canvas_free(&canvas);
+    canvas_free(&blank);
     return 1;
 }
 
