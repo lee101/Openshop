@@ -1884,6 +1884,52 @@ static void handle_key_down(
     refresh_app_title(window, layers, *tool, *brush_shape, *brush_radius, *brush_color, *brush_opacity);
 }
 
+static void render_app_frame(
+    SDL_Renderer *renderer,
+    SDL_Texture *texture,
+    LayerStack *layers,
+    Canvas *composite,
+    Canvas *preview_canvas,
+    int preview_active,
+    int *needs_composite
+) {
+    if (!renderer || !texture || !layers || !composite || !preview_canvas || !needs_composite) {
+        return;
+    }
+
+    if (!preview_active && *needs_composite) {
+        layer_stack_composite(layers, composite, COLOR_BG);
+        *needs_composite = 0;
+    }
+
+    if (preview_active && preview_canvas->pixels) {
+        SDL_UpdateTexture(texture, NULL, preview_canvas->pixels, CANVAS_WIDTH * 4);
+    } else {
+        SDL_UpdateTexture(texture, NULL, composite->pixels, CANVAS_WIDTH * 4);
+    }
+    SDL_SetRenderDrawColor(renderer, 30, 30, 34, 255);
+    SDL_RenderClear(renderer);
+
+    for (int y = 0; y < CANVAS_HEIGHT; y += CHECKER_SIZE) {
+        for (int x = 0; x < CANVAS_WIDTH; x += CHECKER_SIZE) {
+            int even = ((x / CHECKER_SIZE) + (y / CHECKER_SIZE)) % 2 == 0;
+            if (even) {
+                SDL_SetRenderDrawColor(renderer, 232, 232, 236, 255);
+            } else {
+                SDL_SetRenderDrawColor(renderer, 206, 206, 212, 255);
+            }
+            SDL_Rect cell = {x, y, CHECKER_SIZE, CHECKER_SIZE};
+            SDL_RenderFillRect(renderer, &cell);
+        }
+    }
+
+    {
+        SDL_Rect dest = {0, 0, CANVAS_WIDTH, CANVAS_HEIGHT};
+        SDL_RenderCopy(renderer, texture, NULL, &dest);
+    }
+    SDL_RenderPresent(renderer);
+}
+
 int app_run(const char *input_path) {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
@@ -2088,35 +2134,15 @@ int app_run(const char *input_path) {
             }
         }
 
-        if (!preview_active && needs_composite) {
-            layer_stack_composite(&layers, &composite, COLOR_BG);
-            needs_composite = 0;
-        }
-
-        if (preview_active && preview_canvas.pixels) {
-            SDL_UpdateTexture(texture, NULL, preview_canvas.pixels, CANVAS_WIDTH * 4);
-        } else {
-            SDL_UpdateTexture(texture, NULL, composite.pixels, CANVAS_WIDTH * 4);
-        }
-        SDL_SetRenderDrawColor(renderer, 30, 30, 34, 255);
-        SDL_RenderClear(renderer);
-
-        for (int y = 0; y < CANVAS_HEIGHT; y += CHECKER_SIZE) {
-            for (int x = 0; x < CANVAS_WIDTH; x += CHECKER_SIZE) {
-                int even = ((x / CHECKER_SIZE) + (y / CHECKER_SIZE)) % 2 == 0;
-                if (even) {
-                    SDL_SetRenderDrawColor(renderer, 232, 232, 236, 255);
-                } else {
-                    SDL_SetRenderDrawColor(renderer, 206, 206, 212, 255);
-                }
-                SDL_Rect cell = {x, y, CHECKER_SIZE, CHECKER_SIZE};
-                SDL_RenderFillRect(renderer, &cell);
-            }
-        }
-
-        SDL_Rect dest = {0, 0, CANVAS_WIDTH, CANVAS_HEIGHT};
-        SDL_RenderCopy(renderer, texture, NULL, &dest);
-        SDL_RenderPresent(renderer);
+        render_app_frame(
+            renderer,
+            texture,
+            &layers,
+            &composite,
+            &preview_canvas,
+            preview_active,
+            &needs_composite
+        );
         SDL_Delay(16);
     }
 
