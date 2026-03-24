@@ -140,7 +140,7 @@ typedef enum {
     APP_ESCAPE_QUIT
 } AppEscapeAction;
 
-AppOpacityHotkeyAction app_opacity_hotkey_action(int key);
+AppOpacityHotkeyAction app_opacity_hotkey_action(int key, int ctrl, int alt);
 AppLayerNavigationAction app_layer_navigation_action(int key, int ctrl, int alt, int shift, int *arg);
 AppFileHotkeyAction app_file_hotkey_action(int key, int ctrl, int alt, int shift);
 AppHistoryHotkeyAction app_history_hotkey_action(int key, int ctrl, int alt, int shift);

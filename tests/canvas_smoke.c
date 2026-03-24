@@ -93,16 +93,18 @@ static int test_app_input_rules(void) {
         fprintf(stderr, "shape cancel non-hotkeys should fail cleanly\n");
         return 0;
     }
-    if (app_opacity_hotkey_action(APP_KEY_0) != APP_OPACITY_HOTKEY_SET_MAX ||
-        app_opacity_hotkey_action(APP_KEY_MINUS) != APP_OPACITY_HOTKEY_NUDGE_DOWN ||
-        app_opacity_hotkey_action(APP_KEY_KP_MINUS) != APP_OPACITY_HOTKEY_NUDGE_DOWN ||
-        app_opacity_hotkey_action(APP_KEY_EQUALS) != APP_OPACITY_HOTKEY_NUDGE_UP ||
-        app_opacity_hotkey_action(APP_KEY_KP_PLUS) != APP_OPACITY_HOTKEY_NUDGE_UP) {
+    if (app_opacity_hotkey_action(APP_KEY_0, 0, 0) != APP_OPACITY_HOTKEY_SET_MAX ||
+        app_opacity_hotkey_action(APP_KEY_MINUS, 0, 0) != APP_OPACITY_HOTKEY_NUDGE_DOWN ||
+        app_opacity_hotkey_action(APP_KEY_KP_MINUS, 0, 0) != APP_OPACITY_HOTKEY_NUDGE_DOWN ||
+        app_opacity_hotkey_action(APP_KEY_EQUALS, 0, 0) != APP_OPACITY_HOTKEY_NUDGE_UP ||
+        app_opacity_hotkey_action(APP_KEY_KP_PLUS, 0, 0) != APP_OPACITY_HOTKEY_NUDGE_UP) {
         fprintf(stderr, "opacity hotkey mapping failed\n");
         return 0;
     }
-    if (app_opacity_hotkey_action(APP_KEY_b) != APP_OPACITY_HOTKEY_NONE) {
-        fprintf(stderr, "opacity non-hotkey mapping failed\n");
+    if (app_opacity_hotkey_action(APP_KEY_b, 0, 0) != APP_OPACITY_HOTKEY_NONE ||
+        app_opacity_hotkey_action(APP_KEY_MINUS, 1, 0) != APP_OPACITY_HOTKEY_NONE ||
+        app_opacity_hotkey_action(APP_KEY_EQUALS, 0, 1) != APP_OPACITY_HOTKEY_NONE) {
+        fprintf(stderr, "opacity non-hotkey or modifier rejection failed\n");
         return 0;
     }
     {

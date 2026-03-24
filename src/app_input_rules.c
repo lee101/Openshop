@@ -96,7 +96,10 @@ int app_should_cancel_shape_on_key(int key, int ctrl) {
     }
 }
 
-AppOpacityHotkeyAction app_opacity_hotkey_action(int key) {
+AppOpacityHotkeyAction app_opacity_hotkey_action(int key, int ctrl, int alt) {
+    if (ctrl || alt) {
+        return APP_OPACITY_HOTKEY_NONE;
+    }
     if (key == APP_KEY_0) {
         return APP_OPACITY_HOTKEY_SET_MAX;
     }

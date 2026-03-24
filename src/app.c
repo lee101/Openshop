@@ -854,7 +854,7 @@ static int handle_layer_opacity_hotkey(SDL_Keycode key,
         return 0;
     }
 
-    opacity_action = app_opacity_hotkey_action(key);
+    opacity_action = app_opacity_hotkey_action(key, ctrl, alt);
     if (opacity_action == APP_OPACITY_HOTKEY_SET_MAX) {
         result = active_layer_try_adjust_opacity_with_result(action_state->layers, action_state->undo_stack,
                                                              action_state->undo_count, action_state->redo_stack,
