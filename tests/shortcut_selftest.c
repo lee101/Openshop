@@ -1454,6 +1454,46 @@ static int expect_prepare_shape_commit_to_active_layer(
     return ok;
 }
 
+static int expect_draw_shape_pixel(
+    const char *label,
+    Tool tool,
+    int x0,
+    int y0,
+    int x1,
+    int y1,
+    int radius,
+    uint32_t initial_color,
+    uint32_t draw_color,
+    size_t changed_index,
+    uint32_t want_changed,
+    size_t unchanged_index,
+    uint32_t want_unchanged
+) {
+    Canvas canvas = {5, 5, NULL};
+    uint32_t pixels[25];
+    size_t i;
+
+    for (i = 0; i < sizeof(pixels) / sizeof(pixels[0]); i++) {
+        pixels[i] = initial_color;
+    }
+    canvas.pixels = pixels;
+
+    app_draw_shape(&canvas, tool, x0, y0, x1, y1, radius, draw_color);
+    if (pixels[changed_index] != want_changed || pixels[unchanged_index] != want_unchanged) {
+        fprintf(
+            stderr,
+            "%s mismatch: changed 0x%08X want 0x%08X unchanged 0x%08X want 0x%08X\n",
+            label,
+            pixels[changed_index],
+            want_changed,
+            pixels[unchanged_index],
+            want_unchanged
+        );
+        return 0;
+    }
+    return 1;
+}
+
 typedef struct {
     const char *label;
     Canvas *preview_canvas;
@@ -1892,6 +1932,51 @@ int main(void) {
     ok = ok && expect_constrained_shape_end("shape_unknown_tool_passthrough", (Tool)999, 10, 10, 25, 13, 1, 25, 13);
     ok = ok && expect_constrained_shape_end_no_output("shape_null_out_x", TOOL_LINE, 10, 10, 25, 13, 1, NULL, &sentinel_y, 0, 654);
     ok = ok && expect_constrained_shape_end_no_output("shape_null_out_y", TOOL_LINE, 10, 10, 25, 13, 1, &sentinel_x, NULL, 321, 0);
+    ok = ok && expect_draw_shape_pixel(
+        "draw_shape_line_dispatch",
+        TOOL_LINE,
+        1,
+        2,
+        3,
+        2,
+        1,
+        0x00000000u,
+        0xFF556677u,
+        12,
+        0xFF556677u,
+        0,
+        0x00000000u
+    );
+    ok = ok && expect_draw_shape_pixel(
+        "draw_shape_filled_rect_dispatch",
+        TOOL_FILLED_RECT,
+        1,
+        1,
+        3,
+        3,
+        1,
+        0x00000000u,
+        0xFF112233u,
+        12,
+        0xFF112233u,
+        0,
+        0x00000000u
+    );
+    ok = ok && expect_draw_shape_pixel(
+        "draw_shape_unknown_tool_noop",
+        (Tool)999,
+        1,
+        1,
+        3,
+        3,
+        1,
+        0x00000000u,
+        0xFF112233u,
+        12,
+        0x00000000u,
+        0,
+        0x00000000u
+    );
     {
         const BeginShapePreviewCase begin_shape_preview_cases[] = {
             {"begin_shape_preview_copy", 12, 34, 0, -1, -1, preview_copy, preview_source, 4, 1, 12, 34, preview_source},

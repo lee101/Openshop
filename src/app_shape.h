@@ -4,5 +4,6 @@
 #include "app_brush.h"
 
 void app_constrain_shape_end(Tool tool, int x0, int y0, int x1, int y1, int shift, int *out_x, int *out_y);
+void app_draw_shape(Canvas *canvas, Tool tool, int x0, int y0, int x1, int y1, int radius, uint32_t color);
 
 #endif
