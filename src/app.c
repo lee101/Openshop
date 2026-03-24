@@ -411,22 +411,6 @@ typedef struct {
     int mark_composite;
 } IndexedLayerSilentHotkey;
 
-static int mouse_position_fill_hotkey(LayerStack *layers,
-                                      Snapshot *undo_stack, int *undo_count,
-                                      Snapshot *redo_stack, int *redo_count,
-                                      const Canvas *sample,
-                                      int mx, int my,
-                                      uint32_t *brush_color_rgb, uint32_t *brush_color,
-                                      int *brush_opacity, Tool *tool,
-                                      int *changed) {
-    (void)sample;
-    (void)brush_color_rgb;
-    (void)brush_opacity;
-    (void)tool;
-    return active_layer_try_flood_fill_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                                   mx, my, *brush_color, MAX_HISTORY, changed);
-}
-
 static int select_bottom_visible_hotkey(LayerStack *layers, int arg) {
     (void)arg;
     return layer_stack_select_bottom_visible(layers);
@@ -793,9 +777,12 @@ static int handle_mouse_position_hotkey(SDL_Keycode key,
     }
     switch (action) {
     case APP_MOUSE_POSITION_FILL:
-        return mouse_position_fill_hotkey(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                          sample, mx, my, brush_color_rgb, brush_color,
-                                          brush_opacity, tool, changed);
+        (void)sample;
+        (void)brush_color_rgb;
+        (void)brush_opacity;
+        (void)tool;
+        return active_layer_try_flood_fill_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                       mx, my, *brush_color, MAX_HISTORY, changed);
     case APP_MOUSE_POSITION_SAMPLE:
         return sample_canvas_brush_state(sample, mx, my, brush_color_rgb, brush_color, brush_opacity, tool);
     case APP_MOUSE_POSITION_NONE:
