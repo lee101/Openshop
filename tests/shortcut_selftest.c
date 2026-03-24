@@ -1197,6 +1197,22 @@ static int expect_shape_cancel(const char *label, int key, int ctrl, int want) {
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    int key;
+    int ctrl;
+    int want;
+} ShapeCancelCase;
+
+static int run_shape_cancel_case(const ShapeCancelCase *test_case) {
+    return expect_shape_cancel(
+        test_case->label,
+        test_case->key,
+        test_case->ctrl,
+        test_case->want
+    );
+}
+
 static int expect_begin_shape_preview(
     const char *label,
     int start_x,
@@ -3593,27 +3609,36 @@ int main(void) {
     ok = ok && expect_view_result("left", VIEW_SHORTCUT_KEY_LEFT, 0, VIEW_SHORTCUT_TRANSLATE, 0, -1, 0);
     ok = ok && expect_view_result("right_shift", VIEW_SHORTCUT_KEY_RIGHT, 1, VIEW_SHORTCUT_TRANSLATE, 0, 10, 0);
     ok = ok && expect_view_result("view_none", VIEW_SHORTCUT_KEY_NONE, 0, VIEW_SHORTCUT_NONE, 0, 0, 0);
-    ok = ok && expect_shape_cancel("shape_cancel_ctrl_save", APP_SHAPE_CANCEL_KEY_S, 1, 1);
-    ok = ok && expect_shape_cancel("shape_cancel_ctrl_bracket", APP_SHAPE_CANCEL_KEY_LEFTBRACKET, 1, 1);
-    ok = ok && expect_shape_cancel("shape_cancel_ctrl_slash", APP_SHAPE_CANCEL_KEY_SLASH, 1, 1);
-    ok = ok && expect_shape_cancel("shape_cancel_ctrl_digit_1", APP_SHAPE_CANCEL_KEY_1, 1, 1);
-    ok = ok && expect_shape_cancel("shape_cancel_ctrl_unmapped_not_cancel", APP_SHAPE_CANCEL_KEY_OTHER, 1, 0);
-    ok = ok && expect_shape_cancel("shape_cancel_ctrl_digit_7", APP_SHAPE_CANCEL_KEY_7, 1, 1);
-    ok = ok && expect_shape_cancel("shape_cancel_ctrl_digit_8", APP_SHAPE_CANCEL_KEY_8, 1, 1);
-    ok = ok && expect_shape_cancel("shape_cancel_tool_switch", APP_SHAPE_CANCEL_KEY_B, 0, 1);
-    ok = ok && expect_shape_cancel("shape_cancel_plain_bracket", APP_SHAPE_CANCEL_KEY_RIGHTBRACKET, 0, 1);
-    ok = ok && expect_shape_cancel("shape_cancel_plain_digit_6", APP_SHAPE_CANCEL_KEY_6, 0, 1);
-    ok = ok && expect_shape_cancel("shape_cancel_plain_slash_not_cancel", APP_SHAPE_CANCEL_KEY_SLASH, 0, 0);
-    ok = ok && expect_shape_cancel("shape_cancel_plain_kp_plus", APP_SHAPE_CANCEL_KEY_KP_PLUS, 0, 1);
-    ok = ok && expect_shape_cancel("shape_cancel_plain_kp_minus", APP_SHAPE_CANCEL_KEY_KP_MINUS, 0, 1);
-    ok = ok && expect_shape_cancel("shape_cancel_arrow", APP_SHAPE_CANCEL_KEY_LEFT, 0, 1);
-    ok = ok && expect_shape_cancel("shape_cancel_function_key", APP_SHAPE_CANCEL_KEY_F2, 0, 1);
-    ok = ok && expect_shape_cancel("shape_cancel_delete", APP_SHAPE_CANCEL_KEY_DELETE, 0, 1);
-    ok = ok && expect_shape_cancel("shape_cancel_backspace", APP_SHAPE_CANCEL_KEY_BACKSPACE, 0, 1);
-    ok = ok && expect_shape_cancel("shape_cancel_escape_exempt", APP_SHAPE_CANCEL_KEY_ESCAPE, 0, 0);
-    ok = ok && expect_shape_cancel("shape_cancel_shift_exempt", APP_SHAPE_CANCEL_KEY_LSHIFT, 0, 0);
-    ok = ok && expect_shape_cancel("shape_cancel_plain_save_not_cancel", APP_SHAPE_CANCEL_KEY_S, 0, 0);
-    ok = ok && expect_shape_cancel("shape_cancel_unmapped_key", APP_SHAPE_CANCEL_KEY_OTHER, 0, 0);
+    {
+        const ShapeCancelCase shape_cancel_cases[] = {
+            {"shape_cancel_ctrl_save", APP_SHAPE_CANCEL_KEY_S, 1, 1},
+            {"shape_cancel_ctrl_bracket", APP_SHAPE_CANCEL_KEY_LEFTBRACKET, 1, 1},
+            {"shape_cancel_ctrl_slash", APP_SHAPE_CANCEL_KEY_SLASH, 1, 1},
+            {"shape_cancel_ctrl_digit_1", APP_SHAPE_CANCEL_KEY_1, 1, 1},
+            {"shape_cancel_ctrl_unmapped_not_cancel", APP_SHAPE_CANCEL_KEY_OTHER, 1, 0},
+            {"shape_cancel_ctrl_digit_7", APP_SHAPE_CANCEL_KEY_7, 1, 1},
+            {"shape_cancel_ctrl_digit_8", APP_SHAPE_CANCEL_KEY_8, 1, 1},
+            {"shape_cancel_tool_switch", APP_SHAPE_CANCEL_KEY_B, 0, 1},
+            {"shape_cancel_plain_bracket", APP_SHAPE_CANCEL_KEY_RIGHTBRACKET, 0, 1},
+            {"shape_cancel_plain_digit_6", APP_SHAPE_CANCEL_KEY_6, 0, 1},
+            {"shape_cancel_plain_slash_not_cancel", APP_SHAPE_CANCEL_KEY_SLASH, 0, 0},
+            {"shape_cancel_plain_kp_plus", APP_SHAPE_CANCEL_KEY_KP_PLUS, 0, 1},
+            {"shape_cancel_plain_kp_minus", APP_SHAPE_CANCEL_KEY_KP_MINUS, 0, 1},
+            {"shape_cancel_arrow", APP_SHAPE_CANCEL_KEY_LEFT, 0, 1},
+            {"shape_cancel_function_key", APP_SHAPE_CANCEL_KEY_F2, 0, 1},
+            {"shape_cancel_delete", APP_SHAPE_CANCEL_KEY_DELETE, 0, 1},
+            {"shape_cancel_backspace", APP_SHAPE_CANCEL_KEY_BACKSPACE, 0, 1},
+            {"shape_cancel_escape_exempt", APP_SHAPE_CANCEL_KEY_ESCAPE, 0, 0},
+            {"shape_cancel_shift_exempt", APP_SHAPE_CANCEL_KEY_LSHIFT, 0, 0},
+            {"shape_cancel_plain_save_not_cancel", APP_SHAPE_CANCEL_KEY_S, 0, 0},
+            {"shape_cancel_unmapped_key", APP_SHAPE_CANCEL_KEY_OTHER, 0, 0},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(shape_cancel_cases) / sizeof(shape_cancel_cases[0]); i++) {
+            ok = ok && run_shape_cancel_case(&shape_cancel_cases[i]);
+        }
+    }
     {
         HandleShapePreviewKeyCase preview_key_cases[] = {
             {
