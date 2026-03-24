@@ -1,4 +1,5 @@
 #include "app_brush.h"
+#include "app_brush_mask.h"
 
 const char *app_tool_label(Tool tool) {
     switch (tool) {
@@ -50,4 +51,32 @@ int app_tool_draws_directly(Tool tool) {
 
 AppStrokeMark app_tool_stroke_mark(Tool tool) {
     return tool == TOOL_ERASER ? APP_STROKE_MARK_ERASE : APP_STROKE_MARK_BRUSH;
+}
+
+void app_stamp_brush(Canvas *canvas, int cx, int cy, int radius, uint32_t color, BrushShape shape) {
+    if (!canvas || !canvas->pixels || radius <= 0) {
+        return;
+    }
+    for (int dy = -radius; dy <= radius; dy++) {
+        for (int dx = -radius; dx <= radius; dx++) {
+            if (!app_brush_mask_contains(shape, dx, dy, radius)) {
+                continue;
+            }
+            canvas_set_pixel(canvas, cx + dx, cy + dy, color);
+        }
+    }
+}
+
+void app_erase_brush(Canvas *canvas, int cx, int cy, int radius, uint32_t clear_color, BrushShape shape) {
+    if (!canvas || !canvas->pixels || radius <= 0) {
+        return;
+    }
+    for (int dy = -radius; dy <= radius; dy++) {
+        for (int dx = -radius; dx <= radius; dx++) {
+            if (!app_brush_mask_contains(shape, dx, dy, radius)) {
+                continue;
+            }
+            canvas_set_pixel_raw(canvas, cx + dx, cy + dy, clear_color);
+        }
+    }
 }

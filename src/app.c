@@ -269,20 +269,6 @@ static int refresh_after_shortcut(
     return 1;
 }
 
-static void stamp_brush(Canvas *c, int cx, int cy, int radius, uint32_t color, BrushShape shape) {
-    if (!c || !c->pixels || radius <= 0) {
-        return;
-    }
-    for (int dy = -radius; dy <= radius; dy++) {
-        for (int dx = -radius; dx <= radius; dx++) {
-            if (!app_brush_mask_contains(shape, dx, dy, radius)) {
-                continue;
-            }
-            canvas_set_pixel(c, cx + dx, cy + dy, color);
-        }
-    }
-}
-
 static void draw_shape(Canvas *c, Tool tool, int x0, int y0, int x1, int y1, int radius, uint32_t color) {
     switch (tool) {
     case TOOL_LINE:
@@ -1133,20 +1119,6 @@ static int handle_view_and_canvas_shortcut(
     return 1;
 }
 
-static void erase_stamp(Canvas *c, int cx, int cy, int radius, uint32_t clear_color, BrushShape shape) {
-    if (!c || !c->pixels || radius <= 0) {
-        return;
-    }
-    for (int dy = -radius; dy <= radius; dy++) {
-        for (int dx = -radius; dx <= radius; dx++) {
-            if (!app_brush_mask_contains(shape, dx, dy, radius)) {
-                continue;
-            }
-            canvas_set_pixel_raw(c, cx + dx, cy + dy, clear_color);
-        }
-    }
-}
-
 static void erase_line(Canvas *c, int x0, int y0, int x1, int y1, int radius, uint32_t clear_color, BrushShape shape) {
     if (!c || !c->pixels) {
         return;
@@ -1158,7 +1130,7 @@ static void erase_line(Canvas *c, int x0, int y0, int x1, int y1, int radius, ui
     int err = dx + dy;
 
     while (1) {
-        erase_stamp(c, x0, y0, radius, clear_color, shape);
+        app_erase_brush(c, x0, y0, radius, clear_color, shape);
         if (x0 == x1 && y0 == y1) {
             break;
         }
@@ -1185,7 +1157,7 @@ static void draw_brush_line(Canvas *c, int x0, int y0, int x1, int y1, int radiu
     int err = dx + dy;
 
     while (1) {
-        stamp_brush(c, x0, y0, radius, color, shape);
+        app_stamp_brush(c, x0, y0, radius, color, shape);
         if (x0 == x1 && y0 == y1) {
             break;
         }
@@ -1378,9 +1350,9 @@ static void handle_mouse_button_down(
                 push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
                 *drawing = 1;
                 if (app_tool_stroke_mark(*tool) == APP_STROKE_MARK_ERASE) {
-                    erase_stamp(&active->canvas, *last_x, *last_y, brush_radius, app_active_layer_clear_color(layers->active_layer), brush_shape);
+                    app_erase_brush(&active->canvas, *last_x, *last_y, brush_radius, app_active_layer_clear_color(layers->active_layer), brush_shape);
                 } else {
-                    stamp_brush(&active->canvas, *last_x, *last_y, brush_radius, *brush_color, brush_shape);
+                    app_stamp_brush(&active->canvas, *last_x, *last_y, brush_radius, *brush_color, brush_shape);
                 }
                 if (needs_composite) {
                     *needs_composite = 1;

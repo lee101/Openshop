@@ -100,6 +100,34 @@ static int expect_stroke_mark(const char *label, Tool tool, AppStrokeMark want) 
     return 1;
 }
 
+static int expect_brush_stamp_pixel(
+    const char *label,
+    void (*apply_stamp)(Canvas *, int, int, int, uint32_t, BrushShape),
+    uint32_t initial_color,
+    uint32_t stamp_color,
+    BrushShape shape,
+    uint32_t want_center,
+    uint32_t want_edge
+) {
+    Canvas canvas = {3, 3, NULL};
+    uint32_t pixels[9];
+    size_t i;
+
+    for (i = 0; i < sizeof(pixels) / sizeof(pixels[0]); i++) {
+        pixels[i] = initial_color;
+    }
+    canvas.width = 3;
+    canvas.height = 3;
+    canvas.pixels = pixels;
+
+    apply_stamp(&canvas, 1, 1, 1, stamp_color, shape);
+    if (pixels[4] != want_center || pixels[0] != want_edge) {
+        fprintf(stderr, "%s mismatch: center 0x%08X want 0x%08X edge 0x%08X want 0x%08X\n", label, pixels[4], want_center, pixels[0], want_edge);
+        return 0;
+    }
+    return 1;
+}
+
 static int expect_canvas_action(const char *label, int key, CanvasShortcutAction want) {
     CanvasShortcutAction got = canvas_shortcut_action(key);
     if (got != want) {
@@ -935,6 +963,24 @@ int main(void) {
     ok = ok && expect_stroke_mark("stroke_mark_eraser", TOOL_ERASER, APP_STROKE_MARK_ERASE);
     ok = ok && expect_stroke_mark("stroke_mark_line_defaults_to_brush", TOOL_LINE, APP_STROKE_MARK_BRUSH);
     ok = ok && expect_stroke_mark("stroke_mark_default", (Tool)999, APP_STROKE_MARK_BRUSH);
+    ok = ok && expect_brush_stamp_pixel(
+        "stamp_brush_center_blends",
+        app_stamp_brush,
+        0xFF000000u,
+        0x80FFFFFFu,
+        BRUSH_SHAPE_ROUND,
+        0xFF808080u,
+        0xFF000000u
+    );
+    ok = ok && expect_brush_stamp_pixel(
+        "erase_brush_center_replaces",
+        app_erase_brush,
+        0xFF112233u,
+        0x00000000u,
+        BRUSH_SHAPE_ROUND,
+        0x00000000u,
+        0xFF112233u
+    );
     ok = ok && expect_canvas_action("canvas_clear", 'c', CANVAS_SHORTCUT_CLEAR);
     ok = ok && expect_canvas_action("canvas_flip_h", 'h', CANVAS_SHORTCUT_FLIP_HORIZONTAL);
     ok = ok && expect_canvas_action("canvas_flip_v", 'v', CANVAS_SHORTCUT_FLIP_VERTICAL);

@@ -1,6 +1,8 @@
 #ifndef APP_BRUSH_H
 #define APP_BRUSH_H
 
+#include "canvas.h"
+
 typedef enum {
     TOOL_BRUSH,
     TOOL_ERASER,
@@ -28,5 +30,7 @@ const char *app_brush_shape_label(BrushShape shape);
 BrushShape app_cycle_brush_shape(BrushShape shape, int direction);
 int app_tool_draws_directly(Tool tool);
 AppStrokeMark app_tool_stroke_mark(Tool tool);
+void app_stamp_brush(Canvas *canvas, int cx, int cy, int radius, uint32_t color, BrushShape shape);
+void app_erase_brush(Canvas *canvas, int cx, int cy, int radius, uint32_t clear_color, BrushShape shape);
 
 #endif
