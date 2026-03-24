@@ -60,6 +60,86 @@ static int ensure_layer_canvas(Layer *layer, int width, int height) {
     return canvas_init(&layer->canvas, width, height);
 }
 
+static int layer_name_exists(const LayerStack *stack, const char *name, int skip_index) {
+    if (!stack || !name || !name[0]) {
+        return 0;
+    }
+    for (int i = 0; i < stack->layer_count; i++) {
+        if (i == skip_index) {
+            continue;
+        }
+        if (strcmp(stack->layers[i].name, name) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void layer_name_copy_unique(char *dest, size_t dest_size, const LayerStack *stack, int skip_index, const char *preferred, const char *fallback_prefix) {
+    char candidate[LAYER_NAME_MAX];
+    const char *base = (preferred && preferred[0]) ? preferred : fallback_prefix;
+
+    if (!dest || dest_size == 0) {
+        return;
+    }
+
+    snprintf(candidate, sizeof(candidate), "%s", base && base[0] ? base : "Layer");
+    if (!layer_name_exists(stack, candidate, skip_index)) {
+        snprintf(dest, dest_size, "%s", candidate);
+        return;
+    }
+
+    for (int suffix = 2;; suffix++) {
+        snprintf(candidate, sizeof(candidate), "%s %d", base && base[0] ? base : "Layer", suffix);
+        if (!layer_name_exists(stack, candidate, skip_index)) {
+            snprintf(dest, dest_size, "%s", candidate);
+            return;
+        }
+    }
+}
+
+static void layer_duplicate_name_base(char *dest, size_t dest_size, const char *source_name) {
+    const char *suffix = NULL;
+    size_t base_len = 0;
+
+    if (!dest || dest_size == 0) {
+        return;
+    }
+    if (!source_name || !source_name[0]) {
+        snprintf(dest, dest_size, "Layer Copy");
+        return;
+    }
+
+    suffix = strstr(source_name, " Copy");
+    if (suffix && suffix[5] == '\0') {
+        snprintf(dest, dest_size, "%s", source_name);
+        return;
+    }
+    if (suffix && suffix[5] == ' ') {
+        const char *digits = suffix + 6;
+        if (*digits) {
+            int all_digits = 1;
+            for (const char *p = digits; *p; p++) {
+                if (*p < '0' || *p > '9') {
+                    all_digits = 0;
+                    break;
+                }
+            }
+            if (all_digits) {
+                base_len = (size_t)(suffix - source_name + 5);
+                if (base_len >= dest_size) {
+                    base_len = dest_size - 1;
+                }
+                memcpy(dest, source_name, base_len);
+                dest[base_len] = '\0';
+                return;
+            }
+        }
+    }
+
+    snprintf(dest, dest_size, "%s Copy", source_name);
+}
+
 int layer_stack_init(LayerStack *stack, int width, int height, uint32_t background_color) {
     if (!stack || width <= 0 || height <= 0) {
         return 0;
@@ -164,10 +244,9 @@ int layer_stack_insert(LayerStack *stack, int index, const char *name, uint32_t 
     layer->locked = 0;
     layer->opacity_percent = 100;
     if (name && name[0]) {
-        strncpy(layer->name, name, LAYER_NAME_MAX - 1);
-        layer->name[LAYER_NAME_MAX - 1] = '\0';
+        layer_name_copy_unique(layer->name, sizeof(layer->name), stack, index, name, "Layer");
     } else {
-        snprintf(layer->name, LAYER_NAME_MAX, "Layer %d", index + 1);
+        layer_name_copy_unique(layer->name, sizeof(layer->name), stack, index, NULL, "Layer");
     }
 
     stack->layer_count++;
@@ -411,10 +490,11 @@ int layer_stack_duplicate(LayerStack *stack, int index, const char *name) {
     memcpy(dup->canvas.pixels, source->canvas.pixels, total * sizeof(uint32_t));
 
     if (name && name[0]) {
-        strncpy(dup->name, name, LAYER_NAME_MAX - 1);
-        dup->name[LAYER_NAME_MAX - 1] = '\0';
+        layer_name_copy_unique(dup->name, sizeof(dup->name), stack, insert_at, name, "Layer");
     } else {
-        snprintf(dup->name, LAYER_NAME_MAX, "%s Copy", source->name[0] ? source->name : "Layer");
+        char fallback[LAYER_NAME_MAX];
+        layer_duplicate_name_base(fallback, sizeof(fallback), source->name[0] ? source->name : "Layer");
+        layer_name_copy_unique(dup->name, sizeof(dup->name), stack, insert_at, fallback, "Layer Copy");
     }
 
     stack->layer_count++;

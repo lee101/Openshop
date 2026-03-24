@@ -318,6 +318,24 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_add(&stack, NULL, 0x00000000) != 2 || layer_stack_add(&stack, NULL, 0x00000000) != 3) {
+        fprintf(stderr, "auto-named layer add failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[2].name, "Layer") != 0 || strcmp(stack.layers[3].name, "Layer 2") != 0) {
+        fprintf(stderr, "auto-named layer add uniqueness failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 3) || !layer_stack_delete(&stack, 2)) {
+        fprintf(stderr, "auto-named layer add cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_insert(&stack, 1, "Inserted Below", 0x00000000) != 1) {
         fprintf(stderr, "layer insert below failed\n");
         canvas_free(&composite);
@@ -633,6 +651,18 @@ static int test_layers_basic(void) {
     }
     if (!layer_stack_toggle_lock(&stack, 1) || stack.layers[1].locked) {
         fprintf(stderr, "unlock duplicated layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_duplicate(&stack, 1, NULL) != 2 || strcmp(stack.layers[2].name, "Background Copy 2") != 0) {
+        fprintf(stderr, "duplicate auto-name uniqueness failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 2)) {
+        fprintf(stderr, "duplicate auto-name cleanup failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
