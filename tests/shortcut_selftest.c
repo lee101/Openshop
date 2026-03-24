@@ -858,6 +858,25 @@ int main(void) {
         110,
         NULL
     );
+    shaping = 14;
+    shape_start_x = 17;
+    shape_start_y = 18;
+    memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
+    ok = ok && expect_begin_shape_preview(
+        "begin_shape_preview_null_source_zero_length",
+        120,
+        130,
+        &shaping,
+        &shape_start_x,
+        &shape_start_y,
+        preview_copy,
+        NULL,
+        0,
+        1,
+        120,
+        130,
+        preview_sentinel
+    );
     ok = ok && expect_cancel_shape_preview("cancel_shape_preview_both", &shaping, &preview_active, 0, 0);
     shaping = 7;
     preview_active = 9;
