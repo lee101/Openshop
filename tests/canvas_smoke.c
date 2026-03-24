@@ -1133,6 +1133,47 @@ static int test_active_layer_ops_helpers(void) {
             return 0;
         }
     }
+    canvas_clear(&stack.layers[0].canvas, 0xFF222222);
+    {
+        int undo_before = undo_count;
+        int redo_before = redo_count;
+        if (active_layer_try_flip_horizontal(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+            !expect_pixel_eq("active_flip_h_uniform", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF222222) ||
+            undo_count != undo_before || redo_count != redo_before) {
+            fprintf(stderr, "active_layer_try_flip_horizontal uniform no-op failed\n");
+            layer_stack_free(&single_stack);
+            layer_stack_free(&short_stack);
+            layer_stack_free(&narrow_stack);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        if (active_layer_try_flip_vertical(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+            !expect_pixel_eq("active_flip_v_uniform", canvas_get_pixel(&stack.layers[0].canvas, 3, 3), 0xFF222222) ||
+            undo_count != undo_before || redo_count != redo_before) {
+            fprintf(stderr, "active_layer_try_flip_vertical uniform no-op failed\n");
+            layer_stack_free(&single_stack);
+            layer_stack_free(&short_stack);
+            layer_stack_free(&narrow_stack);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        if (active_layer_try_rotate_180(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+            !expect_pixel_eq("active_rotate_uniform", canvas_get_pixel(&stack.layers[0].canvas, 1, 2), 0xFF222222) ||
+            undo_count != undo_before || redo_count != redo_before) {
+            fprintf(stderr, "active_layer_try_rotate_180 uniform no-op failed\n");
+            layer_stack_free(&single_stack);
+            layer_stack_free(&short_stack);
+            layer_stack_free(&narrow_stack);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
 
     canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 0, 0xFF000001);
     if (!active_layer_try_flip_horizontal(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||

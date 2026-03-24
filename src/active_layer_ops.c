@@ -23,6 +23,14 @@ static int canvas_has_non_matching_pixel(const Canvas *canvas, uint32_t color) {
     return 0;
 }
 
+static int canvas_is_uniform(const Canvas *canvas) {
+    if (!canvas || !canvas->pixels || canvas->width <= 0 || canvas->height <= 0) {
+        return 0;
+    }
+
+    return !canvas_has_non_matching_pixel(canvas, canvas->pixels[0]);
+}
+
 static int active_layer_apply_transform(LayerStack *layers,
                                         Snapshot *undo_stack, int *undo_count,
                                         Snapshot *redo_stack, int *redo_count,
@@ -41,6 +49,11 @@ static int active_layer_apply_transform(LayerStack *layers,
         (transform == canvas_flip_vertical && active->canvas.height <= 1) ||
         (transform == canvas_rotate_180 &&
          active->canvas.width * active->canvas.height <= 1)) {
+        return 0;
+    }
+    if ((transform == canvas_flip_horizontal || transform == canvas_flip_vertical ||
+         transform == canvas_rotate_180) &&
+        canvas_is_uniform(&active->canvas)) {
         return 0;
     }
     snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
