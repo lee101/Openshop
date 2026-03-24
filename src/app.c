@@ -415,6 +415,33 @@ static int apply_visible_edge_selection(
     return 1;
 }
 
+static int apply_visible_layer_cycle(
+    LayerStack *layers,
+    int direction,
+    const char *failure_message
+) {
+    if (!layers) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    int visible_count = layer_stack_visible_count(layers);
+    if (visible_count <= 1) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    if (layer_stack_cycle_visible(layers, direction) < 0) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    return 1;
+}
+
 static int apply_active_layer_move(
     LayerStack *layers,
     Snapshot *undo_stack,
@@ -1371,14 +1398,18 @@ int app_run(const char *input_path) {
                 }
 
                 if (key == SDLK_PAGEUP) {
-                    if ((shift ? layer_stack_cycle_visible(&layers, 1) : layer_stack_cycle(&layers, 1)) >= 0) {
+                    if ((shift
+                             ? apply_visible_layer_cycle(&layers, 1, "No other visible layer to cycle to")
+                             : layer_stack_cycle(&layers, 1) >= 0)) {
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                     break;
                 }
 
                 if (key == SDLK_PAGEDOWN) {
-                    if ((shift ? layer_stack_cycle_visible(&layers, -1) : layer_stack_cycle(&layers, -1)) >= 0) {
+                    if ((shift
+                             ? apply_visible_layer_cycle(&layers, -1, "No other visible layer to cycle to")
+                             : layer_stack_cycle(&layers, -1) >= 0)) {
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                     break;
