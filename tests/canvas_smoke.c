@@ -276,6 +276,24 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_visible_rank(&stack, 0) != 0) {
+        fprintf(stderr, "visible rank for background failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_visible_rank(&stack, 1) != -1) {
+        fprintf(stderr, "hidden layer should not have a visible rank\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_visible_rank(&stack, 3) != 1) {
+        fprintf(stderr, "visible rank should count only visible layers\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_delete(&stack, 3) || !layer_stack_delete(&stack, 2)) {
         fprintf(stderr, "visible cycling cleanup failed\n");
         canvas_free(&composite);

@@ -303,6 +303,23 @@ int layer_stack_select_visible_rank(LayerStack *stack, int rank) {
     return -1;
 }
 
+int layer_stack_visible_rank(const LayerStack *stack, int index) {
+    if (!stack || index < 0 || index >= stack->layer_count || !stack->layers[index].visible) {
+        return -1;
+    }
+    int visible_rank = 0;
+    for (int idx = 0; idx < stack->layer_count; idx++) {
+        if (!stack->layers[idx].visible) {
+            continue;
+        }
+        if (idx == index) {
+            return visible_rank;
+        }
+        visible_rank++;
+    }
+    return -1;
+}
+
 int layer_stack_toggle_solo(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;

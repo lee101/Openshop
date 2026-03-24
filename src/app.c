@@ -246,11 +246,18 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
     const Layer *active = layer_stack_get(layers, layers->active_layer);
     const char *layer_name = active && active->name[0] ? active->name : "Layer";
     int visible_layers = layer_stack_visible_count(layers);
+    int active_visible_rank = layer_stack_visible_rank(layers, layers->active_layer);
+    char visible_rank_label[32];
+    if (active_visible_rank >= 0) {
+        snprintf(visible_rank_label, sizeof(visible_rank_label), "visible %d/%d", active_visible_rank + 1, visible_layers);
+    } else {
+        snprintf(visible_rank_label, sizeof(visible_rank_label), "hidden %d/%d visible", visible_layers, layers->layer_count);
+    }
     char title[256];
     snprintf(
         title,
         sizeof(title),
-        "Openshop - %s (%s) | size %d | brush %d%% | layer %d/%d %s [%s%s %d%%]%s | visible %d/%d | #%08X",
+        "Openshop - %s (%s) | size %d | brush %d%% | layer %d/%d %s [%s%s %d%%]%s | %s | #%08X",
         tool_label(tool),
         brush_shape_label(brush_shape),
         radius,
@@ -262,8 +269,7 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
         active && active->locked ? ", locked" : "",
         active ? active->opacity_percent : 100,
         (layers->solo_index == layers->active_layer) ? " [solo]" : "",
-        visible_layers,
-        layers->layer_count,
+        visible_rank_label,
         color
     );
     SDL_SetWindowTitle(window, title);
