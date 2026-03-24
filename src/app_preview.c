@@ -32,6 +32,27 @@ void app_begin_shape_preview(
     copy_preview_pixels(shape_base_pixels, composite_pixels, pixel_count);
 }
 
+void app_begin_shape_preview_from_canvas(
+    int start_x,
+    int start_y,
+    int *shaping,
+    int *shape_start_x,
+    int *shape_start_y,
+    uint32_t *shape_base_pixels,
+    const Canvas *composite
+) {
+    app_begin_shape_preview(
+        start_x,
+        start_y,
+        shaping,
+        shape_start_x,
+        shape_start_y,
+        shape_base_pixels,
+        composite ? composite->pixels : NULL,
+        composite ? (size_t)composite->width * (size_t)composite->height : 0
+    );
+}
+
 void app_cancel_shape_preview(int *shaping, int *preview_active) {
     if (shaping) {
         *shaping = 0;

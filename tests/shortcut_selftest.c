@@ -194,6 +194,56 @@ static int run_begin_shape_preview_case(
     );
 }
 
+static int expect_begin_shape_preview_from_canvas(
+    const char *label,
+    int start_x,
+    int start_y,
+    int *shaping,
+    int *shape_start_x,
+    int *shape_start_y,
+    uint32_t *shape_base_pixels,
+    const Canvas *composite,
+    int want_shaping,
+    int want_shape_start_x,
+    int want_shape_start_y,
+    const uint32_t *want_shape_base_pixels,
+    size_t want_pixel_count
+) {
+    size_t i;
+
+    app_begin_shape_preview_from_canvas(
+        start_x,
+        start_y,
+        shaping,
+        shape_start_x,
+        shape_start_y,
+        shape_base_pixels,
+        composite
+    );
+
+    if (shaping && *shaping != want_shaping) {
+        fprintf(stderr, "%s shaping mismatch: got %d want %d\n", label, *shaping, want_shaping);
+        return 0;
+    }
+    if (shape_start_x && *shape_start_x != want_shape_start_x) {
+        fprintf(stderr, "%s shape_start_x mismatch: got %d want %d\n", label, *shape_start_x, want_shape_start_x);
+        return 0;
+    }
+    if (shape_start_y && *shape_start_y != want_shape_start_y) {
+        fprintf(stderr, "%s shape_start_y mismatch: got %d want %d\n", label, *shape_start_y, want_shape_start_y);
+        return 0;
+    }
+    if (shape_base_pixels && want_shape_base_pixels) {
+        for (i = 0; i < want_pixel_count; i++) {
+            if (shape_base_pixels[i] != want_shape_base_pixels[i]) {
+                fprintf(stderr, "%s shape_base_pixels[%zu] mismatch: got 0x%08X want 0x%08X\n", label, i, shape_base_pixels[i], want_shape_base_pixels[i]);
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
 static int expect_view_result(
     const char *label,
     ViewShortcutKey key,
@@ -765,6 +815,8 @@ int main(void) {
     Canvas composite_canvas = {4, 4, preview_source};
     Canvas preview_canvas = {4, 4, preview_copy};
     Canvas preview_canvas_without_pixels = {4, 4, NULL};
+    Canvas begin_preview_canvas = {2, 2, preview_source};
+    Canvas begin_preview_canvas_without_pixels = {2, 2, NULL};
     uint32_t sampled_canvas_pixels[4] = {0xFF102030u, 0x80445566u, 0x00000000u, 0xFFABCDEFu};
     Canvas sampled_canvas = {2, 2, sampled_canvas_pixels};
     Canvas sampled_canvas_without_pixels = {2, 2, NULL};
@@ -1164,6 +1216,63 @@ int main(void) {
         160,
         170,
         NULL
+    );
+    shaping = 17;
+    shape_start_x = 23;
+    shape_start_y = 24;
+    memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
+    ok = ok && expect_begin_shape_preview_from_canvas(
+        "begin_shape_preview_from_canvas_copy",
+        180,
+        190,
+        &shaping,
+        &shape_start_x,
+        &shape_start_y,
+        preview_copy,
+        &begin_preview_canvas,
+        1,
+        180,
+        190,
+        preview_source,
+        4
+    );
+    shaping = 18;
+    shape_start_x = 25;
+    shape_start_y = 26;
+    memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
+    ok = ok && expect_begin_shape_preview_from_canvas(
+        "begin_shape_preview_from_canvas_null_canvas",
+        200,
+        210,
+        &shaping,
+        &shape_start_x,
+        &shape_start_y,
+        preview_copy,
+        NULL,
+        1,
+        200,
+        210,
+        preview_sentinel,
+        4
+    );
+    shaping = 19;
+    shape_start_x = 27;
+    shape_start_y = 28;
+    memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
+    ok = ok && expect_begin_shape_preview_from_canvas(
+        "begin_shape_preview_from_canvas_missing_pixels",
+        220,
+        230,
+        &shaping,
+        &shape_start_x,
+        &shape_start_y,
+        preview_copy,
+        &begin_preview_canvas_without_pixels,
+        1,
+        220,
+        230,
+        preview_sentinel,
+        4
     );
     ok = ok && expect_cancel_shape_preview("cancel_shape_preview_both", &shaping, &preview_active, 0, 0);
     shaping = 7;

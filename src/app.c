@@ -1387,16 +1387,7 @@ static void handle_mouse_button_down(
                 }
             }
         } else if (app_layer_editable(layer_stack_get(layers, layers->active_layer))) {
-            app_begin_shape_preview(
-                *last_x,
-                *last_y,
-                shaping,
-                shape_start_x,
-                shape_start_y,
-                shape_base_pixels,
-                composite ? composite->pixels : NULL,
-                (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT
-            );
+            app_begin_shape_preview_from_canvas(*last_x, *last_y, shaping, shape_start_x, shape_start_y, shape_base_pixels, composite);
         }
         return;
     }
