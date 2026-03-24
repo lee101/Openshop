@@ -1415,6 +1415,47 @@ static int handle_right_click_down(SDL_Window *window,
     return 1;
 }
 
+static int handle_mouse_button_down(SDL_Window *window,
+                                    LayerStack *layers,
+                                    Snapshot *undo_stack, int *undo_count,
+                                    Snapshot *redo_stack, int *redo_count,
+                                    Uint8 button, int x, int y,
+                                    Tool tool, int brush_radius, uint32_t brush_color,
+                                    BrushShape brush_shape,
+                                    int *last_x, int *last_y,
+                                    int *drawing, int *needs_composite,
+                                    int *shaping, int *shape_start_x, int *shape_start_y,
+                                    int *preview_active,
+                                    uint32_t *shape_base_pixels,
+                                    const Canvas *preview_canvas,
+                                    const Canvas *composite,
+                                    uint32_t *brush_color_rgb, uint32_t *brush_color,
+                                    int *brush_opacity, Tool *tool_out) {
+    if (button == SDL_BUTTON_LEFT) {
+        if (last_x) {
+            *last_x = x;
+        }
+        if (last_y) {
+            *last_y = y;
+        }
+        return handle_left_click_down(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                      tool, x, y, brush_radius, brush_color, brush_shape,
+                                      drawing, needs_composite,
+                                      shaping, shape_start_x, shape_start_y,
+                                      shape_base_pixels, composite);
+    }
+
+    if (button == SDL_BUTTON_RIGHT) {
+        return handle_right_click_down(window, layers, x, y,
+                                       shaping, preview_active,
+                                       preview_canvas, composite,
+                                       brush_color_rgb, brush_color,
+                                       brush_opacity, brush_radius, brush_shape, tool_out);
+    }
+
+    return 0;
+}
+
 static int handle_shape_preview_motion(Tool tool,
                                        int shape_start_x, int shape_start_y,
                                        int x, int y,
@@ -1976,21 +2017,15 @@ int app_run(const char *input_path) {
                 running = 0;
                 break;
             case SDL_MOUSEBUTTONDOWN:
-                if (e.button.button == SDL_BUTTON_LEFT) {
-                    last_x = e.button.x;
-                    last_y = e.button.y;
-                    handle_left_click_down(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                                           tool, last_x, last_y, brush_radius, brush_color, brush_shape,
-                                           &drawing, &needs_composite,
-                                           &shaping, &shape_start_x, &shape_start_y,
-                                           shape_base_pixels, &composite);
-                } else if (e.button.button == SDL_BUTTON_RIGHT) {
-                    handle_right_click_down(window, &layers, e.button.x, e.button.y,
-                                            &shaping, &preview_active,
-                                            &preview_canvas, &composite,
-                                            &brush_color_rgb, &brush_color,
-                                            &brush_opacity, brush_radius, brush_shape, &tool);
-                }
+                handle_mouse_button_down(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                         e.button.button, e.button.x, e.button.y,
+                                         tool, brush_radius, brush_color, brush_shape,
+                                         &last_x, &last_y,
+                                         &drawing, &needs_composite,
+                                         &shaping, &shape_start_x, &shape_start_y,
+                                         &preview_active,
+                                         shape_base_pixels, &preview_canvas, &composite,
+                                         &brush_color_rgb, &brush_color, &brush_opacity, &tool);
                 break;
             case SDL_MOUSEBUTTONUP:
                 if (e.button.button == SDL_BUTTON_LEFT) {
