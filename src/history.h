@@ -36,6 +36,8 @@ int layer_snapshot_apply(const LayerSnapshot *snapshot, LayerStack *stack);
 int layer_snapshot_matches_stack(const LayerSnapshot *snapshot, const LayerStack *stack);
 // Low-level stack primitives kept for targeted tests and incremental callers.
 void layer_history_clear(LayerSnapshot *stack, int *count);
+// Captures the current stack into `stack` when `layers`, `stack`, and `count` are valid.
+// `redo`/`redo_count` are optional; when both are provided they are cleared only after a new snapshot is pushed.
 void layer_history_push(const LayerStack *layers, LayerSnapshot *stack, int *count, LayerSnapshot *redo, int *redo_count);
 // On success these move the current stack state to the opposite history stack and apply the pending snapshot.
 // On failure they leave both history stacks unchanged.
@@ -43,6 +45,7 @@ int layer_history_undo(LayerStack *layers, LayerSnapshot *undo_stack, int *undo_
 int layer_history_redo(LayerStack *layers, LayerSnapshot *undo_stack, int *undo_count, LayerSnapshot *redo_stack, int *redo_count);
 // Preferred API for app integration: keep undo/redo state inside LayerHistory.
 void layer_history_reset(LayerHistory *history);
+// Records the current stack into history when both `history` and `layers` are valid; otherwise this is a no-op.
 void layer_history_record(LayerHistory *history, const LayerStack *layers);
 // On success this transfers snapshot ownership into history and disowns the caller snapshot.
 // On discard/failure it resets the caller snapshot back to an empty state.
