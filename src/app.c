@@ -142,26 +142,20 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
 
 static int apply_active_layer_opacity_value(
     LayerStack *layers,
-    LayerSnapshot *undo_stack,
-    int *undo_count,
-    LayerSnapshot *redo_stack,
-    int *redo_count,
+    LayerHistory *history,
     int opacity_percent
 ) {
     Layer *active = layer_stack_active(layers);
     if (!active || active->opacity_percent == opacity_percent) {
         return 0;
     }
-    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_record(history, layers);
     return layer_stack_set_opacity(layers, layers->active_layer, opacity_percent);
 }
 
 static int apply_active_layer_opacity_delta(
     LayerStack *layers,
-    LayerSnapshot *undo_stack,
-    int *undo_count,
-    LayerSnapshot *redo_stack,
-    int *redo_count,
+    LayerHistory *history,
     int delta_percent
 ) {
     Layer *active = layer_stack_active(layers);
@@ -177,16 +171,13 @@ static int apply_active_layer_opacity_delta(
     if (target == active->opacity_percent) {
         return 0;
     }
-    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_record(history, layers);
     return layer_stack_adjust_opacity(layers, layers->active_layer, delta_percent);
 }
 
 static int apply_active_visible_rank_move(
     LayerStack *layers,
-    LayerSnapshot *undo_stack,
-    int *undo_count,
-    LayerSnapshot *redo_stack,
-    int *redo_count,
+    LayerHistory *history,
     int target_rank,
     const char *failure_message
 ) {
@@ -208,7 +199,7 @@ static int apply_active_visible_rank_move(
         }
         return 0;
     }
-    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_record(history, layers);
     if (!layer_stack_move_to_visible_rank(layers, layers->active_layer, target_rank)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -309,10 +300,7 @@ static int apply_visible_layer_cycle(
 
 static int apply_active_layer_move(
     LayerStack *layers,
-    LayerSnapshot *undo_stack,
-    int *undo_count,
-    LayerSnapshot *redo_stack,
-    int *redo_count,
+    LayerHistory *history,
     int target_index,
     const char *failure_message
 ) {
@@ -331,7 +319,7 @@ static int apply_active_layer_move(
         }
         return 0;
     }
-    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_record(history, layers);
     if (!layer_stack_move_to(layers, current_index, target_index)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -349,15 +337,12 @@ static const char *max_layers_message(void) {
 
 static int apply_layer_add(
     LayerStack *layers,
-    LayerSnapshot *undo_stack,
-    int *undo_count,
-    LayerSnapshot *redo_stack,
-    int *redo_count,
+    LayerHistory *history,
     const char *name,
     uint32_t clear_color,
     const char *failure_message
 ) {
-    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_record(history, layers);
     if (layer_stack_add(layers, name, clear_color) < 0) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -369,16 +354,13 @@ static int apply_layer_add(
 
 static int apply_layer_insert(
     LayerStack *layers,
-    LayerSnapshot *undo_stack,
-    int *undo_count,
-    LayerSnapshot *redo_stack,
-    int *redo_count,
+    LayerHistory *history,
     int index,
     const char *name,
     uint32_t clear_color,
     const char *failure_message
 ) {
-    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_record(history, layers);
     if (layer_stack_insert(layers, index, name, clear_color) < 0) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -390,15 +372,12 @@ static int apply_layer_insert(
 
 static int apply_visible_stamp_new(
     LayerStack *layers,
-    LayerSnapshot *undo_stack,
-    int *undo_count,
-    LayerSnapshot *redo_stack,
-    int *redo_count,
+    LayerHistory *history,
     const char *name,
     uint32_t background_color,
     const char *failure_message
 ) {
-    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_record(history, layers);
     if (layer_stack_stamp_visible_new(layers, name, background_color) < 0) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -410,15 +389,12 @@ static int apply_visible_stamp_new(
 
 static int apply_layer_duplicate(
     LayerStack *layers,
-    LayerSnapshot *undo_stack,
-    int *undo_count,
-    LayerSnapshot *redo_stack,
-    int *redo_count,
+    LayerHistory *history,
     int index,
     const char *name,
     const char *failure_message
 ) {
-    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_record(history, layers);
     if (layer_stack_duplicate(layers, index, name) < 0) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -430,14 +406,11 @@ static int apply_layer_duplicate(
 
 static int apply_toggle_lock(
     LayerStack *layers,
-    LayerSnapshot *undo_stack,
-    int *undo_count,
-    LayerSnapshot *redo_stack,
-    int *redo_count,
+    LayerHistory *history,
     int index,
     const char *failure_message
 ) {
-    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_record(history, layers);
     if (!layer_stack_toggle_lock(layers, index)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -449,14 +422,11 @@ static int apply_toggle_lock(
 
 static int apply_flatten(
     LayerStack *layers,
-    LayerSnapshot *undo_stack,
-    int *undo_count,
-    LayerSnapshot *redo_stack,
-    int *redo_count,
+    LayerHistory *history,
     uint32_t background_color,
     const char *failure_message
 ) {
-    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_record(history, layers);
     if (!layer_stack_flatten(layers, background_color)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -468,15 +438,12 @@ static int apply_flatten(
 
 static int apply_stamp_visible_into(
     LayerStack *layers,
-    LayerSnapshot *undo_stack,
-    int *undo_count,
-    LayerSnapshot *redo_stack,
-    int *redo_count,
+    LayerHistory *history,
     int index,
     uint32_t background_color,
     const char *failure_message
 ) {
-    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_record(history, layers);
     if (!layer_stack_stamp_visible_into(layers, index, background_color)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -488,14 +455,11 @@ static int apply_stamp_visible_into(
 
 static int apply_toggle_visibility(
     LayerStack *layers,
-    LayerSnapshot *undo_stack,
-    int *undo_count,
-    LayerSnapshot *redo_stack,
-    int *redo_count,
+    LayerHistory *history,
     int index,
     const char *failure_message
 ) {
-    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_record(history, layers);
     if (!layer_stack_toggle_visibility(layers, index)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -507,14 +471,11 @@ static int apply_toggle_visibility(
 
 static int apply_hide_and_advance(
     LayerStack *layers,
-    LayerSnapshot *undo_stack,
-    int *undo_count,
-    LayerSnapshot *redo_stack,
-    int *redo_count,
+    LayerHistory *history,
     int index,
     const char *failure_message
 ) {
-    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_record(history, layers);
     if (!layer_stack_hide_and_advance(layers, index)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -526,14 +487,11 @@ static int apply_hide_and_advance(
 
 static int apply_toggle_solo(
     LayerStack *layers,
-    LayerSnapshot *undo_stack,
-    int *undo_count,
-    LayerSnapshot *redo_stack,
-    int *redo_count,
+    LayerHistory *history,
     int index,
     const char *failure_message
 ) {
-    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_record(history, layers);
     if (!layer_stack_toggle_solo(layers, index)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -545,14 +503,11 @@ static int apply_toggle_solo(
 
 static int apply_layer_delete(
     LayerStack *layers,
-    LayerSnapshot *undo_stack,
-    int *undo_count,
-    LayerSnapshot *redo_stack,
-    int *redo_count,
+    LayerHistory *history,
     int index,
     const char *failure_message
 ) {
-    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_record(history, layers);
     if (!layer_stack_delete(layers, index)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -564,14 +519,11 @@ static int apply_layer_delete(
 
 static int apply_merge_down(
     LayerStack *layers,
-    LayerSnapshot *undo_stack,
-    int *undo_count,
-    LayerSnapshot *redo_stack,
-    int *redo_count,
+    LayerHistory *history,
     int index,
     const char *failure_message
 ) {
-    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_record(history, layers);
     if (!layer_stack_merge_down(layers, index)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -583,14 +535,11 @@ static int apply_merge_down(
 
 static int apply_merge_up(
     LayerStack *layers,
-    LayerSnapshot *undo_stack,
-    int *undo_count,
-    LayerSnapshot *redo_stack,
-    int *redo_count,
+    LayerHistory *history,
     int index,
     const char *failure_message
 ) {
-    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_record(history, layers);
     if (!layer_stack_merge_up(layers, index)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -776,10 +725,7 @@ static int active_layer_editable(const LayerStack *layers) {
 
 static int apply_canvas_transform(
     LayerStack *layers,
-    LayerSnapshot *undo_stack,
-    int *undo_count,
-    LayerSnapshot *redo_stack,
-    int *redo_count,
+    LayerHistory *history,
     void (*transform)(Canvas *)
 ) {
     if (!layers || !transform) {
@@ -789,17 +735,14 @@ static int apply_canvas_transform(
     if (!active || active->locked || !active->canvas.pixels) {
         return 0;
     }
-    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_record(history, layers);
     transform(&active->canvas);
     return 1;
 }
 
 static int apply_canvas_translation(
     LayerStack *layers,
-    LayerSnapshot *undo_stack,
-    int *undo_count,
-    LayerSnapshot *redo_stack,
-    int *redo_count,
+    LayerHistory *history,
     int dx,
     int dy
 ) {
@@ -810,7 +753,7 @@ static int apply_canvas_translation(
     if (!active || active->locked || !active->canvas.pixels) {
         return 0;
     }
-    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_record(history, layers);
     canvas_translate(&active->canvas, dx, dy, active_layer_clear_color(layers));
     return 1;
 }
@@ -965,10 +908,7 @@ int app_run(const char *input_path) {
     uint32_t brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
     BrushShape brush_shape = BRUSH_SHAPE_ROUND;
     Tool tool = TOOL_BRUSH;
-    LayerSnapshot undo_stack[HISTORY_CAPACITY];
-    LayerSnapshot redo_stack[HISTORY_CAPACITY];
-    int undo_count = 0;
-    int redo_count = 0;
+    LayerHistory history = {0};
     int shaping = 0;
     int shape_start_x = 0;
     int shape_start_y = 0;
@@ -977,8 +917,6 @@ int app_run(const char *input_path) {
     uint32_t *shape_base_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
     uint32_t *preview_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
     Canvas preview_canvas = {CANVAS_WIDTH, CANVAS_HEIGHT, preview_pixels};
-    memset(undo_stack, 0, sizeof(undo_stack));
-    memset(redo_stack, 0, sizeof(redo_stack));
     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
 
     while (running) {
@@ -995,7 +933,7 @@ int app_run(const char *input_path) {
                     if (tool == TOOL_BRUSH || tool == TOOL_ERASER) {
                         Layer *active = layer_stack_active(&layers);
                         if (active && !active->locked && active->canvas.pixels) {
-                            layer_history_push(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                            layer_history_record(&history, &layers);
                             drawing = 1;
                             if (tool == TOOL_ERASER) {
                                 erase_stamp(&active->canvas, last_x, last_y, brush_radius, active_layer_clear_color(&layers), brush_shape);
@@ -1049,7 +987,7 @@ int app_run(const char *input_path) {
                         constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
                         Layer *active = layer_stack_active(&layers);
                         if (active && !active->locked && active->canvas.pixels) {
-                            layer_history_push(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                            layer_history_record(&history, &layers);
                             draw_shape(&active->canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
                             needs_composite = 1;
                         }
@@ -1120,10 +1058,7 @@ int app_run(const char *input_path) {
                 if (ctrl && shift && key == SDLK_n) {
                     if (apply_layer_add(
                             &layers,
-                            undo_stack,
-                            &undo_count,
-                            redo_stack,
-                            &redo_count,
+                            &history,
                             NULL,
                             0x00000000,
                             max_layers_message())) {
@@ -1136,10 +1071,7 @@ int app_run(const char *input_path) {
                 if (ctrl && key == SDLK_n) {
                     if (apply_layer_insert(
                             &layers,
-                            undo_stack,
-                            &undo_count,
-                            redo_stack,
-                            &redo_count,
+                            &history,
                             layers.active_layer + 1,
                             NULL,
                             0x00000000,
@@ -1153,10 +1085,7 @@ int app_run(const char *input_path) {
                 if (ctrl && key == SDLK_COMMA) {
                     if (apply_layer_insert(
                             &layers,
-                            undo_stack,
-                            &undo_count,
-                            redo_stack,
-                            &redo_count,
+                            &history,
                             layers.active_layer,
                             NULL,
                             0x00000000,
@@ -1170,10 +1099,7 @@ int app_run(const char *input_path) {
                 if (ctrl && shift && key == SDLK_l) {
                     apply_toggle_lock(
                         &layers,
-                        undo_stack,
-                        &undo_count,
-                        redo_stack,
-                        &redo_count,
+                        &history,
                         layers.active_layer,
                         "Could not toggle layer lock");
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1183,10 +1109,7 @@ int app_run(const char *input_path) {
                 if (ctrl && shift && key == SDLK_m) {
                     if (apply_flatten(
                             &layers,
-                            undo_stack,
-                            &undo_count,
-                            redo_stack,
-                            &redo_count,
+                            &history,
                             COLOR_BG,
                             "Flatten failed (check for locked layers)")) {
                         needs_composite = 1;
@@ -1198,10 +1121,7 @@ int app_run(const char *input_path) {
                 if (ctrl && shift && key == SDLK_e) {
                     if (apply_stamp_visible_into(
                             &layers,
-                            undo_stack,
-                            &undo_count,
-                            redo_stack,
-                            &redo_count,
+                            &history,
                             layers.active_layer,
                             COLOR_BG,
                             "Stamp visible failed (active layer may be locked)")) {
@@ -1214,10 +1134,7 @@ int app_run(const char *input_path) {
                 if (ctrl && shift && key == SDLK_g) {
                     if (apply_visible_stamp_new(
                             &layers,
-                            undo_stack,
-                            &undo_count,
-                            redo_stack,
-                            &redo_count,
+                            &history,
                             "Visible Stamp",
                             COLOR_BG,
                             "Could not stamp visible image into a new layer")) {
@@ -1230,10 +1147,7 @@ int app_run(const char *input_path) {
                 if (ctrl && key == SDLK_d) {
                     if (apply_layer_duplicate(
                             &layers,
-                            undo_stack,
-                            &undo_count,
-                            redo_stack,
-                            &redo_count,
+                            &history,
                             layers.active_layer,
                             NULL,
                             "Could not duplicate layer")) {
@@ -1246,10 +1160,7 @@ int app_run(const char *input_path) {
                 if (ctrl && key == SDLK_LEFTBRACKET) {
                     if (apply_active_layer_move(
                             &layers,
-                            undo_stack,
-                            &undo_count,
-                            redo_stack,
-                            &redo_count,
+                            &history,
                             layers.active_layer - 1,
                             "Layer is already at the bottom")) {
                         needs_composite = 1;
@@ -1261,10 +1172,7 @@ int app_run(const char *input_path) {
                 if (ctrl && key == SDLK_RIGHTBRACKET) {
                     if (apply_active_layer_move(
                             &layers,
-                            undo_stack,
-                            &undo_count,
-                            redo_stack,
-                            &redo_count,
+                            &history,
                             layers.active_layer + 1,
                             "Layer is already at the top")) {
                         needs_composite = 1;
@@ -1277,10 +1185,7 @@ int app_run(const char *input_path) {
                     if (shift) {
                         if (apply_active_visible_rank_move(
                                 &layers,
-                                undo_stack,
-                                &undo_count,
-                                redo_stack,
-                                &redo_count,
+                                &history,
                                 layer_stack_visible_count(&layers) - 1,
                                 "Layer is already at the top visible slot")) {
                             needs_composite = 1;
@@ -1288,10 +1193,7 @@ int app_run(const char *input_path) {
                     } else {
                         if (apply_active_layer_move(
                                 &layers,
-                                undo_stack,
-                                &undo_count,
-                                redo_stack,
-                                &redo_count,
+                                &history,
                                 layers.layer_count - 1,
                                 "Layer is already at the top")) {
                             needs_composite = 1;
@@ -1305,10 +1207,7 @@ int app_run(const char *input_path) {
                     if (shift) {
                         if (apply_active_visible_rank_move(
                                 &layers,
-                                undo_stack,
-                                &undo_count,
-                                redo_stack,
-                                &redo_count,
+                                &history,
                                 0,
                                 "Layer is already at the bottom visible slot")) {
                             needs_composite = 1;
@@ -1316,10 +1215,7 @@ int app_run(const char *input_path) {
                     } else {
                         if (apply_active_layer_move(
                                 &layers,
-                                undo_stack,
-                                &undo_count,
-                                redo_stack,
-                                &redo_count,
+                                &history,
                                 0,
                                 "Layer is already at the bottom")) {
                             needs_composite = 1;
@@ -1331,7 +1227,7 @@ int app_run(const char *input_path) {
 
                 if (ctrl && (key == SDLK_MINUS || key == SDLK_KP_MINUS)) {
                     int delta = shift ? -1 : -10;
-                    if (apply_active_layer_opacity_delta(&layers, undo_stack, &undo_count, redo_stack, &redo_count, delta)) {
+                    if (apply_active_layer_opacity_delta(&layers, &history, delta)) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1340,7 +1236,7 @@ int app_run(const char *input_path) {
 
                 if (ctrl && (key == SDLK_EQUALS || key == SDLK_KP_PLUS)) {
                     int delta = shift ? 1 : 10;
-                    if (apply_active_layer_opacity_delta(&layers, undo_stack, &undo_count, redo_stack, &redo_count, delta)) {
+                    if (apply_active_layer_opacity_delta(&layers, &history, delta)) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1350,10 +1246,7 @@ int app_run(const char *input_path) {
                 if (ctrl && shift && key == SDLK_v) {
                     if (apply_toggle_visibility(
                             &layers,
-                            undo_stack,
-                            &undo_count,
-                            redo_stack,
-                            &redo_count,
+                            &history,
                             layers.active_layer,
                             "Cannot hide the final visible layer")) {
                         needs_composite = 1;
@@ -1365,10 +1258,7 @@ int app_run(const char *input_path) {
                 if (ctrl && shift && key == SDLK_h) {
                     if (apply_hide_and_advance(
                             &layers,
-                            undo_stack,
-                            &undo_count,
-                            redo_stack,
-                            &redo_count,
+                            &history,
                             layers.active_layer,
                             "Cannot hide the final visible layer")) {
                         needs_composite = 1;
@@ -1380,10 +1270,7 @@ int app_run(const char *input_path) {
                 if (ctrl && key == SDLK_SLASH) {
                     if (apply_toggle_solo(
                             &layers,
-                            undo_stack,
-                            &undo_count,
-                            redo_stack,
-                            &redo_count,
+                            &history,
                             layers.active_layer,
                             "Could not toggle solo mode")) {
                         needs_composite = 1;
@@ -1395,10 +1282,7 @@ int app_run(const char *input_path) {
                 if (key == SDLK_DELETE || key == SDLK_BACKSPACE) {
                     if (apply_layer_delete(
                             &layers,
-                            undo_stack,
-                            &undo_count,
-                            redo_stack,
-                            &redo_count,
+                            &history,
                             layers.active_layer,
                             "Cannot delete the final or a locked layer")) {
                         needs_composite = 1;
@@ -1421,7 +1305,7 @@ int app_run(const char *input_path) {
                         fprintf(stderr, "Active layer is locked\n");
                         break;
                     }
-                    layer_history_push(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                    layer_history_record(&history, &layers);
                     if (!canvas_load_bmp(&active->canvas, "input.bmp", active_layer_clear_color(&layers))) {
                         fprintf(stderr, "Failed to load input.bmp\n");
                     } else {
@@ -1433,10 +1317,7 @@ int app_run(const char *input_path) {
                 if (ctrl && key == SDLK_m) {
                     if (apply_merge_down(
                             &layers,
-                            undo_stack,
-                            &undo_count,
-                            redo_stack,
-                            &redo_count,
+                            &history,
                             layers.active_layer,
                             "No lower layer to merge into, or one of the layers is locked")) {
                         needs_composite = 1;
@@ -1448,10 +1329,7 @@ int app_run(const char *input_path) {
                 if (ctrl && key == SDLK_u) {
                     if (apply_merge_up(
                             &layers,
-                            undo_stack,
-                            &undo_count,
-                            redo_stack,
-                            &redo_count,
+                            &history,
                             layers.active_layer,
                             "No upper layer to merge into, or one of the layers is locked")) {
                         needs_composite = 1;
@@ -1461,7 +1339,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_z) {
-                    if (layer_history_undo(&layers, undo_stack, &undo_count, redo_stack, &redo_count)) {
+                    if (layer_history_step_undo(&history, &layers)) {
                         needs_composite = 1;
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
@@ -1469,7 +1347,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_y) {
-                    if (layer_history_redo(&layers, undo_stack, &undo_count, redo_stack, &redo_count)) {
+                    if (layer_history_step_redo(&history, &layers)) {
                         needs_composite = 1;
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
@@ -1482,10 +1360,7 @@ int app_run(const char *input_path) {
                     int target = shortcut_target;
                     if (apply_active_visible_rank_move(
                             &layers,
-                            undo_stack,
-                            &undo_count,
-                            redo_stack,
-                            &redo_count,
+                            &history,
                             target,
                             "Visible slot move did not change the active layer")) {
                         needs_composite = 1;
@@ -1499,10 +1374,7 @@ int app_run(const char *input_path) {
                     if (target < layers.layer_count) {
                         if (apply_active_layer_move(
                                 &layers,
-                                undo_stack,
-                                &undo_count,
-                                redo_stack,
-                                &redo_count,
+                                &history,
                                 target,
                                 "Layer is already in that slot")) {
                             needs_composite = 1;
@@ -1530,7 +1402,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && shift && key == SDLK_0) {
-                    if (apply_active_layer_opacity_value(&layers, undo_stack, &undo_count, redo_stack, &redo_count, 0)) {
+                    if (apply_active_layer_opacity_value(&layers, &history, 0)) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1538,7 +1410,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_9) {
-                    if (apply_active_layer_opacity_value(&layers, undo_stack, &undo_count, redo_stack, &redo_count, 50)) {
+                    if (apply_active_layer_opacity_value(&layers, &history, 50)) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1546,7 +1418,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_0) {
-                    if (apply_active_layer_opacity_value(&layers, undo_stack, &undo_count, redo_stack, &redo_count, 100)) {
+                    if (apply_active_layer_opacity_value(&layers, &history, 100)) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1554,7 +1426,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_a) {
-                    layer_history_push(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                    layer_history_record(&history, &layers);
                     if (layer_stack_show_all(&layers)) {
                         needs_composite = 1;
                     }
@@ -1563,7 +1435,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && shift && key == SDLK_r) {
-                    layer_history_push(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                    layer_history_record(&history, &layers);
                     if (layer_stack_show(&layers, layers.active_layer)) {
                         needs_composite = 1;
                     }
@@ -1620,7 +1492,7 @@ int app_run(const char *input_path) {
                     } else {
                         dx = step;
                     }
-                    if (apply_canvas_translation(&layers, undo_stack, &undo_count, redo_stack, &redo_count, dx, dy)) {
+                    if (apply_canvas_translation(&layers, &history, dx, dy)) {
                         needs_composite = 1;
                     }
                     break;
@@ -1698,25 +1570,25 @@ int app_run(const char *input_path) {
                     tool = TOOL_BRUSH;
                 } else if (key == SDLK_c) {
                     if (active_layer_editable(&layers)) {
-                        layer_history_push(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        layer_history_record(&history, &layers);
                     }
                     if (layer_stack_clear_layer(&layers, layers.active_layer, active_layer_clear_color(&layers))) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_h) {
-                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_flip_horizontal)) {
+                    if (apply_canvas_transform(&layers, &history, canvas_flip_horizontal)) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_v) {
-                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_flip_vertical)) {
+                    if (apply_canvas_transform(&layers, &history, canvas_flip_vertical)) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_j) {
-                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_rotate_180)) {
+                    if (apply_canvas_transform(&layers, &history, canvas_rotate_180)) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_x) {
-                    if (apply_canvas_transform(&layers, undo_stack, &undo_count, redo_stack, &redo_count, canvas_invert_rgb)) {
+                    if (apply_canvas_transform(&layers, &history, canvas_invert_rgb)) {
                         needs_composite = 1;
                     }
                 } else if (key == SDLK_f) {
@@ -1726,7 +1598,7 @@ int app_run(const char *input_path) {
                     if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
                         Layer *active = layer_stack_active(&layers);
                         if (active && !active->locked) {
-                            layer_history_push(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                            layer_history_record(&history, &layers);
                         }
                         if (!active || active->locked || !canvas_flood_fill(&active->canvas, mx, my, brush_color)) {
                             fprintf(stderr, "Fill failed\n");
@@ -1796,8 +1668,7 @@ int app_run(const char *input_path) {
     free(preview_pixels);
     canvas_free(&composite);
     layer_stack_free(&layers);
-    layer_history_clear(undo_stack, &undo_count);
-    layer_history_clear(redo_stack, &redo_count);
+    layer_history_reset(&history);
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
