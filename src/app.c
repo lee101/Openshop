@@ -4,6 +4,7 @@
 #include "app_color.h"
 #include "app_layer_state.h"
 #include "app_preview.h"
+#include "app_sampled_color.h"
 #include "app_shape.h"
 #include "app_title.h"
 #include "brush_shortcuts.h"
@@ -114,30 +115,6 @@ static int handle_history_navigation_shortcut(
     return 0;
 }
 
-static void apply_sampled_brush_color(
-    uint32_t sampled_color,
-    Tool *tool,
-    uint32_t *brush_color,
-    uint32_t *brush_color_rgb,
-    int *brush_opacity
-) {
-    int sampled_alpha = 0;
-
-    if (!tool || !brush_color || !brush_color_rgb || !brush_opacity) {
-        return;
-    }
-
-    *brush_color = sampled_color;
-    *brush_color_rgb = *brush_color & 0x00FFFFFF;
-    sampled_alpha = (int)((*brush_color >> 24) & 0xFF);
-    *brush_opacity = (sampled_alpha * 100 + 127) / 255;
-    if (*brush_opacity < 1) {
-        *brush_opacity = 1;
-    }
-    *brush_color = app_compose_brush_color(*brush_color_rgb, *brush_opacity);
-    *tool = TOOL_BRUSH;
-}
-
 static int handle_canvas_sample_shortcut(
     CanvasShortcutAction canvas_action,
     LayerStack *layers,
@@ -185,7 +162,7 @@ static int handle_canvas_sample_shortcut(
     }
 
     sample = (preview_active && preview_canvas && preview_canvas->pixels) ? preview_canvas : composite;
-    apply_sampled_brush_color(canvas_get_pixel(sample, mx, my), tool, brush_color, brush_color_rgb, brush_opacity);
+    app_apply_sampled_brush_color(canvas_get_pixel(sample, mx, my), tool, brush_color, brush_color_rgb, brush_opacity);
     return 1;
 }
 
@@ -1490,7 +1467,7 @@ static void handle_mouse_button_down(
         }
 
         sample = (*preview_active && preview_canvas_mut->pixels) ? preview_canvas_mut : composite;
-        apply_sampled_brush_color(canvas_get_pixel(sample, button.x, button.y), tool, brush_color, brush_color_rgb, brush_opacity);
+        app_apply_sampled_brush_color(canvas_get_pixel(sample, button.x, button.y), tool, brush_color, brush_color_rgb, brush_opacity);
         refresh_app_title(window, layers, *tool, brush_shape, brush_radius, *brush_color, *brush_opacity);
     }
 }

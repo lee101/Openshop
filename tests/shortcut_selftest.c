@@ -3,6 +3,7 @@
 #include "../src/app_color.h"
 #include "../src/app_layer_state.h"
 #include "../src/app_preview.h"
+#include "../src/app_sampled_color.h"
 #include "../src/app_shape.h"
 #include "../src/app_title.h"
 #include "../src/brush_shortcuts.h"
@@ -134,6 +135,75 @@ static int expect_brush_mask(const char *label, BrushShape shape, int x, int y, 
     int got = app_brush_mask_contains(shape, x, y, radius);
     if (got != want) {
         fprintf(stderr, "%s mismatch: got %d want %d\n", label, got, want);
+        return 0;
+    }
+    return 1;
+}
+
+static int expect_sampled_brush_color(
+    const char *label,
+    unsigned int sampled_color,
+    Tool initial_tool,
+    unsigned int initial_brush_color,
+    unsigned int initial_brush_color_rgb,
+    int initial_brush_opacity,
+    Tool want_tool,
+    unsigned int want_brush_color,
+    unsigned int want_brush_color_rgb,
+    int want_brush_opacity
+) {
+    Tool tool = initial_tool;
+    unsigned int brush_color = initial_brush_color;
+    unsigned int brush_color_rgb = initial_brush_color_rgb;
+    int brush_opacity = initial_brush_opacity;
+
+    app_apply_sampled_brush_color(sampled_color, &tool, &brush_color, &brush_color_rgb, &brush_opacity);
+    if (tool != want_tool || brush_color != want_brush_color || brush_color_rgb != want_brush_color_rgb || brush_opacity != want_brush_opacity) {
+        fprintf(
+            stderr,
+            "%s mismatch: got {%d,0x%08X,0x%08X,%d} want {%d,0x%08X,0x%08X,%d}\n",
+            label,
+            tool,
+            brush_color,
+            brush_color_rgb,
+            brush_opacity,
+            want_tool,
+            want_brush_color,
+            want_brush_color_rgb,
+            want_brush_opacity
+        );
+        return 0;
+    }
+    return 1;
+}
+
+static int expect_sampled_brush_color_noop(
+    const char *label,
+    unsigned int sampled_color,
+    Tool *tool,
+    unsigned int *brush_color,
+    unsigned int *brush_color_rgb,
+    int *brush_opacity,
+    Tool want_tool,
+    unsigned int want_brush_color,
+    unsigned int want_brush_color_rgb,
+    int want_brush_opacity
+) {
+    app_apply_sampled_brush_color(sampled_color, tool, brush_color, brush_color_rgb, brush_opacity);
+    if (tool && *tool != want_tool) {
+        fprintf(stderr, "%s tool changed: got %d want %d\n", label, *tool, want_tool);
+        return 0;
+    }
+    if (brush_color && *brush_color != want_brush_color) {
+        fprintf(stderr, "%s brush_color changed: got 0x%08X want 0x%08X\n", label, *brush_color, want_brush_color);
+        return 0;
+    }
+    if (brush_color_rgb && *brush_color_rgb != want_brush_color_rgb) {
+        fprintf(stderr, "%s brush_color_rgb changed: got 0x%08X want 0x%08X\n", label, *brush_color_rgb, want_brush_color_rgb);
+        return 0;
+    }
+    if (brush_opacity && *brush_opacity != want_brush_opacity) {
+        fprintf(stderr, "%s brush_opacity changed: got %d want %d\n", label, *brush_opacity, want_brush_opacity);
         return 0;
     }
     return 1;
@@ -442,6 +512,10 @@ int main(void) {
     int sentinel_y = 654;
     int shaping = 1;
     int preview_active = 1;
+    Tool sampled_tool = TOOL_ERASER;
+    unsigned int sampled_brush_color = 0xAA112233u;
+    unsigned int sampled_brush_color_rgb = 0x00112233u;
+    int sampled_brush_opacity = 42;
     Layer editable_layer = {0};
     Layer locked_layer = {0};
     Layer empty_layer = {0};
@@ -528,6 +602,11 @@ int main(void) {
     ok = ok && expect_brush_mask("brush_mask_diamond_zero_radius", BRUSH_SHAPE_DIAMOND, 0, 0, 0, 1);
     ok = ok && expect_brush_mask("brush_mask_diamond_negative_symmetry", BRUSH_SHAPE_DIAMOND, -1, -1, 2, 1);
     ok = ok && expect_brush_mask("brush_mask_default", (BrushShape)999, 0, 0, 2, 0);
+    ok = ok && expect_sampled_brush_color("sampled_brush_color_opaque", 0xFF445566u, TOOL_ERASER, 0, 0, 0, TOOL_BRUSH, 0xFF445566u, 0x00445566u, 100);
+    ok = ok && expect_sampled_brush_color("sampled_brush_color_translucent", 0x80445566u, TOOL_LINE, 0, 0, 0, TOOL_BRUSH, 0x80445566u, 0x00445566u, 50);
+    ok = ok && expect_sampled_brush_color("sampled_brush_color_transparent_clamp", 0x00445566u, TOOL_RECT, 0, 0, 0, TOOL_BRUSH, 0x03445566u, 0x00445566u, 1);
+    ok = ok && expect_sampled_brush_color_noop("sampled_brush_color_null_tool", 0xFF778899u, NULL, &sampled_brush_color, &sampled_brush_color_rgb, &sampled_brush_opacity, TOOL_BRUSH, 0xAA112233u, 0x00112233u, 42);
+    ok = ok && expect_sampled_brush_color_noop("sampled_brush_color_null_color", 0xFF778899u, &sampled_tool, NULL, &sampled_brush_color_rgb, &sampled_brush_opacity, TOOL_ERASER, 0, 0x00112233u, 42);
     ok = ok && expect_brush_color("brush_color_low_clamp", 0x00123456u, 0, 0x03123456u);
     ok = ok && expect_brush_color("brush_color_mid_round", 0x00ABCDEFu, 50, 0x80ABCDEFu);
     ok = ok && expect_brush_color("brush_color_high_clamp", 0x00FEDCBAu, 150, 0xFFFEDCBAu);
