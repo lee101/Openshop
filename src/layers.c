@@ -431,6 +431,43 @@ int layer_stack_move(LayerStack *stack, int index, int direction) {
     return 1;
 }
 
+int layer_stack_move_to(LayerStack *stack, int index, int target_index) {
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    if (target_index < 0) {
+        target_index = 0;
+    } else if (target_index >= stack->layer_count) {
+        target_index = stack->layer_count - 1;
+    }
+    if (index == target_index) {
+        return 0;
+    }
+
+    Layer moved = stack->layers[index];
+    if (index < target_index) {
+        for (int i = index; i < target_index; i++) {
+            stack->layers[i] = stack->layers[i + 1];
+        }
+    } else {
+        for (int i = index; i > target_index; i--) {
+            stack->layers[i] = stack->layers[i - 1];
+        }
+    }
+    stack->layers[target_index] = moved;
+    stack->active_layer = target_index;
+
+    if (stack->solo_index == index) {
+        stack->solo_index = target_index;
+    } else if (index < target_index && stack->solo_index > index && stack->solo_index <= target_index) {
+        stack->solo_index--;
+    } else if (index > target_index && stack->solo_index >= target_index && stack->solo_index < index) {
+        stack->solo_index++;
+    }
+
+    return 1;
+}
+
 int layer_stack_merge_down(LayerStack *stack, int index) {
     if (!stack || index <= 0 || index >= stack->layer_count) {
         return 0;

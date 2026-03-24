@@ -56,6 +56,7 @@ make test-sdl
 - `Ctrl+D`: duplicate active layer
 - `Delete` / `Backspace`: delete active layer
 - `Ctrl+]` / `Ctrl+[`: move active layer up/down
+- `Ctrl+Home / Ctrl+End`: move active layer to the top/bottom
 - `Ctrl+- / Ctrl+=`: active layer opacity down/up
 - `Ctrl+0`: reset active layer opacity to 100%
 - `Ctrl+A`: show all layers and clear solo mode

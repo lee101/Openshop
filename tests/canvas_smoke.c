@@ -545,6 +545,72 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_add(&stack, "Move Middle", 0x00000000) != 2 || layer_stack_add(&stack, "Move Top", 0x00000000) != 3) {
+        fprintf(stderr, "setup move-to layers failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_move_to(&stack, 1, 3) || stack.active_layer != 3) {
+        fprintf(stderr, "move layer to top failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != 3) {
+        fprintf(stderr, "solo index did not move to top with layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[3].name, "Background Copy") != 0) {
+        fprintf(stderr, "move-to-top order failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_move_to(&stack, 3, 0) || stack.active_layer != 0) {
+        fprintf(stderr, "move layer to bottom failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != 0) {
+        fprintf(stderr, "solo index did not move to bottom with layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background Copy") != 0) {
+        fprintf(stderr, "move-to-bottom order failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_move_to(&stack, 0, 0)) {
+        fprintf(stderr, "move-to should fail when already at target\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_move_to(&stack, 0, 1) || stack.active_layer != 1) {
+        fprintf(stderr, "move layer back to original slot failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != 1 || strcmp(stack.layers[1].name, "Background Copy") != 0) {
+        fprintf(stderr, "move-to restore bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 3) || !layer_stack_delete(&stack, 2)) {
+        fprintf(stderr, "move-to cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     canvas_set_pixel(&stack.layers[1].canvas, 0, 0, 0xFFFF00FF);
     if (!expect_pixel_eq("duplicate_independent", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF0040BF)) {
         canvas_free(&composite);
