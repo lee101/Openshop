@@ -1183,6 +1183,14 @@ static int test_layer_snapshot_reset_clears_allocated_state(void) {
         fprintf(stderr, "history snapshot reset init failed\n");
         return 0;
     }
+    if (layer_stack_add(&stack, "Ink", 0x00000000) != 1) {
+        fprintf(stderr, "history snapshot reset add layer failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[1].visible = 0;
+    stack.layers[1].locked = 1;
+    stack.layers[1].opacity_percent = 42;
 
     LayerSnapshot snapshot = {0};
     if (!layer_snapshot_capture(&snapshot, &stack)) {
@@ -1194,6 +1202,12 @@ static int test_layer_snapshot_reset_clears_allocated_state(void) {
     layer_snapshot_reset(&snapshot);
     if (!snapshot_is_reset(&snapshot)) {
         fprintf(stderr, "history snapshot reset should clear captured state\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (snapshot.visibility[1] != 0 || snapshot.locked[1] != 0 || snapshot.opacity_percent[1] != 0 ||
+        snapshot.names[1][0] != '\0') {
+        fprintf(stderr, "history snapshot reset should scrub metadata arrays unlike snapshot free\n");
         layer_stack_free(&stack);
         return 0;
     }
