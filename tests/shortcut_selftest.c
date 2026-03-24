@@ -1454,6 +1454,101 @@ static int expect_prepare_shape_commit_to_active_layer(
     return ok;
 }
 
+static int expect_finalize_shape_preview(
+    const char *label,
+    LayerStack *layers,
+    int *shaping,
+    int *preview_active,
+    int shape_start_x,
+    int shape_start_y,
+    int x,
+    int y,
+    int shift,
+    Tool tool,
+    int brush_radius,
+    uint32_t brush_color,
+    int undo_capacity,
+    int want_finalized,
+    int want_shaping,
+    int want_preview_active,
+    int want_needs_composite,
+    int want_undo_count,
+    size_t snapshot_index,
+    uint32_t want_snapshot,
+    size_t pixel_index,
+    uint32_t want_pixel
+) {
+    Snapshot undo_stack[2] = {0};
+    Snapshot redo_stack[2] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+    int needs_composite = 0;
+    int finalized = app_finalize_shape_preview(
+        layers,
+        shaping,
+        preview_active,
+        shape_start_x,
+        shape_start_y,
+        x,
+        y,
+        shift,
+        tool,
+        brush_radius,
+        brush_color,
+        undo_stack,
+        &undo_count,
+        undo_capacity,
+        redo_stack,
+        &redo_count,
+        &needs_composite
+    );
+    int ok = 1;
+
+    if (finalized != want_finalized) {
+        fprintf(stderr, "%s finalized mismatch: got %d want %d\n", label, finalized, want_finalized);
+        ok = 0;
+    }
+    if (shaping && *shaping != want_shaping) {
+        fprintf(stderr, "%s shaping mismatch: got %d want %d\n", label, *shaping, want_shaping);
+        ok = 0;
+    }
+    if (preview_active && *preview_active != want_preview_active) {
+        fprintf(stderr, "%s preview_active mismatch: got %d want %d\n", label, *preview_active, want_preview_active);
+        ok = 0;
+    }
+    if (needs_composite != want_needs_composite) {
+        fprintf(stderr, "%s needs_composite mismatch: got %d want %d\n", label, needs_composite, want_needs_composite);
+        ok = 0;
+    }
+    if (undo_count != want_undo_count || redo_count != 0) {
+        fprintf(stderr, "%s history mismatch: undo=%d want %d redo=%d want 0\n", label, undo_count, want_undo_count, redo_count);
+        ok = 0;
+    }
+    if (want_undo_count > 0) {
+        if (!undo_stack[0].pixels || undo_stack[0].pixels[snapshot_index] != want_snapshot) {
+            fprintf(
+                stderr,
+                "%s snapshot mismatch: pixel=0x%08X want 0x%08X\n",
+                label,
+                undo_stack[0].pixels ? undo_stack[0].pixels[snapshot_index] : 0u,
+                want_snapshot
+            );
+            ok = 0;
+        }
+    }
+    if (layers && pixel_index < (size_t)layers->width * (size_t)layers->height) {
+        uint32_t got_pixel = layers->layers[layers->active_layer].canvas.pixels[pixel_index];
+        if (got_pixel != want_pixel) {
+            fprintf(stderr, "%s canvas pixel mismatch: got 0x%08X want 0x%08X\n", label, got_pixel, want_pixel);
+            ok = 0;
+        }
+    }
+
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    return ok;
+}
+
 static int expect_draw_shape_pixel(
     const char *label,
     Tool tool,
@@ -2410,6 +2505,108 @@ int main(void) {
             0,
             0,
             NULL
+        );
+    }
+    {
+        LayerStack stack;
+        Canvas canvas;
+        uint32_t pixels[9];
+
+        init_single_layer_stack(&stack, &canvas, pixels, 3, 3, 0xFF123456u, 0);
+        pixels[0] = 0x01020304u;
+        shaping = 1;
+        preview_active = 1;
+        ok = ok && expect_finalize_shape_preview(
+            "finalize_shape_preview_success",
+            &stack,
+            &shaping,
+            &preview_active,
+            0,
+            0,
+            2,
+            0,
+            0,
+            TOOL_LINE,
+            1,
+            0xFFAABBCCu,
+            2,
+            1,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0x01020304u,
+            2,
+            0xFFAABBCCu
+        );
+    }
+    {
+        LayerStack stack;
+        Canvas canvas;
+        uint32_t pixels[9];
+
+        init_single_layer_stack(&stack, &canvas, pixels, 3, 3, 0xFF123456u, 1);
+        pixels[4] = 0x55667788u;
+        shaping = 1;
+        preview_active = 1;
+        ok = ok && expect_finalize_shape_preview(
+            "finalize_shape_preview_locked_noop",
+            &stack,
+            &shaping,
+            &preview_active,
+            0,
+            0,
+            2,
+            1,
+            0,
+            TOOL_RECT,
+            1,
+            0xFFABCDEFu,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0u,
+            4,
+            0x55667788u
+        );
+    }
+    {
+        LayerStack stack;
+        Canvas canvas;
+        uint32_t pixels[9];
+
+        init_single_layer_stack(&stack, &canvas, pixels, 3, 3, 0xFF123456u, 0);
+        pixels[8] = 0x10203040u;
+        shaping = 0;
+        preview_active = 1;
+        ok = ok && expect_finalize_shape_preview(
+            "finalize_shape_preview_inactive_noop",
+            &stack,
+            &shaping,
+            &preview_active,
+            0,
+            0,
+            2,
+            2,
+            0,
+            TOOL_FILLED_RECT,
+            1,
+            0xFFFFFFFFu,
+            2,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0u,
+            8,
+            0x10203040u
         );
     }
     {

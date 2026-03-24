@@ -169,3 +169,57 @@ Layer *app_prepare_shape_commit_to_active_layer(
     snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
     return active;
 }
+
+int app_finalize_shape_preview(
+    LayerStack *layers,
+    int *shaping,
+    int *preview_active,
+    int shape_start_x,
+    int shape_start_y,
+    int x,
+    int y,
+    int shift,
+    Tool tool,
+    int brush_radius,
+    uint32_t brush_color,
+    Snapshot *undo_stack,
+    int *undo_count,
+    int undo_capacity,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+) {
+    int end_x = x;
+    int end_y = y;
+    Layer *active = NULL;
+
+    if (!layers || !shaping || !preview_active || !*shaping) {
+        return 0;
+    }
+
+    active = app_prepare_shape_commit_to_active_layer(
+        layers,
+        shaping,
+        tool,
+        shape_start_x,
+        shape_start_y,
+        end_x,
+        end_y,
+        shift,
+        undo_stack,
+        undo_count,
+        undo_capacity,
+        redo_stack,
+        redo_count,
+        &end_x,
+        &end_y
+    );
+    if (active) {
+        app_draw_shape(&active->canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
+        if (needs_composite) {
+            *needs_composite = 1;
+        }
+    }
+    app_cancel_shape_preview(shaping, preview_active);
+    return active != NULL;
+}

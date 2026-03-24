@@ -1198,39 +1198,27 @@ static void finalize_shape_preview(
     int *needs_composite
 ) {
     int shift = 0;
-    int end_x = button.x;
-    int end_y = button.y;
-    Layer *active = NULL;
-
-    if (!layers || !shaping || !preview_active || !*shaping) {
-        return;
-    }
 
     sdl_shortcut_modifiers(NULL, NULL, &shift);
-    active = app_prepare_shape_commit_to_active_layer(
+    app_finalize_shape_preview(
         layers,
         shaping,
-        tool,
+        preview_active,
         shape_start_x,
         shape_start_y,
-        end_x,
-        end_y,
+        button.x,
+        button.y,
         shift,
+        tool,
+        brush_radius,
+        brush_color,
         undo_stack,
         undo_count,
         MAX_HISTORY,
         redo_stack,
         redo_count,
-        &end_x,
-        &end_y
+        needs_composite
     );
-    if (active) {
-        app_draw_shape(&active->canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
-        if (needs_composite) {
-            *needs_composite = 1;
-        }
-    }
-    app_cancel_shape_preview(shaping, preview_active);
 }
 
 static void handle_mouse_button_down(

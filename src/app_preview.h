@@ -90,4 +90,24 @@ Layer *app_prepare_shape_commit_to_active_layer(
     int *out_y
 );
 
+int app_finalize_shape_preview(
+    LayerStack *layers,
+    int *shaping,
+    int *preview_active,
+    int shape_start_x,
+    int shape_start_y,
+    int x,
+    int y,
+    int shift,
+    Tool tool,
+    int brush_radius,
+    uint32_t brush_color,
+    Snapshot *undo_stack,
+    int *undo_count,
+    int undo_capacity,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+);
+
 #endif
