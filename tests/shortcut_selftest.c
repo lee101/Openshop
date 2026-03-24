@@ -2267,6 +2267,115 @@ static int run_active_layer_insert_shortcut_runtime_case(const ActiveLayerInsert
     );
 }
 
+static int expect_active_layer_delete_shortcut_runtime(
+    const char *label,
+    int key,
+    int layer_count,
+    int active_layer,
+    int solo_index,
+    int locked,
+    int want_handled,
+    int want_needs_composite,
+    int want_undo_count,
+    int want_layer_count,
+    int want_active_layer,
+    int want_solo_index
+) {
+    LayerStack stack = {0};
+    Snapshot undo_stack[2] = {0};
+    Snapshot redo_stack[2] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+    int needs_composite = 0;
+    int handled = 0;
+    size_t i = 0;
+    const uint32_t fills[3][4] = {
+        {1, 2, 3, 4},
+        {5, 6, 7, 8},
+        {9, 10, 11, 12},
+    };
+
+    stack.width = 2;
+    stack.height = 2;
+    stack.layer_count = layer_count;
+    stack.active_layer = active_layer;
+    stack.solo_index = solo_index;
+
+    for (i = 0; i < 3; i++) {
+        canvas_init(&stack.layers[i].canvas, 2, 2);
+        memcpy(stack.layers[i].canvas.pixels, fills[i], sizeof(fills[i]));
+        stack.layers[i].visible = 1;
+        stack.layers[i].opacity_percent = i == 0 ? 100 : (i == 1 ? 70 : 40);
+        stack.layers[i].locked = 0;
+    }
+    stack.layers[1].locked = locked;
+
+    handled = app_handle_active_layer_delete_shortcut(
+        key,
+        &stack,
+        undo_stack,
+        &undo_count,
+        2,
+        redo_stack,
+        &redo_count,
+        &needs_composite
+    );
+
+    if (handled != want_handled) {
+        fprintf(stderr, "%s handled mismatch: got %d want %d\n", label, handled, want_handled);
+        return 0;
+    }
+    if (needs_composite != want_needs_composite) {
+        fprintf(stderr, "%s needs_composite mismatch: got %d want %d\n", label, needs_composite, want_needs_composite);
+        return 0;
+    }
+    if (undo_count != want_undo_count || redo_count != 0) {
+        fprintf(stderr, "%s history count mismatch: undo %d/%d redo %d/0\n", label, undo_count, want_undo_count, redo_count);
+        return 0;
+    }
+    if (stack.layer_count != want_layer_count || stack.active_layer != want_active_layer || stack.solo_index != want_solo_index) {
+        fprintf(stderr, "%s stack mismatch: got layers %d active %d solo %d want layers %d active %d solo %d\n",
+            label, stack.layer_count, stack.active_layer, stack.solo_index, want_layer_count, want_active_layer, want_solo_index);
+        return 0;
+    }
+    for (i = 0; i < (size_t)stack.layer_count; i++) {
+        canvas_free(&stack.layers[i].canvas);
+    }
+    return 1;
+}
+
+typedef struct {
+    const char *label;
+    int key;
+    int layer_count;
+    int active_layer;
+    int solo_index;
+    int locked;
+    int want_handled;
+    int want_needs_composite;
+    int want_undo_count;
+    int want_layer_count;
+    int want_active_layer;
+    int want_solo_index;
+} ActiveLayerDeleteShortcutRuntimeCase;
+
+static int run_active_layer_delete_shortcut_runtime_case(const ActiveLayerDeleteShortcutRuntimeCase *test_case) {
+    return expect_active_layer_delete_shortcut_runtime(
+        test_case->label,
+        test_case->key,
+        test_case->layer_count,
+        test_case->active_layer,
+        test_case->solo_index,
+        test_case->locked,
+        test_case->want_handled,
+        test_case->want_needs_composite,
+        test_case->want_undo_count,
+        test_case->want_layer_count,
+        test_case->want_active_layer,
+        test_case->want_solo_index
+    );
+}
+
 static int expect_canvas_sample_shortcut(
     const char *label,
     CanvasShortcutAction action,
@@ -5323,6 +5432,26 @@ int main(void) {
 
         if (app_handle_active_layer_insert_shortcut('n', 1, 1, NULL, NULL, NULL, 0, NULL, NULL, NULL) != 0) {
             fprintf(stderr, "active_layer_insert_null_layers should reject null layer stack\n");
+            ok = 0;
+        }
+    }
+    {
+        const ActiveLayerDeleteShortcutRuntimeCase active_layer_delete_cases[] = {
+            {"active_layer_delete_success", 127, 3, 1, -1, 0, 1, 1, 1, 2, 1, -1},
+            {"active_layer_delete_clears_solo", 127, 3, 1, 1, 0, 1, 1, 1, 2, 1, -1},
+            {"active_layer_delete_locked_noop", 127, 3, 1, -1, 1, 1, 0, 0, 3, 1, -1},
+            {"active_layer_delete_final_layer_noop", 127, 1, 0, -1, 0, 1, 0, 0, 1, 0, -1},
+            {"active_layer_delete_backspace_success", '\b', 3, 2, 2, 0, 1, 1, 1, 2, 1, -1},
+            {"active_layer_delete_other_key", 'x', 3, 1, -1, 0, 0, 0, 0, 3, 1, -1},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(active_layer_delete_cases) / sizeof(active_layer_delete_cases[0]); i++) {
+            ok = ok && run_active_layer_delete_shortcut_runtime_case(&active_layer_delete_cases[i]);
+        }
+
+        if (app_handle_active_layer_delete_shortcut(127, NULL, NULL, NULL, 0, NULL, NULL, NULL) != 0) {
+            fprintf(stderr, "active_layer_delete_null_layers should reject null layer stack\n");
             ok = 0;
         }
     }

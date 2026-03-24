@@ -1025,15 +1025,16 @@ static int handle_active_layer_mutation_shortcut(
     }
 
     if (key == SDLK_DELETE || key == SDLK_BACKSPACE) {
-        if (!layer_stack_can_delete(layers, layers->active_layer)) {
-            fprintf(stderr, "Cannot delete the final or a locked layer\n");
-        } else {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            layer_stack_delete(layers, layers->active_layer);
-            if (needs_composite) {
-                *needs_composite = 1;
-            }
-        }
+        app_handle_active_layer_delete_shortcut(
+            key == SDLK_DELETE ? 127 : '\b',
+            layers,
+            undo_stack,
+            undo_count,
+            MAX_HISTORY,
+            redo_stack,
+            redo_count,
+            needs_composite
+        );
         return 1;
     }
 
