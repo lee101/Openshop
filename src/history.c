@@ -195,3 +195,32 @@ int layer_history_redo(LayerStack *layers, LayerSnapshot *undo_stack, int *undo_
     layer_snapshot_free(&next);
     return ok;
 }
+
+void layer_history_reset(LayerHistory *history) {
+    if (!history) {
+        return;
+    }
+    layer_history_clear(history->undo, &history->undo_count);
+    layer_history_clear(history->redo, &history->redo_count);
+}
+
+void layer_history_record(LayerHistory *history, const LayerStack *layers) {
+    if (!history) {
+        return;
+    }
+    layer_history_push(layers, history->undo, &history->undo_count, history->redo, &history->redo_count);
+}
+
+int layer_history_step_undo(LayerHistory *history, LayerStack *layers) {
+    if (!history) {
+        return 0;
+    }
+    return layer_history_undo(layers, history->undo, &history->undo_count, history->redo, &history->redo_count);
+}
+
+int layer_history_step_redo(LayerHistory *history, LayerStack *layers) {
+    if (!history) {
+        return 0;
+    }
+    return layer_history_redo(layers, history->undo, &history->undo_count, history->redo, &history->redo_count);
+}

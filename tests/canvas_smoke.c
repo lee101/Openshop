@@ -388,6 +388,61 @@ static int test_layer_history_layer_count_roundtrip(void) {
     return 1;
 }
 
+static int test_layer_history_struct_api(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 3, 3, 0xFFFFFFFF)) {
+        fprintf(stderr, "history struct init failed\n");
+        return 0;
+    }
+
+    LayerHistory history = {0};
+
+    layer_history_record(&history, &stack);
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF121212);
+
+    layer_history_record(&history, &stack);
+    if (layer_stack_add(&stack, "Overlay", 0x00000000) != 1) {
+        fprintf(stderr, "history struct add layer failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    canvas_set_pixel(&stack.layers[1].canvas, 1, 1, 0xFF343434);
+    stack.active_layer = 1;
+
+    if (!layer_history_step_undo(&history, &stack) || stack.layer_count != 1 ||
+        !expect_pixel_eq("history_struct_undo", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF121212)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (!layer_history_step_redo(&history, &stack) || stack.layer_count != 2 || stack.active_layer != 1 ||
+        !expect_pixel_eq("history_struct_redo", canvas_get_pixel(&stack.layers[1].canvas, 1, 1), 0xFF343434)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_record(&history, &stack);
+    if (history.redo_count != 0) {
+        fprintf(stderr, "history struct record should clear redo\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_reset(&history);
+    if (history.undo_count != 0 || history.redo_count != 0) {
+        fprintf(stderr, "history struct reset failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layers_basic(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 16, 16, 0xFFFFFFFF)) {
@@ -1346,6 +1401,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_layer_count_roundtrip()) {
+        return 1;
+    }
+    if (!test_layer_history_struct_api()) {
         return 1;
     }
 
