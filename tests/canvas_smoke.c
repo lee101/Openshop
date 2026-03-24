@@ -563,6 +563,13 @@ static int test_layer_history_manual_snapshot_recording(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (snapshot.pixels || snapshot.width != 0 || snapshot.height != 0 || snapshot.layer_count != 0 ||
+        snapshot.solo_index != -1 || snapshot.visibility[0] != 0 || snapshot.names[0][0] != '\0') {
+        fprintf(stderr, "history manual snapshot should disown caller snapshot after commit\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (history.redo_count != 0 || history.undo_count != 2) {
         fprintf(stderr, "history manual snapshot should clear redo and grow undo\n");
         layer_history_reset(&history);
