@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/resource.h>
 
 static int expect_pixel_eq(const char *label, uint32_t got, uint32_t want) {
     if (got != want) {

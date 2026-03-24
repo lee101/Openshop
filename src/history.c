@@ -164,6 +164,7 @@ int layer_snapshot_capture(LayerSnapshot *snapshot, const LayerStack *stack) {
     if (total_pixels > 0) {
         snapshot->pixels = (uint32_t *)malloc(total_pixels * sizeof(uint32_t));
         if (!snapshot->pixels) {
+            layer_snapshot_reset(snapshot);
             return 0;
         }
     }
