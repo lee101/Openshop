@@ -1725,6 +1725,131 @@ static int run_layer_opacity_reset_shortcut_case(const LayerOpacityResetShortcut
     );
 }
 
+static int expect_layer_visibility_shortcut_runtime(
+    const char *label,
+    int key,
+    int ctrl,
+    int shift,
+    int layer_count,
+    int active_layer,
+    int solo_index,
+    int active_visible,
+    int second_visible,
+    int want_handled,
+    int want_needs_composite,
+    int want_undo_count,
+    int want_active_visible,
+    int want_second_visible,
+    int want_solo_index
+) {
+    LayerStack stack = {0};
+    uint32_t pixels0[4] = {0};
+    uint32_t pixels1[4] = {0};
+    Snapshot undo_stack[2] = {0};
+    Snapshot redo_stack[2] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+    int needs_composite = 0;
+    int handled = 0;
+
+    stack.width = 2;
+    stack.height = 2;
+    stack.layer_count = layer_count;
+    stack.active_layer = active_layer;
+    stack.solo_index = solo_index;
+
+    stack.layers[0].canvas.width = 2;
+    stack.layers[0].canvas.height = 2;
+    stack.layers[0].canvas.pixels = pixels0;
+    stack.layers[0].visible = active_visible;
+    stack.layers[0].opacity_percent = 100;
+
+    stack.layers[1].canvas.width = 2;
+    stack.layers[1].canvas.height = 2;
+    stack.layers[1].canvas.pixels = pixels1;
+    stack.layers[1].visible = second_visible;
+    stack.layers[1].opacity_percent = 100;
+
+    handled = app_handle_layer_visibility_shortcut(
+        key,
+        ctrl,
+        shift,
+        &stack,
+        undo_stack,
+        &undo_count,
+        2,
+        redo_stack,
+        &redo_count,
+        &needs_composite
+    );
+
+    if (handled != want_handled) {
+        fprintf(stderr, "%s handled mismatch: got %d want %d\n", label, handled, want_handled);
+        return 0;
+    }
+    if (needs_composite != want_needs_composite) {
+        fprintf(stderr, "%s needs_composite mismatch: got %d want %d\n", label, needs_composite, want_needs_composite);
+        return 0;
+    }
+    if (undo_count != want_undo_count || redo_count != 0) {
+        fprintf(stderr, "%s history count mismatch: undo %d/%d redo %d/0\n", label, undo_count, want_undo_count, redo_count);
+        return 0;
+    }
+    if (stack.layers[0].visible != want_active_visible || stack.layers[1].visible != want_second_visible || stack.solo_index != want_solo_index) {
+        fprintf(
+            stderr,
+            "%s visibility mismatch: got {%d,%d,%d} want {%d,%d,%d}\n",
+            label,
+            stack.layers[0].visible,
+            stack.layers[1].visible,
+            stack.solo_index,
+            want_active_visible,
+            want_second_visible,
+            want_solo_index
+        );
+        return 0;
+    }
+    return 1;
+}
+
+typedef struct {
+    const char *label;
+    int key;
+    int ctrl;
+    int shift;
+    int layer_count;
+    int active_layer;
+    int solo_index;
+    int active_visible;
+    int second_visible;
+    int want_handled;
+    int want_needs_composite;
+    int want_undo_count;
+    int want_active_visible;
+    int want_second_visible;
+    int want_solo_index;
+} LayerVisibilityShortcutRuntimeCase;
+
+static int run_layer_visibility_shortcut_runtime_case(const LayerVisibilityShortcutRuntimeCase *test_case) {
+    return expect_layer_visibility_shortcut_runtime(
+        test_case->label,
+        test_case->key,
+        test_case->ctrl,
+        test_case->shift,
+        test_case->layer_count,
+        test_case->active_layer,
+        test_case->solo_index,
+        test_case->active_visible,
+        test_case->second_visible,
+        test_case->want_handled,
+        test_case->want_needs_composite,
+        test_case->want_undo_count,
+        test_case->want_active_visible,
+        test_case->want_second_visible,
+        test_case->want_solo_index
+    );
+}
+
 static int expect_canvas_sample_shortcut(
     const char *label,
     CanvasShortcutAction action,
@@ -4684,6 +4809,21 @@ int main(void) {
 
         for (i = 0; i < sizeof(layer_opacity_reset_cases) / sizeof(layer_opacity_reset_cases[0]); i++) {
             ok = ok && run_layer_opacity_reset_shortcut_case(&layer_opacity_reset_cases[i]);
+        }
+    }
+    {
+        const LayerVisibilityShortcutRuntimeCase layer_visibility_cases[] = {
+            {"layer_visibility_show_all", 'a', 1, 0, 2, 0, -1, 1, 0, 1, 1, 1, 1, 1, -1},
+            {"layer_visibility_show_all_from_solo", 'a', 1, 0, 2, 0, 0, 1, 1, 1, 1, 1, 1, 1, -1},
+            {"layer_visibility_show_active", 'r', 1, 1, 2, 0, -1, 0, 1, 1, 1, 1, 1, 1, -1},
+            {"layer_visibility_show_active_already_visible", 'r', 1, 1, 2, 0, -1, 1, 1, 1, 0, 0, 1, 1, -1},
+            {"layer_visibility_missing_ctrl", 'a', 0, 0, 2, 0, -1, 1, 0, 0, 0, 0, 1, 0, -1},
+            {"layer_visibility_other_key", 'x', 1, 0, 2, 0, -1, 1, 0, 0, 0, 0, 1, 0, -1},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(layer_visibility_cases) / sizeof(layer_visibility_cases[0]); i++) {
+            ok = ok && run_layer_visibility_shortcut_runtime_case(&layer_visibility_cases[i]);
         }
     }
     {

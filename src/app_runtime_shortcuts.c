@@ -249,6 +249,48 @@ int app_handle_layer_opacity_reset_shortcut(
     return 1;
 }
 
+int app_handle_layer_visibility_shortcut(
+    int key,
+    int ctrl,
+    int shift,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    int undo_capacity,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+) {
+    const Layer *active = NULL;
+
+    if (!layers || !ctrl) {
+        return 0;
+    }
+
+    if (key == 'a') {
+        if (layers->solo_index >= 0 || layer_stack_visible_count(layers) != layers->layer_count) {
+            snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
+            if (layer_stack_show_all(layers) && needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (shift && key == 'r') {
+        active = layer_stack_get(layers, layers->active_layer);
+        if (active && !active->visible) {
+            snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
+            if (layer_stack_show(layers, layers->active_layer) && needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    return 0;
+}
+
 int app_handle_canvas_sample_shortcut_at(
     CanvasShortcutAction canvas_action,
     LayerStack *layers,
