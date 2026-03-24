@@ -384,6 +384,11 @@ int active_layer_try_commit_shape(LayerStack *layers,
         !canvas_filled_ellipse_would_change(&active->canvas, shape_start_x, shape_start_y, end_x, end_y, brush_color)) {
         return 0;
     }
+    if (tool == TOOL_LINE &&
+        !canvas_line_would_change(&active->canvas, shape_start_x, shape_start_y, end_x, end_y,
+                                  brush_radius, brush_color, BRUSH_SHAPE_ROUND)) {
+        return 0;
+    }
     if (brush_radius <= 0 &&
         (tool == TOOL_LINE || tool == TOOL_RECT || tool == TOOL_ELLIPSE)) {
         return 0;
