@@ -1318,18 +1318,16 @@ static int handle_mouse_motion(const MouseState *mouse_state, int x, int y) {
 static int handle_translation_hotkey(SDL_Keycode key,
                                      int ctrl, int alt, int shift,
                                      const ActionState *action_state) {
-    int step;
     int dx = 0;
     int dy = 0;
 
-    if (ctrl || alt || !action_state || !action_state->layers || !action_state->undo_stack ||
+    if (!action_state || !action_state->layers || !action_state->undo_stack ||
         !action_state->undo_count || !action_state->redo_stack || !action_state->redo_count ||
         !action_state->needs_composite) {
         return 0;
     }
 
-    step = shift ? 10 : 1;
-    if (app_key_translation_delta(key, step, &dx, &dy) &&
+    if (app_translation_hotkey_delta((int)key, ctrl, alt, shift, &dx, &dy) &&
         active_layer_apply_translation(action_state->layers, action_state->undo_stack, action_state->undo_count,
                                        action_state->redo_stack, action_state->redo_count,
                                        dx, dy, COLOR_BG, MAX_HISTORY)) {

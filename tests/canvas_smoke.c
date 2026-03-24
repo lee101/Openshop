@@ -58,6 +58,16 @@ static int test_app_input_rules(void) {
         fprintf(stderr, "translation delta null guard failed\n");
         return 0;
     }
+    if (!app_translation_hotkey_delta(APP_KEY_LEFT, 0, 0, 1, &dx, &dy) || dx != -10 || dy != 0) {
+        fprintf(stderr, "translation hotkey shift-step failed\n");
+        return 0;
+    }
+    if (app_translation_hotkey_delta(APP_KEY_LEFT, 1, 0, 0, &dx, &dy) ||
+        app_translation_hotkey_delta(APP_KEY_LEFT, 0, 1, 0, &dx, &dy) ||
+        app_translation_hotkey_delta(APP_KEY_b, 0, 0, 0, &dx, &dy)) {
+        fprintf(stderr, "translation hotkey modifier rejection failed\n");
+        return 0;
+    }
 
     if (app_should_cancel_shape_on_key(APP_KEY_ESCAPE, 0) ||
         app_should_cancel_shape_on_key(APP_KEY_LSHIFT, 0) ||

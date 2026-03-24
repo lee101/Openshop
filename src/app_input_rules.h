@@ -60,6 +60,7 @@ enum {
 };
 
 int app_key_translation_delta(int key, int step, int *dx, int *dy);
+int app_translation_hotkey_delta(int key, int ctrl, int alt, int shift, int *dx, int *dy);
 int app_should_cancel_shape_on_key(int key, int ctrl);
 
 typedef enum {
