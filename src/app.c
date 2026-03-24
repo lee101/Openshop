@@ -239,31 +239,6 @@ static int load_active_layer_bmp_action(LayerStack *layers, void *ctx) {
     return load_ctx->load_changed;
 }
 
-static int try_load_active_layer_bmp(LayerStack *layers,
-                                     Snapshot *undo_stack, int *undo_count,
-                                     Snapshot *redo_stack, int *redo_count) {
-    Layer *active = layer_stack_active(layers);
-    LayerActionHistoryResult result;
-    LoadActiveLayerBmpContext ctx;
-    if (!active || active->locked) {
-        fprintf(stderr, "%s\n", status_text_action_error(STATUS_ACTIVE_LAYER_LOCKED));
-        return 0;
-    }
-
-    ctx.clear_color = active_layer_clear_color(layers, COLOR_BG);
-    ctx.load_succeeded = 0;
-    ctx.load_changed = 0;
-    result = layer_action_history_apply_custom_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                                           MAX_HISTORY, load_active_layer_bmp_action, &ctx);
-    if (result == LAYER_ACTION_HISTORY_FAILED) {
-        if (!ctx.load_succeeded) {
-            fprintf(stderr, "%s\n", status_text_action_error(STATUS_LOAD_INPUT_BMP));
-        }
-        return 0;
-    }
-    return result == LAYER_ACTION_HISTORY_CHANGED;
-}
-
 static int handle_add_layer_hotkey(SDL_Keycode key,
                                    int ctrl, int alt, int shift,
                                    const ActionState *action_state) {
@@ -1003,6 +978,9 @@ static int handle_file_hotkey(SDL_Keycode key,
                               const ActionState *action_state) {
     AppFileHotkeyAction file_action;
     const Canvas *save_canvas;
+    Layer *active;
+    LayerActionHistoryResult result;
+    LoadActiveLayerBmpContext load_ctx;
 
     if (!action_state || !action_state->layers || !action_state->undo_stack ||
         !action_state->undo_count || !action_state->redo_stack || !action_state->redo_count ||
@@ -1020,9 +998,27 @@ static int handle_file_hotkey(SDL_Keycode key,
     }
 
     if (file_action == APP_FILE_HOTKEY_LOAD_ACTIVE_LAYER) {
-        if (try_load_active_layer_bmp(action_state->layers, action_state->undo_stack,
-                                      action_state->undo_count, action_state->redo_stack,
-                                      action_state->redo_count)) {
+        active = layer_stack_active(action_state->layers);
+        if (!active || active->locked) {
+            fprintf(stderr, "%s\n", status_text_action_error(STATUS_ACTIVE_LAYER_LOCKED));
+            return 1;
+        }
+
+        load_ctx.clear_color = active_layer_clear_color(action_state->layers, COLOR_BG);
+        load_ctx.load_succeeded = 0;
+        load_ctx.load_changed = 0;
+        result = layer_action_history_apply_custom_with_result(action_state->layers, action_state->undo_stack,
+                                                               action_state->undo_count, action_state->redo_stack,
+                                                               action_state->redo_count, MAX_HISTORY,
+                                                               load_active_layer_bmp_action, &load_ctx);
+        if (result == LAYER_ACTION_HISTORY_FAILED) {
+            if (!load_ctx.load_succeeded) {
+                fprintf(stderr, "%s\n", status_text_action_error(STATUS_LOAD_INPUT_BMP));
+            }
+            return 1;
+        }
+
+        if (result == LAYER_ACTION_HISTORY_CHANGED) {
             *action_state->needs_composite = 1;
         }
         return 1;
