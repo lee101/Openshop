@@ -338,13 +338,6 @@ static void update_title_state(const TitleState *title_state) {
                         *title_state->brush_opacity);
 }
 
-static int refresh_title_state_on_change(const TitleState *title_state, int changed) {
-    if (changed) {
-        update_title_state(title_state);
-    }
-    return changed;
-}
-
 typedef int (*SelectorHotkeyFn)(LayerStack *layers, int arg);
 
 typedef struct {
@@ -827,8 +820,9 @@ static int handle_selector_hotkey(SDL_Keycode key,
         return 0;
     }
 
-    refresh_title_state_on_change(action_state->title_state,
-                                  hotkey->action(action_state->layers, hotkey->arg) >= 0);
+    if (hotkey->action(action_state->layers, hotkey->arg) >= 0) {
+        update_title_state(action_state->title_state);
+    }
     return 1;
 }
 
@@ -887,7 +881,8 @@ static int handle_layer_opacity_hotkey(SDL_Keycode key,
         return 0;
     }
 
-    if (refresh_title_state_on_change(action_state->title_state, result == ACTIVE_LAYER_ACTION_CHANGED)) {
+    if (result == ACTIVE_LAYER_ACTION_CHANGED) {
+        update_title_state(action_state->title_state);
         *action_state->needs_composite = 1;
     }
 
@@ -969,7 +964,9 @@ static int handle_layer_navigation_hotkey(SDL_Keycode key,
         return 0;
     }
 
-    refresh_title_state_on_change(action_state->title_state, changed);
+    if (changed) {
+        update_title_state(action_state->title_state);
+    }
     return 1;
 }
 
@@ -1273,7 +1270,8 @@ static int handle_history_hotkey(SDL_Keycode key,
         return 0;
     }
 
-    if (refresh_title_state_on_change(action_state->title_state, changed)) {
+    if (changed) {
+        update_title_state(action_state->title_state);
         *action_state->needs_composite = 1;
     }
 
