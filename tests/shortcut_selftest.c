@@ -609,6 +609,49 @@ static int expect_begin_shape_preview_from_canvas(
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    int start_x;
+    int start_y;
+    int initial_shaping;
+    int initial_shape_start_x;
+    int initial_shape_start_y;
+    uint32_t *shape_base_pixels;
+    const Canvas *composite;
+    int want_shaping;
+    int want_shape_start_x;
+    int want_shape_start_y;
+    const uint32_t *want_shape_base_pixels;
+    size_t want_pixel_count;
+} BeginShapePreviewFromCanvasCase;
+
+static int run_begin_shape_preview_from_canvas_case(
+    const BeginShapePreviewFromCanvasCase *test_case,
+    int *shaping,
+    int *shape_start_x,
+    int *shape_start_y
+) {
+    *shaping = test_case->initial_shaping;
+    *shape_start_x = test_case->initial_shape_start_x;
+    *shape_start_y = test_case->initial_shape_start_y;
+
+    return expect_begin_shape_preview_from_canvas(
+        test_case->label,
+        test_case->start_x,
+        test_case->start_y,
+        shaping,
+        shape_start_x,
+        shape_start_y,
+        test_case->shape_base_pixels,
+        test_case->composite,
+        test_case->want_shaping,
+        test_case->want_shape_start_x,
+        test_case->want_shape_start_y,
+        test_case->want_shape_base_pixels,
+        test_case->want_pixel_count
+    );
+}
+
 static int expect_view_result(
     const char *label,
     ViewShortcutKey key,
@@ -1769,172 +1812,108 @@ int main(void) {
             ok = 0;
         }
     }
-    shaping = 6;
-    shape_start_x = 8;
-    shape_start_y = 10;
-    memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
-    ok = ok && expect_begin_shape_preview(
-        "begin_shape_preview_null_shaping_noop",
-        40,
-        50,
-        NULL,
-        &shape_start_x,
-        &shape_start_y,
-        preview_copy,
-        preview_source,
-        4,
-        6,
-        8,
-        10,
-        preview_sentinel
-    );
-    shaping = 11;
-    shape_start_y = 13;
-    memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
-    ok = ok && expect_begin_shape_preview(
-        "begin_shape_preview_null_start_x_noop",
-        60,
-        70,
-        &shaping,
-        NULL,
-        &shape_start_y,
-        preview_copy,
-        preview_source,
-        4,
-        11,
-        0,
-        13,
-        preview_sentinel
-    );
-    shaping = 12;
-    shape_start_x = 14;
-    memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
-    ok = ok && expect_begin_shape_preview(
-        "begin_shape_preview_null_start_y_noop",
-        80,
-        90,
-        &shaping,
-        &shape_start_x,
-        NULL,
-        preview_copy,
-        preview_source,
-        4,
-        12,
-        14,
-        0,
-        preview_sentinel
-    );
-    shaping = 13;
-    shape_start_x = 15;
-    shape_start_y = 16;
-    ok = ok && expect_begin_shape_preview(
-        "begin_shape_preview_null_destination_no_copy",
-        100,
-        110,
-        &shaping,
-        &shape_start_x,
-        &shape_start_y,
-        NULL,
-        preview_source,
-        4,
-        1,
-        100,
-        110,
-        NULL
-    );
-    shaping = 15;
-    shape_start_x = 19;
-    shape_start_y = 20;
-    ok = ok && expect_begin_shape_preview(
-        "begin_shape_preview_null_source_and_destination",
-        140,
-        150,
-        &shaping,
-        &shape_start_x,
-        &shape_start_y,
-        NULL,
-        NULL,
-        4,
-        1,
-        140,
-        150,
-        NULL
-    );
-    shaping = 16;
-    shape_start_x = 21;
-    shape_start_y = 22;
-    ok = ok && expect_begin_shape_preview(
-        "begin_shape_preview_null_everything_copy_path",
-        160,
-        170,
-        &shaping,
-        &shape_start_x,
-        &shape_start_y,
-        NULL,
-        NULL,
-        0,
-        1,
-        160,
-        170,
-        NULL
-    );
-    shaping = 17;
-    shape_start_x = 23;
-    shape_start_y = 24;
-    memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
-    ok = ok && expect_begin_shape_preview_from_canvas(
-        "begin_shape_preview_from_canvas_copy",
-        180,
-        190,
-        &shaping,
-        &shape_start_x,
-        &shape_start_y,
-        preview_copy,
-        &begin_preview_canvas,
-        1,
-        180,
-        190,
-        preview_source,
-        4
-    );
-    shaping = 18;
-    shape_start_x = 25;
-    shape_start_y = 26;
-    memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
-    ok = ok && expect_begin_shape_preview_from_canvas(
-        "begin_shape_preview_from_canvas_null_canvas",
-        200,
-        210,
-        &shaping,
-        &shape_start_x,
-        &shape_start_y,
-        preview_copy,
-        NULL,
-        1,
-        200,
-        210,
-        preview_sentinel,
-        4
-    );
-    shaping = 19;
-    shape_start_x = 27;
-    shape_start_y = 28;
-    memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
-    ok = ok && expect_begin_shape_preview_from_canvas(
-        "begin_shape_preview_from_canvas_missing_pixels",
-        220,
-        230,
-        &shaping,
-        &shape_start_x,
-        &shape_start_y,
-        preview_copy,
-        &begin_preview_canvas_without_pixels,
-        1,
-        220,
-        230,
-        preview_sentinel,
-        4
-    );
+    {
+        const BeginShapePreviewCase begin_shape_preview_boundary_cases[] = {
+            {"begin_shape_preview_null_destination_no_copy", 100, 110, 13, 15, 16, NULL, preview_source, 4, 1, 100, 110, NULL},
+            {"begin_shape_preview_null_source_and_destination", 140, 150, 15, 19, 20, NULL, NULL, 4, 1, 140, 150, NULL},
+            {"begin_shape_preview_null_everything_copy_path", 160, 170, 16, 21, 22, NULL, NULL, 0, 1, 160, 170, NULL},
+        };
+        size_t i;
+
+        shaping = 6;
+        shape_start_x = 8;
+        shape_start_y = 10;
+        memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
+        ok = ok && expect_begin_shape_preview(
+            "begin_shape_preview_null_shaping_noop",
+            40,
+            50,
+            NULL,
+            &shape_start_x,
+            &shape_start_y,
+            preview_copy,
+            preview_source,
+            4,
+            6,
+            8,
+            10,
+            preview_sentinel
+        );
+        shaping = 11;
+        shape_start_y = 13;
+        memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
+        ok = ok && expect_begin_shape_preview(
+            "begin_shape_preview_null_start_x_noop",
+            60,
+            70,
+            &shaping,
+            NULL,
+            &shape_start_y,
+            preview_copy,
+            preview_source,
+            4,
+            11,
+            0,
+            13,
+            preview_sentinel
+        );
+        shaping = 12;
+        shape_start_x = 14;
+        memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
+        ok = ok && expect_begin_shape_preview(
+            "begin_shape_preview_null_start_y_noop",
+            80,
+            90,
+            &shaping,
+            &shape_start_x,
+            NULL,
+            preview_copy,
+            preview_source,
+            4,
+            12,
+            14,
+            0,
+            preview_sentinel
+        );
+        for (i = 0; i < sizeof(begin_shape_preview_boundary_cases) / sizeof(begin_shape_preview_boundary_cases[0]); i++) {
+            shaping = begin_shape_preview_boundary_cases[i].initial_shaping;
+            shape_start_x = begin_shape_preview_boundary_cases[i].initial_shape_start_x;
+            shape_start_y = begin_shape_preview_boundary_cases[i].initial_shape_start_y;
+            ok = ok && expect_begin_shape_preview(
+                begin_shape_preview_boundary_cases[i].label,
+                begin_shape_preview_boundary_cases[i].start_x,
+                begin_shape_preview_boundary_cases[i].start_y,
+                &shaping,
+                &shape_start_x,
+                &shape_start_y,
+                begin_shape_preview_boundary_cases[i].shape_base_pixels,
+                begin_shape_preview_boundary_cases[i].composite_pixels,
+                begin_shape_preview_boundary_cases[i].pixel_count,
+                begin_shape_preview_boundary_cases[i].want_shaping,
+                begin_shape_preview_boundary_cases[i].want_shape_start_x,
+                begin_shape_preview_boundary_cases[i].want_shape_start_y,
+                begin_shape_preview_boundary_cases[i].want_shape_base_pixels
+            );
+        }
+    }
+    {
+        const BeginShapePreviewFromCanvasCase begin_shape_preview_from_canvas_cases[] = {
+            {"begin_shape_preview_from_canvas_copy", 180, 190, 17, 23, 24, preview_copy, &begin_preview_canvas, 1, 180, 190, preview_source, 4},
+            {"begin_shape_preview_from_canvas_null_canvas", 200, 210, 18, 25, 26, preview_copy, NULL, 1, 200, 210, preview_sentinel, 4},
+            {"begin_shape_preview_from_canvas_missing_pixels", 220, 230, 19, 27, 28, preview_copy, &begin_preview_canvas_without_pixels, 1, 220, 230, preview_sentinel, 4},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(begin_shape_preview_from_canvas_cases) / sizeof(begin_shape_preview_from_canvas_cases[0]); i++) {
+            memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
+            ok = ok && run_begin_shape_preview_from_canvas_case(
+                &begin_shape_preview_from_canvas_cases[i],
+                &shaping,
+                &shape_start_x,
+                &shape_start_y
+            );
+        }
+    }
     ok = ok && expect_cancel_shape_preview("cancel_shape_preview_both", &shaping, &preview_active, 0, 0);
     shaping = 7;
     preview_active = 9;
