@@ -140,6 +140,26 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
     SDL_SetWindowTitle(window, title);
 }
 
+static int capture_history_snapshot(LayerSnapshot *snapshot, const LayerStack *layers) {
+    if (!snapshot) {
+        return 0;
+    }
+    return layer_snapshot_capture(snapshot, layers);
+}
+
+static void commit_history_snapshot_if_captured(
+    int captured,
+    LayerHistory *history,
+    LayerSnapshot *snapshot,
+    const LayerStack *layers,
+    int operation_succeeded
+) {
+    if (!captured) {
+        return;
+    }
+    layer_history_commit_change(history, snapshot, layers, operation_succeeded);
+}
+
 static int apply_active_layer_opacity_value(
     LayerStack *layers,
     LayerHistory *history,
@@ -150,11 +170,9 @@ static int apply_active_layer_opacity_value(
         return 0;
     }
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     int changed = layer_stack_set_opacity(layers, layers->active_layer, opacity_percent);
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, changed);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, changed);
     return changed;
 }
 
@@ -177,11 +195,9 @@ static int apply_active_layer_opacity_delta(
         return 0;
     }
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     int changed = layer_stack_adjust_opacity(layers, layers->active_layer, delta_percent);
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, changed);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, changed);
     return changed;
 }
 
@@ -210,11 +226,9 @@ static int apply_active_visible_rank_move(
         return 0;
     }
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     int moved = layer_stack_move_to_visible_rank(layers, layers->active_layer, target_rank);
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, moved);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, moved);
     if (!moved) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -356,11 +370,9 @@ static int apply_active_layer_move(
         return 0;
     }
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     int moved = layer_stack_move_to(layers, current_index, target_index);
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, moved);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, moved);
     if (!moved) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -406,11 +418,9 @@ static int apply_layer_add(
     const char *failure_message
 ) {
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     int added = layer_stack_add(layers, name, clear_color);
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, added >= 0);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, added >= 0);
     if (added < 0) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -429,11 +439,9 @@ static int apply_layer_insert(
     const char *failure_message
 ) {
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     int inserted = layer_stack_insert(layers, index, name, clear_color);
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, inserted >= 0);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, inserted >= 0);
     if (inserted < 0) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -451,11 +459,9 @@ static int apply_visible_stamp_new(
     const char *failure_message
 ) {
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     int inserted = layer_stack_stamp_visible_new(layers, name, background_color);
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, inserted >= 0);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, inserted >= 0);
     if (inserted < 0) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -473,11 +479,9 @@ static int apply_layer_duplicate(
     const char *failure_message
 ) {
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     int duplicated = layer_stack_duplicate(layers, index, name);
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, duplicated >= 0);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, duplicated >= 0);
     if (duplicated < 0) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -494,11 +498,9 @@ static int apply_toggle_lock(
     const char *failure_message
 ) {
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     int toggled = layer_stack_toggle_lock(layers, index);
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, toggled);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, toggled);
     if (!toggled) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -515,11 +517,9 @@ static int apply_flatten(
     const char *failure_message
 ) {
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     int flattened = layer_stack_flatten(layers, background_color);
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, flattened);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, flattened);
     if (!flattened) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -537,11 +537,9 @@ static int apply_stamp_visible_into(
     const char *failure_message
 ) {
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     int stamped = layer_stack_stamp_visible_into(layers, index, background_color);
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, stamped);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, stamped);
     if (!stamped) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -558,11 +556,9 @@ static int apply_toggle_visibility(
     const char *failure_message
 ) {
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     int toggled = layer_stack_toggle_visibility(layers, index);
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, toggled);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, toggled);
     if (!toggled) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -579,11 +575,9 @@ static int apply_hide_and_advance(
     const char *failure_message
 ) {
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     int changed = layer_stack_hide_and_advance(layers, index);
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, changed);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, changed);
     if (!changed) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -600,11 +594,9 @@ static int apply_toggle_solo(
     const char *failure_message
 ) {
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     int toggled = layer_stack_toggle_solo(layers, index);
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, toggled);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, toggled);
     if (!toggled) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -620,11 +612,9 @@ static int apply_show_all_layers(
     const char *failure_message
 ) {
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     int changed = layer_stack_show_all(layers);
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, changed);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, changed);
     if (!changed && failure_message) {
         fprintf(stderr, "%s\n", failure_message);
     }
@@ -638,11 +628,9 @@ static int apply_show_layer(
     const char *failure_message
 ) {
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     int changed = layer_stack_show(layers, index);
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, changed);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, changed);
     if (!changed && failure_message) {
         fprintf(stderr, "%s\n", failure_message);
     }
@@ -656,11 +644,9 @@ static int apply_layer_delete(
     const char *failure_message
 ) {
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     int deleted = layer_stack_delete(layers, index);
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, deleted);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, deleted);
     if (!deleted) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -677,11 +663,9 @@ static int apply_merge_down(
     const char *failure_message
 ) {
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     int merged = layer_stack_merge_down(layers, index);
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, merged);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, merged);
     if (!merged) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -698,11 +682,9 @@ static int apply_merge_up(
     const char *failure_message
 ) {
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     int merged = layer_stack_merge_up(layers, index);
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, merged);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, merged);
     if (!merged) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -909,11 +891,9 @@ static int apply_canvas_transform(
         return 0;
     }
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     transform(&active->canvas);
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, 1);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, 1);
     return 1;
 }
 
@@ -931,11 +911,9 @@ static int apply_canvas_translation(
         return 0;
     }
     LayerSnapshot snapshot = {0};
-    int have_snapshot = layer_snapshot_capture(&snapshot, layers);
+    int have_snapshot = capture_history_snapshot(&snapshot, layers);
     canvas_translate(&active->canvas, dx, dy, active_layer_clear_color(layers));
-    if (have_snapshot) {
-        layer_history_commit_change(history, &snapshot, layers, 1);
-    }
+    commit_history_snapshot_if_captured(have_snapshot, history, &snapshot, layers, 1);
     return 1;
 }
 
@@ -1117,7 +1095,7 @@ int app_run(const char *input_path) {
                         Layer *active = layer_stack_active(&layers);
                         if (active && !active->locked && active->canvas.pixels) {
                             reset_snapshot(&stroke_snapshot, &has_stroke_snapshot);
-                            has_stroke_snapshot = layer_snapshot_capture(&stroke_snapshot, &layers);
+                            has_stroke_snapshot = capture_history_snapshot(&stroke_snapshot, &layers);
                             drawing = 1;
                             if (tool == TOOL_ERASER) {
                                 erase_stamp(&active->canvas, last_x, last_y, brush_radius, active_layer_clear_color(&layers), brush_shape);
@@ -1163,7 +1141,7 @@ int app_run(const char *input_path) {
             case SDL_MOUSEBUTTONUP:
                 if (e.button.button == SDL_BUTTON_LEFT) {
                     if (drawing && has_stroke_snapshot) {
-                        layer_history_commit_change(&history, &stroke_snapshot, &layers, 1);
+                        commit_history_snapshot_if_captured(has_stroke_snapshot, &history, &stroke_snapshot, &layers, 1);
                         has_stroke_snapshot = 0;
                     }
                     drawing = 0;
@@ -1176,11 +1154,9 @@ int app_run(const char *input_path) {
                         Layer *active = layer_stack_active(&layers);
                         if (active && !active->locked && active->canvas.pixels) {
                             LayerSnapshot snapshot = {0};
-                            int have_snapshot = layer_snapshot_capture(&snapshot, &layers);
+                            int have_snapshot = capture_history_snapshot(&snapshot, &layers);
                             draw_shape(&active->canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
-                            if (have_snapshot) {
-                                layer_history_commit_change(&history, &snapshot, &layers, 1);
-                            }
+                            commit_history_snapshot_if_captured(have_snapshot, &history, &snapshot, &layers, 1);
                             needs_composite = 1;
                         }
                         cancel_shape_preview(&shaping, &preview_active);
@@ -1498,11 +1474,9 @@ int app_run(const char *input_path) {
                         break;
                     }
                     LayerSnapshot snapshot = {0};
-                    int have_snapshot = layer_snapshot_capture(&snapshot, &layers);
+                    int have_snapshot = capture_history_snapshot(&snapshot, &layers);
                     int loaded = canvas_load_bmp(&active->canvas, "input.bmp", active_layer_clear_color(&layers));
-                    if (have_snapshot) {
-                        layer_history_commit_change(&history, &snapshot, &layers, loaded);
-                    }
+                    commit_history_snapshot_if_captured(have_snapshot, &history, &snapshot, &layers, loaded);
                     if (!loaded) {
                         fprintf(stderr, "Failed to load input.bmp\n");
                     } else {
@@ -1763,11 +1737,9 @@ int app_run(const char *input_path) {
                     tool = TOOL_BRUSH;
                 } else if (key == SDLK_c) {
                     LayerSnapshot snapshot = {0};
-                    int have_snapshot = active_layer_editable(&layers) && layer_snapshot_capture(&snapshot, &layers);
+                    int have_snapshot = active_layer_editable(&layers) && capture_history_snapshot(&snapshot, &layers);
                     int cleared = layer_stack_clear_layer(&layers, layers.active_layer, active_layer_clear_color(&layers));
-                    if (have_snapshot) {
-                        layer_history_commit_change(&history, &snapshot, &layers, cleared);
-                    }
+                    commit_history_snapshot_if_captured(have_snapshot, &history, &snapshot, &layers, cleared);
                     if (cleared) {
                         needs_composite = 1;
                     }
@@ -1794,11 +1766,9 @@ int app_run(const char *input_path) {
                     if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
                         Layer *active = layer_stack_active(&layers);
                         LayerSnapshot snapshot = {0};
-                        int have_snapshot = active && !active->locked && layer_snapshot_capture(&snapshot, &layers);
+                        int have_snapshot = active && !active->locked && capture_history_snapshot(&snapshot, &layers);
                         int filled = active && !active->locked && canvas_flood_fill(&active->canvas, mx, my, brush_color);
-                        if (have_snapshot) {
-                            layer_history_commit_change(&history, &snapshot, &layers, filled);
-                        }
+                        commit_history_snapshot_if_captured(have_snapshot, &history, &snapshot, &layers, filled);
                         if (!filled) {
                             fprintf(stderr, "Fill failed\n");
                         } else {
