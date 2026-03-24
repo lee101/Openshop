@@ -2,6 +2,7 @@
 #include "../src/canvas.h"
 #include "../src/color_sample.h"
 #include "../src/display_canvas.h"
+#include "../src/geometry_helpers.h"
 #include "../src/layers.h"
 #include "../src/status_text.h"
 #include "../src/title_hints.h"
@@ -121,6 +122,55 @@ static int test_color_sample_helpers(void) {
     }
 
     canvas_free(&canvas);
+    return 1;
+}
+
+static int test_geometry_helpers(void) {
+    int out_x = 0;
+    int out_y = 0;
+
+    if (!brush_mask_contains(BRUSH_SHAPE_ROUND, 2, 0, 2) ||
+        brush_mask_contains(BRUSH_SHAPE_ROUND, 3, 3, 2)) {
+        fprintf(stderr, "brush_mask_contains round failed\n");
+        return 0;
+    }
+    if (!brush_mask_contains(BRUSH_SHAPE_SQUARE, 2, -2, 2) ||
+        brush_mask_contains(BRUSH_SHAPE_SQUARE, 3, 0, 2)) {
+        fprintf(stderr, "brush_mask_contains square failed\n");
+        return 0;
+    }
+    if (!brush_mask_contains(BRUSH_SHAPE_DIAMOND, 1, 1, 2) ||
+        brush_mask_contains(BRUSH_SHAPE_DIAMOND, 2, 2, 2)) {
+        fprintf(stderr, "brush_mask_contains diamond failed\n");
+        return 0;
+    }
+
+    constrain_shape_end(TOOL_LINE, 10, 10, 16, 11, 1, &out_x, &out_y);
+    if (out_x != 16 || out_y != 10) {
+        fprintf(stderr, "constrain_shape_end horizontal line failed\n");
+        return 0;
+    }
+    constrain_shape_end(TOOL_LINE, 10, 10, 11, 16, 1, &out_x, &out_y);
+    if (out_x != 10 || out_y != 16) {
+        fprintf(stderr, "constrain_shape_end vertical line failed\n");
+        return 0;
+    }
+    constrain_shape_end(TOOL_LINE, 10, 10, 13, 14, 1, &out_x, &out_y);
+    if (out_x != 14 || out_y != 14) {
+        fprintf(stderr, "constrain_shape_end diagonal line failed\n");
+        return 0;
+    }
+    constrain_shape_end(TOOL_RECT, 10, 10, 12, 15, 1, &out_x, &out_y);
+    if (out_x != 15 || out_y != 15) {
+        fprintf(stderr, "constrain_shape_end square shape failed\n");
+        return 0;
+    }
+    constrain_shape_end(TOOL_RECT, 10, 10, 12, 15, 0, &out_x, &out_y);
+    if (out_x != 12 || out_y != 15) {
+        fprintf(stderr, "constrain_shape_end shift-off passthrough failed\n");
+        return 0;
+    }
+
     return 1;
 }
 
@@ -2733,6 +2783,10 @@ int main(void) {
     }
 
     if (!test_color_sample_helpers()) {
+        return 1;
+    }
+
+    if (!test_geometry_helpers()) {
         return 1;
     }
 

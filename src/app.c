@@ -3,6 +3,7 @@
 #include "canvas.h"
 #include "color_sample.h"
 #include "display_canvas.h"
+#include "geometry_helpers.h"
 #include "image_io.h"
 #include "layers.h"
 #include "status_text.h"
@@ -1401,7 +1402,7 @@ static int handle_shape_preview_motion(Tool tool,
 
     state = SDL_GetKeyboardState(NULL);
     shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
-    constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
+    constrain_shape_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
     memcpy(preview_pixels, shape_base_pixels,
            (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
     draw_shape(preview_canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
@@ -1434,7 +1435,7 @@ static int handle_left_click_up(LayerStack *layers,
 
     state = SDL_GetKeyboardState(NULL);
     shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
-    constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
+    constrain_shape_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
     if (try_commit_shape(layers, undo_stack, undo_count, redo_stack, redo_count,
                          tool, shape_start_x, shape_start_y, end_x, end_y,
                          brush_radius, brush_color)) {
@@ -1573,19 +1574,6 @@ static int handle_right_click_sample(SDL_Window *window,
     return 1;
 }
 
-static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
-    switch (shape) {
-    case BRUSH_SHAPE_ROUND:
-        return x * x + y * y <= radius * radius;
-    case BRUSH_SHAPE_SQUARE:
-        return abs(x) <= radius && abs(y) <= radius;
-    case BRUSH_SHAPE_DIAMOND:
-        return abs(x) + abs(y) <= radius;
-    default:
-        return 0;
-    }
-}
-
 static void stamp_brush(Canvas *c, int cx, int cy, int radius, uint32_t color, BrushShape shape) {
     if (!c || !c->pixels || radius <= 0) {
         return;
@@ -1629,40 +1617,6 @@ static void draw_shape(Canvas *c, Tool tool, int x0, int y0, int x1, int y1, int
     }
     default:
         break;
-    }
-}
-
-static void constrain_end(Tool tool, int x0, int y0, int x1, int y1, int shift, int *out_x, int *out_y) {
-    if (!out_x || !out_y) {
-        return;
-    }
-    *out_x = x1;
-    *out_y = y1;
-    if (!shift) {
-        return;
-    }
-
-    int dx = x1 - x0;
-    int dy = y1 - y0;
-    int adx = abs(dx);
-    int ady = abs(dy);
-
-    if (tool == TOOL_LINE) {
-        if (adx > ady * 2) {
-            *out_x = x0 + (dx >= 0 ? adx : -adx);
-            *out_y = y0;
-        } else if (ady > adx * 2) {
-            *out_x = x0;
-            *out_y = y0 + (dy >= 0 ? ady : -ady);
-        } else {
-            int len = adx > ady ? adx : ady;
-            *out_x = x0 + (dx >= 0 ? len : -len);
-            *out_y = y0 + (dy >= 0 ? len : -len);
-        }
-    } else if (tool == TOOL_RECT || tool == TOOL_FILLED_RECT || tool == TOOL_ELLIPSE || tool == TOOL_FILLED_ELLIPSE) {
-        int len = adx > ady ? adx : ady;
-        *out_x = x0 + (dx >= 0 ? len : -len);
-        *out_y = y0 + (dy >= 0 ? len : -len);
     }
 }
 
