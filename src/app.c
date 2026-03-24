@@ -571,6 +571,108 @@ static int handle_active_layer_state_shortcut(
     return 0;
 }
 
+static int handle_active_layer_structure_shortcut(
+    SDL_Keycode key,
+    int ctrl,
+    int shift,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+) {
+    Layer *active = NULL;
+
+    if (!layers || !ctrl) {
+        return 0;
+    }
+
+    if (key == SDLK_d) {
+        if (!layer_stack_can_duplicate(layers, layers->active_layer)) {
+            fprintf(stderr, "Could not duplicate layer\n");
+        } else {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            layer_stack_duplicate(layers, layers->active_layer, NULL);
+            if (needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (shift && key == SDLK_LEFTBRACKET) {
+        if (layers->active_layer > 0) {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            if (!layer_stack_move_to_edge(layers, layers->active_layer, -1)) {
+                fprintf(stderr, "Layer is already at the bottom\n");
+            } else if (needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (shift && key == SDLK_RIGHTBRACKET) {
+        if (layers->active_layer + 1 < layers->layer_count) {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            if (!layer_stack_move_to_edge(layers, layers->active_layer, 1)) {
+                fprintf(stderr, "Layer is already at the top\n");
+            } else if (needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (key == SDLK_LEFTBRACKET) {
+        if (layers->active_layer > 0) {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            if (!layer_stack_move(layers, layers->active_layer, -1)) {
+                fprintf(stderr, "Layer is already at the bottom\n");
+            } else if (needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (key == SDLK_RIGHTBRACKET) {
+        if (layers->active_layer + 1 < layers->layer_count) {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            if (!layer_stack_move(layers, layers->active_layer, 1)) {
+                fprintf(stderr, "Layer is already at the top\n");
+            } else if (needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    active = layer_stack_active(layers);
+    if (key == SDLK_MINUS || key == SDLK_KP_MINUS) {
+        if (active && active->opacity_percent > 0) {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            if (layer_stack_set_opacity(layers, layers->active_layer, active->opacity_percent - 10) && needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (key == SDLK_EQUALS || key == SDLK_KP_PLUS) {
+        if (active && active->opacity_percent < 100) {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            if (layer_stack_set_opacity(layers, layers->active_layer, active->opacity_percent + 10) && needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    return 0;
+}
+
 static uint32_t active_layer_clear_color(const LayerStack *layers) {
     if (!layers) {
         return COLOR_BG;
@@ -1013,90 +1115,16 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (ctrl && key == SDLK_d) {
-                    if (!layer_stack_can_duplicate(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Could not duplicate layer\n");
-                    } else {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        layer_stack_duplicate(&layers, layers.active_layer, NULL);
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (ctrl && shift && key == SDLK_LEFTBRACKET) {
-                    if (layers.active_layer > 0) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        if (!layer_stack_move_to_edge(&layers, layers.active_layer, -1)) {
-                            fprintf(stderr, "Layer is already at the bottom\n");
-                        } else {
-                            needs_composite = 1;
-                        }
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (ctrl && shift && key == SDLK_RIGHTBRACKET) {
-                    if (layers.active_layer + 1 < layers.layer_count) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        if (!layer_stack_move_to_edge(&layers, layers.active_layer, 1)) {
-                            fprintf(stderr, "Layer is already at the top\n");
-                        } else {
-                            needs_composite = 1;
-                        }
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (ctrl && key == SDLK_LEFTBRACKET) {
-                    if (layers.active_layer > 0) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        if (!layer_stack_move(&layers, layers.active_layer, -1)) {
-                            fprintf(stderr, "Layer is already at the bottom\n");
-                        } else {
-                            needs_composite = 1;
-                        }
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (ctrl && key == SDLK_RIGHTBRACKET) {
-                    if (layers.active_layer + 1 < layers.layer_count) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        if (!layer_stack_move(&layers, layers.active_layer, 1)) {
-                            fprintf(stderr, "Layer is already at the top\n");
-                        } else {
-                            needs_composite = 1;
-                        }
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (ctrl && (key == SDLK_MINUS || key == SDLK_KP_MINUS)) {
-                    Layer *active = layer_stack_active(&layers);
-                    if (active && active->opacity_percent > 0) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        if (layer_stack_set_opacity(&layers, layers.active_layer, active->opacity_percent - 10)) {
-                            needs_composite = 1;
-                        }
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (ctrl && (key == SDLK_EQUALS || key == SDLK_KP_PLUS)) {
-                    Layer *active = layer_stack_active(&layers);
-                    if (active && active->opacity_percent < 100) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        if (layer_stack_set_opacity(&layers, layers.active_layer, active->opacity_percent + 10)) {
-                            needs_composite = 1;
-                        }
-                    }
+                if (handle_active_layer_structure_shortcut(
+                        key,
+                        ctrl,
+                        shift,
+                        &layers,
+                        undo_stack,
+                        &undo_count,
+                        redo_stack,
+                        &redo_count,
+                        &needs_composite)) {
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
