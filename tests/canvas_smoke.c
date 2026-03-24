@@ -13,6 +13,18 @@ static int expect_pixel_eq(const char *label, uint32_t got, uint32_t want) {
     return 1;
 }
 
+static int snapshot_is_reset(const LayerSnapshot *snapshot) {
+    return snapshot &&
+           !snapshot->pixels &&
+           snapshot->width == 0 &&
+           snapshot->height == 0 &&
+           snapshot->layer_count == 0 &&
+           snapshot->active_layer == 0 &&
+           snapshot->solo_index == -1 &&
+           snapshot->visibility[0] == 0 &&
+           snapshot->names[0][0] == '\0';
+}
+
 static int test_layer_snapshot_restore(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
@@ -563,8 +575,7 @@ static int test_layer_history_manual_snapshot_recording(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (snapshot.pixels || snapshot.width != 0 || snapshot.height != 0 || snapshot.layer_count != 0 ||
-        snapshot.solo_index != -1 || snapshot.visibility[0] != 0 || snapshot.names[0][0] != '\0') {
+    if (!snapshot_is_reset(&snapshot)) {
         fprintf(stderr, "history manual snapshot should disown caller snapshot after commit\n");
         layer_history_reset(&history);
         layer_stack_free(&stack);
@@ -619,8 +630,7 @@ static int test_layer_history_record_snapshot_discards_duplicate(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (snapshot.pixels || snapshot.width != 0 || snapshot.height != 0 || snapshot.layer_count != 0 ||
-        snapshot.solo_index != -1 || snapshot.visibility[0] != 0 || snapshot.names[0][0] != '\0') {
+    if (!snapshot_is_reset(&snapshot)) {
         fprintf(stderr, "history duplicate snapshot should fully reset discarded snapshot\n");
         layer_history_reset(&history);
         layer_stack_free(&stack);
@@ -657,8 +667,7 @@ static int test_layer_history_record_snapshot_null_history_resets(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (snapshot.pixels || snapshot.width != 0 || snapshot.height != 0 || snapshot.layer_count != 0 ||
-        snapshot.solo_index != -1 || snapshot.visibility[0] != 0 || snapshot.names[0][0] != '\0') {
+    if (!snapshot_is_reset(&snapshot)) {
         fprintf(stderr, "history null snapshot should fully reset discarded snapshot\n");
         layer_stack_free(&stack);
         return 0;
@@ -702,8 +711,7 @@ static int test_layer_history_record_snapshot_current_state_clears_redo(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (snapshot.pixels || snapshot.width != 0 || snapshot.height != 0 || snapshot.layer_count != 0 ||
-        snapshot.solo_index != -1 || snapshot.visibility[0] != 0 || snapshot.names[0][0] != '\0') {
+    if (!snapshot_is_reset(&snapshot)) {
         fprintf(stderr, "history current snapshot should disown caller snapshot after record\n");
         layer_history_reset(&history);
         layer_stack_free(&stack);
@@ -894,8 +902,7 @@ static int test_layer_snapshot_reset_clears_allocated_state(void) {
     }
 
     layer_snapshot_reset(&snapshot);
-    if (snapshot.pixels || snapshot.width != 0 || snapshot.height != 0 || snapshot.layer_count != 0 ||
-        snapshot.active_layer != 0 || snapshot.solo_index != -1) {
+    if (!snapshot_is_reset(&snapshot)) {
         fprintf(stderr, "history snapshot reset should clear captured state\n");
         layer_stack_free(&stack);
         return 0;
@@ -938,9 +945,7 @@ static int test_layer_history_commit_change_helper(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (noop_snapshot.pixels || noop_snapshot.width != 0 || noop_snapshot.height != 0 ||
-        noop_snapshot.layer_count != 0 || noop_snapshot.solo_index != -1 ||
-        noop_snapshot.visibility[0] != 0 || noop_snapshot.names[0][0] != '\0') {
+    if (!snapshot_is_reset(&noop_snapshot)) {
         fprintf(stderr, "history commit helper should reset noop snapshot ownership\n");
         layer_history_reset(&history);
         layer_stack_free(&stack);
@@ -999,9 +1004,7 @@ static int test_layer_history_commit_change_helper(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (failed_snapshot.pixels || failed_snapshot.width != 0 || failed_snapshot.height != 0 ||
-        failed_snapshot.layer_count != 0 || failed_snapshot.solo_index != -1 ||
-        failed_snapshot.visibility[0] != 0 || failed_snapshot.names[0][0] != '\0') {
+    if (!snapshot_is_reset(&failed_snapshot)) {
         fprintf(stderr, "history commit helper should reset failed snapshot ownership\n");
         layer_history_reset(&history);
         layer_stack_free(&stack);
@@ -1037,9 +1040,7 @@ static int test_layer_history_commit_change_resets_without_history_or_layers(voi
         layer_stack_free(&stack);
         return 0;
     }
-    if (null_history_snapshot.pixels || null_history_snapshot.width != 0 || null_history_snapshot.height != 0 ||
-        null_history_snapshot.layer_count != 0 || null_history_snapshot.solo_index != -1 ||
-        null_history_snapshot.visibility[0] != 0 || null_history_snapshot.names[0][0] != '\0') {
+    if (!snapshot_is_reset(&null_history_snapshot)) {
         fprintf(stderr, "history commit should fully reset snapshot when history is null\n");
         layer_stack_free(&stack);
         return 0;
@@ -1056,9 +1057,7 @@ static int test_layer_history_commit_change_resets_without_history_or_layers(voi
         layer_stack_free(&stack);
         return 0;
     }
-    if (null_layers_snapshot.pixels || null_layers_snapshot.width != 0 || null_layers_snapshot.height != 0 ||
-        null_layers_snapshot.layer_count != 0 || null_layers_snapshot.solo_index != -1 ||
-        null_layers_snapshot.visibility[0] != 0 || null_layers_snapshot.names[0][0] != '\0') {
+    if (!snapshot_is_reset(&null_layers_snapshot)) {
         fprintf(stderr, "history commit should fully reset snapshot when layers are null\n");
         layer_stack_free(&stack);
         return 0;
