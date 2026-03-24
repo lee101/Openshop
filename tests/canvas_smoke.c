@@ -71,6 +71,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_show_all(&stack)) {
+        fprintf(stderr, "show all should return no-op once everything is visible\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     layer_stack_composite(&stack, &composite, 0xFFFFFFFF);
     if ((canvas_get_pixel(&composite, 8, 8) & 0x00FFFFFF) == 0x00FFFFFF) {
         fprintf(stderr, "show all did not restore visible composite\n");
@@ -86,6 +92,12 @@ static int test_layers_basic(void) {
     }
     if (!layer_stack_show(&stack, 1) || !stack.layers[1].visible) {
         fprintf(stderr, "show active layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_show(&stack, 1)) {
+        fprintf(stderr, "show active layer should return no-op when already visible\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -159,6 +171,23 @@ static int test_layers_basic(void) {
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
+    }
+    {
+        LayerStack single = {0};
+        if (!layer_stack_init(&single, 4, 4, 0xFFFFFFFF)) {
+            fprintf(stderr, "single-layer cycle init failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        if (layer_stack_cycle(&single, 1) != -1 || layer_stack_cycle(&single, 0) != -1 || single.active_layer != 0) {
+            fprintf(stderr, "single-layer cycle should be unchanged\n");
+            layer_stack_free(&single);
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        layer_stack_free(&single);
     }
     if (layer_stack_add(&stack, "Third", 0x00000000) != 2 || layer_stack_add(&stack, "Fourth", 0x00000000) != 3) {
         fprintf(stderr, "setup extended layer cycling failed\n");
@@ -346,6 +375,12 @@ static int test_layers_basic(void) {
     canvas_clear(&stack.layers[1].canvas, 0x8000FF00);
     if (!layer_stack_set_opacity(&stack, 1, 50)) {
         fprintf(stderr, "set opacity failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_set_opacity(&stack, 1, 50)) {
+        fprintf(stderr, "set opacity should report no-op when unchanged\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -579,8 +614,21 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_stamp_visible_would_change(&stack, 1, 0xFFFFFFFF)) {
+        fprintf(stderr, "stamp visible would-change should report no-op after stamping identical pixels\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!expect_pixel_eq("stamp_visible_pixel", canvas_get_pixel(&stack.layers[1].canvas, 0, 0), 0xFF0D6740) ||
         !expect_pixel_eq("stamp_preserve_source", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF123456)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_stamp_visible_into(&stack, 1, 0xFFFFFFFF) ||
+        !expect_pixel_eq("stamp_visible_noop_pixel", canvas_get_pixel(&stack.layers[1].canvas, 0, 0), 0xFF0D6740)) {
+        fprintf(stderr, "stamp visible identical no-op failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
