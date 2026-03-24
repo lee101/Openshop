@@ -205,27 +205,25 @@ static int handle_canvas_mutation_shortcut(
     return 1;
 }
 
-static void prepare_app_title(
-    char *title,
-    size_t title_size,
-    const LayerStack *layers,
-    Tool tool,
-    BrushShape brush_shape,
-    int radius,
-    uint32_t color,
-    int opacity_percent
-) {
-    if (!title || title_size == 0 || !layers) {
+static void update_window_title(SDL_Window *window, const LayerStack *layers, Tool tool, BrushShape brush_shape, int radius, uint32_t color, int opacity_percent) {
+    const Layer *active = NULL;
+    const char *layer_name = "Layer";
+    int visible_layers = 0;
+    char title[256];
+
+    if (!window || !layers) {
         return;
     }
 
-    const Layer *active = layer_stack_get(layers, layers->active_layer);
-    const char *layer_name = active && active->name[0] ? active->name : "Layer";
-    int visible_layers = layer_stack_visible_count(layers);
+    active = layer_stack_get(layers, layers->active_layer);
+    if (active && active->name[0]) {
+        layer_name = active->name;
+    }
+    visible_layers = layer_stack_visible_count(layers);
 
     app_title_format(
         title,
-        title_size,
+        sizeof(title),
         app_tool_label(tool),
         app_brush_shape_label(brush_shape),
         radius,
@@ -240,16 +238,6 @@ static void prepare_app_title(
         visible_layers,
         color
     );
-}
-
-static void update_window_title(SDL_Window *window, const LayerStack *layers, Tool tool, BrushShape brush_shape, int radius, uint32_t color, int opacity_percent) {
-    char title[256];
-
-    if (!window || !layers) {
-        return;
-    }
-
-    prepare_app_title(title, sizeof(title), layers, tool, brush_shape, radius, color, opacity_percent);
     SDL_SetWindowTitle(window, title);
 }
 
