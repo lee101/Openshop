@@ -4,6 +4,8 @@
 #include <string.h>
 
 int canvas_load_bmp(Canvas *c, const char *path, uint32_t background_color) {
+    int would_change = 0;
+
     if (!path || !c) {
         return 0;
     }
@@ -19,10 +21,27 @@ int canvas_load_bmp(Canvas *c, const char *path, uint32_t background_color) {
         return 0;
     }
 
-    canvas_clear(c, background_color);
-
     int copy_w = converted->w < c->width ? converted->w : c->width;
     int copy_h = converted->h < c->height ? converted->h : c->height;
+    for (int y = 0; y < c->height && !would_change; y++) {
+        uint32_t *row = y < copy_h ? (uint32_t *)((uint8_t *)converted->pixels + y * converted->pitch) : NULL;
+
+        for (int x = 0; x < c->width; x++) {
+            uint32_t expected = (x < copy_w && row) ? row[x] : background_color;
+            if (c->pixels[y * c->width + x] != expected) {
+                would_change = 1;
+                break;
+            }
+        }
+    }
+
+    if (!would_change) {
+        SDL_FreeSurface(converted);
+        return 0;
+    }
+
+    canvas_clear(c, background_color);
+
     for (int y = 0; y < copy_h; y++) {
         uint8_t *row = (uint8_t *)converted->pixels + y * converted->pitch;
         memcpy(c->pixels + y * c->width, row, (size_t)copy_w * sizeof(uint32_t));
