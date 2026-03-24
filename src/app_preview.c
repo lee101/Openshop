@@ -90,6 +90,35 @@ void app_cancel_shape_preview(int *shaping, int *preview_active) {
     }
 }
 
+AppPreviewKeyResult app_handle_shape_preview_key(
+    AppShapeCancelKey key,
+    int ctrl,
+    int *shaping,
+    int *preview_active,
+    int *running
+) {
+    int shape_active = shaping && *shaping;
+
+    if (shape_active && app_should_cancel_shape_on_key(key, ctrl)) {
+        app_cancel_shape_preview(shaping, preview_active);
+        return APP_PREVIEW_KEY_RESULT_STATE_CHANGED;
+    }
+
+    if (key != APP_SHAPE_CANCEL_KEY_ESCAPE) {
+        return APP_PREVIEW_KEY_RESULT_NONE;
+    }
+    if (shape_active) {
+        app_cancel_shape_preview(shaping, preview_active);
+        return APP_PREVIEW_KEY_RESULT_HANDLED;
+    }
+    if (!running) {
+        return APP_PREVIEW_KEY_RESULT_NONE;
+    }
+
+    *running = 0;
+    return APP_PREVIEW_KEY_RESULT_HANDLED;
+}
+
 const Canvas *app_preview_canvas_or_composite(
     const Canvas *composite,
     const Canvas *preview_canvas,

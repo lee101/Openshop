@@ -4,9 +4,16 @@
 #include "history_state.h"
 #include "canvas.h"
 #include "app_brush.h"
+#include "app_shape_cancel.h"
 
 #include <stddef.h>
 #include <stdint.h>
+
+typedef enum {
+    APP_PREVIEW_KEY_RESULT_NONE = 0,
+    APP_PREVIEW_KEY_RESULT_STATE_CHANGED,
+    APP_PREVIEW_KEY_RESULT_HANDLED
+} AppPreviewKeyResult;
 
 void app_begin_shape_preview(
     int start_x,
@@ -41,6 +48,14 @@ int app_begin_shape_preview_to_active_layer(
 );
 
 void app_cancel_shape_preview(int *shaping, int *preview_active);
+
+AppPreviewKeyResult app_handle_shape_preview_key(
+    AppShapeCancelKey key,
+    int ctrl,
+    int *shaping,
+    int *preview_active,
+    int *running
+);
 
 const Canvas *app_preview_canvas_or_composite(
     const Canvas *composite,

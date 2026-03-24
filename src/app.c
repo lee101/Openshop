@@ -1320,16 +1320,21 @@ static void handle_key_down(
 
     sdl_shortcut_modifiers(&ctrl, &alt, &shift);
 
-    if (*shaping && app_should_cancel_shape_on_key(app_shape_cancel_key_from_sdl(key), ctrl)) {
-        app_cancel_shape_preview(shaping, preview_active_flag);
+    {
+        AppPreviewKeyResult preview_key_result = app_handle_shape_preview_key(
+            app_shape_cancel_key_from_sdl(key),
+            ctrl,
+            shaping,
+            preview_active_flag,
+            running
+        );
+
+        if (preview_key_result == APP_PREVIEW_KEY_RESULT_HANDLED) {
+            return;
+        }
     }
 
     if (key == SDLK_ESCAPE) {
-        if (*shaping) {
-            app_cancel_shape_preview(shaping, preview_active_flag);
-            return;
-        }
-        *running = 0;
         return;
     }
 
