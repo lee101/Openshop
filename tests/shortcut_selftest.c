@@ -84,6 +84,16 @@ static int expect_brush_action(const char *label, int key, BrushShortcutAction w
     return 1;
 }
 
+static void init_single_layer_stack(
+    LayerStack *stack,
+    Canvas *canvas,
+    uint32_t *pixels,
+    int width,
+    int height,
+    uint32_t fill,
+    int locked
+);
+
 static int expect_direct_draw_tool(const char *label, Tool tool, int want) {
     int got = app_tool_draws_directly(tool);
     if (got != want) {
@@ -388,6 +398,96 @@ static int expect_handle_left_canvas_press(
     snapshot_stack_clear(undo_stack, &undo_count);
     snapshot_stack_clear(redo_stack, &redo_count);
     return ok;
+}
+
+typedef struct {
+    const char *label;
+    int width;
+    int height;
+    uint32_t initial_fill;
+    int locked;
+    size_t preset_pixel_index;
+    uint32_t preset_pixel_value;
+    int x;
+    int y;
+    Tool tool;
+    BrushShape shape;
+    int radius;
+    uint32_t brush_color;
+    int initial_drawing;
+    int initial_shaping;
+    int initial_shape_start_x;
+    int initial_shape_start_y;
+    int initial_last_x;
+    int initial_last_y;
+    int initial_needs_composite;
+    uint32_t initial_shape_base_fill;
+    AppCanvasClickResult want_result;
+    int want_drawing;
+    int want_shaping;
+    int want_shape_start_x;
+    int want_shape_start_y;
+    int want_last_x;
+    int want_last_y;
+    int want_needs_composite;
+    size_t changed_index;
+    uint32_t want_changed;
+    size_t snapshot_index;
+    uint32_t want_snapshot;
+    int expect_shape_base_copy;
+} HandleLeftCanvasPressCase;
+
+static int run_handle_left_canvas_press_case(const HandleLeftCanvasPressCase *test_case) {
+    LayerStack stack;
+    Canvas canvas;
+    uint32_t pixels[9];
+    uint32_t shape_base_pixels[9];
+    uint32_t want_shape_base_pixels[9];
+    size_t pixel_count = (size_t)test_case->width * (size_t)test_case->height;
+
+    init_single_layer_stack(&stack, &canvas, pixels, test_case->width, test_case->height, test_case->initial_fill, test_case->locked);
+    if (test_case->preset_pixel_index < pixel_count) {
+        pixels[test_case->preset_pixel_index] = test_case->preset_pixel_value;
+    }
+    memset(shape_base_pixels, (unsigned char)test_case->initial_shape_base_fill, pixel_count * sizeof(*shape_base_pixels));
+    memcpy(want_shape_base_pixels, shape_base_pixels, pixel_count * sizeof(*want_shape_base_pixels));
+    if (test_case->expect_shape_base_copy) {
+        memcpy(want_shape_base_pixels, pixels, pixel_count * sizeof(*want_shape_base_pixels));
+    }
+
+    return expect_handle_left_canvas_press(
+        test_case->label,
+        &stack,
+        test_case->x,
+        test_case->y,
+        test_case->tool,
+        test_case->shape,
+        test_case->radius,
+        test_case->brush_color,
+        &canvas,
+        test_case->initial_drawing,
+        test_case->initial_shaping,
+        test_case->initial_shape_start_x,
+        test_case->initial_shape_start_y,
+        test_case->initial_last_x,
+        test_case->initial_last_y,
+        test_case->initial_needs_composite,
+        shape_base_pixels,
+        want_shape_base_pixels,
+        pixel_count,
+        test_case->want_result,
+        test_case->want_drawing,
+        test_case->want_shaping,
+        test_case->want_shape_start_x,
+        test_case->want_shape_start_y,
+        test_case->want_last_x,
+        test_case->want_last_y,
+        test_case->want_needs_composite,
+        test_case->changed_index,
+        test_case->want_changed,
+        test_case->snapshot_index,
+        test_case->want_snapshot
+    );
 }
 
 static int expect_continue_direct_stroke(
@@ -2111,123 +2211,46 @@ int main(void) {
         }
     }
     {
-        LayerStack stack;
-        Canvas canvas;
-        uint32_t pixels[9];
-        uint32_t shape_base_pixels[4] = {0xDEADBEEFu, 0xC0FFEE00u, 0xAABBCCDDu, 0xEEFF0011u};
-        uint32_t want_shape_base_pixels[4] = {0};
+        const HandleLeftCanvasPressCase click_cases[] = {
+            {
+                "handle_left_canvas_press_direct_stroke",
+                3, 3, 0xFF000000u, 0,
+                4, 0xFF112233u,
+                1, 1, TOOL_BRUSH, BRUSH_SHAPE_ROUND, 1, 0x80FFFFFFu,
+                0, 0, 7, 8, -1, -1, 0, 0xDEADBEEFu,
+                APP_CANVAS_CLICK_DIRECT_STROKE,
+                1, 0, 7, 8, 1, 1, 1,
+                4, 0xFF889199u, 4, 0xFF112233u,
+                0,
+            },
+            {
+                "handle_left_canvas_press_shape_preview",
+                2, 2, 0xFF000000u, 0,
+                99, 0u,
+                1, 0, TOOL_RECT, BRUSH_SHAPE_ROUND, 1, 0xFFFFFFFFu,
+                0, 0, 7, 8, -1, -1, 0, 0x00000000u,
+                APP_CANVAS_CLICK_SHAPE_PREVIEW,
+                0, 1, 1, 0, 1, 0, 0,
+                0, 0xFF000000u, 0, 0u,
+                1,
+            },
+            {
+                "handle_left_canvas_press_locked_noop",
+                2, 2, 0xFF010203u, 1,
+                99, 0u,
+                1, 0, TOOL_RECT, BRUSH_SHAPE_ROUND, 1, 0xFFFFFFFFu,
+                0, 0, 7, 8, -1, -1, 0, 0x5A5A5A5Au,
+                APP_CANVAS_CLICK_NOOP,
+                0, 0, 7, 8, 1, 0, 0,
+                0, 0xFF010203u, 0, 0u,
+                0,
+            },
+        };
+        size_t i;
 
-        init_single_layer_stack(&stack, &canvas, pixels, 3, 3, 0xFF000000u, 0);
-        pixels[4] = 0xFF112233u;
-        ok = ok && expect_handle_left_canvas_press(
-            "handle_left_canvas_press_direct_stroke",
-            &stack,
-            1,
-            1,
-            TOOL_BRUSH,
-            BRUSH_SHAPE_ROUND,
-            1,
-            0x80FFFFFFu,
-            &canvas,
-            0,
-            0,
-            7,
-            8,
-            -1,
-            -1,
-            0,
-            shape_base_pixels,
-            shape_base_pixels,
-            4,
-            APP_CANVAS_CLICK_DIRECT_STROKE,
-            1,
-            0,
-            7,
-            8,
-            1,
-            1,
-            1,
-            4,
-            0xFF889199u,
-            4,
-            0xFF112233u
-        );
-
-        init_single_layer_stack(&stack, &canvas, pixels, 2, 2, 0xFF000000u, 0);
-        want_shape_base_pixels[0] = pixels[0];
-        want_shape_base_pixels[1] = pixels[1];
-        want_shape_base_pixels[2] = pixels[2];
-        want_shape_base_pixels[3] = pixels[3];
-        memset(shape_base_pixels, 0, sizeof(shape_base_pixels));
-        ok = ok && expect_handle_left_canvas_press(
-            "handle_left_canvas_press_shape_preview",
-            &stack,
-            1,
-            0,
-            TOOL_RECT,
-            BRUSH_SHAPE_ROUND,
-            1,
-            0xFFFFFFFFu,
-            &canvas,
-            0,
-            0,
-            7,
-            8,
-            -1,
-            -1,
-            0,
-            shape_base_pixels,
-            want_shape_base_pixels,
-            4,
-            APP_CANVAS_CLICK_SHAPE_PREVIEW,
-            0,
-            1,
-            1,
-            0,
-            1,
-            0,
-            0,
-            0,
-            0xFF000000u,
-            0,
-            0u
-        );
-
-        init_single_layer_stack(&stack, &canvas, pixels, 2, 2, 0xFF010203u, 1);
-        memset(shape_base_pixels, 0x5A, sizeof(shape_base_pixels));
-        ok = ok && expect_handle_left_canvas_press(
-            "handle_left_canvas_press_locked_noop",
-            &stack,
-            1,
-            0,
-            TOOL_RECT,
-            BRUSH_SHAPE_ROUND,
-            1,
-            0xFFFFFFFFu,
-            &canvas,
-            0,
-            0,
-            7,
-            8,
-            -1,
-            -1,
-            0,
-            shape_base_pixels,
-            shape_base_pixels,
-            4,
-            APP_CANVAS_CLICK_NOOP,
-            0,
-            0,
-            7,
-            8,
-            1,
-            0,
-            0,
-            0,
-            0xFF010203u,
-            0,
-            0u
-        );
+        for (i = 0; i < sizeof(click_cases) / sizeof(click_cases[0]); i++) {
+            ok = ok && run_handle_left_canvas_press_case(&click_cases[i]);
+        }
     }
     {
         ContinueDirectStrokeCase continue_cases[] = {
