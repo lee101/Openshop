@@ -219,6 +219,23 @@ int main(void) {
             return 1;
         }
 
+        snapshot_stack_clear(temp_undo, &temp_undo_count);
+        snapshot_stack_clear(temp_redo, &temp_redo_count);
+        temp_stack.layers[1].canvas.pixels[0] = 0;
+        temp_stack.layers[1].canvas.pixels[1] = 0;
+        temp_stack.layers[1].canvas.pixels[4] = 0;
+        canvas_set_pixel(&temp_stack.layers[1].canvas, 0, 1, 0xFF8899AA);
+        if (!app_apply_canvas_translation(&temp_stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count, 0, -1) ||
+            !expect_int(temp_undo_count, 1, "canvas_translation_vertical_undo_count") ||
+            !expect_pixel(&temp_stack, 1, 0, 0, 0xFF8899AA, "canvas_translation_vertical_shifted_pixel") ||
+            !expect_pixel(&temp_stack, 1, 0, 1, 0x00000000, "canvas_translation_vertical_fill_pixel")) {
+            fprintf(stderr, "canvas translation vertical helper failed\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            layer_stack_free(&temp_stack);
+            return 1;
+        }
+
         layer_stack_free(&temp_stack);
     }
 
