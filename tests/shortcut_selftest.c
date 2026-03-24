@@ -747,6 +747,24 @@ int main(void) {
         34,
         preview_source
     );
+    {
+        uint32_t preview_partial[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
+
+        shaping = 2;
+        shape_start_x = -2;
+        shape_start_y = -3;
+        app_begin_shape_preview(14, 24, &shaping, &shape_start_x, &shape_start_y, preview_partial, preview_source, 2);
+        if (shaping != 1 ||
+            shape_start_x != 14 ||
+            shape_start_y != 24 ||
+            preview_partial[0] != preview_source[0] ||
+            preview_partial[1] != preview_source[1] ||
+            preview_partial[2] != 0xCCCCCCCCu ||
+            preview_partial[3] != 0xDDDDDDDDu) {
+            fprintf(stderr, "begin_shape_preview_partial_copy failed\n");
+            ok = 0;
+        }
+    }
     shaping = 5;
     shape_start_x = 7;
     shape_start_y = 9;
