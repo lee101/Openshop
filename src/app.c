@@ -1,5 +1,6 @@
 #include "app.h"
 #include "app_brush.h"
+#include "app_shape.h"
 #include "app_title.h"
 #include "brush_shortcuts.h"
 #include "canvas.h"
@@ -366,40 +367,6 @@ static void draw_shape(Canvas *c, Tool tool, int x0, int y0, int x1, int y1, int
     }
     default:
         break;
-    }
-}
-
-static void constrain_end(Tool tool, int x0, int y0, int x1, int y1, int shift, int *out_x, int *out_y) {
-    if (!out_x || !out_y) {
-        return;
-    }
-    *out_x = x1;
-    *out_y = y1;
-    if (!shift) {
-        return;
-    }
-
-    int dx = x1 - x0;
-    int dy = y1 - y0;
-    int adx = abs(dx);
-    int ady = abs(dy);
-
-    if (tool == TOOL_LINE) {
-        if (adx > ady * 2) {
-            *out_x = x0 + (dx >= 0 ? adx : -adx);
-            *out_y = y0;
-        } else if (ady > adx * 2) {
-            *out_x = x0;
-            *out_y = y0 + (dy >= 0 ? ady : -ady);
-        } else {
-            int len = adx > ady ? adx : ady;
-            *out_x = x0 + (dx >= 0 ? len : -len);
-            *out_y = y0 + (dy >= 0 ? len : -len);
-        }
-    } else if (tool == TOOL_RECT || tool == TOOL_FILLED_RECT || tool == TOOL_ELLIPSE || tool == TOOL_FILLED_ELLIPSE) {
-        int len = adx > ady ? adx : ady;
-        *out_x = x0 + (dx >= 0 ? len : -len);
-        *out_y = y0 + (dy >= 0 ? len : -len);
     }
 }
 
@@ -1409,7 +1376,7 @@ static void handle_canvas_motion(
 
         state = SDL_GetKeyboardState(NULL);
         shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
-        constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
+        app_constrain_shape_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
         memcpy(
             preview_pixels,
             shape_base_pixels,
@@ -1473,7 +1440,7 @@ static void finalize_shape_preview(
 
     state = SDL_GetKeyboardState(NULL);
     shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
-    constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
+    app_constrain_shape_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
     active = layer_stack_active(layers);
     if (active && !active->locked && active->canvas.pixels) {
         push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);

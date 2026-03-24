@@ -1,4 +1,5 @@
 #include "../src/app_brush.h"
+#include "../src/app_shape.h"
 #include "../src/app_title.h"
 #include "../src/brush_shortcuts.h"
 #include "../src/canvas_shortcuts.h"
@@ -329,6 +330,28 @@ static int expect_cycle_brush_shape(const char *label, BrushShape shape, int dir
     return 1;
 }
 
+static int expect_constrained_shape_end(
+    const char *label,
+    Tool tool,
+    int x0,
+    int y0,
+    int x1,
+    int y1,
+    int shift,
+    int want_x,
+    int want_y
+) {
+    int got_x = -999;
+    int got_y = -999;
+
+    app_constrain_shape_end(tool, x0, y0, x1, y1, shift, &got_x, &got_y);
+    if (got_x != want_x || got_y != want_y) {
+        fprintf(stderr, "%s mismatch: got {%d,%d} want {%d,%d}\n", label, got_x, got_y, want_x, want_y);
+        return 0;
+    }
+    return 1;
+}
+
 int main(void) {
     int ok = 1;
 
@@ -403,6 +426,11 @@ int main(void) {
     ok = ok && expect_cycle_brush_shape("brush_shape_cycle_forward", BRUSH_SHAPE_ROUND, 1, BRUSH_SHAPE_SQUARE);
     ok = ok && expect_cycle_brush_shape("brush_shape_cycle_wrap_forward", BRUSH_SHAPE_DIAMOND, 1, BRUSH_SHAPE_ROUND);
     ok = ok && expect_cycle_brush_shape("brush_shape_cycle_wrap_backward", BRUSH_SHAPE_ROUND, -1, BRUSH_SHAPE_DIAMOND);
+    ok = ok && expect_constrained_shape_end("shape_line_horizontal_snap", TOOL_LINE, 10, 10, 25, 13, 1, 25, 10);
+    ok = ok && expect_constrained_shape_end("shape_line_vertical_snap", TOOL_LINE, 10, 10, 13, 25, 1, 10, 25);
+    ok = ok && expect_constrained_shape_end("shape_line_diagonal_snap", TOOL_LINE, 10, 10, 18, 15, 1, 18, 18);
+    ok = ok && expect_constrained_shape_end("shape_rect_square_snap", TOOL_RECT, 10, 10, 14, 18, 1, 18, 18);
+    ok = ok && expect_constrained_shape_end("shape_no_shift_passthrough", TOOL_ELLIPSE, 10, 10, 14, 18, 0, 14, 18);
     ok = ok && expect_title(
         "title_visible_locked_solo",
         "Brush",
