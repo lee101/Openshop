@@ -1192,6 +1192,33 @@ static void draw_brush_line(Canvas *c, int x0, int y0, int x1, int y1, int radiu
     }
 }
 
+static void sdl_shortcut_modifiers(int *ctrl, int *alt, int *shift) {
+    const Uint8 *state = SDL_GetKeyboardState(NULL);
+
+    if (!state) {
+        if (ctrl) {
+            *ctrl = 0;
+        }
+        if (alt) {
+            *alt = 0;
+        }
+        if (shift) {
+            *shift = 0;
+        }
+        return;
+    }
+
+    if (ctrl) {
+        *ctrl = state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL];
+    }
+    if (alt) {
+        *alt = state[SDL_SCANCODE_LALT] || state[SDL_SCANCODE_RALT];
+    }
+    if (shift) {
+        *shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
+    }
+}
+
 static void handle_canvas_motion(
     int x,
     int y,
@@ -1240,7 +1267,6 @@ static void handle_canvas_motion(
     }
 
     if (*shaping) {
-        const Uint8 *state = NULL;
         int shift = 0;
         int end_x = x;
         int end_y = y;
@@ -1252,8 +1278,7 @@ static void handle_canvas_motion(
             return;
         }
 
-        state = SDL_GetKeyboardState(NULL);
-        shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
+        sdl_shortcut_modifiers(NULL, NULL, &shift);
         app_constrain_shape_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
         memcpy(
             preview_pixels,
@@ -1281,7 +1306,6 @@ static void finalize_shape_preview(
     int *redo_count,
     int *needs_composite
 ) {
-    const Uint8 *state = NULL;
     int shift = 0;
     int end_x = button.x;
     int end_y = button.y;
@@ -1291,8 +1315,7 @@ static void finalize_shape_preview(
         return;
     }
 
-    state = SDL_GetKeyboardState(NULL);
-    shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
+    sdl_shortcut_modifiers(NULL, NULL, &shift);
     app_constrain_shape_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
     active = layer_stack_active(layers);
     if (active && !active->locked && active->canvas.pixels) {
@@ -1448,16 +1471,17 @@ static void handle_key_down(
     int *needs_composite,
     SDL_Window *window
 ) {
-    const Uint8 *state = SDL_GetKeyboardState(NULL);
-    int ctrl = state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL];
-    int alt = state[SDL_SCANCODE_LALT] || state[SDL_SCANCODE_RALT];
-    int shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
+    int ctrl = 0;
+    int alt = 0;
+    int shift = 0;
 
     if (!layers || !composite || !preview_canvas || !undo_count || !redo_count || !tool || !brush_shape ||
         !brush_radius || !brush_color || !brush_color_rgb || !brush_opacity || !shaping || !preview_active_flag ||
         !running || !needs_composite || !window) {
         return;
     }
+
+    sdl_shortcut_modifiers(&ctrl, &alt, &shift);
 
     if (*shaping && app_should_cancel_shape_on_key(app_shape_cancel_key_from_sdl(key), ctrl)) {
         app_cancel_shape_preview(shaping, preview_active_flag);
