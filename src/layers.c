@@ -591,6 +591,36 @@ int layer_stack_move_to(LayerStack *stack, int index, int target_index) {
     return 1;
 }
 
+int layer_stack_move_to_visible_rank(LayerStack *stack, int index, int rank) {
+    if (!stack || index < 0 || index >= stack->layer_count || rank < 0 || !stack->layers[index].visible) {
+        return 0;
+    }
+
+    int visible_count = layer_stack_visible_count(stack);
+    int current_rank = layer_stack_visible_rank(stack, index);
+    if (visible_count <= 0 || current_rank < 0 || rank >= visible_count) {
+        return 0;
+    }
+    if (rank == current_rank) {
+        return 0;
+    }
+
+    int other_visible[MAX_LAYERS];
+    int other_count = 0;
+    for (int i = 0; i < stack->layer_count; i++) {
+        if (i == index || !stack->layers[i].visible) {
+            continue;
+        }
+        other_visible[other_count++] = i;
+    }
+    if (other_count <= 0) {
+        return 0;
+    }
+
+    int target_index = (rank == visible_count - 1) ? other_visible[other_count - 1] : other_visible[rank];
+    return layer_stack_move_to(stack, index, target_index);
+}
+
 int layer_stack_merge_down(LayerStack *stack, int index) {
     if (!stack || index <= 0 || index >= stack->layer_count) {
         return 0;

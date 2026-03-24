@@ -1069,6 +1069,20 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (alt && shift && key >= SDLK_1 && key <= SDLK_8) {
+                    int target = (int)(key - SDLK_1);
+                    int current_rank = layer_stack_visible_rank(&layers, layers.active_layer);
+                    int visible_count = layer_stack_visible_count(&layers);
+                    if (current_rank >= 0 && target < visible_count && target != current_rank) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        if (layer_stack_move_to_visible_rank(&layers, layers.active_layer, target)) {
+                            needs_composite = 1;
+                        }
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    }
+                    break;
+                }
+
                 if (ctrl && shift && key >= SDLK_1 && key <= SDLK_8) {
                     int target = (int)(key - SDLK_1);
                     if (target < layers.layer_count) {

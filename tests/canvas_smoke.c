@@ -294,6 +294,48 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_move_to_visible_rank(&stack, 3, 0) || stack.active_layer != 0) {
+        fprintf(stderr, "move to first visible rank failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Fourth Visible") != 0 || layer_stack_visible_rank(&stack, 0) != 0 || layer_stack_visible_rank(&stack, 1) != 1) {
+        fprintf(stderr, "move to first visible rank bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_move_to_visible_rank(&stack, 0, 1) || stack.active_layer != 1) {
+        fprintf(stderr, "move to second visible rank failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[1].name, "Fourth Visible") != 0 || layer_stack_visible_rank(&stack, 1) != 1) {
+        fprintf(stderr, "move to second visible rank bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_move_to_visible_rank(&stack, 2, 0)) {
+        fprintf(stderr, "hidden layer should not move by visible rank\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_move_to_visible_rank(&stack, 1, 2)) {
+        fprintf(stderr, "moving beyond the visible rank range should fail\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_move_to(&stack, 1, 3) || strcmp(stack.layers[3].name, "Fourth Visible") != 0) {
+        fprintf(stderr, "restore absolute layer order after visible-rank move tests failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_delete(&stack, 3) || !layer_stack_delete(&stack, 2)) {
         fprintf(stderr, "visible cycling cleanup failed\n");
         canvas_free(&composite);
