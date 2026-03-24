@@ -1326,6 +1326,52 @@ static int test_layer_snapshot_matches_stack_guard_paths(void) {
     return 1;
 }
 
+static int test_layer_snapshot_matches_stack_preserves_input_on_capture_failure(void) {
+#ifndef OPENSHOP_TESTING
+    fprintf(stderr, "snapshot match capture failure test requires OPENSHOP_TESTING\n");
+    return 0;
+#else
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "snapshot match capture-failure init failed\n");
+        return 0;
+    }
+
+    LayerSnapshot snapshot = {0};
+    if (!layer_snapshot_capture(&snapshot, &stack)) {
+        fprintf(stderr, "snapshot match capture-failure seed failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_snapshot_set_alloc_for_tests(always_fail_snapshot_alloc);
+    if (layer_snapshot_matches_stack(&snapshot, &stack)) {
+        fprintf(stderr, "snapshot match should fail when current-state capture fails\n");
+        layer_snapshot_set_alloc_for_tests(NULL);
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    layer_snapshot_set_alloc_for_tests(NULL);
+
+    if (!expect_pixel_eq("snapshot_match_failed_capture_preserves_input", snapshot.pixels[0], 0xFFFFFFFF) ||
+        snapshot.width != 4 ||
+        snapshot.height != 4 ||
+        snapshot.layer_count != 1 ||
+        snapshot.active_layer != 0 ||
+        snapshot.solo_index != -1) {
+        fprintf(stderr, "snapshot match should preserve caller snapshot after current-state capture failure\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_snapshot_free(&snapshot);
+    layer_stack_free(&stack);
+    return 1;
+#endif
+}
+
 static int test_layer_history_skip_noop_snapshot_commit(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
@@ -1587,6 +1633,72 @@ static int test_layer_history_commit_change_null_snapshot_is_noop(void) {
     layer_history_reset(&history);
     layer_stack_free(&stack);
     return 1;
+}
+
+static int test_layer_history_commit_change_resets_snapshot_on_compare_capture_failure(void) {
+#ifndef OPENSHOP_TESTING
+    fprintf(stderr, "history commit capture failure test requires OPENSHOP_TESTING\n");
+    return 0;
+#else
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "history commit capture-failure init failed\n");
+        return 0;
+    }
+
+    LayerHistory history = {0};
+    layer_history_record(&history, &stack);
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF010203);
+    layer_history_record(&history, &stack);
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF040506);
+
+    if (!layer_history_step_undo(&history, &stack) || history.redo_count != 1) {
+        fprintf(stderr, "history commit capture-failure undo setup failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    LayerSnapshot snapshot = {0};
+    if (!layer_snapshot_capture(&snapshot, &stack)) {
+        fprintf(stderr, "history commit capture-failure seed capture failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_snapshot_set_alloc_for_tests(always_fail_snapshot_alloc);
+    if (layer_history_commit_change(&history, &snapshot, &stack, 1)) {
+        fprintf(stderr, "history commit should fail when current-state comparison capture fails\n");
+        layer_snapshot_set_alloc_for_tests(NULL);
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    layer_snapshot_set_alloc_for_tests(NULL);
+
+    if (!snapshot_is_reset(&snapshot)) {
+        fprintf(stderr, "history commit should reset snapshot after comparison capture failure\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (history.undo_count != 1 || history.redo_count != 1) {
+        fprintf(stderr, "history commit should preserve history counts after comparison capture failure\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("history_commit_failed_compare_capture_keeps_canvas", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF010203)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_reset(&history);
+    layer_stack_free(&stack);
+    return 1;
+#endif
 }
 
 static int test_layer_history_visibility_commit_change(void) {
@@ -3264,6 +3376,9 @@ int main(void) {
     if (!test_layer_snapshot_matches_stack_guard_paths()) {
         return 1;
     }
+    if (!test_layer_snapshot_matches_stack_preserves_input_on_capture_failure()) {
+        return 1;
+    }
     if (!test_layer_history_skip_noop_snapshot_commit()) {
         return 1;
     }
@@ -3277,6 +3392,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_commit_change_null_snapshot_is_noop()) {
+        return 1;
+    }
+    if (!test_layer_history_commit_change_resets_snapshot_on_compare_capture_failure()) {
         return 1;
     }
     if (!test_layer_history_visibility_commit_change()) {

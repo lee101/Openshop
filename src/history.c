@@ -4,6 +4,7 @@
 #include <string.h>
 
 static int layer_snapshot_equals(const LayerSnapshot *a, const LayerSnapshot *b);
+static int layer_snapshot_compare_current(const LayerSnapshot *snapshot, const LayerStack *stack, int *equal_out);
 
 static void *layer_snapshot_alloc_default(size_t size) {
     return malloc(size);
@@ -254,17 +255,24 @@ int layer_snapshot_apply(const LayerSnapshot *snapshot, LayerStack *stack) {
 }
 
 int layer_snapshot_matches_stack(const LayerSnapshot *snapshot, const LayerStack *stack) {
-    LayerSnapshot current = {0};
     int equal = 0;
-    if (!snapshot || !stack) {
+    if (!layer_snapshot_compare_current(snapshot, stack, &equal)) {
+        return 0;
+    }
+    return equal;
+}
+
+static int layer_snapshot_compare_current(const LayerSnapshot *snapshot, const LayerStack *stack, int *equal_out) {
+    LayerSnapshot current = {0};
+    if (!snapshot || !stack || !equal_out) {
         return 0;
     }
     if (!layer_snapshot_capture(&current, stack)) {
         return 0;
     }
-    equal = layer_snapshot_equals(snapshot, &current);
+    *equal_out = layer_snapshot_equals(snapshot, &current);
     layer_snapshot_free(&current);
-    return equal;
+    return 1;
 }
 
 void layer_history_clear(LayerSnapshot *stack, int *count) {
@@ -323,10 +331,15 @@ int layer_history_record_snapshot(LayerHistory *history, LayerSnapshot *snapshot
 }
 
 int layer_history_commit_change(LayerHistory *history, LayerSnapshot *snapshot, const LayerStack *layers, int operation_succeeded) {
+    int matches_current = 0;
     if (!snapshot) {
         return 0;
     }
-    if (!operation_succeeded || !layers || layer_snapshot_matches_stack(snapshot, layers)) {
+    if (!operation_succeeded || !layers) {
+        layer_snapshot_reset(snapshot);
+        return 0;
+    }
+    if (!layer_snapshot_compare_current(snapshot, layers, &matches_current) || matches_current) {
         layer_snapshot_reset(snapshot);
         return 0;
     }
