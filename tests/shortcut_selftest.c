@@ -1663,6 +1663,9 @@ typedef struct {
     int locked;
     int start_x;
     int start_y;
+    int use_shaping;
+    int use_shape_start_x;
+    int use_shape_start_y;
     int initial_shaping;
     int initial_shape_start_x;
     int initial_shape_start_y;
@@ -1686,10 +1689,22 @@ static int run_begin_shape_preview_to_active_layer_case(
     int shaping = test_case->initial_shaping;
     int shape_start_x = test_case->initial_shape_start_x;
     int shape_start_y = test_case->initial_shape_start_y;
+    int *shaping_ptr = NULL;
+    int *shape_start_x_ptr = NULL;
+    int *shape_start_y_ptr = NULL;
 
     if (test_case->use_stack) {
         init_single_layer_stack(&stack, &canvas, pixels, 2, 2, 0x00000000u, test_case->locked);
         layers = &stack;
+    }
+    if (test_case->use_shaping) {
+        shaping_ptr = &shaping;
+    }
+    if (test_case->use_shape_start_x) {
+        shape_start_x_ptr = &shape_start_x;
+    }
+    if (test_case->use_shape_start_y) {
+        shape_start_y_ptr = &shape_start_y;
     }
 
     return expect_begin_shape_preview_to_active_layer(
@@ -1697,9 +1712,9 @@ static int run_begin_shape_preview_to_active_layer_case(
         layers,
         test_case->start_x,
         test_case->start_y,
-        &shaping,
-        &shape_start_x,
-        &shape_start_y,
+        shaping_ptr,
+        shape_start_x_ptr,
+        shape_start_y_ptr,
         shape_base_pixels,
         composite,
         test_case->want_started,
@@ -1715,6 +1730,9 @@ typedef struct {
     const char *label;
     int start_x;
     int start_y;
+    int use_shaping;
+    int use_shape_start_x;
+    int use_shape_start_y;
     int initial_shaping;
     int initial_shape_start_x;
     int initial_shape_start_y;
@@ -1733,17 +1751,30 @@ static int run_begin_shape_preview_from_canvas_case(
     int *shape_start_x,
     int *shape_start_y
 ) {
-    *shaping = test_case->initial_shaping;
-    *shape_start_x = test_case->initial_shape_start_x;
-    *shape_start_y = test_case->initial_shape_start_y;
+    int *shaping_ptr = NULL;
+    int *shape_start_x_ptr = NULL;
+    int *shape_start_y_ptr = NULL;
+
+    if (test_case->use_shaping) {
+        *shaping = test_case->initial_shaping;
+        shaping_ptr = shaping;
+    }
+    if (test_case->use_shape_start_x) {
+        *shape_start_x = test_case->initial_shape_start_x;
+        shape_start_x_ptr = shape_start_x;
+    }
+    if (test_case->use_shape_start_y) {
+        *shape_start_y = test_case->initial_shape_start_y;
+        shape_start_y_ptr = shape_start_y;
+    }
 
     return expect_begin_shape_preview_from_canvas(
         test_case->label,
         test_case->start_x,
         test_case->start_y,
-        shaping,
-        shape_start_x,
-        shape_start_y,
+        shaping_ptr,
+        shape_start_x_ptr,
+        shape_start_y_ptr,
         test_case->shape_base_pixels,
         test_case->composite,
         test_case->want_shaping,
@@ -4741,9 +4772,12 @@ int main(void) {
     }
     {
         const BeginShapePreviewFromCanvasCase begin_shape_preview_from_canvas_cases[] = {
-            {"begin_shape_preview_from_canvas_copy", 180, 190, 17, 23, 24, preview_copy, &begin_preview_canvas, 1, 180, 190, preview_source, 4},
-            {"begin_shape_preview_from_canvas_null_canvas", 200, 210, 18, 25, 26, preview_copy, NULL, 1, 200, 210, preview_sentinel, 4},
-            {"begin_shape_preview_from_canvas_missing_pixels", 220, 230, 19, 27, 28, preview_copy, &begin_preview_canvas_without_pixels, 1, 220, 230, preview_sentinel, 4},
+            {"begin_shape_preview_from_canvas_copy", 180, 190, 1, 1, 1, 17, 23, 24, preview_copy, &begin_preview_canvas, 1, 180, 190, preview_source, 4},
+            {"begin_shape_preview_from_canvas_null_canvas", 200, 210, 1, 1, 1, 18, 25, 26, preview_copy, NULL, 1, 200, 210, preview_sentinel, 4},
+            {"begin_shape_preview_from_canvas_missing_pixels", 220, 230, 1, 1, 1, 19, 27, 28, preview_copy, &begin_preview_canvas_without_pixels, 1, 220, 230, preview_sentinel, 4},
+            {"begin_shape_preview_from_canvas_null_shaping_noop", 300, 310, 0, 1, 1, 23, 35, 36, preview_copy, &begin_preview_canvas, 23, 35, 36, preview_sentinel, 4},
+            {"begin_shape_preview_from_canvas_null_start_x_noop", 320, 330, 1, 0, 1, 24, 0, 37, preview_copy, &begin_preview_canvas, 24, 0, 37, preview_sentinel, 4},
+            {"begin_shape_preview_from_canvas_null_start_y_noop", 340, 350, 1, 1, 0, 25, 38, 0, preview_copy, &begin_preview_canvas, 25, 38, 0, preview_sentinel, 4},
         };
         size_t i;
 
@@ -4763,6 +4797,7 @@ int main(void) {
                 "begin_shape_preview_to_active_layer_editable",
                 1, 0,
                 240, 250,
+                1, 1, 1,
                 20, 29, 30,
                 1, 1, 240, 250,
                 preview_source, 4,
@@ -4771,6 +4806,7 @@ int main(void) {
                 "begin_shape_preview_to_active_layer_locked_noop",
                 1, 1,
                 260, 270,
+                1, 1, 1,
                 21, 31, 32,
                 0, 21, 31, 32,
                 preview_sentinel, 4,
@@ -4779,8 +4815,36 @@ int main(void) {
                 "begin_shape_preview_to_active_layer_null_stack_noop",
                 0, 0,
                 280, 290,
+                1, 1, 1,
                 22, 33, 34,
                 0, 22, 33, 34,
+                preview_sentinel, 4,
+            },
+            {
+                "begin_shape_preview_to_active_layer_null_shaping_started_noop",
+                1, 0,
+                360, 370,
+                0, 1, 1,
+                26, 39, 40,
+                1, 26, 39, 40,
+                preview_sentinel, 4,
+            },
+            {
+                "begin_shape_preview_to_active_layer_null_start_x_started_noop",
+                1, 0,
+                380, 390,
+                1, 0, 1,
+                27, 0, 41,
+                1, 27, 0, 41,
+                preview_sentinel, 4,
+            },
+            {
+                "begin_shape_preview_to_active_layer_null_start_y_started_noop",
+                1, 0,
+                400, 410,
+                1, 1, 0,
+                28, 42, 0,
+                1, 28, 42, 0,
                 preview_sentinel, 4,
             },
         };
