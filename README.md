@@ -94,7 +94,9 @@ make test-sdl
 - Maximum of 16 layers are supported; `1`-`8` target slots or visible ranks 1-8, while `F1`-`F8` target 9-16.
 - The window title shows both the absolute active layer slot and its visible rank; hidden active layers display as `hidden N/M visible`.
 - Undo/redo retains up to 20 layer-aware history states; new edits clear the redo stack.
-- Repeating no-op history records are ignored, and `Ctrl+A` / `Ctrl+Shift+R` do not consume undo history when visibility is already in the requested state.
+- Repeating no-op history records are ignored, and failed or unchanged edits preserve redo instead of consuming history.
+- Visibility shortcuts such as `Ctrl+A` and `Ctrl+Shift+R` only create undo states when they actually change visibility or solo state.
+- Brush, eraser, shape, fill, clear, transform, opacity, merge, stamp, and layer-management actions skip dead undo entries when the resulting layer stack is unchanged.
 - Direct layer-slot shortcuts print a status message when the requested absolute or visible slot does not exist.
 - Visible-only shortcuts print a status message when the active layer is hidden or there is no other visible layer/slot to target.
 - Locked layers stay visible in the stack but reject paint, fill, clear, transform, load, merge, flatten, stamp, and delete operations.
