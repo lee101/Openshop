@@ -28,7 +28,7 @@ typedef struct {
 
 // Frees pixel storage and clears scalar bookkeeping, but preserves metadata arrays for callers that inspect or reuse them.
 void layer_snapshot_free(LayerSnapshot *snapshot);
-// Fully resets a snapshot, including owned storage and metadata arrays.
+// Fully resets a snapshot, including owned storage and scrubbing metadata arrays that `layer_snapshot_free` preserves.
 void layer_snapshot_reset(LayerSnapshot *snapshot);
 // Captures the current layer stack into caller-owned snapshot storage.
 // Null inputs fail without mutating the caller snapshot.
