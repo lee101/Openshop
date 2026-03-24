@@ -1226,6 +1226,23 @@ static int test_active_layer_ops_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    canvas_clear(&stack.layers[0].canvas, 0x00000000);
+    {
+        int undo_before = undo_count;
+        int redo_before = redo_count;
+        if (active_layer_try_invert_rgb(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+            !expect_pixel_eq("active_invert_rgb_transparent", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0x00000000) ||
+            undo_count != undo_before || redo_count != redo_before) {
+            fprintf(stderr, "active_layer_try_invert_rgb transparent no-op failed\n");
+            layer_stack_free(&single_stack);
+            layer_stack_free(&short_stack);
+            layer_stack_free(&narrow_stack);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
 
     if (!active_layer_try_adjust_opacity(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 55, 4) ||
         stack.layers[0].opacity_percent != 55) {

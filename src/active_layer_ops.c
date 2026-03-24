@@ -34,6 +34,24 @@ static int canvas_is_uniform(const Canvas *canvas) {
     return !canvas_has_non_matching_pixel(canvas, canvas->pixels[0]);
 }
 
+static int canvas_has_visible_pixel(const Canvas *canvas) {
+    size_t pixel_count;
+    size_t i;
+
+    if (!canvas || !canvas->pixels) {
+        return 0;
+    }
+
+    pixel_count = (size_t)canvas->width * (size_t)canvas->height;
+    for (i = 0; i < pixel_count; i++) {
+        if ((canvas->pixels[i] & 0xFF000000U) != 0) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 static int canvas_stamp_would_change(const Canvas *canvas,
                                      int cx, int cy, int radius,
                                      uint32_t color, BrushShape shape) {
@@ -252,6 +270,9 @@ static int active_layer_apply_transform(LayerStack *layers,
     if ((transform == canvas_flip_horizontal || transform == canvas_flip_vertical ||
          transform == canvas_rotate_180) &&
         canvas_is_uniform(&active->canvas)) {
+        return 0;
+    }
+    if (transform == canvas_invert_rgb && !canvas_has_visible_pixel(&active->canvas)) {
         return 0;
     }
     snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
