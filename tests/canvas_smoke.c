@@ -38,6 +38,15 @@ static int test_layer_action_history_custom_flip(LayerStack *layers, void *ctx) 
     return 1;
 }
 
+static int test_layer_action_history_custom_bad_noop(LayerStack *layers, void *ctx) {
+    (void)ctx;
+    if (!layers) {
+        return 0;
+    }
+    layers->active_layer = 0;
+    return 0;
+}
+
 static int test_app_input_rules(void) {
     int dx = 99;
     int dy = 99;
@@ -477,6 +486,17 @@ static int test_layer_action_history_helpers(void) {
     }
     if (undo_count != 0 || redo_count != 0 || stack.active_layer != 1) {
         fprintf(stderr, "custom no-op should preserve history and state\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_action_history_apply_custom_with_result(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                      4, test_layer_action_history_custom_bad_noop, NULL) != LAYER_ACTION_HISTORY_FAILED) {
+        fprintf(stderr, "custom bad no-op should fail\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (undo_count != 0 || redo_count != 0 || stack.active_layer != 1) {
+        fprintf(stderr, "custom bad no-op should roll back state and preserve history\n");
         layer_stack_free(&stack);
         return 0;
     }
