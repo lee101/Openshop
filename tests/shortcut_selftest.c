@@ -319,6 +319,134 @@ static int expect_continue_direct_stroke(
     return 1;
 }
 
+static void init_single_layer_stack(
+    LayerStack *stack,
+    Canvas *canvas,
+    uint32_t *pixels,
+    int width,
+    int height,
+    uint32_t fill,
+    int locked
+) {
+    size_t i;
+    size_t pixel_count = (size_t)width * (size_t)height;
+
+    *stack = (LayerStack){0};
+    stack->width = width;
+    stack->height = height;
+    stack->layer_count = 1;
+    stack->active_layer = 0;
+    stack->solo_index = -1;
+    stack->layers[0].canvas.width = width;
+    stack->layers[0].canvas.height = height;
+    stack->layers[0].canvas.pixels = pixels;
+    stack->layers[0].visible = 1;
+    stack->layers[0].locked = locked;
+    stack->layers[0].opacity_percent = 100;
+    if (canvas) {
+        *canvas = stack->layers[0].canvas;
+    }
+    for (i = 0; i < pixel_count; i++) {
+        pixels[i] = fill;
+    }
+}
+
+typedef struct {
+    const char *label;
+    int x;
+    int y;
+    Tool tool;
+    BrushShape shape;
+    int radius;
+    uint32_t brush_color;
+    uint32_t initial_fill;
+    int locked;
+    int initial_drawing;
+    int initial_needs_composite;
+    int want_started;
+    int want_drawing;
+    int want_needs_composite;
+    size_t changed_index;
+    uint32_t want_changed;
+    size_t snapshot_index;
+    uint32_t want_snapshot;
+} BeginDirectStrokeCase;
+
+static int run_begin_direct_stroke_case(const BeginDirectStrokeCase *test_case) {
+    LayerStack stack;
+    Canvas canvas;
+    uint32_t pixels[9];
+
+    init_single_layer_stack(&stack, &canvas, pixels, 3, 3, test_case->initial_fill, test_case->locked);
+    return expect_begin_direct_stroke(
+        test_case->label,
+        &stack,
+        test_case->x,
+        test_case->y,
+        test_case->tool,
+        test_case->shape,
+        test_case->radius,
+        test_case->brush_color,
+        test_case->initial_drawing,
+        test_case->initial_needs_composite,
+        test_case->want_started,
+        test_case->want_drawing,
+        test_case->want_needs_composite,
+        test_case->changed_index,
+        test_case->want_changed,
+        test_case->snapshot_index,
+        test_case->want_snapshot
+    );
+}
+
+typedef struct {
+    const char *label;
+    int initial_last_x;
+    int initial_last_y;
+    int x;
+    int y;
+    Tool tool;
+    BrushShape shape;
+    int radius;
+    uint32_t brush_color;
+    uint32_t initial_fill;
+    int locked;
+    int initial_needs_composite;
+    int want_continued;
+    int want_last_x;
+    int want_last_y;
+    int want_needs_composite;
+    size_t changed_index;
+    uint32_t want_changed;
+} ContinueDirectStrokeCase;
+
+static int run_continue_direct_stroke_case(const ContinueDirectStrokeCase *test_case) {
+    LayerStack stack;
+    Canvas canvas;
+    uint32_t pixels[25];
+
+    init_single_layer_stack(&stack, &canvas, pixels, 5, 5, test_case->initial_fill, test_case->locked);
+    return expect_continue_direct_stroke(
+        test_case->label,
+        &stack,
+        test_case->initial_last_x,
+        test_case->initial_last_y,
+        test_case->x,
+        test_case->y,
+        test_case->tool,
+        test_case->shape,
+        test_case->radius,
+        test_case->brush_color,
+        test_case->initial_needs_composite,
+        test_case->want_continued,
+        test_case->want_last_x,
+        test_case->want_last_y,
+        test_case->want_needs_composite,
+        test_case->changed_index,
+        test_case->want_changed
+    );
+}
+
 static int expect_canvas_action(const char *label, int key, CanvasShortcutAction want) {
     CanvasShortcutAction got = canvas_shortcut_action(key);
     if (got != want) {
@@ -1358,238 +1486,46 @@ int main(void) {
         0xFFFFFFFFu
     );
     {
-        LayerStack stack = {0};
-        uint32_t pixels[9];
+        BeginDirectStrokeCase begin_cases[] = {
+            {
+                "begin_direct_stroke_brush", 1, 1, TOOL_BRUSH, BRUSH_SHAPE_ROUND, 1, 0x80FFFFFFu,
+                0xFF000000u, 0, 0, 0, 1, 1, 1, 4, 0xFF808080u, 4, 0xFF000000u,
+            },
+            {
+                "begin_direct_stroke_eraser", 1, 1, TOOL_ERASER, BRUSH_SHAPE_ROUND, 1, 0xFFFFFFFFu,
+                0xFF123456u, 0, 0, 0, 1, 1, 1, 4, 0xFFFFFFFFu, 4, 0xFF123456u,
+            },
+            {
+                "begin_direct_stroke_locked_noop", 1, 1, TOOL_BRUSH, BRUSH_SHAPE_ROUND, 1, 0xFFFFFFFFu,
+                0xFF010203u, 1, 0, 0, 0, 0, 0, 4, 0xFF010203u, 4, 0xFF010203u,
+            },
+        };
         size_t i;
 
-        stack.width = 3;
-        stack.height = 3;
-        stack.layer_count = 1;
-        stack.active_layer = 0;
-        stack.solo_index = -1;
-        stack.layers[0].canvas.width = 3;
-        stack.layers[0].canvas.height = 3;
-        stack.layers[0].canvas.pixels = pixels;
-        stack.layers[0].visible = 1;
-        stack.layers[0].locked = 0;
-        stack.layers[0].opacity_percent = 100;
-        for (i = 0; i < sizeof(pixels) / sizeof(pixels[0]); i++) {
-            pixels[i] = 0xFF000000u;
+        for (i = 0; i < sizeof(begin_cases) / sizeof(begin_cases[0]); i++) {
+            ok = ok && run_begin_direct_stroke_case(&begin_cases[i]);
         }
-        ok = ok && expect_begin_direct_stroke(
-            "begin_direct_stroke_brush",
-            &stack,
-            1,
-            1,
-            TOOL_BRUSH,
-            BRUSH_SHAPE_ROUND,
-            1,
-            0x80FFFFFFu,
-            0,
-            0,
-            1,
-            1,
-            1,
-            4,
-            0xFF808080u,
-            4,
-            0xFF000000u
-        );
     }
     {
-        LayerStack stack = {0};
-        uint32_t pixels[9];
+        ContinueDirectStrokeCase continue_cases[] = {
+            {
+                "continue_direct_stroke_brush", 1, 2, 3, 2, TOOL_BRUSH, BRUSH_SHAPE_ROUND, 1, 0xFF556677u,
+                0x00000000u, 0, 0, 1, 3, 2, 1, 12, 0xFF556677u,
+            },
+            {
+                "continue_direct_stroke_eraser", 1, 2, 3, 2, TOOL_ERASER, BRUSH_SHAPE_ROUND, 1, 0xFF556677u,
+                0xFF112233u, 0, 0, 1, 3, 2, 1, 12, 0xFFFFFFFFu,
+            },
+            {
+                "continue_direct_stroke_locked_noop", 1, 2, 3, 2, TOOL_BRUSH, BRUSH_SHAPE_ROUND, 1, 0xFF556677u,
+                0xFF010203u, 1, 0, 0, 1, 2, 0, 12, 0xFF010203u,
+            },
+        };
         size_t i;
 
-        stack.width = 3;
-        stack.height = 3;
-        stack.layer_count = 1;
-        stack.active_layer = 0;
-        stack.solo_index = -1;
-        stack.layers[0].canvas.width = 3;
-        stack.layers[0].canvas.height = 3;
-        stack.layers[0].canvas.pixels = pixels;
-        stack.layers[0].visible = 1;
-        stack.layers[0].locked = 0;
-        stack.layers[0].opacity_percent = 100;
-        for (i = 0; i < sizeof(pixels) / sizeof(pixels[0]); i++) {
-            pixels[i] = 0xFF123456u;
+        for (i = 0; i < sizeof(continue_cases) / sizeof(continue_cases[0]); i++) {
+            ok = ok && run_continue_direct_stroke_case(&continue_cases[i]);
         }
-        ok = ok && expect_begin_direct_stroke(
-            "begin_direct_stroke_eraser",
-            &stack,
-            1,
-            1,
-            TOOL_ERASER,
-            BRUSH_SHAPE_ROUND,
-            1,
-            0xFFFFFFFFu,
-            0,
-            0,
-            1,
-            1,
-            1,
-            4,
-            0xFFFFFFFFu,
-            4,
-            0xFF123456u
-        );
-    }
-    {
-        LayerStack stack = {0};
-        uint32_t pixels[9];
-        size_t i;
-
-        stack.width = 3;
-        stack.height = 3;
-        stack.layer_count = 1;
-        stack.active_layer = 0;
-        stack.solo_index = -1;
-        stack.layers[0].canvas.width = 3;
-        stack.layers[0].canvas.height = 3;
-        stack.layers[0].canvas.pixels = pixels;
-        stack.layers[0].visible = 1;
-        stack.layers[0].locked = 1;
-        stack.layers[0].opacity_percent = 100;
-        for (i = 0; i < sizeof(pixels) / sizeof(pixels[0]); i++) {
-            pixels[i] = 0xFF010203u;
-        }
-        ok = ok && expect_begin_direct_stroke(
-            "begin_direct_stroke_locked_noop",
-            &stack,
-            1,
-            1,
-            TOOL_BRUSH,
-            BRUSH_SHAPE_ROUND,
-            1,
-            0xFFFFFFFFu,
-            0,
-            0,
-            0,
-            0,
-            0,
-            4,
-            0xFF010203u,
-            4,
-            0xFF010203u
-        );
-    }
-    {
-        LayerStack stack = {0};
-        uint32_t pixels[25];
-        size_t i;
-
-        stack.width = 5;
-        stack.height = 5;
-        stack.layer_count = 1;
-        stack.active_layer = 0;
-        stack.solo_index = -1;
-        stack.layers[0].canvas.width = 5;
-        stack.layers[0].canvas.height = 5;
-        stack.layers[0].canvas.pixels = pixels;
-        stack.layers[0].visible = 1;
-        stack.layers[0].locked = 0;
-        stack.layers[0].opacity_percent = 100;
-        for (i = 0; i < sizeof(pixels) / sizeof(pixels[0]); i++) {
-            pixels[i] = 0x00000000u;
-        }
-        ok = ok && expect_continue_direct_stroke(
-            "continue_direct_stroke_brush",
-            &stack,
-            1,
-            2,
-            3,
-            2,
-            TOOL_BRUSH,
-            BRUSH_SHAPE_ROUND,
-            1,
-            0xFF556677u,
-            0,
-            1,
-            3,
-            2,
-            1,
-            12,
-            0xFF556677u
-        );
-    }
-    {
-        LayerStack stack = {0};
-        uint32_t pixels[25];
-        size_t i;
-
-        stack.width = 5;
-        stack.height = 5;
-        stack.layer_count = 1;
-        stack.active_layer = 0;
-        stack.solo_index = -1;
-        stack.layers[0].canvas.width = 5;
-        stack.layers[0].canvas.height = 5;
-        stack.layers[0].canvas.pixels = pixels;
-        stack.layers[0].visible = 1;
-        stack.layers[0].locked = 0;
-        stack.layers[0].opacity_percent = 100;
-        for (i = 0; i < sizeof(pixels) / sizeof(pixels[0]); i++) {
-            pixels[i] = 0xFF112233u;
-        }
-        ok = ok && expect_continue_direct_stroke(
-            "continue_direct_stroke_eraser",
-            &stack,
-            1,
-            2,
-            3,
-            2,
-            TOOL_ERASER,
-            BRUSH_SHAPE_ROUND,
-            1,
-            0xFF556677u,
-            0,
-            1,
-            3,
-            2,
-            1,
-            12,
-            0xFFFFFFFFu
-        );
-    }
-    {
-        LayerStack stack = {0};
-        uint32_t pixels[25];
-        size_t i;
-
-        stack.width = 5;
-        stack.height = 5;
-        stack.layer_count = 1;
-        stack.active_layer = 0;
-        stack.solo_index = -1;
-        stack.layers[0].canvas.width = 5;
-        stack.layers[0].canvas.height = 5;
-        stack.layers[0].canvas.pixels = pixels;
-        stack.layers[0].visible = 1;
-        stack.layers[0].locked = 1;
-        stack.layers[0].opacity_percent = 100;
-        for (i = 0; i < sizeof(pixels) / sizeof(pixels[0]); i++) {
-            pixels[i] = 0xFF010203u;
-        }
-        ok = ok && expect_continue_direct_stroke(
-            "continue_direct_stroke_locked_noop",
-            &stack,
-            1,
-            2,
-            3,
-            2,
-            TOOL_BRUSH,
-            BRUSH_SHAPE_ROUND,
-            1,
-            0xFF556677u,
-            0,
-            0,
-            1,
-            2,
-            0,
-            12,
-            0xFF010203u
-        );
     }
     ok = ok && expect_canvas_action("canvas_clear", 'c', CANVAS_SHORTCUT_CLEAR);
     ok = ok && expect_canvas_action("canvas_flip_h", 'h', CANVAS_SHORTCUT_FLIP_HORIZONTAL);
