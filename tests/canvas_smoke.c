@@ -835,6 +835,36 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_duplicate(&stack, 1, NULL) != 2 || strcmp(stack.layers[2].name, "Background Copy 2") != 0) {
+        fprintf(stderr, "duplicate auto-name suffix reuse failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 2)) {
+        fprintf(stderr, "duplicate auto-name suffix reuse cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_can_reset_name(&stack, 1) || !layer_stack_reset_name(&stack, 1) || strcmp(stack.layers[1].name, "Layer") != 0) {
+        fprintf(stderr, "duplicate source name reset failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_duplicate(&stack, 1, NULL) != 2 || strcmp(stack.layers[2].name, "Layer Copy") != 0) {
+        fprintf(stderr, "duplicate auto-name should follow reset source label\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 2) || !layer_stack_rename(&stack, 1, "Background Copy")) {
+        fprintf(stderr, "duplicate source name reset cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_delete(&stack, 1)) {
         fprintf(stderr, "delete duplicated layer failed\n");
         canvas_free(&composite);
