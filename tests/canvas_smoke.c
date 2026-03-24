@@ -35,6 +35,7 @@ static int test_brush_state_helpers(void) {
     BrushShape shape = BRUSH_SHAPE_ROUND;
 
     if (compose_brush_color(0x00112233, 0) != 0x03112233 ||
+        compose_brush_color(0x00112233, 50) != 0x80112233 ||
         compose_brush_color(0x00112233, 101) != 0xFF112233) {
         fprintf(stderr, "compose_brush_color clamping failed\n");
         return 0;
@@ -88,17 +89,29 @@ static int test_brush_state_helpers(void) {
         fprintf(stderr, "brush_state_adjust_radius lower clamp failed\n");
         return 0;
     }
+    brush_state_set_tool(TOOL_ERASER, &tool);
+    if (tool != TOOL_ERASER) {
+        fprintf(stderr, "brush_state_set_tool failed\n");
+        return 0;
+    }
     brush_state_adjust_radius(5, NULL);
     brush_state_set_tool(TOOL_ERASER, NULL);
 
     if (cycle_brush_shape(BRUSH_SHAPE_ROUND, -1) != BRUSH_SHAPE_DIAMOND ||
-        cycle_brush_shape(BRUSH_SHAPE_DIAMOND, 1) != BRUSH_SHAPE_ROUND) {
+        cycle_brush_shape(BRUSH_SHAPE_DIAMOND, 1) != BRUSH_SHAPE_ROUND ||
+        cycle_brush_shape((BrushShape)999, 1) != BRUSH_SHAPE_ROUND ||
+        cycle_brush_shape((BrushShape)-1, -1) != BRUSH_SHAPE_DIAMOND) {
         fprintf(stderr, "cycle_brush_shape wrap failed\n");
         return 0;
     }
     brush_state_cycle_shape_in_place(&shape, 1);
     if (shape != BRUSH_SHAPE_SQUARE) {
         fprintf(stderr, "brush_state_cycle_shape_in_place failed\n");
+        return 0;
+    }
+    brush_state_cycle_shape_in_place(&shape, -1);
+    if (shape != BRUSH_SHAPE_ROUND) {
+        fprintf(stderr, "brush_state_cycle_shape_in_place reverse failed\n");
         return 0;
     }
     brush_state_cycle_shape_in_place(NULL, 1);
