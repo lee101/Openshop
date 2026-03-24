@@ -8,6 +8,7 @@
 #include "geometry_helpers.h"
 #include "image_io.h"
 #include "layer_edit_state.h"
+#include "layer_selection.h"
 #include "layers.h"
 #include "shape_draw.h"
 #include "snapshot_history.h"
@@ -414,14 +415,6 @@ static int refresh_title_state_on_change(const TitleState *title_state, int chan
         update_title_state(title_state);
     }
     return changed;
-}
-
-static int try_select_layer_index(LayerStack *layers, int target) {
-    if (!layers || target < 0 || target >= layers->layer_count) {
-        return 0;
-    }
-    layers->active_layer = target;
-    return 1;
 }
 
 static int try_nudge_active_layer_opacity(LayerStack *layers,
@@ -1057,7 +1050,7 @@ static int handle_layer_navigation_hotkey(SDL_Keycode key,
     }
 
     if (ctrl && key >= SDLK_1 && key <= SDLK_8) {
-        changed = try_select_layer_index(action_state->layers, (int)(key - SDLK_1));
+        changed = layer_selection_try_select_index(action_state->layers, (int)(key - SDLK_1));
     } else if (!ctrl && key == SDLK_PAGEUP) {
         changed = layer_stack_cycle(action_state->layers, 1) >= 0;
     } else if (!ctrl && key == SDLK_PAGEDOWN) {

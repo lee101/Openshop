@@ -6,6 +6,7 @@
 #include "../src/display_canvas.h"
 #include "../src/geometry_helpers.h"
 #include "../src/layer_edit_state.h"
+#include "../src/layer_selection.h"
 #include "../src/layers.h"
 #include "../src/shape_draw.h"
 #include "../src/snapshot_history.h"
@@ -271,6 +272,39 @@ static int test_layer_edit_state_helpers(void) {
     stack.active_layer = 99;
     if (active_layer_editable(&stack)) {
         fprintf(stderr, "active_layer_editable out of range failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    return 1;
+}
+
+static int test_layer_selection_helpers(void) {
+    LayerStack stack;
+
+    if (layer_selection_try_select_index(NULL, 0)) {
+        fprintf(stderr, "layer_selection_try_select_index null guard failed\n");
+        return 0;
+    }
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "layer_stack_init for selection failed\n");
+        return 0;
+    }
+    if (layer_stack_add(&stack, "Top", 0x00000000) < 0) {
+        fprintf(stderr, "layer_stack_add for selection failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_selection_try_select_index(&stack, 1) || stack.active_layer != 1) {
+        fprintf(stderr, "layer_selection_try_select_index basic select failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_selection_try_select_index(&stack, -1) ||
+        layer_selection_try_select_index(&stack, stack.layer_count) ||
+        stack.active_layer != 1) {
+        fprintf(stderr, "layer_selection_try_select_index bounds guard failed\n");
         layer_stack_free(&stack);
         return 0;
     }
@@ -3354,6 +3388,10 @@ int main(void) {
     }
 
     if (!test_layer_edit_state_helpers()) {
+        return 1;
+    }
+
+    if (!test_layer_selection_helpers()) {
         return 1;
     }
 
