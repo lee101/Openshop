@@ -2411,6 +2411,83 @@ static int test_layer_history_push_record_preserve_state_on_capture_failure(void
 #endif
 }
 
+static int test_layer_history_push_evicts_oldest_at_capacity(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 2, 2, 0xFFFFFFFF)) {
+        fprintf(stderr, "history push capacity init failed\n");
+        return 0;
+    }
+
+    LayerSnapshot undo_stack[HISTORY_CAPACITY] = {0};
+    LayerSnapshot redo_stack[HISTORY_CAPACITY] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+
+    for (int i = 0; i < HISTORY_CAPACITY; i++) {
+        layer_history_push(&stack, undo_stack, &undo_count, redo_stack, &redo_count);
+        canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF000000u | (uint32_t)i);
+    }
+
+    if (undo_count != HISTORY_CAPACITY || redo_count != 0) {
+        fprintf(stderr, "history push capacity should fill undo without redo\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (!layer_snapshot_capture(&redo_stack[redo_count++], &stack)) {
+        fprintf(stderr, "history push capacity redo seed failed\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF123456);
+    layer_history_push(&stack, undo_stack, &undo_count, redo_stack, &redo_count);
+
+    if (undo_count != HISTORY_CAPACITY || redo_count != 0) {
+        fprintf(stderr, "history push capacity should keep undo capped and clear redo\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    while (undo_count > 1) {
+        if (!layer_history_undo(&stack, undo_stack, &undo_count, redo_stack, &redo_count)) {
+            fprintf(stderr, "history push capacity multi-undo failed\n");
+            layer_history_clear(undo_stack, &undo_count);
+            layer_history_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    if (!layer_history_undo(&stack, undo_stack, &undo_count, redo_stack, &redo_count)) {
+        fprintf(stderr, "history push capacity oldest-retained undo failed\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("history_push_capacity_oldest_retained", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF000000)) {
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_history_undo(&stack, undo_stack, &undo_count, redo_stack, &redo_count)) {
+        fprintf(stderr, "history push capacity should evict the original oldest state\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_clear(undo_stack, &undo_count);
+    layer_history_clear(redo_stack, &redo_count);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layer_history_clear_guard_paths(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
@@ -3527,6 +3604,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_push_record_preserve_state_on_capture_failure()) {
+        return 1;
+    }
+    if (!test_layer_history_push_evicts_oldest_at_capacity()) {
         return 1;
     }
     if (!test_layer_history_clear_guard_paths()) {
