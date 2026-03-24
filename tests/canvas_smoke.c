@@ -188,9 +188,10 @@ static int test_app_input_rules(void) {
             fprintf(stderr, "mouse position non-hotkey mapping failed\n");
             return 0;
         }
-        if (!app_mouse_position_marks_composite(APP_MOUSE_POSITION_FILL) ||
-            app_mouse_position_marks_composite(APP_MOUSE_POSITION_SAMPLE) ||
-            app_mouse_position_marks_composite(APP_MOUSE_POSITION_NONE)) {
+        if (!app_mouse_position_marks_composite(APP_MOUSE_POSITION_FILL, 1) ||
+            app_mouse_position_marks_composite(APP_MOUSE_POSITION_FILL, 0) ||
+            app_mouse_position_marks_composite(APP_MOUSE_POSITION_SAMPLE, 1) ||
+            app_mouse_position_marks_composite(APP_MOUSE_POSITION_NONE, 1)) {
             fprintf(stderr, "mouse position composite marking failed\n");
             return 0;
         }

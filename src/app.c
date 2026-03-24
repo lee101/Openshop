@@ -518,12 +518,14 @@ static int mouse_position_fill_hotkey(LayerStack *layers,
                                       const Canvas *sample,
                                       int mx, int my,
                                       uint32_t *brush_color_rgb, uint32_t *brush_color,
-                                      int *brush_opacity, Tool *tool) {
+                                      int *brush_opacity, Tool *tool,
+                                      int *changed) {
     (void)sample;
     (void)brush_color_rgb;
     (void)brush_opacity;
     (void)tool;
-    return try_flood_fill_active_layer(layers, undo_stack, undo_count, redo_stack, redo_count, mx, my, *brush_color);
+    return active_layer_try_flood_fill_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                   mx, my, *brush_color, MAX_HISTORY, changed);
 }
 
 static int mouse_position_sample_hotkey(LayerStack *layers,
@@ -879,7 +881,8 @@ static int handle_mouse_position_hotkey(SDL_Keycode key,
                                         const Canvas *sample,
                                         uint32_t *brush_color_rgb, uint32_t *brush_color,
                                         int *brush_opacity, Tool *tool,
-                                        AppMousePositionAction *matched_action) {
+                                        AppMousePositionAction *matched_action,
+                                        int *changed) {
     AppMousePositionAction action;
     int mx = 0;
     int my = 0;
@@ -891,6 +894,9 @@ static int handle_mouse_position_hotkey(SDL_Keycode key,
     if (matched_action) {
         *matched_action = APP_MOUSE_POSITION_NONE;
     }
+    if (changed) {
+        *changed = 0;
+    }
     SDL_GetMouseState(&mx, &my);
     action = app_mouse_position_hotkey_action((int)key);
     if (matched_action) {
@@ -900,7 +906,7 @@ static int handle_mouse_position_hotkey(SDL_Keycode key,
     case APP_MOUSE_POSITION_FILL:
         return mouse_position_fill_hotkey(layers, undo_stack, undo_count, redo_stack, redo_count,
                                           sample, mx, my, brush_color_rgb, brush_color,
-                                          brush_opacity, tool);
+                                          brush_opacity, tool, changed);
     case APP_MOUSE_POSITION_SAMPLE:
         return mouse_position_sample_hotkey(layers, undo_stack, undo_count, redo_stack, redo_count,
                                             sample, mx, my, brush_color_rgb, brush_color,
@@ -919,6 +925,7 @@ static int handle_general_key_hotkey(SDL_Keycode key,
                                      BrushShape *brush_shape, Tool *tool,
                                      int *needs_composite) {
     AppMousePositionAction mouse_position_action = APP_MOUSE_POSITION_NONE;
+    int mouse_position_changed = 0;
 
     if (!action_state) {
         return 0;
@@ -943,8 +950,8 @@ static int handle_general_key_hotkey(SDL_Keycode key,
                                      action_state->undo_count, action_state->redo_stack,
                                      action_state->redo_count,
                                      sample, brush_color_rgb, brush_color, brush_opacity, tool,
-                                     &mouse_position_action)) {
-        if (needs_composite && app_mouse_position_marks_composite(mouse_position_action)) {
+                                     &mouse_position_action, &mouse_position_changed)) {
+        if (needs_composite && app_mouse_position_marks_composite(mouse_position_action, mouse_position_changed)) {
             *needs_composite = 1;
         }
         update_title_state(action_state->title_state);

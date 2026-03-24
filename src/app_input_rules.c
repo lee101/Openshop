@@ -212,8 +212,8 @@ AppMousePositionAction app_mouse_position_hotkey_action(int key) {
     return APP_MOUSE_POSITION_NONE;
 }
 
-int app_mouse_position_marks_composite(AppMousePositionAction action) {
-    return action == APP_MOUSE_POSITION_FILL;
+int app_mouse_position_marks_composite(AppMousePositionAction action, int changed) {
+    return action == APP_MOUSE_POSITION_FILL && changed;
 }
 
 AppBrushPresetAction app_brush_preset_hotkey_action(int key) {
