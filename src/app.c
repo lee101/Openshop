@@ -1,4 +1,5 @@
 #include "app.h"
+#include "app_brush.h"
 #include "app_title.h"
 #include "brush_shortcuts.h"
 #include "canvas.h"
@@ -34,23 +35,6 @@ static const uint32_t COLOR_BLUE = 0xFF1E88E5;
 static const uint32_t COLOR_YELLOW = 0xFFFDD835;
 static const uint32_t COLOR_PURPLE = 0xFF8E24AA;
 static const int CHECKER_SIZE = 16;
-
-typedef enum {
-    TOOL_BRUSH,
-    TOOL_ERASER,
-    TOOL_LINE,
-    TOOL_RECT,
-    TOOL_FILLED_RECT,
-    TOOL_ELLIPSE,
-    TOOL_FILLED_ELLIPSE
-} Tool;
-
-typedef enum {
-    BRUSH_SHAPE_ROUND = 0,
-    BRUSH_SHAPE_SQUARE,
-    BRUSH_SHAPE_DIAMOND,
-    BRUSH_SHAPE_COUNT
-} BrushShape;
 
 typedef struct {
     int running;
@@ -157,50 +141,6 @@ static void apply_sampled_brush_color(
     }
     *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
     *tool = TOOL_BRUSH;
-}
-
-static const char *tool_label(Tool tool) {
-    switch (tool) {
-    case TOOL_BRUSH:
-        return "Brush";
-    case TOOL_ERASER:
-        return "Eraser";
-    case TOOL_LINE:
-        return "Line";
-    case TOOL_RECT:
-        return "Rectangle";
-    case TOOL_FILLED_RECT:
-        return "Filled Rectangle";
-    case TOOL_ELLIPSE:
-        return "Ellipse";
-    case TOOL_FILLED_ELLIPSE:
-        return "Filled Ellipse";
-    default:
-        return "Brush";
-    }
-}
-
-static const char *brush_shape_label(BrushShape shape) {
-    switch (shape) {
-    case BRUSH_SHAPE_ROUND:
-        return "Round";
-    case BRUSH_SHAPE_SQUARE:
-        return "Square";
-    case BRUSH_SHAPE_DIAMOND:
-        return "Diamond";
-    default:
-        return "Round";
-    }
-}
-
-static BrushShape cycle_brush_shape(BrushShape shape, int direction) {
-    int idx = (int)shape + direction;
-    if (idx < 0) {
-        idx = BRUSH_SHAPE_COUNT - 1;
-    } else if (idx >= BRUSH_SHAPE_COUNT) {
-        idx = 0;
-    }
-    return (BrushShape)idx;
 }
 
 static int handle_canvas_sample_shortcut(
@@ -313,8 +253,8 @@ static void prepare_app_title(
     app_title_format(
         title,
         title_size,
-        tool_label(tool),
-        brush_shape_label(brush_shape),
+        app_tool_label(tool),
+        app_brush_shape_label(brush_shape),
         radius,
         opacity_percent,
         layers->active_layer,
@@ -1118,9 +1058,9 @@ static int handle_brush_and_paint_shortcut(
             *brush_radius += 1;
         }
     } else if (brush_action == BRUSH_SHORTCUT_SHAPE_PREV) {
-        *brush_shape = cycle_brush_shape(*brush_shape, -1);
+        *brush_shape = app_cycle_brush_shape(*brush_shape, -1);
     } else if (brush_action == BRUSH_SHORTCUT_SHAPE_NEXT) {
-        *brush_shape = cycle_brush_shape(*brush_shape, 1);
+        *brush_shape = app_cycle_brush_shape(*brush_shape, 1);
     } else if (brush_action == BRUSH_SHORTCUT_OPACITY_DOWN) {
         if (*brush_opacity > 1) {
             *brush_opacity -= 5;

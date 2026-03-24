@@ -1,3 +1,4 @@
+#include "../src/app_brush.h"
 #include "../src/app_title.h"
 #include "../src/brush_shortcuts.h"
 #include "../src/canvas_shortcuts.h"
@@ -301,6 +302,33 @@ static int expect_title_unchanged_buffer(
     return 1;
 }
 
+static int expect_tool_label(const char *label, Tool tool, const char *want) {
+    const char *got = app_tool_label(tool);
+    if (strcmp(got, want) != 0) {
+        fprintf(stderr, "%s mismatch:\n got  %s\n want %s\n", label, got, want);
+        return 0;
+    }
+    return 1;
+}
+
+static int expect_brush_shape_label(const char *label, BrushShape shape, const char *want) {
+    const char *got = app_brush_shape_label(shape);
+    if (strcmp(got, want) != 0) {
+        fprintf(stderr, "%s mismatch:\n got  %s\n want %s\n", label, got, want);
+        return 0;
+    }
+    return 1;
+}
+
+static int expect_cycle_brush_shape(const char *label, BrushShape shape, int direction, BrushShape want) {
+    BrushShape got = app_cycle_brush_shape(shape, direction);
+    if (got != want) {
+        fprintf(stderr, "%s mismatch: got %d want %d\n", label, got, want);
+        return 0;
+    }
+    return 1;
+}
+
 int main(void) {
     int ok = 1;
 
@@ -366,6 +394,15 @@ int main(void) {
     ok = ok && expect_view_result("left", VIEW_SHORTCUT_KEY_LEFT, 0, VIEW_SHORTCUT_TRANSLATE, 0, -1, 0);
     ok = ok && expect_view_result("right_shift", VIEW_SHORTCUT_KEY_RIGHT, 1, VIEW_SHORTCUT_TRANSLATE, 0, 10, 0);
     ok = ok && expect_view_result("view_none", VIEW_SHORTCUT_KEY_NONE, 0, VIEW_SHORTCUT_NONE, 0, 0, 0);
+    ok = ok && expect_tool_label("tool_brush_label", TOOL_BRUSH, "Brush");
+    ok = ok && expect_tool_label("tool_filled_ellipse_label", TOOL_FILLED_ELLIPSE, "Filled Ellipse");
+    ok = ok && expect_tool_label("tool_label_default", (Tool)999, "Brush");
+    ok = ok && expect_brush_shape_label("brush_round_label", BRUSH_SHAPE_ROUND, "Round");
+    ok = ok && expect_brush_shape_label("brush_diamond_label", BRUSH_SHAPE_DIAMOND, "Diamond");
+    ok = ok && expect_brush_shape_label("brush_shape_label_default", (BrushShape)999, "Round");
+    ok = ok && expect_cycle_brush_shape("brush_shape_cycle_forward", BRUSH_SHAPE_ROUND, 1, BRUSH_SHAPE_SQUARE);
+    ok = ok && expect_cycle_brush_shape("brush_shape_cycle_wrap_forward", BRUSH_SHAPE_DIAMOND, 1, BRUSH_SHAPE_ROUND);
+    ok = ok && expect_cycle_brush_shape("brush_shape_cycle_wrap_backward", BRUSH_SHAPE_ROUND, -1, BRUSH_SHAPE_DIAMOND);
     ok = ok && expect_title(
         "title_visible_locked_solo",
         "Brush",
