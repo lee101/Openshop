@@ -38,7 +38,9 @@ static int active_layer_apply_transform(LayerStack *layers,
         return 0;
     }
     if ((transform == canvas_flip_horizontal && active->canvas.width <= 1) ||
-        (transform == canvas_flip_vertical && active->canvas.height <= 1)) {
+        (transform == canvas_flip_vertical && active->canvas.height <= 1) ||
+        (transform == canvas_rotate_180 &&
+         active->canvas.width * active->canvas.height <= 1)) {
         return 0;
     }
     snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
