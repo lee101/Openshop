@@ -610,6 +610,22 @@ static int expect_cancel_shape_preview(
     return 1;
 }
 
+static int expect_preview_canvas_selection(
+    const char *label,
+    const Canvas *composite,
+    const Canvas *preview_canvas,
+    int preview_active,
+    const Canvas *want
+) {
+    const Canvas *got = app_preview_canvas_or_composite(composite, preview_canvas, preview_active);
+
+    if (got != want) {
+        fprintf(stderr, "%s canvas mismatch: got %p want %p\n", label, (const void *)got, (const void *)want);
+        return 0;
+    }
+    return 1;
+}
+
 int main(void) {
     int ok = 1;
     int sentinel_x = 321;
@@ -628,6 +644,9 @@ int main(void) {
     Layer editable_layer = {0};
     Layer locked_layer = {0};
     Layer empty_layer = {0};
+    Canvas composite_canvas = {4, 4, preview_source};
+    Canvas preview_canvas = {4, 4, preview_copy};
+    Canvas preview_canvas_without_pixels = {4, 4, NULL};
 
     editable_layer.locked = 0;
     editable_layer.canvas.pixels = (uint32_t *)&editable_layer;
@@ -920,6 +939,17 @@ int main(void) {
     preview_active = 9;
     ok = ok && expect_cancel_shape_preview("cancel_shape_preview_null_shape", NULL, &preview_active, 0, 0);
     ok = ok && expect_cancel_shape_preview("cancel_shape_preview_null_preview", &shaping, NULL, 0, 0);
+    ok = ok && expect_preview_canvas_selection("preview_canvas_active", &composite_canvas, &preview_canvas, 1, &preview_canvas);
+    ok = ok && expect_preview_canvas_selection("preview_canvas_inactive", &composite_canvas, &preview_canvas, 0, &composite_canvas);
+    ok = ok && expect_preview_canvas_selection(
+        "preview_canvas_missing_pixels_falls_back",
+        &composite_canvas,
+        &preview_canvas_without_pixels,
+        1,
+        &composite_canvas
+    );
+    ok = ok && expect_preview_canvas_selection("preview_canvas_null_preview_falls_back", &composite_canvas, NULL, 1, &composite_canvas);
+    ok = ok && expect_preview_canvas_selection("preview_canvas_null_composite_allowed", NULL, &preview_canvas, 0, NULL);
     ok = ok && expect_title(
         "title_visible_locked_solo",
         "Brush",

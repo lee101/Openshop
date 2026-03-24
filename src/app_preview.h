@@ -1,6 +1,8 @@
 #ifndef APP_PREVIEW_H
 #define APP_PREVIEW_H
 
+#include "canvas.h"
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -16,5 +18,11 @@ void app_begin_shape_preview(
 );
 
 void app_cancel_shape_preview(int *shaping, int *preview_active);
+
+const Canvas *app_preview_canvas_or_composite(
+    const Canvas *composite,
+    const Canvas *preview_canvas,
+    int preview_active
+);
 
 #endif

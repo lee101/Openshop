@@ -32,3 +32,14 @@ void app_cancel_shape_preview(int *shaping, int *preview_active) {
         *preview_active = 0;
     }
 }
+
+const Canvas *app_preview_canvas_or_composite(
+    const Canvas *composite,
+    const Canvas *preview_canvas,
+    int preview_active
+) {
+    if (preview_active && preview_canvas && preview_canvas->pixels) {
+        return preview_canvas;
+    }
+    return composite;
+}
