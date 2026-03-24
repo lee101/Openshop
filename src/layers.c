@@ -145,7 +145,7 @@ static void layer_default_name(char *dest, size_t dest_size, const LayerStack *s
     layer_name_copy_unique(dest, dest_size, stack, skip_index, NULL, base);
 }
 
-static int layer_index_matches_reset_scope(const LayerStack *stack, int index, int require_visible, int require_unlocked, int skip_background) {
+static int layer_index_matches_reset_scope(const LayerStack *stack, int index, int require_visible, int require_unlocked, int require_locked, int skip_background) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
     }
@@ -158,10 +158,13 @@ static int layer_index_matches_reset_scope(const LayerStack *stack, int index, i
     if (require_unlocked && stack->layers[index].locked) {
         return 0;
     }
+    if (require_locked && !stack->layers[index].locked) {
+        return 0;
+    }
     return 1;
 }
 
-static int layer_stack_can_reset_names_in_scope(const LayerStack *stack, int require_visible, int require_unlocked, int skip_background) {
+static int layer_stack_can_reset_names_in_scope(const LayerStack *stack, int require_visible, int require_unlocked, int require_locked, int skip_background) {
     char next_name[LAYER_NAME_MAX];
 
     if (!stack) {
@@ -169,7 +172,7 @@ static int layer_stack_can_reset_names_in_scope(const LayerStack *stack, int req
     }
 
     for (int i = 0; i < stack->layer_count; i++) {
-        if (!layer_index_matches_reset_scope(stack, i, require_visible, require_unlocked, skip_background)) {
+        if (!layer_index_matches_reset_scope(stack, i, require_visible, require_unlocked, require_locked, skip_background)) {
             continue;
         }
         layer_default_name(next_name, sizeof(next_name), stack, i);
@@ -181,7 +184,7 @@ static int layer_stack_can_reset_names_in_scope(const LayerStack *stack, int req
     return 0;
 }
 
-static int layer_stack_reset_names_in_scope(LayerStack *stack, int require_visible, int require_unlocked, int skip_background) {
+static int layer_stack_reset_names_in_scope(LayerStack *stack, int require_visible, int require_unlocked, int require_locked, int skip_background) {
     char next_name[LAYER_NAME_MAX];
     int changed = 0;
 
@@ -190,7 +193,7 @@ static int layer_stack_reset_names_in_scope(LayerStack *stack, int require_visib
     }
 
     for (int i = 0; i < stack->layer_count; i++) {
-        if (!layer_index_matches_reset_scope(stack, i, require_visible, require_unlocked, skip_background)) {
+        if (!layer_index_matches_reset_scope(stack, i, require_visible, require_unlocked, require_locked, skip_background)) {
             continue;
         }
         layer_default_name(next_name, sizeof(next_name), stack, i);
@@ -408,78 +411,43 @@ int layer_stack_reset_name(LayerStack *stack, int index) {
 }
 
 int layer_stack_can_reset_all_names(const LayerStack *stack) {
-    return layer_stack_can_reset_names_in_scope(stack, 0, 0, 0);
+    return layer_stack_can_reset_names_in_scope(stack, 0, 0, 0, 0);
 }
 
 int layer_stack_reset_all_names(LayerStack *stack) {
-    return layer_stack_reset_names_in_scope(stack, 0, 0, 0);
+    return layer_stack_reset_names_in_scope(stack, 0, 0, 0, 0);
 }
 
 int layer_stack_can_reset_unlocked_names(const LayerStack *stack) {
-    return layer_stack_can_reset_names_in_scope(stack, 0, 1, 0);
+    return layer_stack_can_reset_names_in_scope(stack, 0, 1, 0, 0);
 }
 
 int layer_stack_reset_unlocked_names(LayerStack *stack) {
-    return layer_stack_reset_names_in_scope(stack, 0, 1, 0);
+    return layer_stack_reset_names_in_scope(stack, 0, 1, 0, 0);
 }
 
 int layer_stack_can_reset_visible_names(const LayerStack *stack) {
-    return layer_stack_can_reset_names_in_scope(stack, 1, 0, 0);
+    return layer_stack_can_reset_names_in_scope(stack, 1, 0, 0, 0);
 }
 
 int layer_stack_reset_visible_names(LayerStack *stack) {
-    return layer_stack_reset_names_in_scope(stack, 1, 0, 0);
+    return layer_stack_reset_names_in_scope(stack, 1, 0, 0, 0);
 }
 
 int layer_stack_can_reset_non_background_unlocked_names(const LayerStack *stack) {
-    return layer_stack_can_reset_names_in_scope(stack, 0, 1, 1);
+    return layer_stack_can_reset_names_in_scope(stack, 0, 1, 0, 1);
 }
 
 int layer_stack_reset_non_background_unlocked_names(LayerStack *stack) {
-    return layer_stack_reset_names_in_scope(stack, 0, 1, 1);
+    return layer_stack_reset_names_in_scope(stack, 0, 1, 0, 1);
 }
 
 int layer_stack_can_reset_locked_names(const LayerStack *stack) {
-    char next_name[LAYER_NAME_MAX];
-
-    if (!stack) {
-        return 0;
-    }
-
-    for (int i = 0; i < stack->layer_count; i++) {
-        if (!stack->layers[i].locked) {
-            continue;
-        }
-        layer_default_name(next_name, sizeof(next_name), stack, i);
-        if (strcmp(stack->layers[i].name, next_name) != 0) {
-            return 1;
-        }
-    }
-
-    return 0;
+    return layer_stack_can_reset_names_in_scope(stack, 0, 0, 1, 0);
 }
 
 int layer_stack_reset_locked_names(LayerStack *stack) {
-    char next_name[LAYER_NAME_MAX];
-    int changed = 0;
-
-    if (!stack) {
-        return 0;
-    }
-
-    for (int i = 0; i < stack->layer_count; i++) {
-        if (!stack->layers[i].locked) {
-            continue;
-        }
-        layer_default_name(next_name, sizeof(next_name), stack, i);
-        if (strcmp(stack->layers[i].name, next_name) == 0) {
-            continue;
-        }
-        memcpy(stack->layers[i].name, next_name, sizeof(next_name));
-        changed = 1;
-    }
-
-    return changed;
+    return layer_stack_reset_names_in_scope(stack, 0, 0, 1, 0);
 }
 
 int layer_stack_toggle_lock(LayerStack *stack, int index) {
