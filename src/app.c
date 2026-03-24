@@ -799,6 +799,18 @@ static void cancel_shape_preview(int *shaping, int *preview_active) {
     }
 }
 
+static void reset_snapshot(LayerSnapshot *snapshot, int *has_snapshot) {
+    if (!snapshot) {
+        return;
+    }
+    layer_snapshot_free(snapshot);
+    memset(snapshot, 0, sizeof(*snapshot));
+    snapshot->solo_index = -1;
+    if (has_snapshot) {
+        *has_snapshot = 0;
+    }
+}
+
 static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     if (key == SDLK_ESCAPE || key == SDLK_LSHIFT || key == SDLK_RSHIFT) {
         return 0;
@@ -1068,6 +1080,8 @@ int app_run(const char *input_path) {
     int shaping = 0;
     int shape_start_x = 0;
     int shape_start_y = 0;
+    LayerSnapshot stroke_snapshot = {0};
+    int has_stroke_snapshot = 0;
     int preview_active = 0;
     int needs_composite = 0;
     uint32_t *shape_base_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
@@ -1089,7 +1103,8 @@ int app_run(const char *input_path) {
                     if (tool == TOOL_BRUSH || tool == TOOL_ERASER) {
                         Layer *active = layer_stack_active(&layers);
                         if (active && !active->locked && active->canvas.pixels) {
-                            layer_history_record(&history, &layers);
+                            reset_snapshot(&stroke_snapshot, &has_stroke_snapshot);
+                            has_stroke_snapshot = layer_snapshot_capture(&stroke_snapshot, &layers);
                             drawing = 1;
                             if (tool == TOOL_ERASER) {
                                 erase_stamp(&active->canvas, last_x, last_y, brush_radius, active_layer_clear_color(&layers), brush_shape);
@@ -1134,6 +1149,10 @@ int app_run(const char *input_path) {
                 break;
             case SDL_MOUSEBUTTONUP:
                 if (e.button.button == SDL_BUTTON_LEFT) {
+                    if (drawing && has_stroke_snapshot) {
+                        discard_or_commit_history_snapshot(&history, &stroke_snapshot, &layers, 1);
+                        has_stroke_snapshot = 0;
+                    }
                     drawing = 0;
                     if (shaping) {
                         const Uint8 *state = SDL_GetKeyboardState(NULL);
@@ -1143,8 +1162,12 @@ int app_run(const char *input_path) {
                         constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
                         Layer *active = layer_stack_active(&layers);
                         if (active && !active->locked && active->canvas.pixels) {
-                            layer_history_record(&history, &layers);
+                            LayerSnapshot snapshot = {0};
+                            int have_snapshot = layer_snapshot_capture(&snapshot, &layers);
                             draw_shape(&active->canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
+                            if (have_snapshot) {
+                                discard_or_commit_history_snapshot(&history, &snapshot, &layers, 1);
+                            }
                             needs_composite = 1;
                         }
                         cancel_shape_preview(&shaping, &preview_active);
@@ -1840,6 +1863,7 @@ int app_run(const char *input_path) {
 
     free(shape_base_pixels);
     free(preview_pixels);
+    reset_snapshot(&stroke_snapshot, &has_stroke_snapshot);
     canvas_free(&composite);
     layer_stack_free(&layers);
     layer_history_reset(&history);
