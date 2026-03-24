@@ -322,7 +322,10 @@ static int test_layer_creation_helpers(void) {
     int redo_count = 0;
 
     if (layer_creation_try_add(NULL, undo_stack, &undo_count, redo_stack, &redo_count, 0x00000000, 4) ||
-        layer_creation_try_add(&stack, NULL, &undo_count, redo_stack, &redo_count, 0x00000000, 4)) {
+        layer_creation_try_add(&stack, NULL, &undo_count, redo_stack, &redo_count, 0x00000000, 4) ||
+        layer_creation_try_add(&stack, undo_stack, NULL, redo_stack, &redo_count, 0x00000000, 4) ||
+        layer_creation_try_add(&stack, undo_stack, &undo_count, NULL, &redo_count, 0x00000000, 4) ||
+        layer_creation_try_add(&stack, undo_stack, &undo_count, redo_stack, NULL, 0x00000000, 4)) {
         fprintf(stderr, "layer_creation_try_add null guard failed\n");
         return 0;
     }
@@ -347,6 +350,22 @@ static int test_layer_creation_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!snapshot_restore(&stack, undo_stack, &undo_count, redo_stack, &redo_count, MAX_LAYERS) ||
+        redo_count != 1) {
+        fprintf(stderr, "layer_creation_try_add restore setup failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_creation_try_add(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0x00000000, 4) ||
+        redo_count != 0) {
+        fprintf(stderr, "layer_creation_try_add should clear redo stack\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     while (stack.layer_count < MAX_LAYERS) {
         if (!layer_creation_try_add(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0x00000000, MAX_LAYERS)) {
@@ -359,6 +378,13 @@ static int test_layer_creation_helpers(void) {
     }
     if (layer_creation_try_add(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0x00000000, MAX_LAYERS)) {
         fprintf(stderr, "layer_creation_try_add max layer guard failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (undo_count > MAX_LAYERS) {
+        fprintf(stderr, "layer_creation_try_add history bounds failed\n");
         snapshot_stack_clear(undo_stack, &undo_count);
         snapshot_stack_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
@@ -781,6 +807,22 @@ static int test_active_layer_ops_helpers(void) {
                                                BRUSH_SHAPE_ROUND, &last_x, &last_y, 0xFFFFFFFF) ||
             last_x != 1 || last_y != 1) {
             fprintf(stderr, "active_layer_continue_brush_stroke bounds guard failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    {
+        int last_x = 1;
+        int last_y = 1;
+        if (active_layer_continue_brush_stroke(NULL, TOOL_BRUSH, 0, 0, 1, 0xFFFFFFFF,
+                                               BRUSH_SHAPE_ROUND, &last_x, &last_y, 0xFFFFFFFF) ||
+            active_layer_continue_brush_stroke(&stack, TOOL_BRUSH, 0, 0, 1, 0xFFFFFFFF,
+                                               BRUSH_SHAPE_ROUND, NULL, &last_y, 0xFFFFFFFF) ||
+            active_layer_continue_brush_stroke(&stack, TOOL_BRUSH, 0, 0, 1, 0xFFFFFFFF,
+                                               BRUSH_SHAPE_ROUND, &last_x, NULL, 0xFFFFFFFF)) {
+            fprintf(stderr, "active_layer_continue_brush_stroke null guard failed\n");
             snapshot_stack_clear(undo_stack, &undo_count);
             snapshot_stack_clear(redo_stack, &redo_count);
             layer_stack_free(&stack);
