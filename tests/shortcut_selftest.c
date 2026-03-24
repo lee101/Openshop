@@ -913,6 +913,24 @@ int main(void) {
         150,
         NULL
     );
+    shaping = 16;
+    shape_start_x = 21;
+    shape_start_y = 22;
+    ok = ok && expect_begin_shape_preview(
+        "begin_shape_preview_null_everything_copy_path",
+        160,
+        170,
+        &shaping,
+        &shape_start_x,
+        &shape_start_y,
+        NULL,
+        NULL,
+        0,
+        1,
+        160,
+        170,
+        NULL
+    );
     ok = ok && expect_cancel_shape_preview("cancel_shape_preview_both", &shaping, &preview_active, 0, 0);
     shaping = 7;
     preview_active = 9;
