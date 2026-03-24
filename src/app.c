@@ -1,5 +1,6 @@
 #include "app.h"
 #include "canvas.h"
+#include "direct_layer_shortcuts.h"
 #include "image_io.h"
 #include "layer_name_shortcuts.h"
 #include "layers.h"
@@ -496,6 +497,7 @@ static int handle_direct_layer_shortcut(
     int *redo_count,
     int *needs_composite
 ) {
+    DirectLayerShortcutAction action;
     int target = 0;
     const Layer *target_layer = NULL;
 
@@ -508,7 +510,9 @@ static int handle_direct_layer_shortcut(
         return 1;
     }
 
-    if (alt && shift) {
+    action = direct_layer_shortcut_action_from_modifiers(ctrl, alt, shift);
+
+    if (action == DIRECT_LAYER_SHORTCUT_TOGGLE_LOCK) {
         push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
         if (!layer_stack_toggle_lock(layers, target)) {
             fprintf(stderr, "Could not toggle layer lock\n");
@@ -516,7 +520,7 @@ static int handle_direct_layer_shortcut(
         return 1;
     }
 
-    if (alt) {
+    if (action == DIRECT_LAYER_SHORTCUT_TOGGLE_VISIBILITY) {
         target_layer = layer_stack_get(layers, target);
         if (target_layer && (!target_layer->visible || layer_stack_visible_count(layers) > 1)) {
             push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
@@ -529,7 +533,7 @@ static int handle_direct_layer_shortcut(
         return 1;
     }
 
-    if (shift) {
+    if (action == DIRECT_LAYER_SHORTCUT_SOLO) {
         push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
         layers->active_layer = target;
         if (layer_stack_toggle_solo(layers, target) && needs_composite) {
