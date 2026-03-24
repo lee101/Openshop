@@ -1259,8 +1259,8 @@ static void handle_canvas_motion(
             return;
         }
 
-        active = layer_stack_active(layers);
-        if (active && !active->locked && active->canvas.pixels) {
+        active = app_active_editable_layer(layers);
+        if (active) {
             if (tool == TOOL_ERASER) {
                 erase_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, app_active_layer_clear_color(layers->active_layer), brush_shape);
             } else {
@@ -1326,8 +1326,8 @@ static void finalize_shape_preview(
 
     sdl_shortcut_modifiers(NULL, NULL, &shift);
     app_constrain_shape_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
-    active = layer_stack_active(layers);
-    if (active && !active->locked && active->canvas.pixels) {
+    active = app_active_editable_layer(layers);
+    if (active) {
         push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
         draw_shape(&active->canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
         if (needs_composite) {
@@ -1373,8 +1373,8 @@ static void handle_mouse_button_down(
         *last_x = button.x;
         *last_y = button.y;
         if (*tool == TOOL_BRUSH || *tool == TOOL_ERASER) {
-            Layer *active = layer_stack_active(layers);
-            if (active && !active->locked && active->canvas.pixels) {
+            Layer *active = app_active_editable_layer(layers);
+            if (active) {
                 push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
                 *drawing = 1;
                 if (*tool == TOOL_ERASER) {

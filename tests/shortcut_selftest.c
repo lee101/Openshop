@@ -480,6 +480,15 @@ static int expect_active_layer_editable(const char *label, LayerStack *stack, in
     return 1;
 }
 
+static int expect_active_editable_layer(const char *label, LayerStack *stack, Layer *want) {
+    Layer *got = app_active_editable_layer(stack);
+    if (got != want) {
+        fprintf(stderr, "%s mismatch: got %p want %p\n", label, (void *)got, (void *)want);
+        return 0;
+    }
+    return 1;
+}
+
 static int expect_title(
     const char *label,
     const char *tool_label,
@@ -1070,11 +1079,20 @@ int main(void) {
     ok = ok && expect_layer_editable("layer_editable_missing_pixels", &empty_layer, 0);
     ok = ok && expect_layer_editable("layer_editable_null", NULL, 0);
     ok = ok && expect_active_layer_editable("active_layer_editable_true", &layer_stack, 1);
+    ok = ok && expect_active_editable_layer("active_editable_layer_true", &layer_stack, &layer_stack.layers[0]);
     layer_stack.active_layer = 1;
     ok = ok && expect_active_layer_editable("active_layer_editable_locked", &layer_stack, 0);
+    ok = ok && expect_active_editable_layer("active_editable_layer_locked", &layer_stack, NULL);
     layer_stack.active_layer = 2;
     ok = ok && expect_active_layer_editable("active_layer_editable_missing_pixels", &layer_stack, 0);
+    ok = ok && expect_active_editable_layer("active_editable_layer_missing_pixels", &layer_stack, NULL);
+    layer_stack.active_layer = -1;
+    ok = ok && expect_active_editable_layer("active_editable_layer_negative_index", &layer_stack, NULL);
+    layer_stack.active_layer = 3;
+    ok = ok && expect_active_editable_layer("active_editable_layer_oob_index", &layer_stack, NULL);
     ok = ok && expect_active_layer_editable("active_layer_editable_null_stack", NULL, 0);
+    ok = ok && expect_active_editable_layer("active_editable_layer_null_stack", NULL, NULL);
+    layer_stack.active_layer = 0;
     ok = ok && expect_tool_label("tool_brush_label", TOOL_BRUSH, "Brush");
     ok = ok && expect_tool_label("tool_filled_ellipse_label", TOOL_FILLED_ELLIPSE, "Filled Ellipse");
     ok = ok && expect_tool_label("tool_label_default", (Tool)999, "Brush");

@@ -7,5 +7,6 @@
 uint32_t app_active_layer_clear_color(int active_layer_index);
 int app_layer_editable(const Layer *layer);
 int app_active_layer_editable(const LayerStack *stack);
+Layer *app_active_editable_layer(LayerStack *stack);
 
 #endif
