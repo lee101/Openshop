@@ -1969,13 +1969,29 @@ static void shutdown_app(
     SDL_Quit();
 }
 
-int app_run(const char *input_path) {
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
-        return 1;
+static int initialize_app_graphics(
+    SDL_Window **window_out,
+    SDL_Renderer **renderer_out,
+    SDL_Texture **texture_out
+) {
+    SDL_Window *window = NULL;
+    SDL_Renderer *renderer = NULL;
+    SDL_Texture *texture = NULL;
+
+    if (!window_out || !renderer_out || !texture_out) {
+        return 0;
     }
 
-    SDL_Window *window = SDL_CreateWindow(
+    *window_out = NULL;
+    *renderer_out = NULL;
+    *texture_out = NULL;
+
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+        fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
+        return 0;
+    }
+
+    window = SDL_CreateWindow(
         "Openshop - Minimal Paint",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
@@ -1986,18 +2002,18 @@ int app_run(const char *input_path) {
     if (!window) {
         fprintf(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
         SDL_Quit();
-        return 1;
+        return 0;
     }
 
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     if (!renderer) {
         fprintf(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
         SDL_DestroyWindow(window);
         SDL_Quit();
-        return 1;
+        return 0;
     }
 
-    SDL_Texture *texture = SDL_CreateTexture(
+    texture = SDL_CreateTexture(
         renderer,
         SDL_PIXELFORMAT_ARGB8888,
         SDL_TEXTUREACCESS_STREAMING,
@@ -2009,6 +2025,21 @@ int app_run(const char *input_path) {
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         SDL_Quit();
+        return 0;
+    }
+
+    *window_out = window;
+    *renderer_out = renderer;
+    *texture_out = texture;
+    return 1;
+}
+
+int app_run(const char *input_path) {
+    SDL_Window *window = NULL;
+    SDL_Renderer *renderer = NULL;
+    SDL_Texture *texture = NULL;
+
+    if (!initialize_app_graphics(&window, &renderer, &texture)) {
         return 1;
     }
 
