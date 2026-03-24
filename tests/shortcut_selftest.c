@@ -151,6 +151,49 @@ static int expect_begin_shape_preview(
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    int start_x;
+    int start_y;
+    int initial_shaping;
+    int initial_shape_start_x;
+    int initial_shape_start_y;
+    uint32_t *shape_base_pixels;
+    const uint32_t *composite_pixels;
+    size_t pixel_count;
+    int want_shaping;
+    int want_shape_start_x;
+    int want_shape_start_y;
+    const uint32_t *want_shape_base_pixels;
+} BeginShapePreviewCase;
+
+static int run_begin_shape_preview_case(
+    const BeginShapePreviewCase *test_case,
+    int *shaping,
+    int *shape_start_x,
+    int *shape_start_y
+) {
+    *shaping = test_case->initial_shaping;
+    *shape_start_x = test_case->initial_shape_start_x;
+    *shape_start_y = test_case->initial_shape_start_y;
+
+    return expect_begin_shape_preview(
+        test_case->label,
+        test_case->start_x,
+        test_case->start_y,
+        shaping,
+        shape_start_x,
+        shape_start_y,
+        test_case->shape_base_pixels,
+        test_case->composite_pixels,
+        test_case->pixel_count,
+        test_case->want_shaping,
+        test_case->want_shape_start_x,
+        test_case->want_shape_start_y,
+        test_case->want_shape_base_pixels
+    );
+}
+
 static int expect_view_result(
     const char *label,
     ViewShortcutKey key,
@@ -728,25 +771,23 @@ int main(void) {
     ok = ok && expect_constrained_shape_end("shape_unknown_tool_passthrough", (Tool)999, 10, 10, 25, 13, 1, 25, 13);
     ok = ok && expect_constrained_shape_end_no_output("shape_null_out_x", TOOL_LINE, 10, 10, 25, 13, 1, NULL, &sentinel_y, 0, 654);
     ok = ok && expect_constrained_shape_end_no_output("shape_null_out_y", TOOL_LINE, 10, 10, 25, 13, 1, &sentinel_x, NULL, 321, 0);
-    shaping = 0;
-    shape_start_x = -1;
-    shape_start_y = -1;
-    memset(preview_copy, 0, sizeof(preview_copy));
-    ok = ok && expect_begin_shape_preview(
-        "begin_shape_preview_copy",
-        12,
-        34,
-        &shaping,
-        &shape_start_x,
-        &shape_start_y,
-        preview_copy,
-        preview_source,
-        4,
-        1,
-        12,
-        34,
-        preview_source
-    );
+    {
+        const BeginShapePreviewCase begin_shape_preview_cases[] = {
+            {"begin_shape_preview_copy", 12, 34, 0, -1, -1, preview_copy, preview_source, 4, 1, 12, 34, preview_source},
+            {"begin_shape_preview_no_copy_without_source", 20, 30, 5, 7, 9, preview_copy, NULL, 4, 1, 20, 30, preview_sentinel},
+            {"begin_shape_preview_zero_length_no_copy", 22, 33, 4, 2, 3, preview_copy, preview_source, 0, 1, 22, 33, preview_sentinel},
+            {"begin_shape_preview_null_source_zero_length", 120, 130, 14, 17, 18, preview_copy, NULL, 0, 1, 120, 130, preview_sentinel},
+        };
+        size_t i;
+
+        memset(preview_copy, 0, sizeof(preview_copy));
+        ok = ok && run_begin_shape_preview_case(&begin_shape_preview_cases[0], &shaping, &shape_start_x, &shape_start_y);
+
+        for (i = 1; i < sizeof(begin_shape_preview_cases) / sizeof(begin_shape_preview_cases[0]); i++) {
+            memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
+            ok = ok && run_begin_shape_preview_case(&begin_shape_preview_cases[i], &shaping, &shape_start_x, &shape_start_y);
+        }
+    }
     {
         uint32_t preview_partial[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
 
@@ -765,44 +806,6 @@ int main(void) {
             ok = 0;
         }
     }
-    shaping = 5;
-    shape_start_x = 7;
-    shape_start_y = 9;
-    memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
-    ok = ok && expect_begin_shape_preview(
-        "begin_shape_preview_no_copy_without_source",
-        20,
-        30,
-        &shaping,
-        &shape_start_x,
-        &shape_start_y,
-        preview_copy,
-        NULL,
-        4,
-        1,
-        20,
-        30,
-        preview_sentinel
-    );
-    shaping = 4;
-    shape_start_x = 2;
-    shape_start_y = 3;
-    memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
-    ok = ok && expect_begin_shape_preview(
-        "begin_shape_preview_zero_length_no_copy",
-        22,
-        33,
-        &shaping,
-        &shape_start_x,
-        &shape_start_y,
-        preview_copy,
-        preview_source,
-        0,
-        1,
-        22,
-        33,
-        preview_sentinel
-    );
     shaping = 6;
     shape_start_x = 8;
     shape_start_y = 10;
@@ -875,25 +878,6 @@ int main(void) {
         100,
         110,
         NULL
-    );
-    shaping = 14;
-    shape_start_x = 17;
-    shape_start_y = 18;
-    memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
-    ok = ok && expect_begin_shape_preview(
-        "begin_shape_preview_null_source_zero_length",
-        120,
-        130,
-        &shaping,
-        &shape_start_x,
-        &shape_start_y,
-        preview_copy,
-        NULL,
-        0,
-        1,
-        120,
-        130,
-        preview_sentinel
     );
     shaping = 15;
     shape_start_x = 19;
