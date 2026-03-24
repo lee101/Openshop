@@ -955,28 +955,34 @@ static int handle_active_layer_mutation_shortcut(
     }
 
     if (ctrl && key == SDLK_n) {
-        if (!layer_stack_can_insert(layers)) {
-            fprintf(stderr, "Could not insert a layer above the active layer\n");
-        } else {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            layer_stack_insert(layers, layers->active_layer + 1, NULL, 0x00000000);
-            if (needs_composite) {
-                *needs_composite = 1;
-            }
-        }
+        app_handle_active_layer_insert_shortcut(
+            'n',
+            ctrl,
+            1,
+            layers,
+            undo_stack,
+            undo_count,
+            MAX_HISTORY,
+            redo_stack,
+            redo_count,
+            needs_composite
+        );
         return 1;
     }
 
     if (ctrl && key == SDLK_COMMA) {
-        if (!layer_stack_can_insert(layers)) {
-            fprintf(stderr, "Could not insert a layer below the active layer\n");
-        } else {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            layer_stack_insert(layers, layers->active_layer, NULL, 0x00000000);
-            if (needs_composite) {
-                *needs_composite = 1;
-            }
-        }
+        app_handle_active_layer_insert_shortcut(
+            ',',
+            ctrl,
+            0,
+            layers,
+            undo_stack,
+            undo_count,
+            MAX_HISTORY,
+            redo_stack,
+            redo_count,
+            needs_composite
+        );
         return 1;
     }
 
