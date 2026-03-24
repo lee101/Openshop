@@ -1581,6 +1581,34 @@ static int expect_sampled_brush_color(
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    unsigned int sampled_color;
+    Tool initial_tool;
+    unsigned int initial_brush_color;
+    unsigned int initial_brush_color_rgb;
+    int initial_brush_opacity;
+    Tool want_tool;
+    unsigned int want_brush_color;
+    unsigned int want_brush_color_rgb;
+    int want_brush_opacity;
+} SampledBrushColorCase;
+
+static int run_sampled_brush_color_case(const SampledBrushColorCase *test_case) {
+    return expect_sampled_brush_color(
+        test_case->label,
+        test_case->sampled_color,
+        test_case->initial_tool,
+        test_case->initial_brush_color,
+        test_case->initial_brush_color_rgb,
+        test_case->initial_brush_opacity,
+        test_case->want_tool,
+        test_case->want_brush_color,
+        test_case->want_brush_color_rgb,
+        test_case->want_brush_opacity
+    );
+}
+
 static int expect_sampled_brush_color_noop(
     const char *label,
     unsigned int sampled_color,
@@ -3640,15 +3668,69 @@ int main(void) {
     ok = ok && expect_brush_mask("brush_mask_diamond_zero_radius", BRUSH_SHAPE_DIAMOND, 0, 0, 0, 1);
     ok = ok && expect_brush_mask("brush_mask_diamond_negative_symmetry", BRUSH_SHAPE_DIAMOND, -1, -1, 2, 1);
     ok = ok && expect_brush_mask("brush_mask_default", (BrushShape)999, 0, 0, 2, 0);
-    ok = ok && expect_sampled_brush_color("sampled_brush_color_opaque", 0xFF445566u, TOOL_ERASER, 0, 0, 0, TOOL_BRUSH, 0xFF445566u, 0x00445566u, 100);
-    ok = ok && expect_sampled_brush_color("sampled_brush_color_black", 0xFF000000u, TOOL_ERASER, 0, 0, 0, TOOL_BRUSH, 0xFF000000u, 0x00000000u, 100);
-    ok = ok && expect_sampled_brush_color("sampled_brush_color_white", 0xFFFFFFFFu, TOOL_ERASER, 0, 0, 0, TOOL_BRUSH, 0xFFFFFFFFu, 0x00FFFFFFu, 100);
-    ok = ok && expect_sampled_brush_color("sampled_brush_color_translucent", 0x80445566u, TOOL_LINE, 0, 0, 0, TOOL_BRUSH, 0x80445566u, 0x00445566u, 50);
-    ok = ok && expect_sampled_brush_color("sampled_brush_color_low_alpha", 0x05445566u, TOOL_LINE, 0, 0, 0, TOOL_BRUSH, 0x05445566u, 0x00445566u, 2);
-    ok = ok && expect_sampled_brush_color("sampled_brush_color_next_low_step", 0x07445566u, TOOL_LINE, 0, 0, 0, TOOL_BRUSH, 0x08445566u, 0x00445566u, 3);
-    ok = ok && expect_sampled_brush_color("sampled_brush_color_rounds_down", 0x7F445566u, TOOL_LINE, 0, 0, 0, TOOL_BRUSH, 0x80445566u, 0x00445566u, 50);
-    ok = ok && expect_sampled_brush_color("sampled_brush_color_rounds_up", 0x81445566u, TOOL_LINE, 0, 0, 0, TOOL_BRUSH, 0x82445566u, 0x00445566u, 51);
-    ok = ok && expect_sampled_brush_color("sampled_brush_color_transparent_clamp", 0x00445566u, TOOL_RECT, 0, 0, 0, TOOL_BRUSH, 0x03445566u, 0x00445566u, 1);
+    {
+        const SampledBrushColorCase sampled_cases[] = {
+            {
+                "sampled_brush_color_opaque",
+                0xFF445566u,
+                TOOL_ERASER, 0u, 0u, 0,
+                TOOL_BRUSH, 0xFF445566u, 0x00445566u, 100,
+            },
+            {
+                "sampled_brush_color_black",
+                0xFF000000u,
+                TOOL_ERASER, 0u, 0u, 0,
+                TOOL_BRUSH, 0xFF000000u, 0x00000000u, 100,
+            },
+            {
+                "sampled_brush_color_white",
+                0xFFFFFFFFu,
+                TOOL_ERASER, 0u, 0u, 0,
+                TOOL_BRUSH, 0xFFFFFFFFu, 0x00FFFFFFu, 100,
+            },
+            {
+                "sampled_brush_color_translucent",
+                0x80445566u,
+                TOOL_LINE, 0u, 0u, 0,
+                TOOL_BRUSH, 0x80445566u, 0x00445566u, 50,
+            },
+            {
+                "sampled_brush_color_low_alpha",
+                0x05445566u,
+                TOOL_LINE, 0u, 0u, 0,
+                TOOL_BRUSH, 0x05445566u, 0x00445566u, 2,
+            },
+            {
+                "sampled_brush_color_next_low_step",
+                0x07445566u,
+                TOOL_LINE, 0u, 0u, 0,
+                TOOL_BRUSH, 0x08445566u, 0x00445566u, 3,
+            },
+            {
+                "sampled_brush_color_rounds_down",
+                0x7F445566u,
+                TOOL_LINE, 0u, 0u, 0,
+                TOOL_BRUSH, 0x80445566u, 0x00445566u, 50,
+            },
+            {
+                "sampled_brush_color_rounds_up",
+                0x81445566u,
+                TOOL_LINE, 0u, 0u, 0,
+                TOOL_BRUSH, 0x82445566u, 0x00445566u, 51,
+            },
+            {
+                "sampled_brush_color_transparent_clamp",
+                0x00445566u,
+                TOOL_RECT, 0u, 0u, 0,
+                TOOL_BRUSH, 0x03445566u, 0x00445566u, 1,
+            },
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(sampled_cases) / sizeof(sampled_cases[0]); i++) {
+            ok = ok && run_sampled_brush_color_case(&sampled_cases[i]);
+        }
+    }
     {
         const SampledBrushColorFromCanvasCase sampled_from_canvas_cases[] = {
             {
