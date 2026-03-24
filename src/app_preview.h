@@ -1,6 +1,7 @@
 #ifndef APP_PREVIEW_H
 #define APP_PREVIEW_H
 
+#include "history_state.h"
 #include "canvas.h"
 #include "app_brush.h"
 
@@ -67,6 +68,24 @@ int app_prepare_shape_commit(
     int x,
     int y,
     int shift,
+    int *out_x,
+    int *out_y
+);
+
+Layer *app_prepare_shape_commit_to_active_layer(
+    LayerStack *layers,
+    const int *shaping,
+    Tool tool,
+    int shape_start_x,
+    int shape_start_y,
+    int x,
+    int y,
+    int shift,
+    Snapshot *undo_stack,
+    int *undo_count,
+    int undo_capacity,
+    Snapshot *redo_stack,
+    int *redo_count,
     int *out_x,
     int *out_y
 );

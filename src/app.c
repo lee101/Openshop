@@ -1239,7 +1239,8 @@ static void finalize_shape_preview(
     }
 
     sdl_shortcut_modifiers(NULL, NULL, &shift);
-    if (!app_prepare_shape_commit(
+    active = app_prepare_shape_commit_to_active_layer(
+        layers,
         shaping,
         tool,
         shape_start_x,
@@ -1247,14 +1248,15 @@ static void finalize_shape_preview(
         end_x,
         end_y,
         shift,
+        undo_stack,
+        undo_count,
+        MAX_HISTORY,
+        redo_stack,
+        redo_count,
         &end_x,
         &end_y
-    )) {
-        return;
-    }
-    active = app_active_editable_layer(layers);
+    );
     if (active) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
         draw_shape(&active->canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
         if (needs_composite) {
             *needs_composite = 1;

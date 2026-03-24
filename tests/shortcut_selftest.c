@@ -1381,6 +1381,79 @@ static int expect_prepare_shape_commit(
     return 1;
 }
 
+static int expect_prepare_shape_commit_to_active_layer(
+    const char *label,
+    LayerStack *layers,
+    const int *shaping,
+    Tool tool,
+    int shape_start_x,
+    int shape_start_y,
+    int x,
+    int y,
+    int shift,
+    int undo_capacity,
+    int want_x,
+    int want_y,
+    int want_undo_count,
+    size_t snapshot_index,
+    uint32_t want_snapshot,
+    Layer *want_layer
+) {
+    Snapshot undo_stack[2] = {0};
+    Snapshot redo_stack[2] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+    int out_x = -999;
+    int out_y = -999;
+    int ok = 1;
+    Layer *got = app_prepare_shape_commit_to_active_layer(
+        layers,
+        shaping,
+        tool,
+        shape_start_x,
+        shape_start_y,
+        x,
+        y,
+        shift,
+        undo_stack,
+        &undo_count,
+        undo_capacity,
+        redo_stack,
+        &redo_count,
+        &out_x,
+        &out_y
+    );
+
+    if (got != want_layer) {
+        fprintf(stderr, "%s layer mismatch: got %p want %p\n", label, (void *)got, (void *)want_layer);
+        ok = 0;
+    }
+    if (out_x != want_x || out_y != want_y) {
+        fprintf(stderr, "%s end mismatch: got {%d,%d} want {%d,%d}\n", label, out_x, out_y, want_x, want_y);
+        ok = 0;
+    }
+    if (undo_count != want_undo_count || redo_count != 0) {
+        fprintf(stderr, "%s history mismatch: undo=%d want %d redo=%d want 0\n", label, undo_count, want_undo_count, redo_count);
+        ok = 0;
+    }
+    if (want_undo_count > 0) {
+        if (!undo_stack[0].pixels || undo_stack[0].pixels[snapshot_index] != want_snapshot) {
+            fprintf(
+                stderr,
+                "%s snapshot mismatch: pixel=0x%08X want 0x%08X\n",
+                label,
+                undo_stack[0].pixels ? undo_stack[0].pixels[snapshot_index] : 0u,
+                want_snapshot
+            );
+            ok = 0;
+        }
+    }
+
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    return ok;
+}
+
 typedef struct {
     const char *label;
     Canvas *preview_canvas;
@@ -2176,6 +2249,84 @@ int main(void) {
         22,
         0
     );
+    {
+        LayerStack stack;
+        Canvas canvas;
+        uint32_t pixels[9];
+
+        shaping = 1;
+        init_single_layer_stack(&stack, &canvas, pixels, 3, 3, 0xFF123456u, 0);
+        ok = ok && expect_prepare_shape_commit_to_active_layer(
+            "prepare_shape_commit_to_active_layer_success",
+            &stack,
+            &shaping,
+            TOOL_LINE,
+            0,
+            0,
+            2,
+            1,
+            1,
+            2,
+            2,
+            2,
+            1,
+            4,
+            0xFF123456u,
+            &stack.layers[0]
+        );
+    }
+    {
+        LayerStack stack;
+        Canvas canvas;
+        uint32_t pixels[9];
+
+        shaping = 1;
+        init_single_layer_stack(&stack, &canvas, pixels, 3, 3, 0xFF123456u, 1);
+        ok = ok && expect_prepare_shape_commit_to_active_layer(
+            "prepare_shape_commit_to_active_layer_locked_noop",
+            &stack,
+            &shaping,
+            TOOL_RECT,
+            0,
+            0,
+            2,
+            1,
+            0,
+            2,
+            2,
+            1,
+            0,
+            0,
+            0,
+            NULL
+        );
+    }
+    {
+        LayerStack stack;
+        Canvas canvas;
+        uint32_t pixels[9];
+
+        shaping = 0;
+        init_single_layer_stack(&stack, &canvas, pixels, 3, 3, 0xFF123456u, 0);
+        ok = ok && expect_prepare_shape_commit_to_active_layer(
+            "prepare_shape_commit_to_active_layer_inactive_noop",
+            &stack,
+            &shaping,
+            TOOL_RECT,
+            0,
+            0,
+            2,
+            1,
+            0,
+            2,
+            -999,
+            -999,
+            0,
+            0,
+            0,
+            NULL
+        );
+    }
     {
         Canvas prep_preview_canvas = {4, 4, preview_restore_copy};
         int prep_preview_active = 0;

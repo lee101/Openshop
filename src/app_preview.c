@@ -1,4 +1,5 @@
 #include "app_preview.h"
+#include "app_layer_state.h"
 #include "app_shape.h"
 
 #include <string.h>
@@ -132,4 +133,39 @@ int app_prepare_shape_commit(
 
     app_constrain_shape_end(tool, shape_start_x, shape_start_y, x, y, shift, out_x, out_y);
     return 1;
+}
+
+Layer *app_prepare_shape_commit_to_active_layer(
+    LayerStack *layers,
+    const int *shaping,
+    Tool tool,
+    int shape_start_x,
+    int shape_start_y,
+    int x,
+    int y,
+    int shift,
+    Snapshot *undo_stack,
+    int *undo_count,
+    int undo_capacity,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *out_x,
+    int *out_y
+) {
+    Layer *active = NULL;
+
+    if (!layers || !undo_stack || !undo_count || undo_capacity <= 0 || !redo_stack || !redo_count) {
+        return NULL;
+    }
+    if (!app_prepare_shape_commit(shaping, tool, shape_start_x, shape_start_y, x, y, shift, out_x, out_y)) {
+        return NULL;
+    }
+
+    active = app_active_editable_layer(layers);
+    if (!active) {
+        return NULL;
+    }
+
+    snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
+    return active;
 }
