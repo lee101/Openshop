@@ -50,6 +50,21 @@ static int snapshot_has_marker_state(const LayerSnapshot *snapshot) {
            snapshot->pixels == (uint32_t *)1;
 }
 
+static void set_snapshot_marker_state(LayerSnapshot *snapshot) {
+    if (!snapshot) {
+        return;
+    }
+    memset(snapshot, 0, sizeof(*snapshot));
+    snapshot->width = 7;
+    snapshot->height = 9;
+    snapshot->layer_count = 3;
+    snapshot->active_layer = 2;
+    snapshot->solo_index = 1;
+    snapshot->visibility[0] = 4;
+    snapshot->names[0][0] = 'm';
+    snapshot->pixels = (uint32_t *)1;
+}
+
 static int test_layer_snapshot_restore(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
@@ -216,14 +231,7 @@ static int test_layer_snapshot_capture_apply_guard_paths(void) {
     canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF102030);
 
     LayerSnapshot snapshot = {0};
-    snapshot.width = 7;
-    snapshot.height = 9;
-    snapshot.layer_count = 3;
-    snapshot.active_layer = 2;
-    snapshot.solo_index = 1;
-    snapshot.visibility[0] = 4;
-    snapshot.names[0][0] = 'm';
-    snapshot.pixels = (uint32_t *)1;
+    set_snapshot_marker_state(&snapshot);
 
     if (layer_snapshot_capture(NULL, &stack) || layer_snapshot_capture(&snapshot, NULL)) {
         fprintf(stderr, "snapshot capture should fail cleanly on null inputs\n");
@@ -971,6 +979,13 @@ static int test_layer_snapshot_matches_stack_guard_paths(void) {
     snapshot.width++;
     if (layer_snapshot_matches_stack(&snapshot, &stack)) {
         fprintf(stderr, "history matches-stack should reject mismatched snapshot dimensions\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (snapshot.width != stack.width + 1 || snapshot.pixels == NULL) {
+        fprintf(stderr, "history matches-stack should not mutate caller snapshots on failure\n");
         layer_snapshot_free(&snapshot);
         layer_stack_free(&stack);
         return 0;
