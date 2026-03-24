@@ -130,8 +130,12 @@ int layer_stack_add(LayerStack *stack, const char *name, uint32_t clear_color) {
     return layer_stack_insert(stack, stack->layer_count, name, clear_color);
 }
 
+int layer_stack_can_insert(const LayerStack *stack) {
+    return stack && stack->layer_count < MAX_LAYERS;
+}
+
 int layer_stack_insert(LayerStack *stack, int index, const char *name, uint32_t clear_color) {
-    if (!stack || stack->layer_count >= MAX_LAYERS) {
+    if (!layer_stack_can_insert(stack)) {
         return -1;
     }
     if (index < 0) {
@@ -313,11 +317,15 @@ int layer_stack_set_opacity(LayerStack *stack, int index, int opacity_percent) {
     return 1;
 }
 
-int layer_stack_delete(LayerStack *stack, int index) {
+int layer_stack_can_delete(const LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count || stack->layer_count == 1) {
         return 0;
     }
-    if (stack->layers[index].locked) {
+    return !stack->layers[index].locked;
+}
+
+int layer_stack_delete(LayerStack *stack, int index) {
+    if (!layer_stack_can_delete(stack, index)) {
         return 0;
     }
 
@@ -348,15 +356,18 @@ int layer_stack_delete(LayerStack *stack, int index) {
     return 1;
 }
 
-int layer_stack_duplicate(LayerStack *stack, int index, const char *name) {
-    if (!stack || index < 0 || index >= stack->layer_count || stack->layer_count >= MAX_LAYERS) {
-        return -1;
+int layer_stack_can_duplicate(const LayerStack *stack, int index) {
+    if (!layer_stack_can_insert(stack) || index < 0 || index >= stack->layer_count) {
+        return 0;
     }
+    return stack->layers[index].canvas.pixels != NULL;
+}
 
-    Layer *source = &stack->layers[index];
-    if (!source->canvas.pixels) {
+int layer_stack_duplicate(LayerStack *stack, int index, const char *name) {
+    if (!layer_stack_can_duplicate(stack, index)) {
         return -1;
     }
+    Layer *source = &stack->layers[index];
 
     int insert_at = index + 1;
     for (int i = stack->layer_count; i > insert_at; i--) {
@@ -419,16 +430,22 @@ int layer_stack_move(LayerStack *stack, int index, int direction) {
     return 1;
 }
 
-int layer_stack_merge_down(LayerStack *stack, int index) {
+int layer_stack_can_merge_down(const LayerStack *stack, int index) {
     if (!stack || index <= 0 || index >= stack->layer_count) {
         return 0;
     }
 
-    Layer *lower = &stack->layers[index - 1];
-    Layer *upper = &stack->layers[index];
-    if (lower->locked || upper->locked || !lower->canvas.pixels || !upper->canvas.pixels) {
+    const Layer *lower = &stack->layers[index - 1];
+    const Layer *upper = &stack->layers[index];
+    return !lower->locked && !upper->locked && lower->canvas.pixels && upper->canvas.pixels;
+}
+
+int layer_stack_merge_down(LayerStack *stack, int index) {
+    if (!layer_stack_can_merge_down(stack, index)) {
         return 0;
     }
+    Layer *lower = &stack->layers[index - 1];
+    Layer *upper = &stack->layers[index];
 
     size_t total = (size_t)stack->width * (size_t)stack->height;
     for (size_t i = 0; i < total; i++) {
@@ -468,16 +485,22 @@ int layer_stack_merge_down(LayerStack *stack, int index) {
     return 1;
 }
 
-int layer_stack_merge_up(LayerStack *stack, int index) {
+int layer_stack_can_merge_up(const LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count - 1) {
         return 0;
     }
 
-    Layer *lower = &stack->layers[index];
-    Layer *upper = &stack->layers[index + 1];
-    if (lower->locked || upper->locked || !lower->canvas.pixels || !upper->canvas.pixels) {
+    const Layer *lower = &stack->layers[index];
+    const Layer *upper = &stack->layers[index + 1];
+    return !lower->locked && !upper->locked && lower->canvas.pixels && upper->canvas.pixels;
+}
+
+int layer_stack_merge_up(LayerStack *stack, int index) {
+    if (!layer_stack_can_merge_up(stack, index)) {
         return 0;
     }
+    Layer *lower = &stack->layers[index];
+    Layer *upper = &stack->layers[index + 1];
 
     size_t total = (size_t)stack->width * (size_t)stack->height;
     for (size_t i = 0; i < total; i++) {
@@ -517,7 +540,7 @@ int layer_stack_merge_up(LayerStack *stack, int index) {
     return 1;
 }
 
-int layer_stack_flatten(LayerStack *stack, uint32_t background_color) {
+int layer_stack_can_flatten(const LayerStack *stack) {
     if (!stack || stack->layer_count <= 0) {
         return 0;
     }
@@ -525,6 +548,13 @@ int layer_stack_flatten(LayerStack *stack, uint32_t background_color) {
         if (stack->layers[i].locked) {
             return 0;
         }
+    }
+    return 1;
+}
+
+int layer_stack_flatten(LayerStack *stack, uint32_t background_color) {
+    if (!layer_stack_can_flatten(stack)) {
+        return 0;
     }
 
     Canvas composite = {0};

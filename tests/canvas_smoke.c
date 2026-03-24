@@ -593,6 +593,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_can_delete(&stack, 0)) {
+        fprintf(stderr, "can_delete should reject the final layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     if (layer_stack_add(&stack, "Stamp Target", 0x00000000) != 1) {
         fprintf(stderr, "add stamp layer failed\n");
@@ -629,6 +635,26 @@ static int test_layers_basic(void) {
     if (layer_stack_stamp_visible_into(&stack, 1, 0xFFFFFFFF) ||
         !expect_pixel_eq("stamp_visible_noop_pixel", canvas_get_pixel(&stack.layers[1].canvas, 0, 0), 0xFF0D6740)) {
         fprintf(stderr, "stamp visible identical no-op failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_can_duplicate(&stack, 1) || !layer_stack_can_merge_down(&stack, 1) || !layer_stack_can_merge_up(&stack, 0) ||
+        !layer_stack_can_flatten(&stack)) {
+        fprintf(stderr, "layer capability checks should allow duplicate, merge, and flatten here\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_lock(&stack, 1) || layer_stack_can_delete(&stack, 1) || layer_stack_can_merge_down(&stack, 1) ||
+        layer_stack_can_merge_up(&stack, 0) || layer_stack_can_flatten(&stack)) {
+        fprintf(stderr, "layer capability checks should reject locked operations\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_lock(&stack, 1)) {
+        fprintf(stderr, "unlock stamp target failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -682,6 +708,12 @@ static int test_layers_basic(void) {
     }
     if (layer_stack_stamp_visible_new(&stack, "Overflow", 0xFFFFFFFF) != 7) {
         fprintf(stderr, "sixth stamp visible new layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_can_insert(&stack)) {
+        fprintf(stderr, "can_insert should reject additions at max layers\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
