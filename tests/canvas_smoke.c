@@ -2165,6 +2165,21 @@ static int test_active_layer_ops_helpers(void) {
     canvas_clear(&stack.layers[0].canvas, 0x00000000);
     last_x = 0;
     last_y = 0;
+    if (active_layer_continue_brush_stroke_with_result(&stack, TOOL_BRUSH, 3, 0, 1, 0xFF334455,
+                                                       BRUSH_SHAPE_SQUARE, &last_x, &last_y, 0xFFFFFFFF) !=
+        ACTIVE_LAYER_ACTION_CHANGED ||
+        !expect_pixel_eq("active_continue_brush_result", canvas_get_pixel(&stack.layers[0].canvas, 3, 0), 0xFF334455) ||
+        last_x != 3 || last_y != 0) {
+        fprintf(stderr, "active_layer_continue_brush_stroke_with_result changed failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    canvas_clear(&stack.layers[0].canvas, 0x00000000);
+    last_x = 0;
+    last_y = 0;
     if (!active_layer_continue_brush_stroke(&stack, TOOL_BRUSH, 3, 0, 1, 0xFF334455,
                                             BRUSH_SHAPE_SQUARE, &last_x, &last_y, 0xFFFFFFFF) ||
         !expect_pixel_eq("active_continue_brush", canvas_get_pixel(&stack.layers[0].canvas, 3, 0), 0xFF334455) ||
@@ -2209,6 +2224,18 @@ static int test_active_layer_ops_helpers(void) {
         int last_x = 1;
         int last_y = 1;
         canvas_clear(&stack.layers[0].canvas, 0xFF998877);
+        if (active_layer_continue_brush_stroke_with_result(&stack, TOOL_BRUSH, 2, 1, 1, 0xFF998877,
+                                                           BRUSH_SHAPE_ROUND, &last_x, &last_y, 0xFFFFFFFF) !=
+            ACTIVE_LAYER_ACTION_UNCHANGED ||
+            last_x != 1 || last_y != 1) {
+            fprintf(stderr, "active_layer_continue_brush_stroke_with_result unchanged failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        last_x = 1;
+        last_y = 1;
         if (active_layer_continue_brush_stroke(&stack, TOOL_BRUSH, 2, 1, 1, 0xFF998877,
                                                BRUSH_SHAPE_ROUND, &last_x, &last_y, 0xFFFFFFFF) ||
             !expect_pixel_eq("active_continue_same_color", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFF998877) ||

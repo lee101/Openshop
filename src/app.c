@@ -1326,11 +1326,14 @@ static int handle_drawing_motion(LayerStack *layers,
                                  BrushShape brush_shape,
                                  int *last_x, int *last_y,
                                  int *needs_composite) {
+    ActiveLayerActionResult result = ACTIVE_LAYER_ACTION_FAILED;
+
     if (!layers || !last_x || !last_y || !needs_composite) {
         return 0;
     }
-    if (!active_layer_continue_brush_stroke(layers, tool, x, y, brush_radius, brush_color,
-                                            brush_shape, last_x, last_y, COLOR_BG)) {
+    result = active_layer_continue_brush_stroke_with_result(layers, tool, x, y, brush_radius, brush_color,
+                                                            brush_shape, last_x, last_y, COLOR_BG);
+    if (result != ACTIVE_LAYER_ACTION_CHANGED) {
         return 0;
     }
     *needs_composite = 1;

@@ -105,6 +105,12 @@ int active_layer_continue_brush_stroke(LayerStack *layers,
                                        BrushShape brush_shape,
                                        int *last_x, int *last_y,
                                        uint32_t background_color);
+ActiveLayerActionResult active_layer_continue_brush_stroke_with_result(LayerStack *layers,
+                                                                       Tool tool, int x, int y,
+                                                                       int brush_radius, uint32_t brush_color,
+                                                                       BrushShape brush_shape,
+                                                                       int *last_x, int *last_y,
+                                                                       uint32_t background_color);
 int active_layer_apply_translation(LayerStack *layers,
                                    Snapshot *undo_stack, int *undo_count,
                                    Snapshot *redo_stack, int *redo_count,
