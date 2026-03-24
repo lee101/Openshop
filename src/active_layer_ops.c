@@ -37,6 +37,10 @@ static int active_layer_apply_transform(LayerStack *layers,
     if (!active || active->locked || !active->canvas.pixels) {
         return 0;
     }
+    if ((transform == canvas_flip_horizontal && active->canvas.width <= 1) ||
+        (transform == canvas_flip_vertical && active->canvas.height <= 1)) {
+        return 0;
+    }
     snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
     transform(&active->canvas);
     return 1;

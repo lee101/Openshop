@@ -920,6 +920,8 @@ static int test_snapshot_history_helpers(void) {
 
 static int test_active_layer_ops_helpers(void) {
     LayerStack stack;
+    LayerStack narrow_stack;
+    LayerStack short_stack;
     Snapshot undo_stack[4] = {0};
     Snapshot redo_stack[4] = {0};
     int undo_count = 0;
@@ -1035,12 +1037,47 @@ static int test_active_layer_ops_helpers(void) {
         fprintf(stderr, "active layer ops stack init failed\n");
         return 0;
     }
+    if (!layer_stack_init(&narrow_stack, 1, 3, 0xFFFFFFFF)) {
+        fprintf(stderr, "active layer ops narrow stack init failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_init(&short_stack, 3, 1, 0xFFFFFFFF)) {
+        fprintf(stderr, "active layer ops short stack init failed\n");
+        layer_stack_free(&narrow_stack);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    canvas_set_pixel_raw(&narrow_stack.layers[0].canvas, 0, 0, 0xFF010203);
+    if (active_layer_try_flip_horizontal(&narrow_stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+        !expect_pixel_eq("active_flip_h_narrow", canvas_get_pixel(&narrow_stack.layers[0].canvas, 0, 0), 0xFF010203) ||
+        undo_count != 0 || redo_count != 0) {
+        fprintf(stderr, "active_layer_try_flip_horizontal narrow no-op failed\n");
+        layer_stack_free(&short_stack);
+        layer_stack_free(&narrow_stack);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    canvas_set_pixel_raw(&short_stack.layers[0].canvas, 0, 0, 0xFF040506);
+    if (active_layer_try_flip_vertical(&short_stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+        !expect_pixel_eq("active_flip_v_short", canvas_get_pixel(&short_stack.layers[0].canvas, 0, 0), 0xFF040506) ||
+        undo_count != 0 || redo_count != 0) {
+        fprintf(stderr, "active_layer_try_flip_vertical short no-op failed\n");
+        layer_stack_free(&short_stack);
+        layer_stack_free(&narrow_stack);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFF112233);
     if (!active_layer_try_clear(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0xFFFFFFFF, 4) ||
         !expect_pixel_eq("active_clear_base", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFFFFFFFF) ||
         undo_count != 1) {
         fprintf(stderr, "active_layer_try_clear failed\n");
+        layer_stack_free(&short_stack);
+        layer_stack_free(&narrow_stack);
         snapshot_stack_clear(undo_stack, &undo_count);
         snapshot_stack_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
@@ -1050,6 +1087,8 @@ static int test_active_layer_ops_helpers(void) {
     if (active_layer_try_clear(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0xFFFFFFFF, 0) ||
         !expect_pixel_eq("active_clear_history_guard", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFF556677)) {
         fprintf(stderr, "active_layer_try_clear history guard failed\n");
+        layer_stack_free(&short_stack);
+        layer_stack_free(&narrow_stack);
         snapshot_stack_clear(undo_stack, &undo_count);
         snapshot_stack_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
@@ -1062,6 +1101,8 @@ static int test_active_layer_ops_helpers(void) {
         if (active_layer_try_clear(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0xFFFFFFFF, 4) ||
             undo_count != undo_before || redo_count != redo_before) {
             fprintf(stderr, "active_layer_try_clear no-op failed\n");
+            layer_stack_free(&short_stack);
+            layer_stack_free(&narrow_stack);
             snapshot_stack_clear(undo_stack, &undo_count);
             snapshot_stack_clear(redo_stack, &redo_count);
             layer_stack_free(&stack);
@@ -1073,6 +1114,8 @@ static int test_active_layer_ops_helpers(void) {
     if (!active_layer_try_flip_horizontal(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
         !expect_pixel_eq("active_flip_h", canvas_get_pixel(&stack.layers[0].canvas, 3, 0), 0xFF000001)) {
         fprintf(stderr, "active_layer_try_flip_horizontal failed\n");
+        layer_stack_free(&short_stack);
+        layer_stack_free(&narrow_stack);
         snapshot_stack_clear(undo_stack, &undo_count);
         snapshot_stack_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
@@ -1083,6 +1126,8 @@ static int test_active_layer_ops_helpers(void) {
     if (!active_layer_try_flip_vertical(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
         !expect_pixel_eq("active_flip_v", canvas_get_pixel(&stack.layers[0].canvas, 2, 3), 0xFF010203)) {
         fprintf(stderr, "active_layer_try_flip_vertical failed\n");
+        layer_stack_free(&short_stack);
+        layer_stack_free(&narrow_stack);
         snapshot_stack_clear(undo_stack, &undo_count);
         snapshot_stack_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
@@ -1548,6 +1593,8 @@ static int test_active_layer_ops_helpers(void) {
 
     snapshot_stack_clear(undo_stack, &undo_count);
     snapshot_stack_clear(redo_stack, &redo_count);
+    layer_stack_free(&short_stack);
+    layer_stack_free(&narrow_stack);
     layer_stack_free(&stack);
     return 1;
 }
