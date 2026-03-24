@@ -421,6 +421,64 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     }
 }
 
+static int handle_direct_layer_shortcut(
+    SDL_Keycode key,
+    int ctrl,
+    int alt,
+    int shift,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+) {
+    int target = 0;
+    const Layer *target_layer = NULL;
+
+    if (!ctrl || key < SDLK_1 || key > SDLK_8 || !layers) {
+        return 0;
+    }
+
+    target = (int)(key - SDLK_1);
+    if (target >= layers->layer_count) {
+        return 1;
+    }
+
+    if (alt && shift) {
+        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        if (!layer_stack_toggle_lock(layers, target)) {
+            fprintf(stderr, "Could not toggle layer lock\n");
+        }
+        return 1;
+    }
+
+    if (alt) {
+        target_layer = layer_stack_get(layers, target);
+        if (target_layer && (!target_layer->visible || layer_stack_visible_count(layers) > 1)) {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            if (!layer_stack_toggle_visibility(layers, target)) {
+                fprintf(stderr, "Cannot hide the final visible layer\n");
+            } else if (needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (shift) {
+        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        layers->active_layer = target;
+        if (layer_stack_toggle_solo(layers, target) && needs_composite) {
+            *needs_composite = 1;
+        }
+        return 1;
+    }
+
+    layers->active_layer = target;
+    return 1;
+}
+
 static uint32_t active_layer_clear_color(const LayerStack *layers) {
     if (!layers) {
         return COLOR_BG;
@@ -1084,47 +1142,19 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (ctrl && alt && shift && key >= SDLK_1 && key <= SDLK_8) {
-                    int target = (int)(key - SDLK_1);
-                    if (target < layers.layer_count) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        if (!layer_stack_toggle_lock(&layers, target)) {
-                            fprintf(stderr, "Could not toggle layer lock\n");
-                        }
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
-                    break;
-                }
-
-                if (ctrl && alt && key >= SDLK_1 && key <= SDLK_8) {
-                    int target = (int)(key - SDLK_1);
-                    const Layer *target_layer = layer_stack_get(&layers, target);
-                    if (target_layer && (!target_layer->visible || layer_stack_visible_count(&layers) > 1)) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        if (!layer_stack_toggle_visibility(&layers, target)) {
-                            fprintf(stderr, "Cannot hide the final visible layer\n");
-                        } else {
-                            needs_composite = 1;
-                        }
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
-                    break;
-                }
-
-                if (ctrl && key >= SDLK_1 && key <= SDLK_8) {
-                    int target = (int)(key - SDLK_1);
-                    if (target < layers.layer_count) {
-                        if (shift) {
-                            push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                            layers.active_layer = target;
-                            if (layer_stack_toggle_solo(&layers, target)) {
-                                needs_composite = 1;
-                            }
-                        } else {
-                            layers.active_layer = target;
-                        }
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                if (handle_direct_layer_shortcut(
+                        key,
+                        ctrl,
+                        alt,
+                        shift,
+                        &layers,
+                        undo_stack,
+                        &undo_count,
+                        redo_stack,
+                        &redo_count,
+                        &needs_composite
+                    )) {
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
