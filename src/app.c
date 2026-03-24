@@ -270,6 +270,214 @@ static int refresh_after_shortcut(
     return 1;
 }
 
+static int handle_key_down_layer_shortcuts(
+    SDL_Keycode key,
+    int ctrl,
+    int alt,
+    int shift,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite,
+    SDL_Window *window,
+    Tool tool,
+    BrushShape brush_shape,
+    int brush_radius,
+    uint32_t brush_color,
+    int brush_opacity
+) {
+    if (refresh_after_shortcut(
+            handle_active_layer_mutation_shortcut(
+                key,
+                ctrl,
+                shift,
+                layers,
+                undo_stack,
+                undo_count,
+                redo_stack,
+                redo_count,
+                needs_composite),
+            window,
+            layers,
+            tool,
+            brush_shape,
+            brush_radius,
+            brush_color,
+            brush_opacity)) {
+        return 1;
+    }
+
+    if (refresh_after_shortcut(
+            handle_active_layer_state_shortcut(
+                key,
+                ctrl,
+                shift,
+                layers,
+                undo_stack,
+                undo_count,
+                redo_stack,
+                redo_count,
+                needs_composite),
+            window,
+            layers,
+            tool,
+            brush_shape,
+            brush_radius,
+            brush_color,
+            brush_opacity)) {
+        return 1;
+    }
+
+    if (refresh_after_shortcut(
+            handle_active_layer_structure_shortcut(
+                key,
+                ctrl,
+                shift,
+                layers,
+                undo_stack,
+                undo_count,
+                redo_stack,
+                redo_count,
+                needs_composite),
+            window,
+            layers,
+            tool,
+            brush_shape,
+            brush_radius,
+            brush_color,
+            brush_opacity)) {
+        return 1;
+    }
+
+    if (refresh_after_shortcut(
+            handle_merge_shortcut(
+                key,
+                ctrl,
+                layers,
+                undo_stack,
+                undo_count,
+                redo_stack,
+                redo_count,
+                needs_composite),
+            window,
+            layers,
+            tool,
+            brush_shape,
+            brush_radius,
+            brush_color,
+            brush_opacity)) {
+        return 1;
+    }
+
+    if (refresh_after_shortcut(
+            handle_history_navigation_shortcut(
+                key,
+                ctrl,
+                layers,
+                undo_stack,
+                undo_count,
+                redo_stack,
+                redo_count,
+                needs_composite),
+            window,
+            layers,
+            tool,
+            brush_shape,
+            brush_radius,
+            brush_color,
+            brush_opacity)) {
+        return 1;
+    }
+
+    if (refresh_after_shortcut(
+            handle_direct_layer_shortcut(
+                key,
+                ctrl,
+                alt,
+                shift,
+                layers,
+                undo_stack,
+                undo_count,
+                redo_stack,
+                redo_count,
+                needs_composite),
+            window,
+            layers,
+            tool,
+            brush_shape,
+            brush_radius,
+            brush_color,
+            brush_opacity)) {
+        return 1;
+    }
+
+    if (refresh_after_shortcut(
+            handle_layer_opacity_reset_shortcut(
+                key,
+                ctrl,
+                layers,
+                undo_stack,
+                undo_count,
+                redo_stack,
+                redo_count,
+                needs_composite),
+            window,
+            layers,
+            tool,
+            brush_shape,
+            brush_radius,
+            brush_color,
+            brush_opacity)) {
+        return 1;
+    }
+
+    if (refresh_after_shortcut(
+            handle_layer_name_shortcut(
+                key,
+                ctrl,
+                alt,
+                shift,
+                layers,
+                undo_stack,
+                undo_count,
+                redo_stack,
+                redo_count),
+            window,
+            layers,
+            tool,
+            brush_shape,
+            brush_radius,
+            brush_color,
+            brush_opacity)) {
+        return 1;
+    }
+
+    if (refresh_after_shortcut(
+            handle_layer_visibility_shortcut(
+                key,
+                ctrl,
+                shift,
+                layers,
+                undo_stack,
+                undo_count,
+                redo_stack,
+                redo_count,
+                needs_composite),
+            window,
+            layers,
+            tool,
+            brush_shape,
+            brush_radius,
+            brush_color,
+            brush_opacity)) {
+        return 1;
+    }
+
+    return 0;
+}
+
 static AppShapeCancelKey app_shape_cancel_key_from_sdl(SDL_Keycode key) {
     switch (key) {
     case SDLK_ESCAPE: return APP_SHAPE_CANCEL_KEY_ESCAPE;
@@ -1338,61 +1546,18 @@ static void handle_key_down(
         return;
     }
 
-    if (refresh_after_shortcut(
-            handle_active_layer_mutation_shortcut(
-                key,
-                ctrl,
-                shift,
-                layers,
-                undo_stack,
-                undo_count,
-                redo_stack,
-                redo_count,
-                needs_composite),
-            window,
+    if (handle_key_down_layer_shortcuts(
+            key,
+            ctrl,
+            alt,
+            shift,
             layers,
-            *tool,
-            *brush_shape,
-            *brush_radius,
-            *brush_color,
-            *brush_opacity)) {
-        return;
-    }
-
-    if (refresh_after_shortcut(
-            handle_active_layer_state_shortcut(
-                key,
-                ctrl,
-                shift,
-                layers,
-                undo_stack,
-                undo_count,
-                redo_stack,
-                redo_count,
-                needs_composite),
+            undo_stack,
+            undo_count,
+            redo_stack,
+            redo_count,
+            needs_composite,
             window,
-            layers,
-            *tool,
-            *brush_shape,
-            *brush_radius,
-            *brush_color,
-            *brush_opacity)) {
-        return;
-    }
-
-    if (refresh_after_shortcut(
-            handle_active_layer_structure_shortcut(
-                key,
-                ctrl,
-                shift,
-                layers,
-                undo_stack,
-                undo_count,
-                redo_stack,
-                redo_count,
-                needs_composite),
-            window,
-            layers,
             *tool,
             *brush_shape,
             *brush_radius,
@@ -1413,130 +1578,6 @@ static void handle_key_down(
             redo_stack,
             redo_count,
             needs_composite)) {
-        return;
-    }
-
-    if (refresh_after_shortcut(
-            handle_merge_shortcut(
-                key,
-                ctrl,
-                layers,
-                undo_stack,
-                undo_count,
-                redo_stack,
-                redo_count,
-                needs_composite),
-            window,
-            layers,
-            *tool,
-            *brush_shape,
-            *brush_radius,
-            *brush_color,
-            *brush_opacity)) {
-        return;
-    }
-
-    if (refresh_after_shortcut(
-            handle_history_navigation_shortcut(
-                key,
-                ctrl,
-                layers,
-                undo_stack,
-                undo_count,
-                redo_stack,
-                redo_count,
-                needs_composite),
-            window,
-            layers,
-            *tool,
-            *brush_shape,
-            *brush_radius,
-            *brush_color,
-            *brush_opacity)) {
-        return;
-    }
-
-    if (refresh_after_shortcut(
-            handle_direct_layer_shortcut(
-                key,
-                ctrl,
-                alt,
-                shift,
-                layers,
-                undo_stack,
-                undo_count,
-                redo_stack,
-                redo_count,
-                needs_composite),
-            window,
-            layers,
-            *tool,
-            *brush_shape,
-            *brush_radius,
-            *brush_color,
-            *brush_opacity)) {
-        return;
-    }
-
-    if (refresh_after_shortcut(
-            handle_layer_opacity_reset_shortcut(
-                key,
-                ctrl,
-                layers,
-                undo_stack,
-                undo_count,
-                redo_stack,
-                redo_count,
-                needs_composite),
-            window,
-            layers,
-            *tool,
-            *brush_shape,
-            *brush_radius,
-            *brush_color,
-            *brush_opacity)) {
-        return;
-    }
-
-    if (refresh_after_shortcut(
-            handle_layer_name_shortcut(
-                key,
-                ctrl,
-                alt,
-                shift,
-                layers,
-                undo_stack,
-                undo_count,
-                redo_stack,
-                redo_count),
-            window,
-            layers,
-            *tool,
-            *brush_shape,
-            *brush_radius,
-            *brush_color,
-            *brush_opacity)) {
-        return;
-    }
-
-    if (refresh_after_shortcut(
-            handle_layer_visibility_shortcut(
-                key,
-                ctrl,
-                shift,
-                layers,
-                undo_stack,
-                undo_count,
-                redo_stack,
-                redo_count,
-                needs_composite),
-            window,
-            layers,
-            *tool,
-            *brush_shape,
-            *brush_radius,
-            *brush_color,
-            *brush_opacity)) {
         return;
     }
 
