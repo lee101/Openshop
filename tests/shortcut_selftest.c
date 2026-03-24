@@ -3300,6 +3300,40 @@ static int expect_draw_shape_pixel(
 
 typedef struct {
     const char *label;
+    Tool tool;
+    int x0;
+    int y0;
+    int x1;
+    int y1;
+    int radius;
+    uint32_t initial_color;
+    uint32_t draw_color;
+    size_t changed_index;
+    uint32_t want_changed;
+    size_t unchanged_index;
+    uint32_t want_unchanged;
+} DrawShapeCase;
+
+static int run_draw_shape_case(const DrawShapeCase *test_case) {
+    return expect_draw_shape_pixel(
+        test_case->label,
+        test_case->tool,
+        test_case->x0,
+        test_case->y0,
+        test_case->x1,
+        test_case->y1,
+        test_case->radius,
+        test_case->initial_color,
+        test_case->draw_color,
+        test_case->changed_index,
+        test_case->want_changed,
+        test_case->unchanged_index,
+        test_case->want_unchanged
+    );
+}
+
+typedef struct {
+    const char *label;
     Canvas *preview_canvas;
     uint32_t *preview_pixels;
     const uint32_t *shape_base_pixels;
@@ -4096,51 +4130,51 @@ int main(void) {
     }
     ok = ok && expect_constrained_shape_end_no_output("shape_null_out_x", TOOL_LINE, 10, 10, 25, 13, 1, NULL, &sentinel_y, 0, 654);
     ok = ok && expect_constrained_shape_end_no_output("shape_null_out_y", TOOL_LINE, 10, 10, 25, 13, 1, &sentinel_x, NULL, 321, 0);
-    ok = ok && expect_draw_shape_pixel(
-        "draw_shape_line_dispatch",
-        TOOL_LINE,
-        1,
-        2,
-        3,
-        2,
-        1,
-        0x00000000u,
-        0xFF556677u,
-        12,
-        0xFF556677u,
-        0,
-        0x00000000u
-    );
-    ok = ok && expect_draw_shape_pixel(
-        "draw_shape_filled_rect_dispatch",
-        TOOL_FILLED_RECT,
-        1,
-        1,
-        3,
-        3,
-        1,
-        0x00000000u,
-        0xFF112233u,
-        12,
-        0xFF112233u,
-        0,
-        0x00000000u
-    );
-    ok = ok && expect_draw_shape_pixel(
-        "draw_shape_unknown_tool_noop",
-        (Tool)999,
-        1,
-        1,
-        3,
-        3,
-        1,
-        0x00000000u,
-        0xFF112233u,
-        12,
-        0x00000000u,
-        0,
-        0x00000000u
-    );
+    {
+        const DrawShapeCase draw_shape_cases[] = {
+            {
+                "draw_shape_line_dispatch",
+                TOOL_LINE,
+                1, 2, 3, 2,
+                1,
+                0x00000000u,
+                0xFF556677u,
+                12,
+                0xFF556677u,
+                0,
+                0x00000000u,
+            },
+            {
+                "draw_shape_filled_rect_dispatch",
+                TOOL_FILLED_RECT,
+                1, 1, 3, 3,
+                1,
+                0x00000000u,
+                0xFF112233u,
+                12,
+                0xFF112233u,
+                0,
+                0x00000000u,
+            },
+            {
+                "draw_shape_unknown_tool_noop",
+                (Tool)999,
+                1, 1, 3, 3,
+                1,
+                0x00000000u,
+                0xFF112233u,
+                12,
+                0x00000000u,
+                0,
+                0x00000000u,
+            },
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(draw_shape_cases) / sizeof(draw_shape_cases[0]); i++) {
+            ok = ok && run_draw_shape_case(&draw_shape_cases[i]);
+        }
+    }
     {
         const BeginShapePreviewCase begin_shape_preview_cases[] = {
             {"begin_shape_preview_copy", 12, 34, 0, -1, -1, preview_copy, preview_source, 4, 1, 12, 34, preview_source},
