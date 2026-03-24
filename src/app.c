@@ -785,6 +785,42 @@ static int handle_mouse_position_hotkey(SDL_Keycode key,
     return 0;
 }
 
+static int handle_general_key_hotkey(SDL_Keycode key,
+                                     SDL_Window *window,
+                                     LayerStack *layers,
+                                     Snapshot *undo_stack, int *undo_count,
+                                     Snapshot *redo_stack, int *redo_count,
+                                     const Canvas *sample,
+                                     uint32_t *brush_color_rgb, uint32_t *brush_color,
+                                     int *brush_opacity, int *brush_radius,
+                                     BrushShape *brush_shape, Tool *tool,
+                                     int *needs_composite) {
+    if (handle_brush_state_hotkey(key, brush_color_rgb, brush_color, brush_opacity, brush_radius, brush_shape, tool)) {
+        update_window_title(window, layers, *tool, *brush_shape, *brush_radius, *brush_color, *brush_opacity);
+        return 1;
+    }
+
+    if (handle_active_edit_hotkey(key, layers, undo_stack, undo_count, redo_stack, redo_count)) {
+        if (needs_composite) {
+            *needs_composite = 1;
+        }
+        update_window_title(window, layers, *tool, *brush_shape, *brush_radius, *brush_color, *brush_opacity);
+        return 1;
+    }
+
+    if (handle_mouse_position_hotkey(key, layers, undo_stack, undo_count, redo_stack, redo_count,
+                                     sample, brush_color_rgb, brush_color, brush_opacity, tool)) {
+        if (needs_composite && key == SDLK_f) {
+            *needs_composite = 1;
+        }
+        update_window_title(window, layers, *tool, *brush_shape, *brush_radius, *brush_color, *brush_opacity);
+        return 1;
+    }
+
+    update_window_title(window, layers, *tool, *brush_shape, *brush_radius, *brush_color, *brush_opacity);
+    return 0;
+}
+
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
     switch (shape) {
     case BRUSH_SHAPE_ROUND:
@@ -1850,19 +1886,12 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (handle_brush_state_hotkey(key, &brush_color_rgb, &brush_color, &brush_opacity,
-                                              &brush_radius, &brush_shape, &tool)) {
-                } else if (handle_active_edit_hotkey(key, &layers, undo_stack, &undo_count, redo_stack, &redo_count)) {
-                    needs_composite = 1;
-                } else {
+                {
                     const Canvas *sample = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
-                    if (handle_mouse_position_hotkey(key, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                                                     sample, &brush_color_rgb, &brush_color, &brush_opacity, &tool)) {
-                        needs_composite = needs_composite || (key == SDLK_f);
-                    }
+                    handle_general_key_hotkey(key, window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                              sample, &brush_color_rgb, &brush_color, &brush_opacity,
+                                              &brush_radius, &brush_shape, &tool, &needs_composite);
                 }
-
-                update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                 break;
             }
             default:
