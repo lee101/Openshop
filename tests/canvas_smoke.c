@@ -931,6 +931,39 @@ static int test_layer_snapshot_matches_stack_noop_edits(void) {
     return 1;
 }
 
+static int test_layer_snapshot_matches_stack_guard_paths(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "history match-guard init failed\n");
+        return 0;
+    }
+
+    LayerSnapshot snapshot = {0};
+    if (layer_snapshot_matches_stack(NULL, &stack) || layer_snapshot_matches_stack(&snapshot, NULL)) {
+        fprintf(stderr, "history matches-stack should fail cleanly on null inputs\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (!layer_snapshot_capture(&snapshot, &stack)) {
+        fprintf(stderr, "history match-guard capture failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    snapshot.width++;
+    if (layer_snapshot_matches_stack(&snapshot, &stack)) {
+        fprintf(stderr, "history matches-stack should reject mismatched snapshot dimensions\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_snapshot_free(&snapshot);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layer_history_skip_noop_snapshot_commit(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
@@ -2592,6 +2625,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_snapshot_matches_stack_noop_edits()) {
+        return 1;
+    }
+    if (!test_layer_snapshot_matches_stack_guard_paths()) {
         return 1;
     }
     if (!test_layer_history_skip_noop_snapshot_commit()) {
