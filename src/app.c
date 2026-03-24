@@ -1377,7 +1377,7 @@ static void handle_mouse_button_down(
             if (active) {
                 push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
                 *drawing = 1;
-                if (*tool == TOOL_ERASER) {
+                if (app_tool_stroke_mark(*tool) == APP_STROKE_MARK_ERASE) {
                     erase_stamp(&active->canvas, *last_x, *last_y, brush_radius, app_active_layer_clear_color(layers->active_layer), brush_shape);
                 } else {
                     stamp_brush(&active->canvas, *last_x, *last_y, brush_radius, *brush_color, brush_shape);

@@ -91,6 +91,15 @@ static int expect_direct_draw_tool(const char *label, Tool tool, int want) {
     return 1;
 }
 
+static int expect_stroke_mark(const char *label, Tool tool, AppStrokeMark want) {
+    AppStrokeMark got = app_tool_stroke_mark(tool);
+    if (got != want) {
+        fprintf(stderr, "%s mismatch: got %d want %d\n", label, got, want);
+        return 0;
+    }
+    return 1;
+}
+
 static int expect_canvas_action(const char *label, int key, CanvasShortcutAction want) {
     CanvasShortcutAction got = canvas_shortcut_action(key);
     if (got != want) {
@@ -922,6 +931,10 @@ int main(void) {
     ok = ok && expect_direct_draw_tool("tool_draws_directly_ellipse", TOOL_ELLIPSE, 0);
     ok = ok && expect_direct_draw_tool("tool_draws_directly_filled_ellipse", TOOL_FILLED_ELLIPSE, 0);
     ok = ok && expect_direct_draw_tool("tool_draws_directly_default", (Tool)999, 0);
+    ok = ok && expect_stroke_mark("stroke_mark_brush", TOOL_BRUSH, APP_STROKE_MARK_BRUSH);
+    ok = ok && expect_stroke_mark("stroke_mark_eraser", TOOL_ERASER, APP_STROKE_MARK_ERASE);
+    ok = ok && expect_stroke_mark("stroke_mark_line_defaults_to_brush", TOOL_LINE, APP_STROKE_MARK_BRUSH);
+    ok = ok && expect_stroke_mark("stroke_mark_default", (Tool)999, APP_STROKE_MARK_BRUSH);
     ok = ok && expect_canvas_action("canvas_clear", 'c', CANVAS_SHORTCUT_CLEAR);
     ok = ok && expect_canvas_action("canvas_flip_h", 'h', CANVAS_SHORTCUT_FLIP_HORIZONTAL);
     ok = ok && expect_canvas_action("canvas_flip_v", 'v', CANVAS_SHORTCUT_FLIP_VERTICAL);

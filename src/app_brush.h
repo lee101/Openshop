@@ -18,9 +18,15 @@ typedef enum {
     BRUSH_SHAPE_COUNT
 } BrushShape;
 
+typedef enum {
+    APP_STROKE_MARK_BRUSH,
+    APP_STROKE_MARK_ERASE
+} AppStrokeMark;
+
 const char *app_tool_label(Tool tool);
 const char *app_brush_shape_label(BrushShape shape);
 BrushShape app_cycle_brush_shape(BrushShape shape, int direction);
 int app_tool_draws_directly(Tool tool);
+AppStrokeMark app_tool_stroke_mark(Tool tool);
 
 #endif

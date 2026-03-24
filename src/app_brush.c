@@ -47,3 +47,7 @@ BrushShape app_cycle_brush_shape(BrushShape shape, int direction) {
 int app_tool_draws_directly(Tool tool) {
     return tool == TOOL_BRUSH || tool == TOOL_ERASER;
 }
+
+AppStrokeMark app_tool_stroke_mark(Tool tool) {
+    return tool == TOOL_ERASER ? APP_STROKE_MARK_ERASE : APP_STROKE_MARK_BRUSH;
+}
