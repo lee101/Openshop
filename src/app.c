@@ -881,9 +881,9 @@ static int handle_layer_opacity_hotkey(SDL_Keycode key,
     }
 
     if (result == ACTIVE_LAYER_ACTION_CHANGED) {
-        update_title_state(action_state->title_state);
         *action_state->needs_composite = 1;
     }
+    update_title_state(action_state->title_state);
 
     return 1;
 }
@@ -964,6 +964,9 @@ static int handle_layer_navigation_hotkey(SDL_Keycode key,
     }
 
     if (changed) {
+        update_title_state(action_state->title_state);
+    }
+    if (!changed) {
         update_title_state(action_state->title_state);
     }
     return 1;
@@ -1242,6 +1245,7 @@ static int handle_translation_hotkey(SDL_Keycode key,
     if (result == ACTIVE_LAYER_ACTION_CHANGED) {
         *action_state->needs_composite = 1;
     }
+    update_title_state(action_state->title_state);
 
     return 1;
 }
@@ -1274,6 +1278,9 @@ static int handle_history_hotkey(SDL_Keycode key,
     if (changed) {
         update_title_state(action_state->title_state);
         *action_state->needs_composite = 1;
+    }
+    if (!changed) {
+        update_title_state(action_state->title_state);
     }
 
     return 1;
