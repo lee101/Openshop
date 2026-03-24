@@ -31,7 +31,9 @@ void layer_snapshot_free(LayerSnapshot *snapshot);
 // Fully resets a snapshot, including owned storage and metadata arrays.
 void layer_snapshot_reset(LayerSnapshot *snapshot);
 // Captures the current layer stack into caller-owned snapshot storage.
+// Null inputs fail without mutating the caller snapshot.
 int layer_snapshot_capture(LayerSnapshot *snapshot, const LayerStack *stack);
+// Applies a populated snapshot back onto a same-sized stack; null inputs, missing pixels, and invalid layer counts fail.
 int layer_snapshot_apply(const LayerSnapshot *snapshot, LayerStack *stack);
 int layer_snapshot_matches_stack(const LayerSnapshot *snapshot, const LayerStack *stack);
 // Low-level stack primitives kept for targeted tests and incremental callers.
