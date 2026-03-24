@@ -211,7 +211,10 @@ AppActiveEditAction app_active_edit_hotkey_action(int key, int ctrl, int alt) {
     return APP_ACTIVE_EDIT_NONE;
 }
 
-AppMousePositionAction app_mouse_position_hotkey_action(int key) {
+AppMousePositionAction app_mouse_position_hotkey_action(int key, int ctrl, int alt) {
+    if (ctrl || alt) {
+        return APP_MOUSE_POSITION_NONE;
+    }
     if (key == APP_KEY_f) {
         return APP_MOUSE_POSITION_FILL;
     }

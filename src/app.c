@@ -709,6 +709,7 @@ static ActiveLayerActionResult handle_active_edit_hotkey(SDL_Keycode key,
 }
 
 static int handle_mouse_position_hotkey(SDL_Keycode key,
+                                        int ctrl, int alt,
                                         LayerStack *layers,
                                         Snapshot *undo_stack, int *undo_count,
                                         Snapshot *redo_stack, int *redo_count,
@@ -732,7 +733,7 @@ static int handle_mouse_position_hotkey(SDL_Keycode key,
         *changed = 0;
     }
     SDL_GetMouseState(&mx, &my);
-    action = app_mouse_position_hotkey_action((int)key);
+    action = app_mouse_position_hotkey_action((int)key, ctrl, alt);
     if (matched_action) {
         *matched_action = action;
     }
@@ -786,7 +787,7 @@ static void handle_general_key_hotkey(SDL_Keycode key,
         return;
     }
 
-    if (handle_mouse_position_hotkey(key, action_state->layers, action_state->undo_stack,
+    if (handle_mouse_position_hotkey(key, ctrl, alt, action_state->layers, action_state->undo_stack,
                                      action_state->undo_count, action_state->redo_stack,
                                      action_state->redo_count,
                                      sample, brush_color_rgb, brush_color, brush_opacity, tool,
