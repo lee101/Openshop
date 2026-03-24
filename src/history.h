@@ -50,6 +50,7 @@ void layer_history_clear(LayerSnapshot *stack, int *count);
 // Captures the current stack into `stack` when `layers`, `stack`, and `count` are valid.
 // Failed current-state capture leaves both history stacks unchanged.
 // When `stack` is full, the oldest retained snapshot is evicted before the new one is stored.
+// Duplicate current-state snapshots leave both history stacks unchanged.
 // `redo`/`redo_count` are optional; when both are provided they are cleared only after a new snapshot is pushed.
 void layer_history_push(const LayerStack *layers, LayerSnapshot *stack, int *count, LayerSnapshot *redo, int *redo_count);
 // On success these move the current stack state to the opposite history stack and apply the pending snapshot.
@@ -64,6 +65,7 @@ void layer_history_reset(LayerHistory *history);
 void layer_history_record(LayerHistory *history, const LayerStack *layers);
 // On success this transfers snapshot ownership into history and disowns the caller snapshot.
 // When undo history is full, the oldest retained snapshot is evicted before the new one is stored.
+// Duplicate snapshots are discarded without mutating undo/redo history.
 // A null snapshot fails cleanly; other discard/failure paths reset the caller snapshot back to an empty state.
 int layer_history_record_snapshot(LayerHistory *history, LayerSnapshot *snapshot);
 // Commits a previously captured snapshot only when the operation succeeded and changed the stack.
