@@ -69,7 +69,8 @@ void layer_history_record(LayerHistory *history, const LayerStack *layers);
 // A null snapshot fails cleanly; other discard/failure paths reset the caller snapshot back to an empty state.
 int layer_history_record_snapshot(LayerHistory *history, LayerSnapshot *snapshot);
 // Commits a previously captured snapshot only when the operation succeeded and changed the stack.
-// A null snapshot fails cleanly; otherwise the caller snapshot is either transferred into history or reset in place.
+// A null snapshot fails cleanly; failed current-state comparison capture also resets the caller snapshot in place.
+// Otherwise the caller snapshot is either transferred into history or reset in place.
 int layer_history_commit_change(LayerHistory *history, LayerSnapshot *snapshot, const LayerStack *layers, int operation_succeeded);
 // Wrapper versions of undo/redo that preserve history state if the current stack cannot be captured
 // or if the stored snapshot cannot be applied.
