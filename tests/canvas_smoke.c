@@ -576,6 +576,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_can_flatten(&stack)) {
+        fprintf(stderr, "can_flatten should succeed when all layers are unlocked\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_flatten(&stack, 0xFFFFFFFF)) {
         fprintf(stderr, "flatten failed\n");
         canvas_free(&composite);
@@ -678,6 +684,12 @@ static int test_layers_basic(void) {
         return 0;
     }
     if (!expect_pixel_eq("stamp_visible_new_pixel", canvas_get_pixel(&stack.layers[2].canvas, 0, 0), 0xFF0D6740)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_can_insert(&stack)) {
+        fprintf(stderr, "can_insert should allow additions before max layers\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
