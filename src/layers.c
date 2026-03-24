@@ -357,15 +357,22 @@ int layer_stack_show_all(LayerStack *stack) {
     if (!stack) {
         return 0;
     }
+    int changed = (stack->solo_index != -1);
     for (int i = 0; i < stack->layer_count; i++) {
+        if (!stack->layers[i].visible) {
+            changed = 1;
+        }
         stack->layers[i].visible = 1;
     }
     stack->solo_index = -1;
-    return 1;
+    return changed;
 }
 
 int layer_stack_show(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    if (stack->layers[index].visible) {
         return 0;
     }
     stack->layers[index].visible = 1;

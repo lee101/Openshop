@@ -298,6 +298,27 @@ static int apply_visible_layer_cycle(
     return 1;
 }
 
+static int apply_absolute_layer_selection(
+    LayerStack *layers,
+    int target_index,
+    const char *failure_message
+) {
+    if (!layers || layers->layer_count <= 0) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    if (target_index < 0 || target_index >= layers->layer_count) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    layers->active_layer = target_index;
+    return 1;
+}
+
 static int apply_active_layer_move(
     LayerStack *layers,
     LayerHistory *history,
@@ -327,6 +348,28 @@ static int apply_active_layer_move(
         return 0;
     }
     return 1;
+}
+
+static int apply_absolute_layer_move(
+    LayerStack *layers,
+    LayerHistory *history,
+    int target_index,
+    const char *missing_message,
+    const char *no_change_message
+) {
+    if (!layers || layers->layer_count <= 0) {
+        if (missing_message) {
+            fprintf(stderr, "%s\n", missing_message);
+        }
+        return 0;
+    }
+    if (target_index < 0 || target_index >= layers->layer_count) {
+        if (missing_message) {
+            fprintf(stderr, "%s\n", missing_message);
+        }
+        return 0;
+    }
+    return apply_active_layer_move(layers, history, target_index, no_change_message);
 }
 
 static const char *max_layers_message(void) {
@@ -1371,16 +1414,15 @@ int app_run(const char *input_path) {
 
                 if (ctrl && shift && shortcut_target >= 0) {
                     int target = shortcut_target;
-                    if (target < layers.layer_count) {
-                        if (apply_active_layer_move(
-                                &layers,
-                                &history,
-                                target,
-                                "Layer is already in that slot")) {
-                            needs_composite = 1;
-                        }
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    if (apply_absolute_layer_move(
+                            &layers,
+                            &history,
+                            target,
+                            "Layer slot does not exist",
+                            "Layer is already in that slot")) {
+                        needs_composite = 1;
                     }
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
@@ -1394,8 +1436,7 @@ int app_run(const char *input_path) {
 
                 if (ctrl && shortcut_target >= 0) {
                     int target = shortcut_target;
-                    if (target < layers.layer_count) {
-                        layers.active_layer = target;
+                    if (apply_absolute_layer_selection(&layers, target, "Layer slot does not exist")) {
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                     break;
@@ -1426,7 +1467,9 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_a) {
-                    layer_history_record(&history, &layers);
+                    if (layers.solo_index != -1 || layer_stack_visible_count(&layers) != layers.layer_count) {
+                        layer_history_record(&history, &layers);
+                    }
                     if (layer_stack_show_all(&layers)) {
                         needs_composite = 1;
                     }
@@ -1435,7 +1478,10 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && shift && key == SDLK_r) {
-                    layer_history_record(&history, &layers);
+                    const Layer *active = layer_stack_get(&layers, layers.active_layer);
+                    if (active && !active->visible) {
+                        layer_history_record(&history, &layers);
+                    }
                     if (layer_stack_show(&layers, layers.active_layer)) {
                         needs_composite = 1;
                     }

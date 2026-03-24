@@ -588,6 +588,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_show_all(&stack)) {
+        fprintf(stderr, "show all should no-op when all layers are already visible and solo is clear\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_toggle_visibility(&stack, 1)) {
         fprintf(stderr, "rehide top layer after show all failed\n");
         canvas_free(&composite);
@@ -596,6 +602,12 @@ static int test_layers_basic(void) {
     }
     if (!layer_stack_show(&stack, 1) || !stack.layers[1].visible) {
         fprintf(stderr, "show active layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_show(&stack, 1)) {
+        fprintf(stderr, "show active layer should no-op when already visible\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
