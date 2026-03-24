@@ -22,6 +22,14 @@ static int expect_pixel(const LayerStack *stack, int layer_index, int x, int y, 
     return 1;
 }
 
+static int expect_int(int got, int want, const char *label) {
+    if (got != want) {
+        fprintf(stderr, "%s mismatch: got %d want %d\n", label, got, want);
+        return 0;
+    }
+    return 1;
+}
+
 int main(void) {
     LayerStack stack;
     Snapshot undo_stack[TEST_HISTORY_CAPACITY] = {0};
@@ -165,6 +173,82 @@ int main(void) {
     }
     if (snapshot_undo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count)) {
         fprintf(stderr, "history rollover should drop oldest snapshot\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    if (!layer_stack_toggle_solo(&stack, 2)) {
+        fprintf(stderr, "solo setup failed\n");
+        layer_stack_free(&stack);
+        return 1;
+    }
+    stack.active_layer = 2;
+    snapshot_push(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count);
+    if (!layer_stack_delete(&stack, 2) ||
+        !expect_int(stack.layer_count, 2, "delete_layer_count") ||
+        !expect_int(stack.active_layer, 1, "delete_active_layer") ||
+        !expect_int(stack.solo_index, -1, "delete_solo_index")) {
+        fprintf(stderr, "delete state setup failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    if (!snapshot_undo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        !expect_int(stack.layer_count, 3, "undo_delete_layer_count") ||
+        !expect_int(stack.active_layer, 2, "undo_delete_active_layer") ||
+        !expect_int(stack.solo_index, 2, "undo_delete_solo_index") ||
+        !expect_name(&stack, 2, "FX", "undo_delete_name")) {
+        fprintf(stderr, "undo delete state failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    if (!snapshot_redo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        !expect_int(stack.layer_count, 2, "redo_delete_layer_count") ||
+        !expect_int(stack.active_layer, 1, "redo_delete_active_layer") ||
+        !expect_int(stack.solo_index, -1, "redo_delete_solo_index")) {
+        fprintf(stderr, "redo delete state failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+
+    if (!snapshot_undo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        !expect_int(stack.layer_count, 3, "restore_for_solo_layer_count") ||
+        !expect_int(stack.solo_index, 2, "restore_for_solo_solo_index")) {
+        fprintf(stderr, "restore for solo state failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    snapshot_push(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count);
+    if (!layer_stack_toggle_solo(&stack, 2) ||
+        !expect_int(stack.solo_index, -1, "solo_toggle_off_index")) {
+        fprintf(stderr, "solo toggle-off setup failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    if (!snapshot_undo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        !expect_int(stack.solo_index, 2, "undo_solo_toggle_index")) {
+        fprintf(stderr, "undo solo toggle failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    if (!snapshot_redo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        !expect_int(stack.solo_index, -1, "redo_solo_toggle_index")) {
+        fprintf(stderr, "redo solo toggle failed\n");
         snapshot_stack_clear(undo_stack, &undo_count);
         snapshot_stack_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
