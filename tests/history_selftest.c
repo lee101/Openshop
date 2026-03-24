@@ -239,6 +239,24 @@ int main(void) {
 
         snapshot_stack_clear(temp_undo, &temp_undo_count);
         snapshot_stack_clear(temp_redo, &temp_redo_count);
+        temp_stack.layers[0].canvas.pixels[0] = 0;
+        temp_stack.layers[0].canvas.pixels[1] = 0;
+        temp_stack.layers[0].canvas.pixels[4] = 0;
+        temp_stack.layers[0].canvas.pixels[5] = 0;
+        canvas_set_pixel(&temp_stack.layers[0].canvas, 0, 1, 0xFF446688);
+        if (!app_apply_canvas_translation(&temp_stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count, 1, -1) ||
+            !expect_int(temp_undo_count, 1, "canvas_translation_background_diagonal_mixed_undo_count") ||
+            !expect_pixel(&temp_stack, 0, 1, 0, 0xFF446688, "canvas_translation_background_diagonal_mixed_shifted_pixel") ||
+            !expect_pixel(&temp_stack, 0, 0, 3, 0xFFFFFFFF, "canvas_translation_background_diagonal_mixed_fill_pixel")) {
+            fprintf(stderr, "canvas translation background mixed diagonal helper failed\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            layer_stack_free(&temp_stack);
+            return 1;
+        }
+
+        snapshot_stack_clear(temp_undo, &temp_undo_count);
+        snapshot_stack_clear(temp_redo, &temp_redo_count);
 
         if (layer_stack_add(&temp_stack, "Top", 0x00000000) != 1) {
             fprintf(stderr, "temp top layer add failed\n");
