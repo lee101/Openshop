@@ -684,6 +684,52 @@ static int test_active_layer_ops_helpers(void) {
         return 0;
     }
 
+    {
+        int last_x = 0;
+        int last_y = 0;
+        canvas_clear(&stack.layers[0].canvas, 0x00000000);
+        if (!active_layer_continue_brush_stroke(&stack, TOOL_BRUSH, 3, 0, 1, 0xFF334455,
+                                                BRUSH_SHAPE_SQUARE, &last_x, &last_y, 0xFFFFFFFF) ||
+            !expect_pixel_eq("active_continue_brush", canvas_get_pixel(&stack.layers[0].canvas, 3, 0), 0xFF334455) ||
+            last_x != 3 || last_y != 0) {
+            fprintf(stderr, "active_layer_continue_brush_stroke brush failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+
+    {
+        int last_x = 0;
+        int last_y = 0;
+        canvas_set_pixel_raw(&stack.layers[0].canvas, 3, 0, 0xFFFFFFFF);
+        if (!active_layer_continue_brush_stroke(&stack, TOOL_ERASER, 3, 0, 1, 0xFF000000,
+                                                BRUSH_SHAPE_ROUND, &last_x, &last_y, 0xFF123456) ||
+            !expect_pixel_eq("active_continue_eraser", canvas_get_pixel(&stack.layers[0].canvas, 3, 0), 0xFF123456) ||
+            last_x != 3 || last_y != 0) {
+            fprintf(stderr, "active_layer_continue_brush_stroke eraser failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+
+    {
+        int last_x = 1;
+        int last_y = 1;
+        if (active_layer_continue_brush_stroke(&stack, TOOL_BRUSH, -1, 0, 1, 0xFFFFFFFF,
+                                               BRUSH_SHAPE_ROUND, &last_x, &last_y, 0xFFFFFFFF) ||
+            last_x != 1 || last_y != 1) {
+            fprintf(stderr, "active_layer_continue_brush_stroke bounds guard failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+
     canvas_clear(&stack.layers[0].canvas, 0x00000000);
     canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFF010101);
     if (!active_layer_try_flood_fill(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
@@ -743,37 +789,49 @@ static int test_active_layer_ops_helpers(void) {
     }
 
     stack.layers[1].locked = 1;
-    if (active_layer_try_flip_horizontal(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
-        active_layer_try_begin_brush_stroke(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
-                                            TOOL_BRUSH, 0, 0, 1, 0xFFFFFFFF, BRUSH_SHAPE_ROUND,
-                                            0xFFFFFFFF, 4) ||
-        active_layer_try_commit_shape(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
-                                      TOOL_LINE, 0, 0, 1, 1, 1, 0xFFFFFFFF, 4) ||
-        active_layer_try_invert_rgb(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
-        active_layer_try_flood_fill(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0, 0, 0xFFFFFFFF, 4) ||
-        active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 1, 0, 0xFFFFFFFF, 4)) {
-        fprintf(stderr, "active layer locked guards failed\n");
-        snapshot_stack_clear(undo_stack, &undo_count);
-        snapshot_stack_clear(redo_stack, &redo_count);
-        layer_stack_free(&stack);
-        return 0;
+    {
+        int last_x = 0;
+        int last_y = 0;
+        if (active_layer_try_flip_horizontal(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+            active_layer_try_begin_brush_stroke(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                TOOL_BRUSH, 0, 0, 1, 0xFFFFFFFF, BRUSH_SHAPE_ROUND,
+                                                0xFFFFFFFF, 4) ||
+            active_layer_continue_brush_stroke(&stack, TOOL_BRUSH, 0, 0, 1, 0xFFFFFFFF,
+                                               BRUSH_SHAPE_ROUND, &last_x, &last_y, 0xFFFFFFFF) ||
+            active_layer_try_commit_shape(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                          TOOL_LINE, 0, 0, 1, 1, 1, 0xFFFFFFFF, 4) ||
+            active_layer_try_invert_rgb(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+            active_layer_try_flood_fill(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0, 0, 0xFFFFFFFF, 4) ||
+            active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 1, 0, 0xFFFFFFFF, 4)) {
+            fprintf(stderr, "active layer locked guards failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
     }
     stack.layers[1].locked = 0;
     canvas_free(&stack.layers[1].canvas);
-    if (active_layer_try_flip_vertical(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
-        active_layer_try_begin_brush_stroke(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
-                                            TOOL_BRUSH, 0, 0, 1, 0xFFFFFFFF, BRUSH_SHAPE_ROUND,
-                                            0xFFFFFFFF, 4) ||
-        active_layer_try_commit_shape(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
-                                      TOOL_LINE, 0, 0, 1, 1, 1, 0xFFFFFFFF, 4) ||
-        active_layer_try_rotate_180(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
-        active_layer_try_flood_fill(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0, 0, 0xFFFFFFFF, 4) ||
-        active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, &redo_count, -1, 0, 0xFFFFFFFF, 4)) {
-        fprintf(stderr, "active layer null pixel guards failed\n");
-        snapshot_stack_clear(undo_stack, &undo_count);
-        snapshot_stack_clear(redo_stack, &redo_count);
-        layer_stack_free(&stack);
-        return 0;
+    {
+        int last_x = 0;
+        int last_y = 0;
+        if (active_layer_try_flip_vertical(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+            active_layer_try_begin_brush_stroke(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                TOOL_BRUSH, 0, 0, 1, 0xFFFFFFFF, BRUSH_SHAPE_ROUND,
+                                                0xFFFFFFFF, 4) ||
+            active_layer_continue_brush_stroke(&stack, TOOL_BRUSH, 0, 0, 1, 0xFFFFFFFF,
+                                               BRUSH_SHAPE_ROUND, &last_x, &last_y, 0xFFFFFFFF) ||
+            active_layer_try_commit_shape(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                          TOOL_LINE, 0, 0, 1, 1, 1, 0xFFFFFFFF, 4) ||
+            active_layer_try_rotate_180(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+            active_layer_try_flood_fill(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0, 0, 0xFFFFFFFF, 4) ||
+            active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, &redo_count, -1, 0, 0xFFFFFFFF, 4)) {
+            fprintf(stderr, "active layer null pixel guards failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
     }
 
     snapshot_stack_clear(undo_stack, &undo_count);

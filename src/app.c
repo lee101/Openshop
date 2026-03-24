@@ -1236,28 +1236,13 @@ static int handle_drawing_motion(LayerStack *layers,
                                  BrushShape brush_shape,
                                  int *last_x, int *last_y,
                                  int *needs_composite) {
-    Layer *active;
-
     if (!layers || !last_x || !last_y || !needs_composite) {
         return 0;
     }
-
-    if (x < 0 || y < 0 || x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT) {
+    if (!active_layer_continue_brush_stroke(layers, tool, x, y, brush_radius, brush_color,
+                                            brush_shape, last_x, last_y, COLOR_BG)) {
         return 0;
     }
-
-    active = layer_stack_active(layers);
-    if (!active || active->locked || !active->canvas.pixels) {
-        return 0;
-    }
-
-    if (tool == TOOL_ERASER) {
-        erase_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, active_layer_clear_color(layers, COLOR_BG), brush_shape);
-    } else {
-        draw_brush_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, brush_color, brush_shape);
-    }
-    *last_x = x;
-    *last_y = y;
     *needs_composite = 1;
     return 1;
 }

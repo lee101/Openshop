@@ -168,6 +168,36 @@ int active_layer_try_begin_brush_stroke(LayerStack *layers,
     return 1;
 }
 
+int active_layer_continue_brush_stroke(LayerStack *layers,
+                                       Tool tool, int x, int y,
+                                       int brush_radius, uint32_t brush_color,
+                                       BrushShape brush_shape,
+                                       int *last_x, int *last_y,
+                                       uint32_t background_color) {
+    Layer *active;
+
+    if (!layers || !last_x || !last_y) {
+        return 0;
+    }
+    active = layer_stack_active(layers);
+    if (!active || active->locked || !active->canvas.pixels) {
+        return 0;
+    }
+    if (x < 0 || y < 0 || x >= active->canvas.width || y >= active->canvas.height) {
+        return 0;
+    }
+
+    if (tool == TOOL_ERASER) {
+        erase_line(&active->canvas, *last_x, *last_y, x, y, brush_radius,
+                   active_layer_clear_color(layers, background_color), brush_shape);
+    } else {
+        draw_brush_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, brush_color, brush_shape);
+    }
+    *last_x = x;
+    *last_y = y;
+    return 1;
+}
+
 int active_layer_apply_translation(LayerStack *layers,
                                    Snapshot *undo_stack, int *undo_count,
                                    Snapshot *redo_stack, int *redo_count,
