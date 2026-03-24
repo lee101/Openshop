@@ -250,6 +250,29 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_rename(&stack, 0, "Backdrop Locked") || !layer_stack_rename(&stack, 1, "Top Locked") ||
+        !layer_stack_add(&stack, "Mask Locked", 0x00000000) || !layer_stack_toggle_lock(&stack, 1) || !layer_stack_toggle_lock(&stack, 2) ||
+        !layer_stack_can_reset_non_background_locked_names(&stack) || !layer_stack_reset_non_background_locked_names(&stack)) {
+        fprintf(stderr, "reset non-background locked names setup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Backdrop Locked") != 0 || strcmp(stack.layers[1].name, "Layer") != 0 ||
+        strcmp(stack.layers[2].name, "Layer 2") != 0 || !stack.layers[1].locked || !stack.layers[2].locked) {
+        fprintf(stderr, "reset non-background locked names labels failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_can_reset_non_background_locked_names(&stack) || layer_stack_reset_non_background_locked_names(&stack) ||
+        !layer_stack_toggle_lock(&stack, 2) || !layer_stack_toggle_lock(&stack, 1) || !layer_stack_delete(&stack, 2) ||
+        !layer_stack_rename(&stack, 0, "Background") || strcmp(stack.layers[1].name, "Layer") != 0) {
+        fprintf(stderr, "reset non-background locked names cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_show(&stack, 1) || !layer_stack_rename(&stack, 0, "Backdrop Visible") || !layer_stack_rename(&stack, 1, "Top Visible") ||
         !layer_stack_add(&stack, "Mask", 0x00000000) || !layer_stack_toggle_visibility(&stack, 2) ||
         !layer_stack_can_reset_non_background_visible_names(&stack) || !layer_stack_reset_non_background_visible_names(&stack)) {

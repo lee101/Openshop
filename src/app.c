@@ -559,7 +559,10 @@ static int handle_layer_name_shortcut(
         return 0;
     }
 
-    if (alt && shift && !ctrl) {
+    if (shift && !ctrl && !alt) {
+        can_reset = layer_stack_can_reset_non_background_locked_names;
+        reset = layer_stack_reset_non_background_locked_names;
+    } else if (alt && shift && !ctrl) {
         can_reset = layer_stack_can_reset_non_background_visible_names;
         reset = layer_stack_reset_non_background_visible_names;
     } else if (alt && !ctrl && !shift) {

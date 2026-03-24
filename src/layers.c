@@ -462,6 +462,14 @@ int layer_stack_reset_non_background_visible_names(LayerStack *stack) {
     return layer_stack_reset_names_in_scope(stack, 1, 0, 0, 1);
 }
 
+int layer_stack_can_reset_non_background_locked_names(const LayerStack *stack) {
+    return layer_stack_can_reset_names_in_scope(stack, 0, 0, 1, 1);
+}
+
+int layer_stack_reset_non_background_locked_names(LayerStack *stack) {
+    return layer_stack_reset_names_in_scope(stack, 0, 0, 1, 1);
+}
+
 int layer_stack_toggle_lock(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
