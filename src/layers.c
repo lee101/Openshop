@@ -630,10 +630,11 @@ int layer_stack_show_unlocked_only(LayerStack *stack, int preserve_index) {
 }
 
 int layer_stack_reveal_hidden(LayerStack *stack, int direction) {
-    if (!stack || stack->layer_count <= 0) {
+    int target;
+    if (!stack || stack->layer_count <= 0 || direction == 0) {
         return 0;
     }
-    int target = layer_stack_cycle_filtered(stack, direction, 0);
+    target = layer_stack_find_combined_filter_from(stack, stack->active_layer, direction, 0, 1, -1);
     return layer_stack_reveal_target(stack, target);
 }
 

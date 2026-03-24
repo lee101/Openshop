@@ -4875,6 +4875,17 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[0].visible = 1;
+    stack.layers[1].visible = 0;
+    stack.layers[2].visible = 1;
+    stack.layers[3].visible = 1;
+    stack.active_layer = 1;
+    if (!layer_stack_reveal_hidden(&stack, 1) || stack.active_layer != 1 || !stack.layers[1].visible) {
+        fprintf(stderr, "reveal hidden should reveal active hidden target\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[2].visible = 1;
     if (stack.solo_index != -1) {
         fprintf(stderr, "reveal hidden should clear solo mode\n");
