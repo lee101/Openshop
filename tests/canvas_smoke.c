@@ -420,6 +420,12 @@ static int test_shape_preview_state_helpers(void) {
         fprintf(stderr, "shape_preview_cancel failed\n");
         return 0;
     }
+    shaping = 9;
+    shape_preview_cancel(&shaping, NULL);
+    if (shaping != 0) {
+        fprintf(stderr, "shape_preview_cancel partial null failed\n");
+        return 0;
+    }
     shape_preview_cancel(NULL, NULL);
 
     if (!layer_stack_init(&stack, 2, 2, 0xFFFFFFFF)) {
@@ -455,6 +461,14 @@ static int test_shape_preview_state_helpers(void) {
     }
     stack.layers[stack.active_layer].locked = 0;
 
+    shaping = 0;
+    if (shape_preview_begin_if_editable(NULL, 1, 1, &composite, base_pixels, &shaping, &start_x, &start_y) || shaping) {
+        fprintf(stderr, "shape_preview_begin_if_editable null layer guard failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
     if (shape_preview_begin_if_editable(&stack, 1, 1, &composite, base_pixels, NULL, &start_x, &start_y) ||
         shape_preview_begin_if_editable(&stack, 1, 1, &composite, base_pixels, &shaping, NULL, &start_y) ||
         shape_preview_begin_if_editable(&stack, 1, 1, &composite, base_pixels, &shaping, &start_x, NULL)) {
@@ -470,6 +484,26 @@ static int test_shape_preview_state_helpers(void) {
         !shaping || start_x != 5 || start_y != 6 ||
         base_pixels[0] != 0 || base_pixels[3] != 0) {
         fprintf(stderr, "shape_preview_begin_if_editable null composite failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    memset(base_pixels, 0xAB, sizeof(base_pixels));
+    shaping = 0;
+    composite.pixels = NULL;
+    if (!shape_preview_begin_if_editable(&stack, 7, 8, &composite, base_pixels, &shaping, &start_x, &start_y) ||
+        !shaping || start_x != 7 || start_y != 8 ||
+        base_pixels[0] != 0xABABABABu || base_pixels[3] != 0xABABABABu) {
+        fprintf(stderr, "shape_preview_begin_if_editable null pixel source failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    canvas_free(&stack.layers[stack.active_layer].canvas);
+    shaping = 0;
+    if (shape_preview_begin_if_editable(&stack, 9, 10, &composite, base_pixels, &shaping, &start_x, &start_y) || shaping) {
+        fprintf(stderr, "shape_preview_begin_if_editable active null pixels failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
