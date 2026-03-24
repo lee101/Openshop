@@ -118,10 +118,29 @@ static int test_color_sample_helpers(void) {
         return 0;
     }
 
+    if (sample_canvas_brush_state(NULL, 0, 0, &brush_rgb, &brush_color, &brush_opacity, &tool) ||
+        sample_canvas_brush_state(&canvas, 0, 0, NULL, &brush_color, &brush_opacity, &tool) ||
+        sample_canvas_brush_state(&canvas, 0, 0, &brush_rgb, NULL, &brush_opacity, &tool) ||
+        sample_canvas_brush_state(&canvas, 0, 0, &brush_rgb, &brush_color, NULL, &tool) ||
+        sample_canvas_brush_state(&canvas, 0, 0, &brush_rgb, &brush_color, &brush_opacity, NULL)) {
+        fprintf(stderr, "sample_canvas_brush_state null guard failed\n");
+        canvas_free(&canvas);
+        return 0;
+    }
+
     canvas_set_pixel_raw(&canvas, 0, 0, 0x00443322);
     if (!sample_canvas_brush_state(&canvas, 0, 0, &brush_rgb, &brush_color, &brush_opacity, &tool) ||
         brush_opacity != 1 || brush_color != compose_brush_color(brush_rgb, 1)) {
         fprintf(stderr, "sample_canvas_brush_state alpha clamp failed\n");
+        canvas_free(&canvas);
+        return 0;
+    }
+
+    canvas_set_pixel_raw(&canvas, 0, 1, 0xFF123456);
+    if (!sample_canvas_brush_state(&canvas, 0, 1, &brush_rgb, &brush_color, &brush_opacity, &tool) ||
+        brush_rgb != 0x00123456 || brush_opacity != 100 ||
+        brush_color != compose_brush_color(brush_rgb, 100)) {
+        fprintf(stderr, "sample_canvas_brush_state opaque sample failed\n");
         canvas_free(&canvas);
         return 0;
     }
@@ -186,6 +205,10 @@ static int test_layer_edit_state_helpers(void) {
         fprintf(stderr, "active_layer_clear_color null fallback failed\n");
         return 0;
     }
+    if (active_layer_editable(NULL)) {
+        fprintf(stderr, "active_layer_editable null guard failed\n");
+        return 0;
+    }
 
     if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
         fprintf(stderr, "layer_stack_init for edit state failed\n");
@@ -224,6 +247,12 @@ static int test_layer_edit_state_helpers(void) {
     stack.layers[stack.active_layer].canvas.pixels = NULL;
     if (active_layer_editable(&stack)) {
         fprintf(stderr, "active_layer_editable null pixels failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.active_layer = 99;
+    if (active_layer_editable(&stack)) {
+        fprintf(stderr, "active_layer_editable out of range failed\n");
         layer_stack_free(&stack);
         return 0;
     }
@@ -789,6 +818,20 @@ static int test_layers_basic(void) {
         if (current_display_canvas(0, NULL, &composite) != &composite ||
             current_display_pixels(0, NULL, &composite) != composite.pixels) {
             fprintf(stderr, "display canvas should use composite without preview\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        if (current_display_canvas(1, NULL, NULL) != NULL ||
+            current_display_pixels(1, NULL, NULL) != NULL) {
+            fprintf(stderr, "display canvas should return null without sources\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        if (current_display_canvas(0, &preview, NULL) != NULL ||
+            current_display_pixels(0, &preview, NULL) != NULL) {
+            fprintf(stderr, "display canvas should not use preview when preview is inactive\n");
             canvas_free(&composite);
             layer_stack_free(&stack);
             return 0;
