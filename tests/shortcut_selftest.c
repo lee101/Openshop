@@ -1369,6 +1369,60 @@ static int expect_begin_shape_preview_to_active_layer(
 
 typedef struct {
     const char *label;
+    int use_stack;
+    int locked;
+    int start_x;
+    int start_y;
+    int initial_shaping;
+    int initial_shape_start_x;
+    int initial_shape_start_y;
+    int want_started;
+    int want_shaping;
+    int want_shape_start_x;
+    int want_shape_start_y;
+    const uint32_t *want_shape_base_pixels;
+    size_t want_pixel_count;
+} BeginShapePreviewToActiveLayerCase;
+
+static int run_begin_shape_preview_to_active_layer_case(
+    const BeginShapePreviewToActiveLayerCase *test_case,
+    uint32_t *shape_base_pixels,
+    const Canvas *composite
+) {
+    LayerStack stack;
+    Canvas canvas;
+    uint32_t pixels[4];
+    LayerStack *layers = NULL;
+    int shaping = test_case->initial_shaping;
+    int shape_start_x = test_case->initial_shape_start_x;
+    int shape_start_y = test_case->initial_shape_start_y;
+
+    if (test_case->use_stack) {
+        init_single_layer_stack(&stack, &canvas, pixels, 2, 2, 0x00000000u, test_case->locked);
+        layers = &stack;
+    }
+
+    return expect_begin_shape_preview_to_active_layer(
+        test_case->label,
+        layers,
+        test_case->start_x,
+        test_case->start_y,
+        &shaping,
+        &shape_start_x,
+        &shape_start_y,
+        shape_base_pixels,
+        composite,
+        test_case->want_started,
+        test_case->want_shaping,
+        test_case->want_shape_start_x,
+        test_case->want_shape_start_y,
+        test_case->want_shape_base_pixels,
+        test_case->want_pixel_count
+    );
+}
+
+typedef struct {
+    const char *label;
     int start_x;
     int start_y;
     int initial_shaping;
@@ -3484,82 +3538,43 @@ int main(void) {
         }
     }
     {
-        LayerStack stack;
-        Canvas canvas;
-        uint32_t pixels[4];
+        const BeginShapePreviewToActiveLayerCase begin_shape_preview_to_active_layer_cases[] = {
+            {
+                "begin_shape_preview_to_active_layer_editable",
+                1, 0,
+                240, 250,
+                20, 29, 30,
+                1, 1, 240, 250,
+                preview_source, 4,
+            },
+            {
+                "begin_shape_preview_to_active_layer_locked_noop",
+                1, 1,
+                260, 270,
+                21, 31, 32,
+                0, 21, 31, 32,
+                preview_sentinel, 4,
+            },
+            {
+                "begin_shape_preview_to_active_layer_null_stack_noop",
+                0, 0,
+                280, 290,
+                22, 33, 34,
+                0, 22, 33, 34,
+                preview_sentinel, 4,
+            },
+        };
+        size_t i;
 
-        init_single_layer_stack(&stack, &canvas, pixels, 2, 2, 0x00000000u, 0);
-        memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
-        shaping = 20;
-        shape_start_x = 29;
-        shape_start_y = 30;
-        ok = ok && expect_begin_shape_preview_to_active_layer(
-            "begin_shape_preview_to_active_layer_editable",
-            &stack,
-            240,
-            250,
-            &shaping,
-            &shape_start_x,
-            &shape_start_y,
-            preview_copy,
-            &begin_preview_canvas,
-            1,
-            1,
-            240,
-            250,
-            preview_source,
-            4
-        );
+        for (i = 0; i < sizeof(begin_shape_preview_to_active_layer_cases) / sizeof(begin_shape_preview_to_active_layer_cases[0]); i++) {
+            memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
+            ok = ok && run_begin_shape_preview_to_active_layer_case(
+                &begin_shape_preview_to_active_layer_cases[i],
+                preview_copy,
+                &begin_preview_canvas
+            );
+        }
     }
-    {
-        LayerStack stack;
-        Canvas canvas;
-        uint32_t pixels[4];
-
-        init_single_layer_stack(&stack, &canvas, pixels, 2, 2, 0x00000000u, 1);
-        memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
-        shaping = 21;
-        shape_start_x = 31;
-        shape_start_y = 32;
-        ok = ok && expect_begin_shape_preview_to_active_layer(
-            "begin_shape_preview_to_active_layer_locked_noop",
-            &stack,
-            260,
-            270,
-            &shaping,
-            &shape_start_x,
-            &shape_start_y,
-            preview_copy,
-            &begin_preview_canvas,
-            0,
-            21,
-            31,
-            32,
-            preview_sentinel,
-            4
-        );
-    }
-    memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
-    shaping = 22;
-    shape_start_x = 33;
-    shape_start_y = 34;
-    ok = ok && expect_begin_shape_preview_to_active_layer(
-        "begin_shape_preview_to_active_layer_null_stack_noop",
-        NULL,
-        280,
-        290,
-        &shaping,
-        &shape_start_x,
-        &shape_start_y,
-        preview_copy,
-        &begin_preview_canvas,
-        0,
-        22,
-        33,
-        34,
-        preview_sentinel,
-        4
-    );
     ok = ok && expect_cancel_shape_preview("cancel_shape_preview_both", &shaping, &preview_active, 0, 0);
     shaping = 7;
     preview_active = 9;
