@@ -522,6 +522,37 @@ static int test_layer_action_history_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    redo_count = 1;
+    redo_stack[0].pixels = (uint32_t *)malloc(sizeof(uint32_t));
+    if (!redo_stack[0].pixels) {
+        fprintf(stderr, "layer action alias guard allocation failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    redo_stack[0].pixels[0] = 0x2468ACE0u;
+    stack.active_layer = 1;
+    if (layer_action_history_apply_custom_with_result(&stack, undo_stack, &undo_count, undo_stack, &redo_count,
+                                                      4, test_layer_action_history_custom_flip, &custom_flip) !=
+            LAYER_ACTION_HISTORY_FAILED ||
+        undo_count != 1 || redo_count != 1 || stack.active_layer != 1 || redo_stack[0].pixels[0] != 0x2468ACE0u) {
+        fprintf(stderr, "layer action history should reject aliased history stacks\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_action_history_apply_custom_with_result(&stack, undo_stack, &undo_count, redo_stack, &undo_count,
+                                                      4, test_layer_action_history_custom_flip, &custom_flip) !=
+            LAYER_ACTION_HISTORY_FAILED ||
+        undo_count != 1 || redo_count != 1 || stack.active_layer != 1 || redo_stack[0].pixels[0] != 0x2468ACE0u) {
+        fprintf(stderr, "layer action history should reject aliased history counts\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    snapshot_stack_clear(redo_stack, &redo_count);
 
     snapshot_stack_clear(undo_stack, &undo_count);
     snapshot_stack_clear(redo_stack, &redo_count);
