@@ -7,6 +7,7 @@
 #include "display_canvas.h"
 #include "geometry_helpers.h"
 #include "image_io.h"
+#include "layer_creation.h"
 #include "layer_edit_state.h"
 #include "layer_selection.h"
 #include "layers.h"
@@ -272,8 +273,8 @@ static int try_add_layer(LayerStack *layers,
                          Snapshot *redo_stack, int *redo_count) {
     char status_message[64];
 
-    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, MAX_HISTORY);
-    if (layer_stack_add(layers, NULL, 0x00000000) < 0) {
+    if (!layer_creation_try_add(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                0x00000000, MAX_HISTORY)) {
         format_status_text_max_layers(MAX_LAYERS, status_message, sizeof(status_message));
         fprintf(stderr, "%s\n", status_message);
         return 0;

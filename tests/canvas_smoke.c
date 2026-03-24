@@ -5,6 +5,7 @@
 #include "../src/color_sample.h"
 #include "../src/display_canvas.h"
 #include "../src/geometry_helpers.h"
+#include "../src/layer_creation.h"
 #include "../src/layer_edit_state.h"
 #include "../src/layer_selection.h"
 #include "../src/layers.h"
@@ -309,6 +310,63 @@ static int test_layer_selection_helpers(void) {
         return 0;
     }
 
+    layer_stack_free(&stack);
+    return 1;
+}
+
+static int test_layer_creation_helpers(void) {
+    LayerStack stack;
+    Snapshot undo_stack[MAX_LAYERS] = {0};
+    Snapshot redo_stack[MAX_LAYERS] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+
+    if (layer_creation_try_add(NULL, undo_stack, &undo_count, redo_stack, &redo_count, 0x00000000, 4) ||
+        layer_creation_try_add(&stack, NULL, &undo_count, redo_stack, &redo_count, 0x00000000, 4)) {
+        fprintf(stderr, "layer_creation_try_add null guard failed\n");
+        return 0;
+    }
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "layer_stack_init for creation failed\n");
+        return 0;
+    }
+
+    if (!layer_creation_try_add(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0x00000000, 4) ||
+        stack.layer_count != 2 || undo_count != 1 || redo_count != 0) {
+        fprintf(stderr, "layer_creation_try_add basic add failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (canvas_get_pixel(&stack.layers[1].canvas, 0, 0) != 0x00000000) {
+        fprintf(stderr, "layer_creation_try_add clear color failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    while (stack.layer_count < MAX_LAYERS) {
+        if (!layer_creation_try_add(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0x00000000, MAX_LAYERS)) {
+            fprintf(stderr, "layer_creation_try_add fill to max failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    if (layer_creation_try_add(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0x00000000, MAX_LAYERS)) {
+        fprintf(stderr, "layer_creation_try_add max layer guard failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
     layer_stack_free(&stack);
     return 1;
 }
@@ -3517,6 +3575,10 @@ int main(void) {
     }
 
     if (!test_layer_selection_helpers()) {
+        return 1;
+    }
+
+    if (!test_layer_creation_helpers()) {
         return 1;
     }
 
