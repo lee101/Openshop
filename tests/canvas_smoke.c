@@ -705,8 +705,30 @@ static int test_snapshot_history_helpers(void) {
     Snapshot undo_stack[2] = {0};
     Snapshot redo_stack[2] = {0};
     Snapshot snap = {0};
+    Snapshot guard_stack[2] = {0};
     int undo_count = 0;
     int redo_count = 0;
+    int guard_count = 1;
+
+    guard_stack[0].pixels = (uint32_t *)malloc(sizeof(uint32_t));
+    if (!guard_stack[0].pixels) {
+        fprintf(stderr, "snapshot guard allocation failed\n");
+        return 0;
+    }
+    guard_stack[0].pixels[0] = 0xDEADBEEFu;
+    snapshot_free(NULL);
+    snapshot_stack_clear(NULL, &guard_count);
+    snapshot_stack_clear(guard_stack, NULL);
+    if (!guard_stack[0].pixels || guard_stack[0].pixels[0] != 0xDEADBEEFu || guard_count != 1) {
+        fprintf(stderr, "snapshot free/clear guard checks failed\n");
+        free(guard_stack[0].pixels);
+        return 0;
+    }
+    snapshot_stack_clear(guard_stack, &guard_count);
+    if (guard_count != 0 || guard_stack[0].pixels != NULL) {
+        fprintf(stderr, "snapshot_stack_clear basic clear failed\n");
+        return 0;
+    }
 
     if (!layer_stack_init(&stack, 3, 3, 0xFFFFFFFF)) {
         fprintf(stderr, "snapshot test stack init failed\n");
@@ -723,7 +745,12 @@ static int test_snapshot_history_helpers(void) {
     }
     if (snapshot_from_layers(NULL, &stack) || snapshot_from_layers(&snap, NULL) ||
         snapshot_apply(NULL, &stack) || snapshot_apply(&snap, NULL) ||
-        snapshot_restore(NULL, undo_stack, &undo_count, redo_stack, &redo_count, 2)) {
+        snapshot_restore(NULL, undo_stack, &undo_count, redo_stack, &redo_count, 2) ||
+        snapshot_restore(&stack, NULL, &undo_count, redo_stack, &redo_count, 2) ||
+        snapshot_restore(&stack, undo_stack, NULL, redo_stack, &redo_count, 2) ||
+        snapshot_restore(&stack, undo_stack, &undo_count, NULL, &redo_count, 2) ||
+        snapshot_restore(&stack, undo_stack, &undo_count, redo_stack, NULL, 2) ||
+        snapshot_restore(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0)) {
         fprintf(stderr, "snapshot guard checks failed\n");
         layer_stack_free(&stack);
         return 0;
