@@ -673,6 +673,18 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_duplicate(&stack, 0, NULL) != 1 || strcmp(stack.layers[1].name, "Upper Merge Copy") != 0) {
+        fprintf(stderr, "duplicate merge-created name failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 1)) {
+        fprintf(stderr, "duplicate merge-created name cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!expect_pixel_eq("merge_up_blend", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF0040BF)) {
         canvas_free(&composite);
         layer_stack_free(&stack);
@@ -1059,6 +1071,18 @@ static int test_layers_basic(void) {
     }
     if (!layer_stack_rename(&stack, 2, "Visible Stamp")) {
         fprintf(stderr, "stamp visible new layer restore failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_duplicate(&stack, 2, NULL) != 3 || strcmp(stack.layers[3].name, "Visible Stamp Copy") != 0) {
+        fprintf(stderr, "duplicate stamp-created name failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 3)) {
+        fprintf(stderr, "duplicate stamp-created name cleanup failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
