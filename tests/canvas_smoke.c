@@ -1617,6 +1617,21 @@ static int test_active_layer_ops_helpers(void) {
         }
     }
     {
+        int last_x = -1;
+        int last_y = 1;
+        canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFF556677);
+        if (active_layer_continue_brush_stroke(&stack, TOOL_BRUSH, 2, 1, 1, 0xFF998877,
+                                               BRUSH_SHAPE_ROUND, &last_x, &last_y, 0xFFFFFFFF) ||
+            !expect_pixel_eq("active_continue_prev_oob", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFF556677) ||
+            last_x != -1 || last_y != 1) {
+            fprintf(stderr, "active_layer_continue_brush_stroke previous-point guard failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    {
         int last_x = 1;
         int last_y = 1;
         if (active_layer_continue_brush_stroke(NULL, TOOL_BRUSH, 0, 0, 1, 0xFFFFFFFF,

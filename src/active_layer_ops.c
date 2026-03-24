@@ -374,6 +374,9 @@ int active_layer_continue_brush_stroke(LayerStack *layers,
     if (brush_radius <= 0) {
         return 0;
     }
+    if (*last_x < 0 || *last_y < 0 || *last_x >= active->canvas.width || *last_y >= active->canvas.height) {
+        return 0;
+    }
     if (x < 0 || y < 0 || x >= active->canvas.width || y >= active->canvas.height) {
         return 0;
     }
