@@ -357,6 +357,126 @@ int main(void) {
         return 1;
     }
 
+    if (!snapshot_undo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        !expect_int(stack.layer_count, 4, "restore_for_edge_layer_count")) {
+        fprintf(stderr, "restore for edge move failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    stack.active_layer = 1;
+    snapshot_push(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count);
+    if (!layer_stack_move_to_edge(&stack, 1, 1) ||
+        !expect_int(stack.active_layer, 3, "move_to_edge_active") ||
+        !expect_name(&stack, 3, "Paint Copy", "move_to_edge_name")) {
+        fprintf(stderr, "move to edge setup failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    if (!snapshot_undo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        !expect_int(stack.active_layer, 1, "undo_move_to_edge_active") ||
+        !expect_name(&stack, 1, "Paint Copy", "undo_move_to_edge_name")) {
+        fprintf(stderr, "undo move to edge failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    if (!snapshot_redo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        !expect_int(stack.active_layer, 3, "redo_move_to_edge_active") ||
+        !expect_name(&stack, 3, "Paint Copy", "redo_move_to_edge_name")) {
+        fprintf(stderr, "redo move to edge failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+
+    if (!snapshot_undo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        !expect_int(stack.layer_count, 4, "restore_for_merge_up_layer_count")) {
+        fprintf(stderr, "restore for merge up failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    stack.active_layer = 1;
+    snapshot_push(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count);
+    if (!layer_stack_merge_up(&stack, 1) ||
+        !expect_int(stack.layer_count, 3, "merge_up_layer_count") ||
+        !expect_int(stack.active_layer, 1, "merge_up_active_layer") ||
+        !expect_name(&stack, 1, "Paint", "merge_up_name")) {
+        fprintf(stderr, "merge up setup failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    if (!snapshot_undo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        !expect_int(stack.layer_count, 4, "undo_merge_up_layer_count") ||
+        !expect_int(stack.active_layer, 1, "undo_merge_up_active_layer") ||
+        !expect_name(&stack, 1, "Paint Copy", "undo_merge_up_name")) {
+        fprintf(stderr, "undo merge up failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    if (!snapshot_redo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        !expect_int(stack.layer_count, 3, "redo_merge_up_layer_count") ||
+        !expect_int(stack.active_layer, 1, "redo_merge_up_active_layer") ||
+        !expect_name(&stack, 1, "Paint", "redo_merge_up_name")) {
+        fprintf(stderr, "redo merge up failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    if (stack.layer_count != 3 || strcmp(stack.layers[1].name, "Paint") != 0 || strcmp(stack.layers[2].name, "FX") != 0) {
+        fprintf(stderr, "flatten precondition state failed\n");
+        layer_stack_free(&stack);
+        return 1;
+    }
+    stack.active_layer = 2;
+    snapshot_push(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count);
+    if (!layer_stack_flatten(&stack, 0xFFFFFFFF) ||
+        !expect_int(stack.layer_count, 1, "flatten_layer_count") ||
+        !expect_int(stack.active_layer, 0, "flatten_active_layer") ||
+        !expect_int(stack.solo_index, -1, "flatten_solo_index") ||
+        !expect_name(&stack, 0, "Background", "flatten_name")) {
+        fprintf(stderr, "flatten setup failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    if (!snapshot_undo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        !expect_int(stack.layer_count, 3, "undo_flatten_layer_count") ||
+        !expect_int(stack.active_layer, 2, "undo_flatten_active_layer") ||
+        !expect_name(&stack, 1, "Paint", "undo_flatten_mid_name") ||
+        !expect_name(&stack, 2, "FX", "undo_flatten_top_name")) {
+        fprintf(stderr, "undo flatten failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    if (!snapshot_redo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        !expect_int(stack.layer_count, 1, "redo_flatten_layer_count") ||
+        !expect_int(stack.active_layer, 0, "redo_flatten_active_layer")) {
+        fprintf(stderr, "redo flatten failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+
     snapshot_stack_clear(undo_stack, &undo_count);
     snapshot_stack_clear(redo_stack, &redo_count);
     layer_stack_free(&stack);
