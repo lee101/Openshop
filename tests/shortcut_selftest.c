@@ -30,6 +30,24 @@ static int expect_shortcut(const char *label, int ctrl, int alt, int shift, Laye
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    int ctrl;
+    int alt;
+    int shift;
+    LayerNameResetShortcut want;
+} LayerNameResetShortcutCase;
+
+static int run_layer_name_reset_shortcut_case(const LayerNameResetShortcutCase *test_case) {
+    return expect_shortcut(
+        test_case->label,
+        test_case->ctrl,
+        test_case->alt,
+        test_case->shift,
+        test_case->want
+    );
+}
+
 static int expect_direct_action(const char *label, int ctrl, int alt, int shift, DirectLayerShortcutAction want) {
     DirectLayerShortcutAction got = direct_layer_shortcut_action_from_modifiers(ctrl, alt, shift);
     if (got != want) {
@@ -37,6 +55,24 @@ static int expect_direct_action(const char *label, int ctrl, int alt, int shift,
         return 0;
     }
     return 1;
+}
+
+typedef struct {
+    const char *label;
+    int ctrl;
+    int alt;
+    int shift;
+    DirectLayerShortcutAction want;
+} DirectLayerShortcutCase;
+
+static int run_direct_layer_shortcut_case(const DirectLayerShortcutCase *test_case) {
+    return expect_direct_action(
+        test_case->label,
+        test_case->ctrl,
+        test_case->alt,
+        test_case->shift,
+        test_case->want
+    );
 }
 
 static int expect_history_action(const char *label, int ctrl, int key, HistoryShortcutAction want) {
@@ -3527,19 +3563,33 @@ int main(void) {
     layer_stack.layers[1] = locked_layer;
     layer_stack.layers[2] = empty_layer;
 
-    ok = ok && expect_shortcut("plain_f2", 0, 0, 0, LAYER_NAME_RESET_SHORTCUT_ACTIVE);
-    ok = ok && expect_shortcut("ctrl_f2", 1, 0, 0, LAYER_NAME_RESET_SHORTCUT_ALL);
-    ok = ok && expect_shortcut("ctrl_shift_f2", 1, 0, 1, LAYER_NAME_RESET_SHORTCUT_UNLOCKED);
-    ok = ok && expect_shortcut("ctrl_alt_f2", 1, 1, 0, LAYER_NAME_RESET_SHORTCUT_VISIBLE);
-    ok = ok && expect_shortcut("ctrl_alt_shift_f2", 1, 1, 1, LAYER_NAME_RESET_SHORTCUT_NON_BACKGROUND_UNLOCKED);
-    ok = ok && expect_shortcut("alt_f2", 0, 1, 0, LAYER_NAME_RESET_SHORTCUT_LOCKED);
-    ok = ok && expect_shortcut("alt_shift_f2", 0, 1, 1, LAYER_NAME_RESET_SHORTCUT_NON_BACKGROUND_VISIBLE);
-    ok = ok && expect_shortcut("shift_f2", 0, 0, 1, LAYER_NAME_RESET_SHORTCUT_NON_BACKGROUND_LOCKED);
-    ok = ok && expect_direct_action("plain_number", 1, 0, 0, DIRECT_LAYER_SHORTCUT_SELECT);
-    ok = ok && expect_direct_action("shift_number", 1, 0, 1, DIRECT_LAYER_SHORTCUT_SOLO);
-    ok = ok && expect_direct_action("alt_number", 1, 1, 0, DIRECT_LAYER_SHORTCUT_TOGGLE_VISIBILITY);
-    ok = ok && expect_direct_action("alt_shift_number", 1, 1, 1, DIRECT_LAYER_SHORTCUT_TOGGLE_LOCK);
-    ok = ok && expect_direct_action("missing_ctrl", 0, 0, 0, DIRECT_LAYER_SHORTCUT_NONE);
+    {
+        const LayerNameResetShortcutCase layer_name_reset_cases[] = {
+            {"plain_f2", 0, 0, 0, LAYER_NAME_RESET_SHORTCUT_ACTIVE},
+            {"ctrl_f2", 1, 0, 0, LAYER_NAME_RESET_SHORTCUT_ALL},
+            {"ctrl_shift_f2", 1, 0, 1, LAYER_NAME_RESET_SHORTCUT_UNLOCKED},
+            {"ctrl_alt_f2", 1, 1, 0, LAYER_NAME_RESET_SHORTCUT_VISIBLE},
+            {"ctrl_alt_shift_f2", 1, 1, 1, LAYER_NAME_RESET_SHORTCUT_NON_BACKGROUND_UNLOCKED},
+            {"alt_f2", 0, 1, 0, LAYER_NAME_RESET_SHORTCUT_LOCKED},
+            {"alt_shift_f2", 0, 1, 1, LAYER_NAME_RESET_SHORTCUT_NON_BACKGROUND_VISIBLE},
+            {"shift_f2", 0, 0, 1, LAYER_NAME_RESET_SHORTCUT_NON_BACKGROUND_LOCKED},
+        };
+        const DirectLayerShortcutCase direct_layer_shortcut_cases[] = {
+            {"plain_number", 1, 0, 0, DIRECT_LAYER_SHORTCUT_SELECT},
+            {"shift_number", 1, 0, 1, DIRECT_LAYER_SHORTCUT_SOLO},
+            {"alt_number", 1, 1, 0, DIRECT_LAYER_SHORTCUT_TOGGLE_VISIBILITY},
+            {"alt_shift_number", 1, 1, 1, DIRECT_LAYER_SHORTCUT_TOGGLE_LOCK},
+            {"missing_ctrl", 0, 0, 0, DIRECT_LAYER_SHORTCUT_NONE},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(layer_name_reset_cases) / sizeof(layer_name_reset_cases[0]); i++) {
+            ok = ok && run_layer_name_reset_shortcut_case(&layer_name_reset_cases[i]);
+        }
+        for (i = 0; i < sizeof(direct_layer_shortcut_cases) / sizeof(direct_layer_shortcut_cases[0]); i++) {
+            ok = ok && run_direct_layer_shortcut_case(&direct_layer_shortcut_cases[i]);
+        }
+    }
     ok = ok && expect_history_action("undo", 1, 'z', HISTORY_SHORTCUT_UNDO);
     ok = ok && expect_history_action("redo", 1, 'y', HISTORY_SHORTCUT_REDO);
     ok = ok && expect_history_action("missing_ctrl_history", 0, 'z', HISTORY_SHORTCUT_NONE);
