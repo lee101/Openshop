@@ -304,54 +304,80 @@ static int test_shape_draw_helpers(void) {
 
 static int test_snapshot_history_helpers(void) {
     LayerStack stack;
-    Snapshot history[2] = {0};
-    Snapshot redo[2] = {0};
-    int history_count = 0;
+    Snapshot undo_stack[2] = {0};
+    Snapshot redo_stack[2] = {0};
+    Snapshot snap = {0};
+    int undo_count = 0;
     int redo_count = 0;
 
-    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
-        fprintf(stderr, "layer_stack_init for snapshot history failed\n");
+    if (!layer_stack_init(&stack, 3, 3, 0xFFFFFFFF)) {
+        fprintf(stderr, "snapshot test stack init failed\n");
         return 0;
     }
-
-    canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFF123456);
-    snapshot_push(&stack, history, &history_count, redo, &redo_count, 2);
-    if (history_count != 1 || redo_count != 0) {
-        fprintf(stderr, "snapshot_push bookkeeping failed\n");
+    if (layer_stack_add(&stack, "Top", 0x00000000) < 0) {
+        fprintf(stderr, "snapshot test add layer failed\n");
         layer_stack_free(&stack);
         return 0;
     }
 
-    canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFFABCDEF);
-    if (!snapshot_restore(&stack, history, &history_count, redo, &redo_count, 2)) {
+    stack.layers[0].locked = 1;
+    stack.layers[1].visible = 0;
+    canvas_set_pixel_raw(&stack.layers[1].canvas, 1, 1, 0xFF112233);
+    if (!snapshot_from_layers(&snap, &stack)) {
+        fprintf(stderr, "snapshot_from_layers failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    canvas_set_pixel_raw(&stack.layers[1].canvas, 1, 1, 0x00000000);
+    stack.layers[0].locked = 0;
+    stack.layers[1].visible = 1;
+    if (!snapshot_apply(&snap, &stack) ||
+        !expect_pixel_eq("snapshot_apply_pixel", canvas_get_pixel(&stack.layers[1].canvas, 1, 1), 0xFF112233) ||
+        !stack.layers[0].locked || stack.layers[1].visible) {
+        fprintf(stderr, "snapshot_apply restore failed\n");
+        snapshot_free(&snap);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    snapshot_free(&snap);
+
+    snapshot_push(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 2);
+    if (undo_count != 1) {
+        fprintf(stderr, "snapshot_push count failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    canvas_set_pixel_raw(&stack.layers[1].canvas, 1, 1, 0xFF556677);
+    if (!snapshot_restore(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 2) ||
+        undo_count != 0 || redo_count != 1 ||
+        !expect_pixel_eq("snapshot_restore_pixel", canvas_get_pixel(&stack.layers[1].canvas, 1, 1), 0xFF112233)) {
         fprintf(stderr, "snapshot_restore failed\n");
-        layer_stack_free(&stack);
-        return 0;
-    }
-    if (history_count != 0 || redo_count != 1 ||
-        !expect_pixel_eq("snapshot_restore_pixel", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFF123456)) {
-        snapshot_stack_clear(history, &history_count);
-        snapshot_stack_clear(redo, &redo_count);
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
         return 0;
     }
 
-    canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 0, 0xFF000001);
-    snapshot_push(&stack, history, &history_count, redo, &redo_count, 2);
-    canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 1, 0xFF000002);
-    snapshot_push(&stack, history, &history_count, redo, &redo_count, 2);
-    canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 2, 0xFF000003);
-    snapshot_push(&stack, history, &history_count, redo, &redo_count, 2);
-    if (history_count != 2 || redo_count != 0) {
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    canvas_set_pixel_raw(&stack.layers[1].canvas, 0, 0, 0xFF000001);
+    snapshot_push(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 2);
+    canvas_set_pixel_raw(&stack.layers[1].canvas, 0, 1, 0xFF000002);
+    snapshot_push(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 2);
+    canvas_set_pixel_raw(&stack.layers[1].canvas, 0, 2, 0xFF000003);
+    snapshot_push(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 2);
+    if (undo_count != 2 || redo_count != 0) {
         fprintf(stderr, "snapshot_push max history failed\n");
-        snapshot_stack_clear(history, &history_count);
-        snapshot_stack_clear(redo, &redo_count);
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
         return 0;
     }
 
-    snapshot_stack_clear(history, &history_count);
-    snapshot_stack_clear(redo, &redo_count);
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
     layer_stack_free(&stack);
     return 1;
 }
