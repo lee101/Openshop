@@ -65,6 +65,48 @@ static int canvas_stamp_would_change(const Canvas *canvas,
     return 0;
 }
 
+static int canvas_line_would_change(const Canvas *canvas,
+                                    int x0, int y0, int x1, int y1,
+                                    int radius, uint32_t color, BrushShape shape) {
+    int dx;
+    int sx;
+    int dy;
+    int sy;
+    int err;
+
+    if (!canvas || !canvas->pixels || radius <= 0) {
+        return 0;
+    }
+
+    dx = x1 > x0 ? x1 - x0 : x0 - x1;
+    sx = x0 < x1 ? 1 : -1;
+    dy = -(y1 > y0 ? y1 - y0 : y0 - y1);
+    sy = y0 < y1 ? 1 : -1;
+    err = dx + dy;
+
+    while (1) {
+        if (canvas_stamp_would_change(canvas, x0, y0, radius, color, shape)) {
+            return 1;
+        }
+        if (x0 == x1 && y0 == y1) {
+            break;
+        }
+        {
+            int e2 = 2 * err;
+            if (e2 >= dy) {
+                err += dy;
+                x0 += sx;
+            }
+            if (e2 <= dx) {
+                err += dx;
+                y0 += sy;
+            }
+        }
+    }
+
+    return 0;
+}
+
 static int active_layer_apply_transform(LayerStack *layers,
                                         Snapshot *undo_stack, int *undo_count,
                                         Snapshot *redo_stack, int *redo_count,
@@ -313,6 +355,7 @@ int active_layer_continue_brush_stroke(LayerStack *layers,
                                        uint32_t background_color) {
     Layer *active;
     uint8_t brush_alpha;
+    uint32_t clear_color;
 
     if (!layers || !last_x || !last_y) {
         return 0;
@@ -334,10 +377,20 @@ int active_layer_continue_brush_stroke(LayerStack *layers,
     if (x < 0 || y < 0 || x >= active->canvas.width || y >= active->canvas.height) {
         return 0;
     }
+    clear_color = active_layer_clear_color(layers, background_color);
+    if (tool == TOOL_ERASER &&
+        !canvas_line_would_change(&active->canvas, *last_x, *last_y, x, y, brush_radius,
+                                  clear_color, brush_shape)) {
+        return 0;
+    }
+    if (tool == TOOL_BRUSH &&
+        !canvas_line_would_change(&active->canvas, *last_x, *last_y, x, y, brush_radius,
+                                  brush_color, brush_shape)) {
+        return 0;
+    }
 
     if (tool == TOOL_ERASER) {
-        erase_line(&active->canvas, *last_x, *last_y, x, y, brush_radius,
-                   active_layer_clear_color(layers, background_color), brush_shape);
+        erase_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, clear_color, brush_shape);
     } else {
         draw_brush_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, brush_color, brush_shape);
     }
