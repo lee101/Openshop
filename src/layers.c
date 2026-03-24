@@ -163,7 +163,8 @@ static int layer_stack_reveal_selected_combined_filter(LayerStack *stack, int fr
     if (!stack || stack->layer_count <= 0) {
         return 0;
     }
-    target = layer_stack_select_combined_filter(stack, from_top, required_hidden, required_locked);
+    target = layer_stack_find_combined_filter_from(stack, stack->active_layer, 0, from_top,
+                                                   required_hidden, required_locked);
     return layer_stack_reveal_target(stack, target);
 }
 

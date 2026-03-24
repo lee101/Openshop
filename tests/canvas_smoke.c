@@ -4522,6 +4522,30 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[0].visible = 1;
+    stack.layers[1].visible = 0;
+    stack.layers[2].visible = 1;
+    stack.layers[3].visible = 1;
+    stack.layers[1].locked = 1;
+    stack.active_layer = 1;
+    if (!layer_stack_reveal_hidden_locked(&stack, 0) || stack.active_layer != 1 || !stack.layers[1].visible) {
+        fprintf(stderr, "reveal hidden locked should reveal active hidden target\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[0].visible = 1;
+    stack.layers[1].visible = 0;
+    stack.layers[2].visible = 1;
+    stack.layers[3].visible = 1;
+    stack.layers[1].locked = 0;
+    stack.active_layer = 1;
+    if (!layer_stack_reveal_hidden_unlocked(&stack, 0) || stack.active_layer != 1 || !stack.layers[1].visible) {
+        fprintf(stderr, "reveal hidden unlocked should reveal active hidden target\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[0].locked = 0;
     stack.layers[1].locked = 0;
     stack.layers[2].locked = 0;
