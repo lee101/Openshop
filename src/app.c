@@ -7,6 +7,7 @@
 #include "display_canvas.h"
 #include "geometry_helpers.h"
 #include "image_io.h"
+#include "layer_action_history.h"
 #include "layer_creation.h"
 #include "layer_edit_state.h"
 #include "layer_selection.h"
@@ -311,8 +312,8 @@ static void run_indexed_layer_action(SDL_Window *window, LayerStack *layers,
                                      int brush_radius, uint32_t brush_color, int brush_opacity,
                                      int *needs_composite, LayerIndexedActionFn action,
                                      StatusTextAction error_action, int mark_composite) {
-    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, MAX_HISTORY);
-    if (!action(layers, layers->active_layer)) {
+    if (!layer_action_history_apply_indexed(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                            MAX_HISTORY, action, layers->active_layer)) {
         fprintf(stderr, "%s\n", status_text_action_error(error_action));
     } else if (mark_composite) {
         *needs_composite = 1;
@@ -326,8 +327,8 @@ static void run_directional_layer_action(SDL_Window *window, LayerStack *layers,
                                          Tool tool, BrushShape brush_shape,
                                          int brush_radius, uint32_t brush_color, int brush_opacity,
                                          int *needs_composite, LayerDirectionalActionFn action, int arg) {
-    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, MAX_HISTORY);
-    if (action(layers, arg)) {
+    if (layer_action_history_apply_directional(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                               MAX_HISTORY, action, arg)) {
         *needs_composite = 1;
     }
     update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -340,8 +341,9 @@ static void run_indexed_layer_action_silent(SDL_Window *window, LayerStack *laye
                                             int brush_radius, uint32_t brush_color, int brush_opacity,
                                             int *needs_composite, LayerIndexedActionFn action,
                                             int mark_composite) {
-    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, MAX_HISTORY);
-    if (action(layers, layers->active_layer) && mark_composite) {
+    if (layer_action_history_apply_indexed(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                           MAX_HISTORY, action, layers->active_layer) &&
+        mark_composite) {
         *needs_composite = 1;
     }
     update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);

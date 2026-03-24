@@ -5,6 +5,7 @@
 #include "../src/color_sample.h"
 #include "../src/display_canvas.h"
 #include "../src/geometry_helpers.h"
+#include "../src/layer_action_history.h"
 #include "../src/layer_creation.h"
 #include "../src/layer_edit_state.h"
 #include "../src/layer_selection.h"
@@ -116,6 +117,93 @@ static int test_brush_state_helpers(void) {
     }
     brush_state_cycle_shape_in_place(NULL, 1);
 
+    return 1;
+}
+
+static int test_layer_action_history_helpers(void) {
+    LayerStack stack = {0};
+    Snapshot undo_stack[4] = {0};
+    Snapshot redo_stack[4] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+
+    if (!layer_stack_init(&stack, 3, 3, 0xFFFFFFFF)) {
+        fprintf(stderr, "layer action history init failed\n");
+        return 0;
+    }
+    if (layer_stack_add(&stack, "Top", 0x00000000) != 1) {
+        fprintf(stderr, "layer action history setup failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    stack.active_layer = 1;
+    if (layer_action_history_apply_indexed(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                           4, layer_stack_show, 1)) {
+        fprintf(stderr, "indexed no-op should not push history\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (undo_count != 0 || redo_count != 0) {
+        fprintf(stderr, "indexed no-op should preserve history counts\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    stack.layers[1].visible = 0;
+    if (!layer_action_history_apply_indexed(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                            4, layer_stack_show, 1)) {
+        fprintf(stderr, "indexed change should push history\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (undo_count != 1 || redo_count != 0 || !stack.layers[1].visible) {
+        fprintf(stderr, "indexed change history bookkeeping failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!snapshot_restore(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4)) {
+        fprintf(stderr, "indexed change snapshot restore failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (undo_count != 0 || redo_count != 1 || stack.layers[1].visible) {
+        fprintf(stderr, "indexed change undo state failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    stack.layers[0].visible = 1;
+    stack.layers[1].visible = 1;
+    stack.active_layer = 0;
+    if (layer_action_history_apply_directional(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                               4, layer_stack_reveal_hidden, 1)) {
+        fprintf(stderr, "directional no-op should not push history\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (undo_count != 0 || redo_count != 1 || stack.active_layer != 0) {
+        fprintf(stderr, "directional no-op should preserve history and state\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    stack.layers[1].visible = 0;
+    if (!layer_action_history_apply_directional(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                4, layer_stack_reveal_hidden, 1)) {
+        fprintf(stderr, "directional change should push history\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (undo_count != 1 || redo_count != 0 || stack.active_layer != 1 || !stack.layers[1].visible) {
+        fprintf(stderr, "directional change history bookkeeping failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    layer_stack_free(&stack);
     return 1;
 }
 
@@ -5022,6 +5110,10 @@ int main(void) {
     canvas_free(&mask);
 
     if (!test_brush_state_helpers()) {
+        return 1;
+    }
+
+    if (!test_layer_action_history_helpers()) {
         return 1;
     }
 
