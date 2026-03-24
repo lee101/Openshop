@@ -34,6 +34,31 @@ static void history_push_existing(LayerSnapshot *stack, int *count, LayerSnapsho
     stack[(*count)++] = *snapshot;
 }
 
+static int layer_snapshot_equals(const LayerSnapshot *a, const LayerSnapshot *b) {
+    if (!a || !b) {
+        return 0;
+    }
+    if (a->width != b->width || a->height != b->height || a->layer_count != b->layer_count ||
+        a->active_layer != b->active_layer || a->solo_index != b->solo_index) {
+        return 0;
+    }
+    if (memcmp(a->visibility, b->visibility, sizeof(a->visibility)) != 0 ||
+        memcmp(a->locked, b->locked, sizeof(a->locked)) != 0 ||
+        memcmp(a->opacity_percent, b->opacity_percent, sizeof(a->opacity_percent)) != 0 ||
+        memcmp(a->names, b->names, sizeof(a->names)) != 0) {
+        return 0;
+    }
+
+    size_t total_pixels = (size_t)a->width * (size_t)a->height * (size_t)a->layer_count;
+    if (total_pixels == 0) {
+        return 1;
+    }
+    if (!a->pixels || !b->pixels) {
+        return a->pixels == b->pixels;
+    }
+    return memcmp(a->pixels, b->pixels, total_pixels * sizeof(uint32_t)) == 0;
+}
+
 void layer_snapshot_free(LayerSnapshot *snapshot) {
     if (!snapshot) {
         return;
@@ -154,6 +179,11 @@ void layer_history_push(const LayerStack *layers, LayerSnapshot *stack, int *cou
 
     LayerSnapshot snapshot = {0};
     if (!layer_snapshot_capture(&snapshot, layers)) {
+        layer_snapshot_free(&snapshot);
+        return;
+    }
+
+    if (*count > 0 && layer_snapshot_equals(&stack[*count - 1], &snapshot)) {
         layer_snapshot_free(&snapshot);
         return;
     }
