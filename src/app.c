@@ -291,17 +291,27 @@ static int handle_canvas_mutation_shortcut(
     return 1;
 }
 
-static void update_window_title(SDL_Window *window, const LayerStack *layers, Tool tool, BrushShape brush_shape, int radius, uint32_t color, int opacity_percent) {
-    if (!window || !layers) {
+static void prepare_app_title(
+    char *title,
+    size_t title_size,
+    const LayerStack *layers,
+    Tool tool,
+    BrushShape brush_shape,
+    int radius,
+    uint32_t color,
+    int opacity_percent
+) {
+    if (!title || title_size == 0 || !layers) {
         return;
     }
+
     const Layer *active = layer_stack_get(layers, layers->active_layer);
     const char *layer_name = active && active->name[0] ? active->name : "Layer";
     int visible_layers = layer_stack_visible_count(layers);
-    char title[256];
+
     snprintf(
         title,
-        sizeof(title),
+        title_size,
         "Openshop - %s (%s) | size %d | brush %d%% | layer %d/%d %s [%s%s %d%%]%s | visible %d/%d | #%08X",
         tool_label(tool),
         brush_shape_label(brush_shape),
@@ -318,6 +328,16 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
         layers->layer_count,
         color
     );
+}
+
+static void update_window_title(SDL_Window *window, const LayerStack *layers, Tool tool, BrushShape brush_shape, int radius, uint32_t color, int opacity_percent) {
+    char title[256];
+
+    if (!window || !layers) {
+        return;
+    }
+
+    prepare_app_title(title, sizeof(title), layers, tool, brush_shape, radius, color, opacity_percent);
     SDL_SetWindowTitle(window, title);
 }
 
