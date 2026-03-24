@@ -151,11 +151,11 @@ static int handle_canvas_sample_shortcut(
     }
 
     if (canvas_action == CANVAS_SHORTCUT_FILL) {
-        active = layer_stack_active(layers);
-        if (active && !active->locked) {
+        active = app_active_editable_layer(layers);
+        if (active) {
             push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
         }
-        if (!active || active->locked || !canvas_flood_fill(&active->canvas, mx, my, *brush_color)) {
+        if (!active || !canvas_flood_fill(&active->canvas, mx, my, *brush_color)) {
             fprintf(stderr, "Fill failed\n");
         } else if (needs_composite) {
             *needs_composite = 1;
@@ -784,8 +784,8 @@ static int handle_file_shortcut(
     }
 
     if (action == FILE_SHORTCUT_LOAD) {
-        active = layer_stack_active(layers);
-        if (!active || active->locked) {
+        active = app_active_editable_layer(layers);
+        if (!active) {
             fprintf(stderr, "Active layer is locked\n");
             return 1;
         }
