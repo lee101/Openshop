@@ -352,8 +352,35 @@ static int expect_constrained_shape_end(
     return 1;
 }
 
+static int expect_constrained_shape_end_no_output(
+    const char *label,
+    Tool tool,
+    int x0,
+    int y0,
+    int x1,
+    int y1,
+    int shift,
+    int *out_x,
+    int *out_y,
+    int want_x,
+    int want_y
+) {
+    app_constrain_shape_end(tool, x0, y0, x1, y1, shift, out_x, out_y);
+    if (out_x && *out_x != want_x) {
+        fprintf(stderr, "%s x changed: got %d want %d\n", label, *out_x, want_x);
+        return 0;
+    }
+    if (out_y && *out_y != want_y) {
+        fprintf(stderr, "%s y changed: got %d want %d\n", label, *out_y, want_y);
+        return 0;
+    }
+    return 1;
+}
+
 int main(void) {
     int ok = 1;
+    int sentinel_x = 321;
+    int sentinel_y = 654;
 
     ok = ok && expect_shortcut("plain_f2", 0, 0, 0, LAYER_NAME_RESET_SHORTCUT_ACTIVE);
     ok = ok && expect_shortcut("ctrl_f2", 1, 0, 0, LAYER_NAME_RESET_SHORTCUT_ALL);
@@ -431,6 +458,8 @@ int main(void) {
     ok = ok && expect_constrained_shape_end("shape_line_diagonal_snap", TOOL_LINE, 10, 10, 18, 15, 1, 18, 18);
     ok = ok && expect_constrained_shape_end("shape_rect_square_snap", TOOL_RECT, 10, 10, 14, 18, 1, 18, 18);
     ok = ok && expect_constrained_shape_end("shape_no_shift_passthrough", TOOL_ELLIPSE, 10, 10, 14, 18, 0, 14, 18);
+    ok = ok && expect_constrained_shape_end_no_output("shape_null_out_x", TOOL_LINE, 10, 10, 25, 13, 1, NULL, &sentinel_y, 0, 654);
+    ok = ok && expect_constrained_shape_end_no_output("shape_null_out_y", TOOL_LINE, 10, 10, 25, 13, 1, &sentinel_x, NULL, 321, 0);
     ok = ok && expect_title(
         "title_visible_locked_solo",
         "Brush",
