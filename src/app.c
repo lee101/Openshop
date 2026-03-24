@@ -557,6 +557,178 @@ static int apply_layer_duplicate(
     return 1;
 }
 
+static int apply_toggle_lock(
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int index,
+    const char *failure_message
+) {
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    if (!layer_stack_toggle_lock(layers, index)) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    return 1;
+}
+
+static int apply_flatten(
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    uint32_t background_color,
+    const char *failure_message
+) {
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    if (!layer_stack_flatten(layers, background_color)) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    return 1;
+}
+
+static int apply_stamp_visible_into(
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int index,
+    uint32_t background_color,
+    const char *failure_message
+) {
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    if (!layer_stack_stamp_visible_into(layers, index, background_color)) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    return 1;
+}
+
+static int apply_toggle_visibility(
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int index,
+    const char *failure_message
+) {
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    if (!layer_stack_toggle_visibility(layers, index)) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    return 1;
+}
+
+static int apply_hide_and_advance(
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int index,
+    const char *failure_message
+) {
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    if (!layer_stack_hide_and_advance(layers, index)) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    return 1;
+}
+
+static int apply_toggle_solo(
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int index,
+    const char *failure_message
+) {
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    if (!layer_stack_toggle_solo(layers, index)) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    return 1;
+}
+
+static int apply_layer_delete(
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int index,
+    const char *failure_message
+) {
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    if (!layer_stack_delete(layers, index)) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    return 1;
+}
+
+static int apply_merge_down(
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int index,
+    const char *failure_message
+) {
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    if (!layer_stack_merge_down(layers, index)) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    return 1;
+}
+
+static int apply_merge_up(
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int index,
+    const char *failure_message
+) {
+    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    if (!layer_stack_merge_up(layers, index)) {
+        if (failure_message) {
+            fprintf(stderr, "%s\n", failure_message);
+        }
+        return 0;
+    }
+    return 1;
+}
+
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
     switch (shape) {
     case BRUSH_SHAPE_ROUND:
@@ -1117,19 +1289,27 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && shift && key == SDLK_l) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_toggle_lock(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Could not toggle layer lock\n");
-                    }
+                    apply_toggle_lock(
+                        &layers,
+                        undo_stack,
+                        &undo_count,
+                        redo_stack,
+                        &redo_count,
+                        layers.active_layer,
+                        "Could not toggle layer lock");
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
 
                 if (ctrl && shift && key == SDLK_m) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_flatten(&layers, COLOR_BG)) {
-                        fprintf(stderr, "Flatten failed (check for locked layers)\n");
-                    } else {
+                    if (apply_flatten(
+                            &layers,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count,
+                            COLOR_BG,
+                            "Flatten failed (check for locked layers)")) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1137,10 +1317,15 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && shift && key == SDLK_e) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_stamp_visible_into(&layers, layers.active_layer, COLOR_BG)) {
-                        fprintf(stderr, "Stamp visible failed (active layer may be locked)\n");
-                    } else {
+                    if (apply_stamp_visible_into(
+                            &layers,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count,
+                            layers.active_layer,
+                            COLOR_BG,
+                            "Stamp visible failed (active layer may be locked)")) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1284,10 +1469,14 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && shift && key == SDLK_v) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_toggle_visibility(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Cannot hide the final visible layer\n");
-                    } else {
+                    if (apply_toggle_visibility(
+                            &layers,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count,
+                            layers.active_layer,
+                            "Cannot hide the final visible layer")) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1295,10 +1484,14 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && shift && key == SDLK_h) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_hide_and_advance(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Cannot hide the final visible layer\n");
-                    } else {
+                    if (apply_hide_and_advance(
+                            &layers,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count,
+                            layers.active_layer,
+                            "Cannot hide the final visible layer")) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1306,10 +1499,14 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_SLASH) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_toggle_solo(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Could not toggle solo mode\n");
-                    } else {
+                    if (apply_toggle_solo(
+                            &layers,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count,
+                            layers.active_layer,
+                            "Could not toggle solo mode")) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1317,10 +1514,14 @@ int app_run(const char *input_path) {
                 }
 
                 if (key == SDLK_DELETE || key == SDLK_BACKSPACE) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_delete(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Cannot delete the final or a locked layer\n");
-                    } else {
+                    if (apply_layer_delete(
+                            &layers,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count,
+                            layers.active_layer,
+                            "Cannot delete the final or a locked layer")) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1351,10 +1552,14 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_m) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_merge_down(&layers, layers.active_layer)) {
-                        fprintf(stderr, "No lower layer to merge into, or one of the layers is locked\n");
-                    } else {
+                    if (apply_merge_down(
+                            &layers,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count,
+                            layers.active_layer,
+                            "No lower layer to merge into, or one of the layers is locked")) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -1362,10 +1567,14 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_u) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                    if (!layer_stack_merge_up(&layers, layers.active_layer)) {
-                        fprintf(stderr, "No upper layer to merge into, or one of the layers is locked\n");
-                    } else {
+                    if (apply_merge_up(
+                            &layers,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count,
+                            layers.active_layer,
+                            "No upper layer to merge into, or one of the layers is locked")) {
                         needs_composite = 1;
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
