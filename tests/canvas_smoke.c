@@ -3573,6 +3573,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_reveal_editable(&stack, -1)) {
+        fprintf(stderr, "reveal editable backward no-op failed when editable target is already active and visible\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[0].locked = 1;
     stack.layers[1].locked = 1;
     stack.layers[2].locked = 1;
