@@ -107,6 +107,42 @@ static int canvas_line_would_change(const Canvas *canvas,
     return 0;
 }
 
+static int canvas_filled_rect_would_change(const Canvas *canvas,
+                                           int x0, int y0, int x1, int y1,
+                                           uint32_t color) {
+    int min_x;
+    int max_x;
+    int min_y;
+    int max_y;
+    int x;
+    int y;
+
+    if (!canvas || !canvas->pixels) {
+        return 0;
+    }
+
+    min_x = x0 < x1 ? x0 : x1;
+    max_x = x0 > x1 ? x0 : x1;
+    min_y = y0 < y1 ? y0 : y1;
+    max_y = y0 > y1 ? y0 : y1;
+
+    for (y = min_y; y <= max_y; y++) {
+        if (y < 0 || y >= canvas->height) {
+            continue;
+        }
+        for (x = min_x; x <= max_x; x++) {
+            if (x < 0 || x >= canvas->width) {
+                continue;
+            }
+            if (canvas_get_pixel(canvas, x, y) != color) {
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
 static int active_layer_apply_transform(LayerStack *layers,
                                         Snapshot *undo_stack, int *undo_count,
                                         Snapshot *redo_stack, int *redo_count,
@@ -285,6 +321,10 @@ int active_layer_try_commit_shape(LayerStack *layers,
     }
     if ((tool == TOOL_ELLIPSE || tool == TOOL_FILLED_ELLIPSE) &&
         (shape_start_x == end_x || shape_start_y == end_y)) {
+        return 0;
+    }
+    if (tool == TOOL_FILLED_RECT &&
+        !canvas_filled_rect_would_change(&active->canvas, shape_start_x, shape_start_y, end_x, end_y, brush_color)) {
         return 0;
     }
     if (brush_radius <= 0 &&
