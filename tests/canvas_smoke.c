@@ -552,6 +552,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || layer_stack_can_reset_name(&stack, 0)) {
+        fprintf(stderr, "merge down should preserve background name\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     layer_stack_composite(&stack, &composite, 0xFFFFFFFF);
     if (!expect_pixel_eq("merge_down_blend", canvas_get_pixel(&composite, 0, 0), 0xFF0040BF)) {
         canvas_free(&composite);
@@ -581,6 +587,19 @@ static int test_layers_basic(void) {
     }
     if (stack.layer_count != 1 || stack.active_layer != 0) {
         fprintf(stderr, "merge up bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Upper Merge") != 0 || !layer_stack_can_reset_name(&stack, 0) ||
+        !layer_stack_reset_name(&stack, 0) || strcmp(stack.layers[0].name, "Background") != 0) {
+        fprintf(stderr, "merge up name reset failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 0, "Upper Merge")) {
+        fprintf(stderr, "merge up name restore failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -789,6 +808,12 @@ static int test_layers_basic(void) {
     }
     if (stack.layer_count != 1 || stack.active_layer != 0) {
         fprintf(stderr, "flatten bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Upper Merge") != 0 || !layer_stack_can_reset_name(&stack, 0)) {
+        fprintf(stderr, "flatten should preserve current base layer name\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
