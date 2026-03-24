@@ -1930,6 +1930,22 @@ static void render_app_frame(
     SDL_RenderPresent(renderer);
 }
 
+static void destroy_app_graphics(
+    SDL_Texture *texture,
+    SDL_Renderer *renderer,
+    SDL_Window *window
+) {
+    if (texture) {
+        SDL_DestroyTexture(texture);
+    }
+    if (renderer) {
+        SDL_DestroyRenderer(renderer);
+    }
+    if (window) {
+        SDL_DestroyWindow(window);
+    }
+}
+
 static void shutdown_app(
     uint32_t *shape_base_pixels,
     uint32_t *preview_pixels,
@@ -1957,15 +1973,7 @@ static void shutdown_app(
     if (redo_stack && redo_count) {
         snapshot_stack_clear(redo_stack, redo_count);
     }
-    if (texture) {
-        SDL_DestroyTexture(texture);
-    }
-    if (renderer) {
-        SDL_DestroyRenderer(renderer);
-    }
-    if (window) {
-        SDL_DestroyWindow(window);
-    }
+    destroy_app_graphics(texture, renderer, window);
     SDL_Quit();
 }
 
@@ -2008,7 +2016,7 @@ static int initialize_app_graphics(
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     if (!renderer) {
         fprintf(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
-        SDL_DestroyWindow(window);
+        destroy_app_graphics(NULL, NULL, window);
         SDL_Quit();
         return 0;
     }
@@ -2022,8 +2030,7 @@ static int initialize_app_graphics(
     );
     if (!texture) {
         fprintf(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
+        destroy_app_graphics(NULL, renderer, window);
         SDL_Quit();
         return 0;
     }
