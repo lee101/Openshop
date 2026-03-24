@@ -55,9 +55,13 @@ make test-sdl
 - `Ctrl+N`: insert a new transparent layer above the active layer
 - `Ctrl+Shift+N`: add a new transparent layer
 - `Ctrl+1` ... `Ctrl+8`: select layer 1-8 directly
+- `Ctrl+F1` ... `Ctrl+F8`: select layer 9-16 directly
 - `Ctrl+Shift+1` ... `Ctrl+Shift+8`: move the active layer to slot 1-8
+- `Ctrl+Shift+F1` ... `Ctrl+Shift+F8`: move the active layer to slot 9-16
 - `Alt+1` ... `Alt+8`: select the 1st-8th visible layer
+- `Alt+F1` ... `Alt+F8`: select the 9th-16th visible layer
 - `Alt+Shift+1` ... `Alt+Shift+8`: move the active layer to the 1st-8th visible slot
+- `Alt+Shift+F1` ... `Alt+Shift+F8`: move the active layer to the 9th-16th visible slot
 - `Ctrl+D`: duplicate active layer
 - `Delete` / `Backspace`: delete active layer
 - `Ctrl+]` / `Ctrl+[`: move active layer up/down
@@ -87,7 +91,7 @@ make test-sdl
 ## Notes
 - Canvas size is 800x600; window is 1024x768.
 - Layer stack starts with a white background layer; new layers are transparent.
-- Maximum of 16 layers are supported; direct digit shortcuts still target slots or visible ranks 1-8.
+- Maximum of 16 layers are supported; `1`-`8` target slots or visible ranks 1-8, while `F1`-`F8` target 9-16.
 - The window title shows both the absolute active layer slot and its visible rank; hidden active layers display as `hidden N/M visible`.
 - Visible-only shortcuts print a status message when the active layer is hidden or there is no other visible layer/slot to target.
 - Locked layers stay visible in the stack but reject paint, fill, clear, transform, load, merge, flatten, stamp, and delete operations.

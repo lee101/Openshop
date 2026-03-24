@@ -94,6 +94,16 @@ static BrushShape cycle_brush_shape(BrushShape shape, int direction) {
     return (BrushShape)idx;
 }
 
+static int shortcut_layer_target(SDL_Keycode key) {
+    if (key >= SDLK_1 && key <= SDLK_8) {
+        return (int)(key - SDLK_1);
+    }
+    if (key >= SDLK_F1 && key <= SDLK_F8) {
+        return 8 + (int)(key - SDLK_F1);
+    }
+    return -1;
+}
+
 static void update_window_title(SDL_Window *window, const LayerStack *layers, Tool tool, BrushShape brush_shape, int radius, uint32_t color, int opacity_percent) {
     if (!window || !layers) {
         return;
@@ -696,7 +706,7 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     if (key == SDLK_ESCAPE || key == SDLK_LSHIFT || key == SDLK_RSHIFT) {
         return 0;
     }
-    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_u || key == SDLK_v || key == SDLK_m || key == SDLK_d || key == SDLK_e || key == SDLK_g || key == SDLK_h || key == SDLK_l || key == SDLK_a || key == SDLK_r || key == SDLK_0 || key == SDLK_9 || key == SDLK_COMMA || key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET || key == SDLK_MINUS || key == SDLK_KP_MINUS || key == SDLK_EQUALS || key == SDLK_KP_PLUS || key == SDLK_SLASH || key == SDLK_HOME || key == SDLK_END || key == SDLK_1 || key == SDLK_2 || key == SDLK_3 || key == SDLK_4 || key == SDLK_5 || key == SDLK_6 || key == SDLK_7 || key == SDLK_8)) {
+    if (ctrl && (key == SDLK_s || key == SDLK_o || key == SDLK_z || key == SDLK_y || key == SDLK_n || key == SDLK_u || key == SDLK_v || key == SDLK_m || key == SDLK_d || key == SDLK_e || key == SDLK_g || key == SDLK_h || key == SDLK_l || key == SDLK_a || key == SDLK_r || key == SDLK_0 || key == SDLK_9 || key == SDLK_COMMA || key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET || key == SDLK_MINUS || key == SDLK_KP_MINUS || key == SDLK_EQUALS || key == SDLK_KP_PLUS || key == SDLK_SLASH || key == SDLK_HOME || key == SDLK_END || shortcut_layer_target(key) >= 0)) {
         return 1;
     }
     switch (key) {
@@ -738,6 +748,14 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     case SDLK_END:
     case SDLK_DELETE:
     case SDLK_BACKSPACE:
+    case SDLK_F1:
+    case SDLK_F2:
+    case SDLK_F3:
+    case SDLK_F4:
+    case SDLK_F5:
+    case SDLK_F6:
+    case SDLK_F7:
+    case SDLK_F8:
         return 1;
     default:
         return 0;
@@ -1458,8 +1476,10 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (alt && shift && key >= SDLK_1 && key <= SDLK_8) {
-                    int target = (int)(key - SDLK_1);
+                int shortcut_target = shortcut_layer_target(key);
+
+                if (alt && shift && shortcut_target >= 0) {
+                    int target = shortcut_target;
                     if (apply_active_visible_rank_move(
                             &layers,
                             undo_stack,
@@ -1474,8 +1494,8 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (ctrl && shift && key >= SDLK_1 && key <= SDLK_8) {
-                    int target = (int)(key - SDLK_1);
+                if (ctrl && shift && shortcut_target >= 0) {
+                    int target = shortcut_target;
                     if (target < layers.layer_count) {
                         if (apply_active_layer_move(
                                 &layers,
@@ -1492,16 +1512,16 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (alt && key >= SDLK_1 && key <= SDLK_8) {
-                    int target = (int)(key - SDLK_1);
+                if (alt && shortcut_target >= 0) {
+                    int target = shortcut_target;
                     if (apply_visible_rank_selection(&layers, target, "Visible layer slot does not exist")) {
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                     break;
                 }
 
-                if (ctrl && key >= SDLK_1 && key <= SDLK_8) {
-                    int target = (int)(key - SDLK_1);
+                if (ctrl && shortcut_target >= 0) {
+                    int target = shortcut_target;
                     if (target < layers.layer_count) {
                         layers.active_layer = target;
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
