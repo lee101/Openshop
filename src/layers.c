@@ -643,6 +643,9 @@ int layer_stack_set_opacity(LayerStack *stack, int index, int opacity_percent) {
     } else if (opacity_percent > 100) {
         opacity_percent = 100;
     }
+    if (stack->layers[index].opacity_percent == opacity_percent) {
+        return 0;
+    }
     stack->layers[index].opacity_percent = opacity_percent;
     return 1;
 }
