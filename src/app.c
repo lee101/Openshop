@@ -1133,14 +1133,14 @@ static void handle_shape_preview_motion(Tool tool,
     *preview_active = 1;
 }
 
-static int handle_left_click_up(LayerStack *layers,
-                                Snapshot *undo_stack, int *undo_count,
-                                Snapshot *redo_stack, int *redo_count,
-                                Tool tool, int x, int y,
-                                int brush_radius, uint32_t brush_color,
-                                int *drawing, int *needs_composite,
-                                int *shaping, int shape_start_x, int shape_start_y,
-                                int *preview_active) {
+static void handle_left_click_up(LayerStack *layers,
+                                 Snapshot *undo_stack, int *undo_count,
+                                 Snapshot *redo_stack, int *redo_count,
+                                 Tool tool, int x, int y,
+                                 int brush_radius, uint32_t brush_color,
+                                 int *drawing, int *needs_composite,
+                                 int *shaping, int shape_start_x, int shape_start_y,
+                                 int *preview_active) {
     const Uint8 *state;
     int shift;
     int end_x = x;
@@ -1148,12 +1148,12 @@ static int handle_left_click_up(LayerStack *layers,
 
     if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count ||
         !drawing || !needs_composite || !shaping || !preview_active) {
-        return 0;
+        return;
     }
 
     *drawing = 0;
     if (!*shaping) {
-        return 1;
+        return;
     }
 
     state = SDL_GetKeyboardState(NULL);
@@ -1165,7 +1165,6 @@ static int handle_left_click_up(LayerStack *layers,
         *needs_composite = 1;
     }
     shape_preview_cancel(shaping, preview_active);
-    return 1;
 }
 
 static void handle_drawing_motion(LayerStack *layers,
