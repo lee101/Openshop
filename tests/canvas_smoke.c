@@ -173,6 +173,8 @@ static int test_color_sample_helpers(void) {
 static int test_geometry_helpers(void) {
     int out_x = 0;
     int out_y = 0;
+    int guard_x = 7;
+    int guard_y = 9;
 
     if (!brush_mask_contains(BRUSH_SHAPE_ROUND, 2, 0, 2) ||
         brush_mask_contains(BRUSH_SHAPE_ROUND, 3, 3, 2)) {
@@ -187,6 +189,11 @@ static int test_geometry_helpers(void) {
     if (!brush_mask_contains(BRUSH_SHAPE_DIAMOND, 1, 1, 2) ||
         brush_mask_contains(BRUSH_SHAPE_DIAMOND, 2, 2, 2)) {
         fprintf(stderr, "brush_mask_contains diamond failed\n");
+        return 0;
+    }
+    if (!brush_mask_contains((BrushShape)999, 0, 2, 2) ||
+        brush_mask_contains((BrushShape)999, 3, 0, 2)) {
+        fprintf(stderr, "brush_mask_contains fallback failed\n");
         return 0;
     }
 
@@ -213,6 +220,17 @@ static int test_geometry_helpers(void) {
     constrain_shape_end(TOOL_RECT, 10, 10, 12, 15, 0, &out_x, &out_y);
     if (out_x != 12 || out_y != 15) {
         fprintf(stderr, "constrain_shape_end shift-off passthrough failed\n");
+        return 0;
+    }
+    constrain_shape_end(TOOL_BRUSH, 10, 10, 4, 3, 1, &out_x, &out_y);
+    if (out_x != 4 || out_y != 3) {
+        fprintf(stderr, "constrain_shape_end non-shape passthrough failed\n");
+        return 0;
+    }
+    constrain_shape_end(TOOL_LINE, 1, 2, 3, 4, 1, NULL, &guard_y);
+    constrain_shape_end(TOOL_LINE, 1, 2, 3, 4, 1, &guard_x, NULL);
+    if (guard_x != 7 || guard_y != 9) {
+        fprintf(stderr, "constrain_shape_end null output guard failed\n");
         return 0;
     }
 
@@ -669,6 +687,15 @@ static int test_snapshot_history_helpers(void) {
         fprintf(stderr, "snapshot test stack init failed\n");
         return 0;
     }
+    snapshot_push(NULL, undo_stack, &undo_count, redo_stack, &redo_count, 2);
+    snapshot_push(&stack, NULL, &undo_count, redo_stack, &redo_count, 2);
+    snapshot_push(&stack, undo_stack, NULL, redo_stack, &redo_count, 2);
+    snapshot_push(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0);
+    if (undo_count != 0 || redo_count != 0) {
+        fprintf(stderr, "snapshot_push guard checks failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (snapshot_from_layers(NULL, &stack) || snapshot_from_layers(&snap, NULL) ||
         snapshot_apply(NULL, &stack) || snapshot_apply(&snap, NULL) ||
         snapshot_restore(NULL, undo_stack, &undo_count, redo_stack, &redo_count, 2)) {
@@ -753,6 +780,38 @@ static int test_snapshot_history_helpers(void) {
                                         sizeof(uint32_t));
         if (!bad.pixels || snapshot_apply(&bad, &stack)) {
             fprintf(stderr, "snapshot_apply dimension mismatch failed\n");
+            free(bad.pixels);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        free(bad.pixels);
+    }
+    {
+        Snapshot bad = {0};
+        bad.width = stack.width;
+        bad.height = stack.height;
+        bad.layer_count = 0;
+        bad.pixels = (uint32_t *)calloc((size_t)stack.width * (size_t)stack.height, sizeof(uint32_t));
+        if (!bad.pixels || snapshot_apply(&bad, &stack)) {
+            fprintf(stderr, "snapshot_apply zero layer count failed\n");
+            free(bad.pixels);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        free(bad.pixels);
+    }
+    {
+        Snapshot bad = {0};
+        bad.width = stack.width;
+        bad.height = stack.height;
+        bad.layer_count = MAX_LAYERS + 1;
+        bad.pixels = (uint32_t *)calloc((size_t)stack.width * (size_t)stack.height, sizeof(uint32_t));
+        if (!bad.pixels || snapshot_apply(&bad, &stack)) {
+            fprintf(stderr, "snapshot_apply oversized layer count failed\n");
             free(bad.pixels);
             snapshot_stack_clear(undo_stack, &undo_count);
             snapshot_stack_clear(redo_stack, &redo_count);
