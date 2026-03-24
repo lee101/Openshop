@@ -4066,34 +4066,6 @@ int main(void) {
         }
     }
     {
-        Canvas prep_preview_canvas = {4, 4, preview_restore_copy};
-        int prep_preview_active = 0;
-        uint32_t prep_preview_pixels[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
-        uint32_t prep_shape_base[4] = {0x01010101u, 0x02020202u, 0x03030303u, 0x04040404u};
-        uint32_t prep_preview_want[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
-
-        ok = ok && expect_prepare_shape_preview_motion(
-            "prepare_shape_preview_motion_oob_noop",
-            &prep_preview_canvas,
-            prep_preview_pixels,
-            prep_shape_base,
-            4,
-            &prep_preview_active,
-            TOOL_RECT,
-            1,
-            1,
-            4,
-            2,
-            0,
-            0,
-            0,
-            -999,
-            -999,
-            prep_preview_want,
-            4
-        );
-    }
-    {
         Canvas rejection_preview_canvas = {4, 4, preview_restore_copy};
         int rejection_preview_active = 7;
         uint32_t rejection_preview_pixels[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
@@ -4102,6 +4074,25 @@ int main(void) {
         int rejection_out_x = -999;
         int rejection_out_y = -999;
         PrepareShapePreviewMotionRejectionCase rejection_cases[] = {
+            {
+                "prepare_shape_preview_motion_oob_noop",
+                &rejection_preview_canvas,
+                rejection_preview_pixels,
+                rejection_shape_base,
+                4,
+                &rejection_preview_active,
+                TOOL_RECT,
+                1,
+                1,
+                4,
+                2,
+                0,
+                &rejection_out_x,
+                &rejection_out_y,
+                7,
+                rejection_preview_want,
+                4,
+            },
             {
                 "prepare_shape_preview_motion_null_out_x",
                 &rejection_preview_canvas,
