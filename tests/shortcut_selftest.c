@@ -600,10 +600,15 @@ int main(void) {
     ok = ok && expect_view_result("right_shift", VIEW_SHORTCUT_KEY_RIGHT, 1, VIEW_SHORTCUT_TRANSLATE, 0, 10, 0);
     ok = ok && expect_view_result("view_none", VIEW_SHORTCUT_KEY_NONE, 0, VIEW_SHORTCUT_NONE, 0, 0, 0);
     ok = ok && expect_shape_cancel("shape_cancel_ctrl_save", APP_SHAPE_CANCEL_KEY_S, 1, 1);
+    ok = ok && expect_shape_cancel("shape_cancel_ctrl_bracket", APP_SHAPE_CANCEL_KEY_LEFTBRACKET, 1, 1);
+    ok = ok && expect_shape_cancel("shape_cancel_ctrl_slash", APP_SHAPE_CANCEL_KEY_SLASH, 1, 1);
     ok = ok && expect_shape_cancel("shape_cancel_tool_switch", APP_SHAPE_CANCEL_KEY_B, 0, 1);
+    ok = ok && expect_shape_cancel("shape_cancel_plain_bracket", APP_SHAPE_CANCEL_KEY_RIGHTBRACKET, 0, 1);
+    ok = ok && expect_shape_cancel("shape_cancel_arrow", APP_SHAPE_CANCEL_KEY_LEFT, 0, 1);
     ok = ok && expect_shape_cancel("shape_cancel_escape_exempt", APP_SHAPE_CANCEL_KEY_ESCAPE, 0, 0);
     ok = ok && expect_shape_cancel("shape_cancel_shift_exempt", APP_SHAPE_CANCEL_KEY_LSHIFT, 0, 0);
     ok = ok && expect_shape_cancel("shape_cancel_plain_save_not_cancel", APP_SHAPE_CANCEL_KEY_S, 0, 0);
+    ok = ok && expect_shape_cancel("shape_cancel_unmapped_key", APP_SHAPE_CANCEL_KEY_OTHER, 0, 0);
     ok = ok && expect_brush_mask("brush_mask_round_inside", BRUSH_SHAPE_ROUND, 1, 1, 2, 1);
     ok = ok && expect_brush_mask("brush_mask_round_edge", BRUSH_SHAPE_ROUND, 2, 0, 2, 1);
     ok = ok && expect_brush_mask("brush_mask_round_outside", BRUSH_SHAPE_ROUND, 2, 1, 2, 0);
