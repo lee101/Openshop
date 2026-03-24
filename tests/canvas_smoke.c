@@ -151,6 +151,13 @@ static int test_color_sample_helpers(void) {
         canvas_free(&canvas);
         return 0;
     }
+    if (sample_canvas_brush_state(&canvas, 2, 1, &brush_rgb, &brush_color, &brush_opacity, &tool) ||
+        sample_canvas_brush_state(&canvas, 1, 2, &brush_rgb, &brush_color, &brush_opacity, &tool) ||
+        tool != TOOL_RECT) {
+        fprintf(stderr, "sample_canvas_brush_state upper bounds failed\n");
+        canvas_free(&canvas);
+        return 0;
+    }
 
     if (sample_canvas_brush_state(NULL, 0, 0, &brush_rgb, &brush_color, &brush_opacity, &tool) ||
         sample_canvas_brush_state(&canvas, 0, 0, NULL, &brush_color, &brush_opacity, &tool) ||
@@ -1540,6 +1547,14 @@ static int test_layers_basic(void) {
         if (current_display_canvas(0, NULL, &composite) != &composite ||
             current_display_pixels(0, NULL, &composite) != composite.pixels) {
             fprintf(stderr, "display canvas should use composite without preview\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        preview.pixels = (uint32_t[]){0xFF000001, 0xFF000002, 0xFF000003, 0xFF000004};
+        if (current_display_canvas(1, &preview, NULL) != &preview ||
+            current_display_pixels(1, &preview, NULL) != preview.pixels) {
+            fprintf(stderr, "display canvas should use active preview without composite\n");
             canvas_free(&composite);
             layer_stack_free(&stack);
             return 0;
