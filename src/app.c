@@ -1,5 +1,6 @@
 #include "app.h"
 #include "canvas.h"
+#include "display_canvas.h"
 #include "image_io.h"
 #include "layers.h"
 #include "status_text.h"
@@ -1668,22 +1669,6 @@ static int handle_right_click_sample(SDL_Window *window,
 
     update_window_title(window, layers, *tool, brush_shape, brush_radius, *brush_color, *brush_opacity);
     return 1;
-}
-
-static const Canvas *current_display_canvas(int preview_active,
-                                            const Canvas *preview_canvas,
-                                            const Canvas *composite) {
-    if (preview_active && preview_canvas && preview_canvas->pixels) {
-        return preview_canvas;
-    }
-    return composite;
-}
-
-static const uint32_t *current_display_pixels(int preview_active,
-                                              const Canvas *preview_canvas,
-                                              const Canvas *composite) {
-    const Canvas *canvas = current_display_canvas(preview_active, preview_canvas, composite);
-    return canvas ? canvas->pixels : NULL;
 }
 
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {

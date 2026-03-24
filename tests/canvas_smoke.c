@@ -1,4 +1,5 @@
 #include "../src/canvas.h"
+#include "../src/display_canvas.h"
 #include "../src/layers.h"
 #include "../src/status_text.h"
 #include "../src/title_hints.h"
@@ -175,6 +176,31 @@ static int test_layers_basic(void) {
         format_hidden_layer_hint(&stack, hint, sizeof(hint));
         if (hint[0] != '\0') {
             fprintf(stderr, "visible-only stack should not emit hidden hint\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    {
+        Canvas preview = {2, 2, (uint32_t[]){0xFF000001, 0xFF000002, 0xFF000003, 0xFF000004}};
+        if (current_display_canvas(1, &preview, &composite) != &preview ||
+            current_display_pixels(1, &preview, &composite) != preview.pixels) {
+            fprintf(stderr, "display canvas should prefer preview canvas\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        preview.pixels = NULL;
+        if (current_display_canvas(1, &preview, &composite) != &composite ||
+            current_display_pixels(1, &preview, &composite) != composite.pixels) {
+            fprintf(stderr, "display canvas should fall back to composite canvas\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        if (current_display_canvas(0, NULL, &composite) != &composite ||
+            current_display_pixels(0, NULL, &composite) != composite.pixels) {
+            fprintf(stderr, "display canvas should use composite without preview\n");
             canvas_free(&composite);
             layer_stack_free(&stack);
             return 0;
