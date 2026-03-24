@@ -500,13 +500,18 @@ int layer_stack_toggle_lock(LayerStack *stack, int index) {
 }
 
 int layer_stack_unlock_all(LayerStack *stack) {
+    int changed = 0;
+
     if (!stack) {
         return 0;
     }
     for (int i = 0; i < stack->layer_count; i++) {
-        stack->layers[i].locked = 0;
+        if (stack->layers[i].locked) {
+            stack->layers[i].locked = 0;
+            changed = 1;
+        }
     }
-    return 1;
+    return changed;
 }
 
 int layer_stack_show_all(LayerStack *stack) {

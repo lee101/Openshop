@@ -3915,6 +3915,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_unlock_all(&stack)) {
+        fprintf(stderr, "unlock all no-op failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[1].visible = 0;
     stack.layers[0].visible = 0;
     stack.layers[2].visible = 0;
