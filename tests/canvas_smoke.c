@@ -1557,6 +1557,21 @@ static int test_active_layer_ops_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    canvas_clear(&stack.layers[0].canvas, 0xFFFFFFFF);
+    {
+        int undo_before = undo_count;
+        int redo_before = redo_count;
+        if (active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                           1, 0, 0xFFFFFFFF, 4) ||
+            !expect_pixel_eq("active_translate_blank", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFFFFFFFF) ||
+            undo_count != undo_before || redo_count != redo_before) {
+            fprintf(stderr, "active_layer_apply_translation blank no-op failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
 
     if (layer_stack_add(&stack, "Overlay", 0x00000000) < 0) {
         fprintf(stderr, "active layer overlay add failed\n");

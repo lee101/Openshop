@@ -284,6 +284,7 @@ int active_layer_apply_translation(LayerStack *layers,
                                    int dx, int dy,
                                    uint32_t background_color, int max_history) {
     Layer *active;
+    uint32_t clear_color;
 
     if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0 ||
         (dx == 0 && dy == 0)) {
@@ -293,7 +294,11 @@ int active_layer_apply_translation(LayerStack *layers,
     if (!active || active->locked || !active->canvas.pixels) {
         return 0;
     }
+    clear_color = active_layer_clear_color(layers, background_color);
+    if (!canvas_has_non_matching_pixel(&active->canvas, clear_color)) {
+        return 0;
+    }
     snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
-    canvas_translate(&active->canvas, dx, dy, active_layer_clear_color(layers, background_color));
+    canvas_translate(&active->canvas, dx, dy, clear_color);
     return 1;
 }
