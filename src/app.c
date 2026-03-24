@@ -1388,6 +1388,37 @@ static int handle_left_click_down(LayerStack *layers,
     return 1;
 }
 
+static int handle_shape_preview_motion(Tool tool,
+                                       int shape_start_x, int shape_start_y,
+                                       int x, int y,
+                                       int brush_radius, uint32_t brush_color,
+                                       uint32_t *shape_base_pixels,
+                                       Canvas *preview_canvas,
+                                       uint32_t *preview_pixels,
+                                       int *preview_active) {
+    const Uint8 *state;
+    int shift;
+    int end_x = x;
+    int end_y = y;
+
+    if (!shape_base_pixels || !preview_canvas || !preview_canvas->pixels || !preview_pixels || !preview_active) {
+        return 0;
+    }
+
+    if (x < 0 || y < 0 || x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT) {
+        return 0;
+    }
+
+    state = SDL_GetKeyboardState(NULL);
+    shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
+    constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
+    memcpy(preview_pixels, shape_base_pixels,
+           (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
+    draw_shape(preview_canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
+    *preview_active = 1;
+    return 1;
+}
+
 static int handle_translation_hotkey(SDL_Keycode key,
                                      int ctrl, int alt, int shift,
                                      LayerStack *layers,
@@ -1907,26 +1938,12 @@ int app_run(const char *input_path) {
                         }
                     }
                 } else if (shaping) {
-                    if (!shape_base_pixels || !preview_canvas.pixels) {
-                        break;
-                    }
                     int x = e.motion.x;
                     int y = e.motion.y;
-                    if (x < 0 || y < 0 || x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT) {
-                        break;
-                    }
-                    const Uint8 *state = SDL_GetKeyboardState(NULL);
-                    int shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
-                    int end_x = x;
-                    int end_y = y;
-                    constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
-                    memcpy(
-                        preview_pixels,
-                        shape_base_pixels,
-                        (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t)
-                    );
-                    draw_shape(&preview_canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
-                    preview_active = 1;
+                    handle_shape_preview_motion(tool, shape_start_x, shape_start_y, x, y,
+                                                brush_radius, brush_color,
+                                                shape_base_pixels, &preview_canvas,
+                                                preview_pixels, &preview_active);
                 }
                 break;
             case SDL_KEYDOWN: {
