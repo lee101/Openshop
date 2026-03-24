@@ -1375,6 +1375,89 @@ static int test_layer_history_step_undo_redo_guard_paths(void) {
     return 1;
 }
 
+static int test_layer_history_push_record_guard_paths(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "history push/record guard init failed\n");
+        return 0;
+    }
+
+    LayerSnapshot undo_stack[HISTORY_CAPACITY] = {0};
+    LayerSnapshot redo_stack[HISTORY_CAPACITY] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+
+    if (!layer_snapshot_capture(&redo_stack[redo_count++], &stack)) {
+        fprintf(stderr, "history push/record guard redo capture failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_push(NULL, undo_stack, &undo_count, redo_stack, &redo_count);
+    layer_history_push(&stack, NULL, &undo_count, redo_stack, &redo_count);
+    layer_history_push(&stack, undo_stack, NULL, redo_stack, &redo_count);
+
+    if (undo_count != 0 || redo_count != 1) {
+        fprintf(stderr, "history push hard guard paths should not mutate stacks or redo\n");
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_push(&stack, undo_stack, &undo_count, NULL, &redo_count);
+    if (undo_count != 1 || redo_count != 1) {
+        fprintf(stderr, "history push should allow recording without a redo stack\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_push(&stack, undo_stack, &undo_count, redo_stack, NULL);
+    if (undo_count != 1 || redo_count != 1) {
+        fprintf(stderr, "history push duplicate snapshots should no-op when redo count is omitted\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    LayerHistory history = {0};
+    if (!layer_snapshot_capture(&history.redo[history.redo_count++], &stack)) {
+        fprintf(stderr, "history push/record wrapper redo capture failed\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_record(NULL, &stack);
+    if (history.undo_count != 0 || history.redo_count != 1) {
+        fprintf(stderr, "history record should ignore null history without mutating state\n");
+        layer_history_reset(&history);
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_record(&history, NULL);
+    if (history.undo_count != 0 || history.redo_count != 1) {
+        fprintf(stderr, "history record should ignore null layers without mutating state\n");
+        layer_history_reset(&history);
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_reset(&history);
+    layer_history_clear(undo_stack, &undo_count);
+    layer_history_clear(redo_stack, &redo_count);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layers_basic(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 16, 16, 0xFFFFFFFF)) {
@@ -2396,6 +2479,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_step_undo_redo_guard_paths()) {
+        return 1;
+    }
+    if (!test_layer_history_push_record_guard_paths()) {
         return 1;
     }
 
