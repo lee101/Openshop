@@ -147,6 +147,16 @@ static int test_app_input_rules(void) {
             fprintf(stderr, "brush adjust non-hotkey mapping failed\n");
             return 0;
         }
+        if (!app_is_add_layer_hotkey(APP_KEY_n, 1, 0, 1)) {
+            fprintf(stderr, "add layer hotkey mapping failed\n");
+            return 0;
+        }
+        if (app_is_add_layer_hotkey(APP_KEY_n, 1, 1, 1) ||
+            app_is_add_layer_hotkey(APP_KEY_n, 1, 0, 0) ||
+            app_is_add_layer_hotkey(APP_KEY_b, 1, 0, 1)) {
+            fprintf(stderr, "add layer non-hotkey mapping failed\n");
+            return 0;
+        }
     }
 
     return 1;

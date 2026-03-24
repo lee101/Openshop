@@ -309,7 +309,7 @@ static int try_add_layer(LayerStack *layers,
 static int handle_add_layer_hotkey(SDL_Keycode key,
                                    int ctrl, int alt, int shift,
                                    const ActionState *action_state) {
-    if (!(ctrl && shift) || alt || key != SDLK_n ||
+    if (!app_is_add_layer_hotkey((int)key, ctrl, alt, shift) ||
         !action_state || !action_state->title_state || !action_state->layers ||
         !action_state->undo_stack || !action_state->undo_count ||
         !action_state->redo_stack || !action_state->redo_count || !action_state->needs_composite) {

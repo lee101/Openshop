@@ -103,5 +103,6 @@ AppLayerNavigationAction app_layer_navigation_action(int key, int ctrl, int alt,
 AppFileHotkeyAction app_file_hotkey_action(int key, int ctrl, int alt, int shift);
 AppHistoryHotkeyAction app_history_hotkey_action(int key, int ctrl, int alt, int shift);
 AppBrushAdjustAction app_brush_adjust_hotkey_action(int key);
+int app_is_add_layer_hotkey(int key, int ctrl, int alt, int shift);
 
 #endif

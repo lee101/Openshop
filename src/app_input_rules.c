@@ -161,3 +161,7 @@ AppBrushAdjustAction app_brush_adjust_hotkey_action(int key) {
     }
     return APP_BRUSH_ADJUST_NONE;
 }
+
+int app_is_add_layer_hotkey(int key, int ctrl, int alt, int shift) {
+    return ctrl && shift && !alt && key == APP_KEY_n;
+}
