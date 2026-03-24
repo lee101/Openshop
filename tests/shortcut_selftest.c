@@ -264,6 +264,28 @@ static int expect_brush_stamp_pixel(
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    void (*apply_stamp)(Canvas *, int, int, int, uint32_t, BrushShape);
+    uint32_t initial_color;
+    uint32_t stamp_color;
+    BrushShape shape;
+    uint32_t want_center;
+    uint32_t want_edge;
+} BrushStampCase;
+
+static int run_brush_stamp_case(const BrushStampCase *test_case) {
+    return expect_brush_stamp_pixel(
+        test_case->label,
+        test_case->apply_stamp,
+        test_case->initial_color,
+        test_case->stamp_color,
+        test_case->shape,
+        test_case->want_center,
+        test_case->want_edge
+    );
+}
+
 static int expect_brush_line_pixel(
     const char *label,
     void (*apply_line)(Canvas *, int, int, int, int, int, uint32_t, BrushShape),
@@ -300,6 +322,32 @@ static int expect_brush_line_pixel(
         return 0;
     }
     return 1;
+}
+
+typedef struct {
+    const char *label;
+    void (*apply_line)(Canvas *, int, int, int, int, int, uint32_t, BrushShape);
+    uint32_t initial_color;
+    uint32_t stroke_color;
+    BrushShape shape;
+    size_t changed_index;
+    uint32_t want_changed;
+    size_t unchanged_index;
+    uint32_t want_unchanged;
+} BrushLineCase;
+
+static int run_brush_line_case(const BrushLineCase *test_case) {
+    return expect_brush_line_pixel(
+        test_case->label,
+        test_case->apply_line,
+        test_case->initial_color,
+        test_case->stroke_color,
+        test_case->shape,
+        test_case->changed_index,
+        test_case->want_changed,
+        test_case->unchanged_index,
+        test_case->want_unchanged
+    );
 }
 
 static int expect_begin_direct_stroke(
@@ -3771,46 +3819,60 @@ int main(void) {
             ok = ok && run_stroke_mark_case(&stroke_mark_cases[i]);
         }
     }
-    ok = ok && expect_brush_stamp_pixel(
-        "stamp_brush_center_blends",
-        app_stamp_brush,
-        0xFF000000u,
-        0x80FFFFFFu,
-        BRUSH_SHAPE_ROUND,
-        0xFF808080u,
-        0xFF000000u
-    );
-    ok = ok && expect_brush_stamp_pixel(
-        "erase_brush_center_replaces",
-        app_erase_brush,
-        0xFF112233u,
-        0x00000000u,
-        BRUSH_SHAPE_ROUND,
-        0x00000000u,
-        0xFF112233u
-    );
-    ok = ok && expect_brush_line_pixel(
-        "draw_brush_line_changes_row",
-        app_draw_brush_line,
-        0x00000000u,
-        0xFF556677u,
-        BRUSH_SHAPE_ROUND,
-        12,
-        0xFF556677u,
-        0,
-        0x00000000u
-    );
-    ok = ok && expect_brush_line_pixel(
-        "erase_brush_line_changes_row",
-        app_erase_brush_line,
-        0xFFFFFFFFu,
-        0x00000000u,
-        BRUSH_SHAPE_ROUND,
-        12,
-        0x00000000u,
-        0,
-        0xFFFFFFFFu
-    );
+    {
+        const BrushStampCase brush_stamp_cases[] = {
+            {
+                "stamp_brush_center_blends",
+                app_stamp_brush,
+                0xFF000000u,
+                0x80FFFFFFu,
+                BRUSH_SHAPE_ROUND,
+                0xFF808080u,
+                0xFF000000u,
+            },
+            {
+                "erase_brush_center_replaces",
+                app_erase_brush,
+                0xFF112233u,
+                0x00000000u,
+                BRUSH_SHAPE_ROUND,
+                0x00000000u,
+                0xFF112233u,
+            },
+        };
+        const BrushLineCase brush_line_cases[] = {
+            {
+                "draw_brush_line_changes_row",
+                app_draw_brush_line,
+                0x00000000u,
+                0xFF556677u,
+                BRUSH_SHAPE_ROUND,
+                12,
+                0xFF556677u,
+                0,
+                0x00000000u,
+            },
+            {
+                "erase_brush_line_changes_row",
+                app_erase_brush_line,
+                0xFFFFFFFFu,
+                0x00000000u,
+                BRUSH_SHAPE_ROUND,
+                12,
+                0x00000000u,
+                0,
+                0xFFFFFFFFu,
+            },
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(brush_stamp_cases) / sizeof(brush_stamp_cases[0]); i++) {
+            ok = ok && run_brush_stamp_case(&brush_stamp_cases[i]);
+        }
+        for (i = 0; i < sizeof(brush_line_cases) / sizeof(brush_line_cases[0]); i++) {
+            ok = ok && run_brush_line_case(&brush_line_cases[i]);
+        }
+    }
     {
         BeginDirectStrokeCase begin_cases[] = {
             {
