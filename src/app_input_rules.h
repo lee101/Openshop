@@ -69,6 +69,14 @@ typedef enum {
     APP_OPACITY_HOTKEY_NUDGE_UP
 } AppOpacityHotkeyAction;
 
+typedef enum {
+    APP_LAYER_NAV_NONE = 0,
+    APP_LAYER_NAV_SELECT_INDEX,
+    APP_LAYER_NAV_CYCLE_UP,
+    APP_LAYER_NAV_CYCLE_DOWN
+} AppLayerNavigationAction;
+
 AppOpacityHotkeyAction app_opacity_hotkey_action(int key);
+AppLayerNavigationAction app_layer_navigation_action(int key, int ctrl, int alt, int shift, int *arg);
 
 #endif

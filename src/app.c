@@ -1018,17 +1018,20 @@ static int handle_indexed_layer_silent_hotkey(SDL_Keycode key,
 static int handle_layer_navigation_hotkey(SDL_Keycode key,
                                           int ctrl, int alt, int shift,
                                           const ActionState *action_state) {
+    AppLayerNavigationAction nav_action;
+    int arg = 0;
     int changed = 0;
 
     if (!action_state || !action_state->title_state || !action_state->layers || alt || shift) {
         return 0;
     }
 
-    if (ctrl && key >= SDLK_1 && key <= SDLK_8) {
-        changed = layer_selection_try_select_index(action_state->layers, (int)(key - SDLK_1));
-    } else if (!ctrl && key == SDLK_PAGEUP) {
+    nav_action = app_layer_navigation_action(key, ctrl, alt, shift, &arg);
+    if (nav_action == APP_LAYER_NAV_SELECT_INDEX) {
+        changed = layer_selection_try_select_index(action_state->layers, arg);
+    } else if (nav_action == APP_LAYER_NAV_CYCLE_UP) {
         changed = layer_stack_cycle(action_state->layers, 1) >= 0;
-    } else if (!ctrl && key == SDLK_PAGEDOWN) {
+    } else if (nav_action == APP_LAYER_NAV_CYCLE_DOWN) {
         changed = layer_stack_cycle(action_state->layers, -1) >= 0;
     } else {
         return 0;

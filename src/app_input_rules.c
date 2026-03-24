@@ -91,3 +91,25 @@ AppOpacityHotkeyAction app_opacity_hotkey_action(int key) {
     }
     return APP_OPACITY_HOTKEY_NONE;
 }
+
+AppLayerNavigationAction app_layer_navigation_action(int key, int ctrl, int alt, int shift, int *arg) {
+    if (arg) {
+        *arg = 0;
+    }
+    if (alt || shift) {
+        return APP_LAYER_NAV_NONE;
+    }
+    if (ctrl && key >= APP_KEY_1 && key <= APP_KEY_8) {
+        if (arg) {
+            *arg = key - APP_KEY_1;
+        }
+        return APP_LAYER_NAV_SELECT_INDEX;
+    }
+    if (!ctrl && key == APP_KEY_PAGEUP) {
+        return APP_LAYER_NAV_CYCLE_UP;
+    }
+    if (!ctrl && key == APP_KEY_PAGEDOWN) {
+        return APP_LAYER_NAV_CYCLE_DOWN;
+    }
+    return APP_LAYER_NAV_NONE;
+}

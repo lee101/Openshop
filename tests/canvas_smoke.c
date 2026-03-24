@@ -95,6 +95,24 @@ static int test_app_input_rules(void) {
         fprintf(stderr, "opacity non-hotkey mapping failed\n");
         return 0;
     }
+    {
+        int arg = -1;
+        if (app_layer_navigation_action(APP_KEY_3, 1, 0, 0, &arg) != APP_LAYER_NAV_SELECT_INDEX || arg != 2) {
+            fprintf(stderr, "layer navigation select index mapping failed\n");
+            return 0;
+        }
+        if (app_layer_navigation_action(APP_KEY_PAGEUP, 0, 0, 0, &arg) != APP_LAYER_NAV_CYCLE_UP ||
+            app_layer_navigation_action(APP_KEY_PAGEDOWN, 0, 0, 0, &arg) != APP_LAYER_NAV_CYCLE_DOWN) {
+            fprintf(stderr, "layer navigation cycle mapping failed\n");
+            return 0;
+        }
+        if (app_layer_navigation_action(APP_KEY_PAGEUP, 1, 0, 0, &arg) != APP_LAYER_NAV_NONE ||
+            app_layer_navigation_action(APP_KEY_3, 1, 0, 1, &arg) != APP_LAYER_NAV_NONE ||
+            app_layer_navigation_action(APP_KEY_b, 0, 0, 0, &arg) != APP_LAYER_NAV_NONE) {
+            fprintf(stderr, "layer navigation non-hotkey mapping failed\n");
+            return 0;
+        }
+    }
 
     return 1;
 }
