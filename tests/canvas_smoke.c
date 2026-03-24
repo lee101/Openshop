@@ -2358,6 +2358,19 @@ static int test_active_layer_ops_helpers(void) {
     }
 
     canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFFABCDEF);
+    if (active_layer_apply_translation_with_result(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                   1, 1, 0xFFFFFFFF, 4) != ACTIVE_LAYER_ACTION_CHANGED ||
+        !expect_pixel_eq("active_translate_result", canvas_get_pixel(&stack.layers[0].canvas, 2, 2), 0xFFABCDEF)) {
+        fprintf(stderr, "active_layer_apply_translation_with_result changed failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    canvas_clear(&stack.layers[0].canvas, 0xFFFFFFFF);
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFFABCDEF);
     if (!active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
                                         1, 1, 0xFFFFFFFF, 4) ||
         !expect_pixel_eq("active_translate", canvas_get_pixel(&stack.layers[0].canvas, 2, 2), 0xFFABCDEF)) {
@@ -2367,7 +2380,9 @@ static int test_active_layer_ops_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+    if (active_layer_apply_translation_with_result(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                   0, 0, 0xFFFFFFFF, 4) != ACTIVE_LAYER_ACTION_UNCHANGED ||
+        active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
                                        0, 0, 0xFFFFFFFF, 4)) {
         fprintf(stderr, "active_layer_apply_translation no-op failed\n");
         snapshot_stack_clear(undo_stack, &undo_count);

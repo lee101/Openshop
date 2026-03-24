@@ -98,5 +98,10 @@ int active_layer_apply_translation(LayerStack *layers,
                                    Snapshot *redo_stack, int *redo_count,
                                    int dx, int dy,
                                    uint32_t background_color, int max_history);
+ActiveLayerActionResult active_layer_apply_translation_with_result(LayerStack *layers,
+                                                                   Snapshot *undo_stack, int *undo_count,
+                                                                   Snapshot *redo_stack, int *redo_count,
+                                                                   int dx, int dy,
+                                                                   uint32_t background_color, int max_history);
 
 #endif

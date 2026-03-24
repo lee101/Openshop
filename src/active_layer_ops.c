@@ -671,27 +671,38 @@ int active_layer_continue_brush_stroke(LayerStack *layers,
     return 1;
 }
 
+ActiveLayerActionResult active_layer_apply_translation_with_result(LayerStack *layers,
+                                                                   Snapshot *undo_stack, int *undo_count,
+                                                                   Snapshot *redo_stack, int *redo_count,
+                                                                   int dx, int dy,
+                                                                   uint32_t background_color, int max_history) {
+    Layer *active;
+    uint32_t clear_color;
+
+    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
+    if (dx == 0 && dy == 0) {
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
+    }
+    active = layer_stack_active(layers);
+    if (!active || active->locked || !active->canvas.pixels) {
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
+    clear_color = active_layer_clear_color(layers, background_color);
+    if (!canvas_has_non_matching_pixel(&active->canvas, clear_color)) {
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
+    }
+    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
+    canvas_translate(&active->canvas, dx, dy, clear_color);
+    return ACTIVE_LAYER_ACTION_CHANGED;
+}
+
 int active_layer_apply_translation(LayerStack *layers,
                                    Snapshot *undo_stack, int *undo_count,
                                    Snapshot *redo_stack, int *redo_count,
                                    int dx, int dy,
                                    uint32_t background_color, int max_history) {
-    Layer *active;
-    uint32_t clear_color;
-
-    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0 ||
-        (dx == 0 && dy == 0)) {
-        return 0;
-    }
-    active = layer_stack_active(layers);
-    if (!active || active->locked || !active->canvas.pixels) {
-        return 0;
-    }
-    clear_color = active_layer_clear_color(layers, background_color);
-    if (!canvas_has_non_matching_pixel(&active->canvas, clear_color)) {
-        return 0;
-    }
-    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
-    canvas_translate(&active->canvas, dx, dy, clear_color);
-    return 1;
+    return active_layer_apply_translation_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                      dx, dy, background_color, max_history) == ACTIVE_LAYER_ACTION_CHANGED;
 }

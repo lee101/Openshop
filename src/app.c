@@ -1363,6 +1363,7 @@ static int handle_mouse_motion(const MouseState *mouse_state, int x, int y) {
 static int handle_translation_hotkey(SDL_Keycode key,
                                      int ctrl, int alt, int shift,
                                      const ActionState *action_state) {
+    ActiveLayerActionResult result = ACTIVE_LAYER_ACTION_FAILED;
     int dx = 0;
     int dy = 0;
     int matched = 0;
@@ -1378,9 +1379,10 @@ static int handle_translation_hotkey(SDL_Keycode key,
         return 0;
     }
 
-    if (active_layer_apply_translation(action_state->layers, action_state->undo_stack, action_state->undo_count,
-                                       action_state->redo_stack, action_state->redo_count,
-                                       dx, dy, COLOR_BG, MAX_HISTORY)) {
+    result = active_layer_apply_translation_with_result(action_state->layers, action_state->undo_stack,
+                                                        action_state->undo_count, action_state->redo_stack,
+                                                        action_state->redo_count, dx, dy, COLOR_BG, MAX_HISTORY);
+    if (result == ACTIVE_LAYER_ACTION_CHANGED) {
         *action_state->needs_composite = 1;
     }
 
