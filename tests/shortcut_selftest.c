@@ -207,6 +207,16 @@ static int expect_direct_draw_tool(const char *label, Tool tool, int want) {
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    Tool tool;
+    int want;
+} DirectDrawToolCase;
+
+static int run_direct_draw_tool_case(const DirectDrawToolCase *test_case) {
+    return expect_direct_draw_tool(test_case->label, test_case->tool, test_case->want);
+}
+
 static int expect_stroke_mark(const char *label, Tool tool, AppStrokeMark want) {
     AppStrokeMark got = app_tool_stroke_mark(tool);
     if (got != want) {
@@ -214,6 +224,16 @@ static int expect_stroke_mark(const char *label, Tool tool, AppStrokeMark want) 
         return 0;
     }
     return 1;
+}
+
+typedef struct {
+    const char *label;
+    Tool tool;
+    AppStrokeMark want;
+} StrokeMarkCase;
+
+static int run_stroke_mark_case(const StrokeMarkCase *test_case) {
+    return expect_stroke_mark(test_case->label, test_case->tool, test_case->want);
 }
 
 static int expect_brush_stamp_pixel(
@@ -3725,18 +3745,32 @@ int main(void) {
             ok = ok && run_brush_shortcut_case(&brush_shortcut_cases[i]);
         }
     }
-    ok = ok && expect_direct_draw_tool("tool_draws_directly_brush", TOOL_BRUSH, 1);
-    ok = ok && expect_direct_draw_tool("tool_draws_directly_eraser", TOOL_ERASER, 1);
-    ok = ok && expect_direct_draw_tool("tool_draws_directly_line", TOOL_LINE, 0);
-    ok = ok && expect_direct_draw_tool("tool_draws_directly_rect", TOOL_RECT, 0);
-    ok = ok && expect_direct_draw_tool("tool_draws_directly_filled_rect", TOOL_FILLED_RECT, 0);
-    ok = ok && expect_direct_draw_tool("tool_draws_directly_ellipse", TOOL_ELLIPSE, 0);
-    ok = ok && expect_direct_draw_tool("tool_draws_directly_filled_ellipse", TOOL_FILLED_ELLIPSE, 0);
-    ok = ok && expect_direct_draw_tool("tool_draws_directly_default", (Tool)999, 0);
-    ok = ok && expect_stroke_mark("stroke_mark_brush", TOOL_BRUSH, APP_STROKE_MARK_BRUSH);
-    ok = ok && expect_stroke_mark("stroke_mark_eraser", TOOL_ERASER, APP_STROKE_MARK_ERASE);
-    ok = ok && expect_stroke_mark("stroke_mark_line_defaults_to_brush", TOOL_LINE, APP_STROKE_MARK_BRUSH);
-    ok = ok && expect_stroke_mark("stroke_mark_default", (Tool)999, APP_STROKE_MARK_BRUSH);
+    {
+        const DirectDrawToolCase direct_draw_tool_cases[] = {
+            {"tool_draws_directly_brush", TOOL_BRUSH, 1},
+            {"tool_draws_directly_eraser", TOOL_ERASER, 1},
+            {"tool_draws_directly_line", TOOL_LINE, 0},
+            {"tool_draws_directly_rect", TOOL_RECT, 0},
+            {"tool_draws_directly_filled_rect", TOOL_FILLED_RECT, 0},
+            {"tool_draws_directly_ellipse", TOOL_ELLIPSE, 0},
+            {"tool_draws_directly_filled_ellipse", TOOL_FILLED_ELLIPSE, 0},
+            {"tool_draws_directly_default", (Tool)999, 0},
+        };
+        const StrokeMarkCase stroke_mark_cases[] = {
+            {"stroke_mark_brush", TOOL_BRUSH, APP_STROKE_MARK_BRUSH},
+            {"stroke_mark_eraser", TOOL_ERASER, APP_STROKE_MARK_ERASE},
+            {"stroke_mark_line_defaults_to_brush", TOOL_LINE, APP_STROKE_MARK_BRUSH},
+            {"stroke_mark_default", (Tool)999, APP_STROKE_MARK_BRUSH},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(direct_draw_tool_cases) / sizeof(direct_draw_tool_cases[0]); i++) {
+            ok = ok && run_direct_draw_tool_case(&direct_draw_tool_cases[i]);
+        }
+        for (i = 0; i < sizeof(stroke_mark_cases) / sizeof(stroke_mark_cases[0]); i++) {
+            ok = ok && run_stroke_mark_case(&stroke_mark_cases[i]);
+        }
+    }
     ok = ok && expect_brush_stamp_pixel(
         "stamp_brush_center_blends",
         app_stamp_brush,
