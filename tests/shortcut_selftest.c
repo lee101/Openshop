@@ -84,6 +84,22 @@ static int expect_history_action(const char *label, int ctrl, int key, HistorySh
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    int ctrl;
+    int key;
+    HistoryShortcutAction want;
+} HistoryShortcutCase;
+
+static int run_history_shortcut_case(const HistoryShortcutCase *test_case) {
+    return expect_history_action(
+        test_case->label,
+        test_case->ctrl,
+        test_case->key,
+        test_case->want
+    );
+}
+
 static int expect_file_action(const char *label, int ctrl, int key, FileShortcutAction want) {
     FileShortcutAction got = file_shortcut_action(ctrl, key);
     if (got != want) {
@@ -93,6 +109,22 @@ static int expect_file_action(const char *label, int ctrl, int key, FileShortcut
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    int ctrl;
+    int key;
+    FileShortcutAction want;
+} FileShortcutCase;
+
+static int run_file_shortcut_case(const FileShortcutCase *test_case) {
+    return expect_file_action(
+        test_case->label,
+        test_case->ctrl,
+        test_case->key,
+        test_case->want
+    );
+}
+
 static int expect_merge_action(const char *label, int ctrl, int key, MergeShortcutAction want) {
     MergeShortcutAction got = merge_shortcut_action(ctrl, key);
     if (got != want) {
@@ -100,6 +132,22 @@ static int expect_merge_action(const char *label, int ctrl, int key, MergeShortc
         return 0;
     }
     return 1;
+}
+
+typedef struct {
+    const char *label;
+    int ctrl;
+    int key;
+    MergeShortcutAction want;
+} MergeShortcutCase;
+
+static int run_merge_shortcut_case(const MergeShortcutCase *test_case) {
+    return expect_merge_action(
+        test_case->label,
+        test_case->ctrl,
+        test_case->key,
+        test_case->want
+    );
 }
 
 static int expect_paint_action(const char *label, int key, PaintShortcutAction want) {
@@ -3590,18 +3638,37 @@ int main(void) {
             ok = ok && run_direct_layer_shortcut_case(&direct_layer_shortcut_cases[i]);
         }
     }
-    ok = ok && expect_history_action("undo", 1, 'z', HISTORY_SHORTCUT_UNDO);
-    ok = ok && expect_history_action("redo", 1, 'y', HISTORY_SHORTCUT_REDO);
-    ok = ok && expect_history_action("missing_ctrl_history", 0, 'z', HISTORY_SHORTCUT_NONE);
-    ok = ok && expect_history_action("other_key_history", 1, 'x', HISTORY_SHORTCUT_NONE);
-    ok = ok && expect_file_action("save", 1, 's', FILE_SHORTCUT_SAVE);
-    ok = ok && expect_file_action("load", 1, 'o', FILE_SHORTCUT_LOAD);
-    ok = ok && expect_file_action("missing_ctrl_file", 0, 's', FILE_SHORTCUT_NONE);
-    ok = ok && expect_file_action("other_key_file", 1, 'p', FILE_SHORTCUT_NONE);
-    ok = ok && expect_merge_action("merge_down", 1, 'm', MERGE_SHORTCUT_DOWN);
-    ok = ok && expect_merge_action("merge_up", 1, 'u', MERGE_SHORTCUT_UP);
-    ok = ok && expect_merge_action("missing_ctrl_merge", 0, 'm', MERGE_SHORTCUT_NONE);
-    ok = ok && expect_merge_action("other_key_merge", 1, 'q', MERGE_SHORTCUT_NONE);
+    {
+        const HistoryShortcutCase history_shortcut_cases[] = {
+            {"undo", 1, 'z', HISTORY_SHORTCUT_UNDO},
+            {"redo", 1, 'y', HISTORY_SHORTCUT_REDO},
+            {"missing_ctrl_history", 0, 'z', HISTORY_SHORTCUT_NONE},
+            {"other_key_history", 1, 'x', HISTORY_SHORTCUT_NONE},
+        };
+        const FileShortcutCase file_shortcut_cases[] = {
+            {"save", 1, 's', FILE_SHORTCUT_SAVE},
+            {"load", 1, 'o', FILE_SHORTCUT_LOAD},
+            {"missing_ctrl_file", 0, 's', FILE_SHORTCUT_NONE},
+            {"other_key_file", 1, 'p', FILE_SHORTCUT_NONE},
+        };
+        const MergeShortcutCase merge_shortcut_cases[] = {
+            {"merge_down", 1, 'm', MERGE_SHORTCUT_DOWN},
+            {"merge_up", 1, 'u', MERGE_SHORTCUT_UP},
+            {"missing_ctrl_merge", 0, 'm', MERGE_SHORTCUT_NONE},
+            {"other_key_merge", 1, 'q', MERGE_SHORTCUT_NONE},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(history_shortcut_cases) / sizeof(history_shortcut_cases[0]); i++) {
+            ok = ok && run_history_shortcut_case(&history_shortcut_cases[i]);
+        }
+        for (i = 0; i < sizeof(file_shortcut_cases) / sizeof(file_shortcut_cases[0]); i++) {
+            ok = ok && run_file_shortcut_case(&file_shortcut_cases[i]);
+        }
+        for (i = 0; i < sizeof(merge_shortcut_cases) / sizeof(merge_shortcut_cases[0]); i++) {
+            ok = ok && run_merge_shortcut_case(&merge_shortcut_cases[i]);
+        }
+    }
     ok = ok && expect_paint_action("tool_brush", 'b', PAINT_SHORTCUT_TOOL_BRUSH);
     ok = ok && expect_paint_action("tool_eraser", 'e', PAINT_SHORTCUT_TOOL_ERASER);
     ok = ok && expect_paint_action("tool_line", 'l', PAINT_SHORTCUT_TOOL_LINE);
