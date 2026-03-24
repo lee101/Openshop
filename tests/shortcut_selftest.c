@@ -400,6 +400,76 @@ static int expect_handle_left_canvas_press(
     return ok;
 }
 
+static int expect_handle_right_canvas_press(
+    const char *label,
+    int *shaping,
+    int *preview_active,
+    const Canvas *composite,
+    const Canvas *preview_canvas,
+    int preview_canvas_active,
+    int x,
+    int y,
+    Tool initial_tool,
+    unsigned int initial_brush_color,
+    unsigned int initial_brush_color_rgb,
+    int initial_brush_opacity,
+    AppCanvasClickResult want_result,
+    int want_shaping,
+    int want_preview_active,
+    Tool want_tool,
+    unsigned int want_brush_color,
+    unsigned int want_brush_color_rgb,
+    int want_brush_opacity
+) {
+    Tool tool = initial_tool;
+    unsigned int brush_color = initial_brush_color;
+    unsigned int brush_color_rgb = initial_brush_color_rgb;
+    int brush_opacity = initial_brush_opacity;
+    AppCanvasClickResult got = app_handle_right_canvas_press(
+        shaping,
+        preview_active,
+        composite,
+        preview_canvas,
+        preview_canvas_active,
+        x,
+        y,
+        &tool,
+        &brush_color,
+        &brush_color_rgb,
+        &brush_opacity
+    );
+
+    if (got != want_result) {
+        fprintf(stderr, "%s result mismatch: got %d want %d\n", label, got, want_result);
+        return 0;
+    }
+    if (shaping && *shaping != want_shaping) {
+        fprintf(stderr, "%s shaping mismatch: got %d want %d\n", label, *shaping, want_shaping);
+        return 0;
+    }
+    if (preview_active && *preview_active != want_preview_active) {
+        fprintf(stderr, "%s preview_active mismatch: got %d want %d\n", label, *preview_active, want_preview_active);
+        return 0;
+    }
+    if (tool != want_tool || brush_color != want_brush_color || brush_color_rgb != want_brush_color_rgb || brush_opacity != want_brush_opacity) {
+        fprintf(
+            stderr,
+            "%s mismatch: got {%d,0x%08X,0x%08X,%d} want {%d,0x%08X,0x%08X,%d}\n",
+            label,
+            tool,
+            brush_color,
+            brush_color_rgb,
+            brush_opacity,
+            want_tool,
+            want_brush_color,
+            want_brush_color_rgb,
+            want_brush_opacity
+        );
+        return 0;
+    }
+    return 1;
+}
+
 typedef struct {
     const char *label;
     int width;
@@ -2328,6 +2398,75 @@ int main(void) {
             ok = ok && run_handle_left_canvas_press_case(&click_cases[i]);
         }
     }
+    shaping = 1;
+    preview_active = 1;
+    ok = ok && expect_handle_right_canvas_press(
+        "handle_right_canvas_press_cancels_preview",
+        &shaping,
+        &preview_active,
+        &sampled_canvas,
+        &sampled_preview_canvas,
+        1,
+        0,
+        0,
+        TOOL_ERASER,
+        0xAA112233u,
+        0x00112233u,
+        42,
+        APP_CANVAS_CLICK_PREVIEW_CANCELED,
+        0,
+        0,
+        TOOL_ERASER,
+        0xAA112233u,
+        0x00112233u,
+        42
+    );
+    shaping = 0;
+    preview_active = 1;
+    ok = ok && expect_handle_right_canvas_press(
+        "handle_right_canvas_press_samples_color",
+        &shaping,
+        &preview_active,
+        &sampled_canvas,
+        &sampled_preview_canvas,
+        1,
+        0,
+        1,
+        TOOL_ERASER,
+        0xAA112233u,
+        0x00112233u,
+        42,
+        APP_CANVAS_CLICK_COLOR_SAMPLED,
+        0,
+        1,
+        TOOL_BRUSH,
+        0xFF223344u,
+        0x00223344u,
+        100
+    );
+    shaping = 0;
+    preview_active = 1;
+    ok = ok && expect_handle_right_canvas_press(
+        "handle_right_canvas_press_oob_noop",
+        &shaping,
+        &preview_active,
+        &sampled_canvas,
+        &sampled_preview_canvas,
+        1,
+        5,
+        5,
+        TOOL_ERASER,
+        0xAA112233u,
+        0x00112233u,
+        42,
+        APP_CANVAS_CLICK_NOOP,
+        0,
+        1,
+        TOOL_ERASER,
+        0xAA112233u,
+        0x00112233u,
+        42
+    );
     {
         ContinueDirectStrokeCase continue_cases[] = {
             {

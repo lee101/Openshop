@@ -1,6 +1,7 @@
 #include "app_canvas_click.h"
 
 #include "app_preview.h"
+#include "app_sampled_color.h"
 
 AppCanvasClickResult app_handle_left_canvas_press(
     LayerStack *layers,
@@ -60,4 +61,40 @@ AppCanvasClickResult app_handle_left_canvas_press(
         shape_base_pixels,
         composite
     ) ? APP_CANVAS_CLICK_SHAPE_PREVIEW : APP_CANVAS_CLICK_NOOP;
+}
+
+AppCanvasClickResult app_handle_right_canvas_press(
+    int *shaping,
+    int *preview_active,
+    const Canvas *composite,
+    const Canvas *preview_canvas,
+    int preview_canvas_active,
+    int x,
+    int y,
+    Tool *tool,
+    uint32_t *brush_color,
+    uint32_t *brush_color_rgb,
+    int *brush_opacity
+) {
+    switch (app_handle_available_canvas_sample(
+        shaping,
+        preview_active,
+        composite,
+        preview_canvas,
+        preview_canvas_active,
+        x,
+        y,
+        tool,
+        brush_color,
+        brush_color_rgb,
+        brush_opacity
+    )) {
+    case APP_SAMPLE_BRUSH_COLOR_PREVIEW_CANCELED:
+        return APP_CANVAS_CLICK_PREVIEW_CANCELED;
+    case APP_SAMPLE_BRUSH_COLOR_APPLIED:
+        return APP_CANVAS_CLICK_COLOR_SAMPLED;
+    case APP_SAMPLE_BRUSH_COLOR_NOOP:
+    default:
+        return APP_CANVAS_CLICK_NOOP;
+    }
 }
