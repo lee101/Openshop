@@ -2034,6 +2034,40 @@ static int initialize_app_graphics(
     return 1;
 }
 
+static int initialize_app_document(
+    LayerStack *layers_out,
+    Canvas *composite_out,
+    const char *input_path
+) {
+    if (!layers_out || !composite_out) {
+        return 0;
+    }
+
+    *layers_out = (LayerStack){0};
+    *composite_out = (Canvas){0};
+
+    if (!layer_stack_init(layers_out, CANVAS_WIDTH, CANVAS_HEIGHT, COLOR_BG)) {
+        fprintf(stderr, "Layer stack init failed\n");
+        return 0;
+    }
+
+    if (!canvas_init(composite_out, CANVAS_WIDTH, CANVAS_HEIGHT)) {
+        fprintf(stderr, "Composite canvas init failed\n");
+        layer_stack_free(layers_out);
+        *layers_out = (LayerStack){0};
+        return 0;
+    }
+
+    if (input_path && input_path[0]) {
+        Layer *active = layer_stack_active(layers_out);
+        if (active && !canvas_load_bmp(&active->canvas, input_path, COLOR_BG)) {
+            fprintf(stderr, "Failed to load %s\n", input_path);
+        }
+    }
+    layer_stack_composite(layers_out, composite_out, COLOR_BG);
+    return 1;
+}
+
 int app_run(const char *input_path) {
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
@@ -2043,34 +2077,24 @@ int app_run(const char *input_path) {
         return 1;
     }
 
-    LayerStack layers;
-    if (!layer_stack_init(&layers, CANVAS_WIDTH, CANVAS_HEIGHT, COLOR_BG)) {
-        fprintf(stderr, "Layer stack init failed\n");
-        SDL_DestroyTexture(texture);
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return 1;
-    }
-
+    LayerStack layers = {0};
     Canvas composite = {0};
-    if (!canvas_init(&composite, CANVAS_WIDTH, CANVAS_HEIGHT)) {
-        fprintf(stderr, "Composite canvas init failed\n");
-        layer_stack_free(&layers);
-        SDL_DestroyTexture(texture);
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
+    if (!initialize_app_document(&layers, &composite, input_path)) {
+        shutdown_app(
+            NULL,
+            NULL,
+            NULL,
+            NULL,
+            NULL,
+            NULL,
+            NULL,
+            NULL,
+            texture,
+            renderer,
+            window
+        );
         return 1;
     }
-
-    if (input_path && input_path[0]) {
-        Layer *active = layer_stack_active(&layers);
-        if (active && !canvas_load_bmp(&active->canvas, input_path, COLOR_BG)) {
-            fprintf(stderr, "Failed to load %s\n", input_path);
-        }
-    }
-    layer_stack_composite(&layers, &composite, COLOR_BG);
 
     int running = 1;
     int drawing = 0;
