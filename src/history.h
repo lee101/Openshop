@@ -61,6 +61,7 @@ void layer_history_reset(LayerHistory *history);
 // Failed current-state capture leaves undo/redo counts unchanged.
 void layer_history_record(LayerHistory *history, const LayerStack *layers);
 // On success this transfers snapshot ownership into history and disowns the caller snapshot.
+// When undo history is full, the oldest retained snapshot is evicted before the new one is stored.
 // A null snapshot fails cleanly; other discard/failure paths reset the caller snapshot back to an empty state.
 int layer_history_record_snapshot(LayerHistory *history, LayerSnapshot *snapshot);
 // Commits a previously captured snapshot only when the operation succeeded and changed the stack.
