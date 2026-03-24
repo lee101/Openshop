@@ -987,6 +987,58 @@ static int expect_handle_available_canvas_sample(
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    int initial_shaping;
+    int initial_preview_active;
+    const Canvas *composite;
+    const Canvas *preview_canvas;
+    int preview_canvas_active;
+    int x;
+    int y;
+    Tool initial_tool;
+    unsigned int initial_brush_color;
+    unsigned int initial_brush_color_rgb;
+    int initial_brush_opacity;
+    AppSampleBrushColorResult want_result;
+    int want_shaping;
+    int want_preview_active;
+    Tool want_tool;
+    unsigned int want_brush_color;
+    unsigned int want_brush_color_rgb;
+    int want_brush_opacity;
+} HandleAvailableCanvasSampleCase;
+
+static int run_handle_available_canvas_sample_case(
+    const HandleAvailableCanvasSampleCase *test_case,
+    int *shaping,
+    int *preview_active
+) {
+    *shaping = test_case->initial_shaping;
+    *preview_active = test_case->initial_preview_active;
+    return expect_handle_available_canvas_sample(
+        test_case->label,
+        shaping,
+        preview_active,
+        test_case->composite,
+        test_case->preview_canvas,
+        test_case->preview_canvas_active,
+        test_case->x,
+        test_case->y,
+        test_case->initial_tool,
+        test_case->initial_brush_color,
+        test_case->initial_brush_color_rgb,
+        test_case->initial_brush_opacity,
+        test_case->want_result,
+        test_case->want_shaping,
+        test_case->want_preview_active,
+        test_case->want_tool,
+        test_case->want_brush_color,
+        test_case->want_brush_color_rgb,
+        test_case->want_brush_opacity
+    );
+}
+
 static int expect_layer_clear_color(const char *label, int active_layer_index, unsigned int want) {
     unsigned int got = app_active_layer_clear_color(active_layer_index);
     if (got != want) {
@@ -2108,75 +2160,46 @@ int main(void) {
         0x00112233u,
         42
     );
-    shaping = 1;
-    preview_active = 1;
-    ok = ok && expect_handle_available_canvas_sample(
-        "handle_available_canvas_sample_cancels_preview",
-        &shaping,
-        &preview_active,
-        &sampled_canvas,
-        &sampled_preview_canvas,
-        1,
-        0,
-        0,
-        TOOL_ERASER,
-        0xAA112233u,
-        0x00112233u,
-        42,
-        APP_SAMPLE_BRUSH_COLOR_PREVIEW_CANCELED,
-        0,
-        0,
-        TOOL_ERASER,
-        0xAA112233u,
-        0x00112233u,
-        42
-    );
-    shaping = 0;
-    preview_active = 1;
-    ok = ok && expect_handle_available_canvas_sample(
-        "handle_available_canvas_sample_applies_preview_color",
-        &shaping,
-        &preview_active,
-        &sampled_canvas,
-        &sampled_preview_canvas,
-        1,
-        0,
-        1,
-        TOOL_ERASER,
-        0xAA112233u,
-        0x00112233u,
-        42,
-        APP_SAMPLE_BRUSH_COLOR_APPLIED,
-        0,
-        1,
-        TOOL_BRUSH,
-        0xFF223344u,
-        0x00223344u,
-        100
-    );
-    shaping = 0;
-    preview_active = 1;
-    ok = ok && expect_handle_available_canvas_sample(
-        "handle_available_canvas_sample_oob_noop",
-        &shaping,
-        &preview_active,
-        &sampled_canvas,
-        &sampled_preview_canvas,
-        1,
-        5,
-        5,
-        TOOL_ERASER,
-        0xAA112233u,
-        0x00112233u,
-        42,
-        APP_SAMPLE_BRUSH_COLOR_NOOP,
-        0,
-        1,
-        TOOL_ERASER,
-        0xAA112233u,
-        0x00112233u,
-        42
-    );
+    {
+        const HandleAvailableCanvasSampleCase handle_sample_cases[] = {
+            {
+                "handle_available_canvas_sample_cancels_preview",
+                1, 1,
+                &sampled_canvas, &sampled_preview_canvas, 1, 0, 0,
+                TOOL_ERASER, 0xAA112233u, 0x00112233u, 42,
+                APP_SAMPLE_BRUSH_COLOR_PREVIEW_CANCELED,
+                0, 0,
+                TOOL_ERASER, 0xAA112233u, 0x00112233u, 42,
+            },
+            {
+                "handle_available_canvas_sample_applies_preview_color",
+                0, 1,
+                &sampled_canvas, &sampled_preview_canvas, 1, 0, 1,
+                TOOL_ERASER, 0xAA112233u, 0x00112233u, 42,
+                APP_SAMPLE_BRUSH_COLOR_APPLIED,
+                0, 1,
+                TOOL_BRUSH, 0xFF223344u, 0x00223344u, 100,
+            },
+            {
+                "handle_available_canvas_sample_oob_noop",
+                0, 1,
+                &sampled_canvas, &sampled_preview_canvas, 1, 5, 5,
+                TOOL_ERASER, 0xAA112233u, 0x00112233u, 42,
+                APP_SAMPLE_BRUSH_COLOR_NOOP,
+                0, 1,
+                TOOL_ERASER, 0xAA112233u, 0x00112233u, 42,
+            },
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(handle_sample_cases) / sizeof(handle_sample_cases[0]); i++) {
+            ok = ok && run_handle_available_canvas_sample_case(
+                &handle_sample_cases[i],
+                &shaping,
+                &preview_active
+            );
+        }
+    }
     ok = ok && expect_sampled_brush_color_noop("sampled_brush_color_null_tool", 0xFF778899u, NULL, &sampled_brush_color, &sampled_brush_color_rgb, &sampled_brush_opacity, TOOL_BRUSH, 0xAA112233u, 0x00112233u, 42);
     ok = ok && expect_sampled_brush_color_noop("sampled_brush_color_null_color", 0xFF778899u, &sampled_tool, NULL, &sampled_brush_color_rgb, &sampled_brush_opacity, TOOL_ERASER, 0, 0x00112233u, 42);
     ok = ok && expect_brush_color("brush_color_low_clamp", 0x00123456u, 0, 0x03123456u);
