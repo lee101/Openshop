@@ -7,6 +7,7 @@
 #include "../src/layer_edit_state.h"
 #include "../src/layers.h"
 #include "../src/shape_draw.h"
+#include "../src/snapshot_history.h"
 #include "../src/status_text.h"
 #include "../src/title_hints.h"
 #include <stdio.h>
@@ -298,6 +299,60 @@ static int test_shape_draw_helpers(void) {
     }
 
     canvas_free(&canvas);
+    return 1;
+}
+
+static int test_snapshot_history_helpers(void) {
+    LayerStack stack;
+    Snapshot history[2] = {0};
+    Snapshot redo[2] = {0};
+    int history_count = 0;
+    int redo_count = 0;
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "layer_stack_init for snapshot history failed\n");
+        return 0;
+    }
+
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFF123456);
+    snapshot_push(&stack, history, &history_count, redo, &redo_count, 2);
+    if (history_count != 1 || redo_count != 0) {
+        fprintf(stderr, "snapshot_push bookkeeping failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFFABCDEF);
+    if (!snapshot_restore(&stack, history, &history_count, redo, &redo_count, 2)) {
+        fprintf(stderr, "snapshot_restore failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (history_count != 0 || redo_count != 1 ||
+        !expect_pixel_eq("snapshot_restore_pixel", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFF123456)) {
+        snapshot_stack_clear(history, &history_count);
+        snapshot_stack_clear(redo, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 0, 0xFF000001);
+    snapshot_push(&stack, history, &history_count, redo, &redo_count, 2);
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 1, 0xFF000002);
+    snapshot_push(&stack, history, &history_count, redo, &redo_count, 2);
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 2, 0xFF000003);
+    snapshot_push(&stack, history, &history_count, redo, &redo_count, 2);
+    if (history_count != 2 || redo_count != 0) {
+        fprintf(stderr, "snapshot_push max history failed\n");
+        snapshot_stack_clear(history, &history_count);
+        snapshot_stack_clear(redo, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    snapshot_stack_clear(history, &history_count);
+    snapshot_stack_clear(redo, &redo_count);
+    layer_stack_free(&stack);
     return 1;
 }
 
@@ -2926,6 +2981,10 @@ int main(void) {
     }
 
     if (!test_shape_draw_helpers()) {
+        return 1;
+    }
+
+    if (!test_snapshot_history_helpers()) {
         return 1;
     }
 
