@@ -588,6 +588,79 @@ static int test_layer_history_manual_snapshot_recording(void) {
     return 1;
 }
 
+static int test_layer_history_record_snapshot_discards_duplicate(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 3, 3, 0xFFFFFFFF)) {
+        fprintf(stderr, "history duplicate snapshot init failed\n");
+        return 0;
+    }
+
+    LayerHistory history = {0};
+    layer_history_record(&history, &stack);
+
+    LayerSnapshot snapshot = {0};
+    if (!layer_snapshot_capture(&snapshot, &stack)) {
+        fprintf(stderr, "history duplicate snapshot capture failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (layer_history_record_snapshot(&history, &snapshot)) {
+        fprintf(stderr, "history duplicate snapshot should not record identical state\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (snapshot.pixels || snapshot.width != 0 || snapshot.height != 0 || snapshot.layer_count != 0 ||
+        snapshot.solo_index != -1 || snapshot.visibility[0] != 0 || snapshot.names[0][0] != '\0') {
+        fprintf(stderr, "history duplicate snapshot should fully reset discarded snapshot\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (history.undo_count != 1 || history.redo_count != 0) {
+        fprintf(stderr, "history duplicate snapshot should leave history unchanged\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_reset(&history);
+    layer_stack_free(&stack);
+    return 1;
+}
+
+static int test_layer_history_record_snapshot_null_history_resets(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 3, 3, 0xFFFFFFFF)) {
+        fprintf(stderr, "history null snapshot init failed\n");
+        return 0;
+    }
+
+    LayerSnapshot snapshot = {0};
+    if (!layer_snapshot_capture(&snapshot, &stack)) {
+        fprintf(stderr, "history null snapshot capture failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (layer_history_record_snapshot(NULL, &snapshot)) {
+        fprintf(stderr, "history null snapshot should fail without history state\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (snapshot.pixels || snapshot.width != 0 || snapshot.height != 0 || snapshot.layer_count != 0 ||
+        snapshot.solo_index != -1 || snapshot.visibility[0] != 0 || snapshot.names[0][0] != '\0') {
+        fprintf(stderr, "history null snapshot should fully reset discarded snapshot\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layer_history_discarded_snapshot_keeps_redo(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 3, 3, 0xFFFFFFFF)) {
@@ -1964,6 +2037,12 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_manual_snapshot_recording()) {
+        return 1;
+    }
+    if (!test_layer_history_record_snapshot_discards_duplicate()) {
+        return 1;
+    }
+    if (!test_layer_history_record_snapshot_null_history_resets()) {
         return 1;
     }
     if (!test_layer_history_discarded_snapshot_keeps_redo()) {
