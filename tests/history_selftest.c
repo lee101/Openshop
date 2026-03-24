@@ -37,6 +37,67 @@ int main(void) {
     int undo_count = 0;
     int redo_count = 0;
 
+    {
+        Snapshot snapshot = {0};
+        LayerStack empty = {0};
+        LayerStack sparse = {0};
+        uint32_t sparse_pixels[4] = {0};
+
+        if (snapshot_from_layers(NULL, &empty) || snapshot_from_layers(&snapshot, NULL)) {
+            fprintf(stderr, "snapshot_from_layers should reject null arguments\n");
+            return 1;
+        }
+
+        empty.width = 4;
+        empty.height = 4;
+        empty.layer_count = 0;
+        empty.active_layer = 0;
+        empty.solo_index = -1;
+        if (!snapshot_from_layers(&snapshot, &empty) ||
+            !expect_int(snapshot.width, 4, "empty_snapshot_width") ||
+            !expect_int(snapshot.height, 4, "empty_snapshot_height") ||
+            !expect_int(snapshot.layer_count, 0, "empty_snapshot_layer_count") ||
+            !expect_int(snapshot.active_layer, 0, "empty_snapshot_active_layer") ||
+            !expect_int(snapshot.solo_index, -1, "empty_snapshot_solo_index") ||
+            snapshot.pixels != NULL) {
+            fprintf(stderr, "empty snapshot creation failed\n");
+            snapshot_free(&snapshot);
+            return 1;
+        }
+        snapshot_free(&snapshot);
+
+        sparse.width = 2;
+        sparse.height = 2;
+        sparse.layer_count = 1;
+        sparse.active_layer = 0;
+        sparse.solo_index = -1;
+        sparse.layers[0].visible = 1;
+        sparse.layers[0].locked = 1;
+        sparse.layers[0].opacity_percent = 55;
+        strncpy(sparse.layers[0].name, "Sparse", LAYER_NAME_MAX - 1);
+        sparse.layers[0].name[LAYER_NAME_MAX - 1] = '\0';
+        sparse.layers[0].canvas.width = 2;
+        sparse.layers[0].canvas.height = 2;
+        sparse.layers[0].canvas.pixels = NULL;
+        if (!snapshot_from_layers(&snapshot, &sparse) ||
+            !snapshot.pixels ||
+            !expect_int(snapshot.visibility[0], 1, "sparse_snapshot_visible") ||
+            !expect_int(snapshot.locked[0], 1, "sparse_snapshot_locked") ||
+            !expect_int(snapshot.opacity_percent[0], 55, "sparse_snapshot_opacity") ||
+            strcmp(snapshot.names[0], "Sparse") != 0) {
+            fprintf(stderr, "sparse snapshot creation failed\n");
+            snapshot_free(&snapshot);
+            return 1;
+        }
+        memcpy(sparse_pixels, snapshot.pixels, sizeof(sparse_pixels));
+        if (sparse_pixels[0] != 0 || sparse_pixels[1] != 0 || sparse_pixels[2] != 0 || sparse_pixels[3] != 0) {
+            fprintf(stderr, "sparse snapshot pixels should be zero-filled\n");
+            snapshot_free(&snapshot);
+            return 1;
+        }
+        snapshot_free(&snapshot);
+    }
+
     if (!layer_stack_init(&stack, 8, 8, 0xFFFFFFFF)) {
         fprintf(stderr, "layer stack init failed\n");
         return 1;
