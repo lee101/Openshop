@@ -165,6 +165,9 @@ static int layer_stack_reveal_target(LayerStack *stack, int target) {
     if (!stack || target < 0 || target >= stack->layer_count) {
         return 0;
     }
+    if (stack->layers[target].visible && stack->active_layer == target && stack->solo_index == -1) {
+        return 0;
+    }
     stack->layers[target].visible = 1;
     stack->active_layer = target;
     stack->solo_index = -1;
