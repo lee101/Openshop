@@ -179,6 +179,61 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_cycle_visible(&stack, 1) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "visible cycling should wrap to only visible layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_cycle_visible(&stack, -1) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "visible cycling should stay on only visible layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_show(&stack, 1)) {
+        fprintf(stderr, "restore top layer after visible cycling failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_add(&stack, "Third Visible", 0x00000000) != 2 || layer_stack_add(&stack, "Fourth Visible", 0x00000000) != 3) {
+        fprintf(stderr, "setup visible cycling skip test failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_visibility(&stack, 1) || !layer_stack_toggle_visibility(&stack, 2)) {
+        fprintf(stderr, "hide intermediate layers for visible cycling failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.active_layer = 1;
+    if (layer_stack_cycle_visible(&stack, 1) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "visible cycling forward should skip hidden layers\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_cycle_visible(&stack, -1) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "visible cycling backward should wrap across hidden layers\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 3) || !layer_stack_delete(&stack, 2)) {
+        fprintf(stderr, "visible cycling cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_show(&stack, 1)) {
+        fprintf(stderr, "restore top layer after visible cycling cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_insert(&stack, 1, "Inserted", 0x00000000) != 1) {
         fprintf(stderr, "layer insert failed\n");
         canvas_free(&composite);

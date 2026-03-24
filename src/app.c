@@ -1073,14 +1073,14 @@ int app_run(const char *input_path) {
                 }
 
                 if (key == SDLK_PAGEUP) {
-                    if (layer_stack_cycle(&layers, 1) >= 0) {
+                    if ((shift ? layer_stack_cycle_visible(&layers, 1) : layer_stack_cycle(&layers, 1)) >= 0) {
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                     break;
                 }
 
                 if (key == SDLK_PAGEDOWN) {
-                    if (layer_stack_cycle(&layers, -1) >= 0) {
+                    if ((shift ? layer_stack_cycle_visible(&layers, -1) : layer_stack_cycle(&layers, -1)) >= 0) {
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                     break;
