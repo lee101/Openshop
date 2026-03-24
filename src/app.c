@@ -282,44 +282,6 @@ static int try_flood_fill_active_layer(LayerStack *layers,
     return changed;
 }
 
-static int try_clear_active_layer(LayerStack *layers,
-                                  Snapshot *undo_stack, int *undo_count,
-                                  Snapshot *redo_stack, int *redo_count) {
-    return active_layer_try_clear(layers, undo_stack, undo_count, redo_stack, redo_count, COLOR_BG, MAX_HISTORY);
-}
-
-static int try_flip_horizontal_active_layer(LayerStack *layers,
-                                            Snapshot *undo_stack, int *undo_count,
-                                            Snapshot *redo_stack, int *redo_count) {
-    return active_layer_try_flip_horizontal(layers, undo_stack, undo_count, redo_stack, redo_count, MAX_HISTORY);
-}
-
-static int try_flip_vertical_active_layer(LayerStack *layers,
-                                          Snapshot *undo_stack, int *undo_count,
-                                          Snapshot *redo_stack, int *redo_count) {
-    return active_layer_try_flip_vertical(layers, undo_stack, undo_count, redo_stack, redo_count, MAX_HISTORY);
-}
-
-static int try_rotate_active_layer_180(LayerStack *layers,
-                                       Snapshot *undo_stack, int *undo_count,
-                                       Snapshot *redo_stack, int *redo_count) {
-    return active_layer_try_rotate_180(layers, undo_stack, undo_count, redo_stack, redo_count, MAX_HISTORY);
-}
-
-static int try_invert_active_layer_rgb(LayerStack *layers,
-                                       Snapshot *undo_stack, int *undo_count,
-                                       Snapshot *redo_stack, int *redo_count) {
-    return active_layer_try_invert_rgb(layers, undo_stack, undo_count, redo_stack, redo_count, MAX_HISTORY);
-}
-
-static int try_adjust_active_layer_opacity(LayerStack *layers,
-                                           Snapshot *undo_stack, int *undo_count,
-                                           Snapshot *redo_stack, int *redo_count,
-                                           int target_opacity) {
-    return active_layer_try_adjust_opacity(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                           target_opacity, MAX_HISTORY);
-}
-
 static int try_add_layer(LayerStack *layers,
                          Snapshot *undo_stack, int *undo_count,
                          Snapshot *redo_stack, int *redo_count) {
@@ -443,34 +405,6 @@ static int refresh_title_state_on_change(const TitleState *title_state, int chan
         update_title_state(title_state);
     }
     return changed;
-}
-
-static int try_nudge_active_layer_opacity(LayerStack *layers,
-                                          Snapshot *undo_stack, int *undo_count,
-                                          Snapshot *redo_stack, int *redo_count,
-                                          int delta_percent) {
-    return active_layer_try_nudge_opacity(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                          delta_percent, MAX_HISTORY);
-}
-
-static int try_commit_shape(LayerStack *layers,
-                            Snapshot *undo_stack, int *undo_count,
-                            Snapshot *redo_stack, int *redo_count,
-                            Tool tool, int shape_start_x, int shape_start_y,
-                            int end_x, int end_y, int brush_radius, uint32_t brush_color) {
-    return active_layer_try_commit_shape(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                         tool, shape_start_x, shape_start_y, end_x, end_y,
-                                         brush_radius, brush_color, MAX_HISTORY);
-}
-
-static int try_begin_brush_stroke(LayerStack *layers,
-                                  Snapshot *undo_stack, int *undo_count,
-                                  Snapshot *redo_stack, int *redo_count,
-                                  Tool tool, int x, int y, int brush_radius,
-                                  uint32_t brush_color, BrushShape brush_shape) {
-    return active_layer_try_begin_brush_stroke(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                               tool, x, y, brush_radius, brush_color, brush_shape,
-                                               COLOR_BG, MAX_HISTORY);
 }
 
 typedef int (*SelectorHotkeyFn)(LayerStack *layers, int arg);
