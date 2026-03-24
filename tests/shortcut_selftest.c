@@ -607,6 +607,7 @@ int main(void) {
     ok = ok && expect_sampled_brush_color("sampled_brush_color_white", 0xFFFFFFFFu, TOOL_ERASER, 0, 0, 0, TOOL_BRUSH, 0xFFFFFFFFu, 0x00FFFFFFu, 100);
     ok = ok && expect_sampled_brush_color("sampled_brush_color_translucent", 0x80445566u, TOOL_LINE, 0, 0, 0, TOOL_BRUSH, 0x80445566u, 0x00445566u, 50);
     ok = ok && expect_sampled_brush_color("sampled_brush_color_low_alpha", 0x05445566u, TOOL_LINE, 0, 0, 0, TOOL_BRUSH, 0x05445566u, 0x00445566u, 2);
+    ok = ok && expect_sampled_brush_color("sampled_brush_color_next_low_step", 0x07445566u, TOOL_LINE, 0, 0, 0, TOOL_BRUSH, 0x08445566u, 0x00445566u, 3);
     ok = ok && expect_sampled_brush_color("sampled_brush_color_rounds_down", 0x7F445566u, TOOL_LINE, 0, 0, 0, TOOL_BRUSH, 0x80445566u, 0x00445566u, 50);
     ok = ok && expect_sampled_brush_color("sampled_brush_color_rounds_up", 0x81445566u, TOOL_LINE, 0, 0, 0, TOOL_BRUSH, 0x82445566u, 0x00445566u, 51);
     ok = ok && expect_sampled_brush_color("sampled_brush_color_transparent_clamp", 0x00445566u, TOOL_RECT, 0, 0, 0, TOOL_BRUSH, 0x03445566u, 0x00445566u, 1);
