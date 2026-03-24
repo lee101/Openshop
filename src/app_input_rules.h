@@ -107,6 +107,12 @@ typedef enum {
     APP_ACTIVE_EDIT_INVERT_RGB
 } AppActiveEditAction;
 
+typedef enum {
+    APP_MOUSE_POSITION_NONE = 0,
+    APP_MOUSE_POSITION_FILL,
+    APP_MOUSE_POSITION_SAMPLE
+} AppMousePositionAction;
+
 AppOpacityHotkeyAction app_opacity_hotkey_action(int key);
 AppLayerNavigationAction app_layer_navigation_action(int key, int ctrl, int alt, int shift, int *arg);
 AppFileHotkeyAction app_file_hotkey_action(int key, int ctrl, int alt, int shift);
@@ -114,5 +120,6 @@ AppHistoryHotkeyAction app_history_hotkey_action(int key, int ctrl, int alt, int
 AppBrushAdjustAction app_brush_adjust_hotkey_action(int key);
 int app_is_add_layer_hotkey(int key, int ctrl, int alt, int shift);
 AppActiveEditAction app_active_edit_hotkey_action(int key);
+AppMousePositionAction app_mouse_position_hotkey_action(int key);
 
 #endif

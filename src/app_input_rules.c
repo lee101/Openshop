@@ -184,3 +184,13 @@ AppActiveEditAction app_active_edit_hotkey_action(int key) {
     }
     return APP_ACTIVE_EDIT_NONE;
 }
+
+AppMousePositionAction app_mouse_position_hotkey_action(int key) {
+    if (key == APP_KEY_f) {
+        return APP_MOUSE_POSITION_FILL;
+    }
+    if (key == APP_KEY_i) {
+        return APP_MOUSE_POSITION_SAMPLE;
+    }
+    return APP_MOUSE_POSITION_NONE;
+}

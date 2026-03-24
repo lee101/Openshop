@@ -169,6 +169,15 @@ static int test_app_input_rules(void) {
             fprintf(stderr, "active edit non-hotkey mapping failed\n");
             return 0;
         }
+        if (app_mouse_position_hotkey_action(APP_KEY_f) != APP_MOUSE_POSITION_FILL ||
+            app_mouse_position_hotkey_action(APP_KEY_i) != APP_MOUSE_POSITION_SAMPLE) {
+            fprintf(stderr, "mouse position hotkey mapping failed\n");
+            return 0;
+        }
+        if (app_mouse_position_hotkey_action(APP_KEY_b) != APP_MOUSE_POSITION_NONE) {
+            fprintf(stderr, "mouse position non-hotkey mapping failed\n");
+            return 0;
+        }
     }
 
     return 1;

@@ -462,19 +462,6 @@ typedef struct {
     ActiveEditHotkeyFn action;
 } ActiveEditHotkey;
 
-typedef int (*MousePositionHotkeyFn)(LayerStack *layers,
-                                     Snapshot *undo_stack, int *undo_count,
-                                     Snapshot *redo_stack, int *redo_count,
-                                     const Canvas *sample,
-                                     int mx, int my,
-                                     uint32_t *brush_color_rgb, uint32_t *brush_color,
-                                     int *brush_opacity, Tool *tool);
-
-typedef struct {
-    SDL_Keycode key;
-    MousePositionHotkeyFn action;
-} MousePositionHotkey;
-
 typedef int (*SelectorHotkeyFn)(LayerStack *layers, int arg);
 
 typedef struct {
@@ -571,11 +558,6 @@ static int mouse_position_sample_hotkey(LayerStack *layers,
     (void)redo_count;
     return sample_canvas_brush_state(sample, mx, my, brush_color_rgb, brush_color, brush_opacity, tool);
 }
-
-static const MousePositionHotkey MOUSE_POSITION_HOTKEYS[] = {
-    {SDLK_f, mouse_position_fill_hotkey},
-    {SDLK_i, mouse_position_sample_hotkey},
-};
 
 static int select_bottom_visible_hotkey(LayerStack *layers, int arg) {
     (void)arg;
@@ -815,7 +797,7 @@ static int handle_mouse_position_hotkey(SDL_Keycode key,
                                         const Canvas *sample,
                                         uint32_t *brush_color_rgb, uint32_t *brush_color,
                                         int *brush_opacity, Tool *tool) {
-    size_t i;
+    AppMousePositionAction action;
     int mx = 0;
     int my = 0;
 
@@ -824,15 +806,20 @@ static int handle_mouse_position_hotkey(SDL_Keycode key,
     }
 
     SDL_GetMouseState(&mx, &my);
-    for (i = 0; i < sizeof(MOUSE_POSITION_HOTKEYS) / sizeof(MOUSE_POSITION_HOTKEYS[0]); i++) {
-        if (MOUSE_POSITION_HOTKEYS[i].key == key) {
-            return MOUSE_POSITION_HOTKEYS[i].action(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                                    sample, mx, my, brush_color_rgb, brush_color,
-                                                    brush_opacity, tool);
-        }
+    action = app_mouse_position_hotkey_action((int)key);
+    switch (action) {
+    case APP_MOUSE_POSITION_FILL:
+        return mouse_position_fill_hotkey(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                          sample, mx, my, brush_color_rgb, brush_color,
+                                          brush_opacity, tool);
+    case APP_MOUSE_POSITION_SAMPLE:
+        return mouse_position_sample_hotkey(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                            sample, mx, my, brush_color_rgb, brush_color,
+                                            brush_opacity, tool);
+    case APP_MOUSE_POSITION_NONE:
+    default:
+        return 0;
     }
-
-    return 0;
 }
 
 static int handle_general_key_hotkey(SDL_Keycode key,
