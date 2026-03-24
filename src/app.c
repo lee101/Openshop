@@ -217,20 +217,12 @@ static int try_flood_fill_active_layer(LayerStack *layers,
                                        Snapshot *undo_stack, int *undo_count,
                                        Snapshot *redo_stack, int *redo_count,
                                        int x, int y, uint32_t brush_color) {
-    Layer *active;
-
     if (x < 0 || y < 0 || x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT) {
         return 0;
     }
 
-    active = layer_stack_active(layers);
-    if (!active || active->locked) {
-        fprintf(stderr, "%s\n", status_text_action_error(STATUS_FILL_FAILED));
-        return 0;
-    }
-
-    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, MAX_HISTORY);
-    if (!canvas_flood_fill(&active->canvas, x, y, brush_color)) {
+    if (!active_layer_try_flood_fill(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                     x, y, brush_color, MAX_HISTORY)) {
         fprintf(stderr, "%s\n", status_text_action_error(STATUS_FILL_FAILED));
         return 0;
     }

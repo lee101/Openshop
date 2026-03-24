@@ -31,6 +31,10 @@ int active_layer_try_nudge_opacity(LayerStack *layers,
                                    Snapshot *undo_stack, int *undo_count,
                                    Snapshot *redo_stack, int *redo_count,
                                    int delta_percent, int max_history);
+int active_layer_try_flood_fill(LayerStack *layers,
+                                Snapshot *undo_stack, int *undo_count,
+                                Snapshot *redo_stack, int *redo_count,
+                                int x, int y, uint32_t brush_color, int max_history);
 int active_layer_apply_translation(LayerStack *layers,
                                    Snapshot *undo_stack, int *undo_count,
                                    Snapshot *redo_stack, int *redo_count,

@@ -96,6 +96,28 @@ int active_layer_try_nudge_opacity(LayerStack *layers,
                                            active->opacity_percent + delta_percent, max_history);
 }
 
+int active_layer_try_flood_fill(LayerStack *layers,
+                                Snapshot *undo_stack, int *undo_count,
+                                Snapshot *redo_stack, int *redo_count,
+                                int x, int y, uint32_t brush_color, int max_history) {
+    Layer *active;
+
+    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count) {
+        return 0;
+    }
+
+    active = layer_stack_active(layers);
+    if (!active || active->locked || !active->canvas.pixels) {
+        return 0;
+    }
+    if (x < 0 || y < 0 || x >= active->canvas.width || y >= active->canvas.height) {
+        return 0;
+    }
+
+    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
+    return canvas_flood_fill(&active->canvas, x, y, brush_color);
+}
+
 int active_layer_apply_translation(LayerStack *layers,
                                    Snapshot *undo_stack, int *undo_count,
                                    Snapshot *redo_stack, int *redo_count,

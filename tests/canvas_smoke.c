@@ -649,6 +649,26 @@ static int test_active_layer_ops_helpers(void) {
         return 0;
     }
 
+    canvas_clear(&stack.layers[0].canvas, 0x00000000);
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFF010101);
+    if (!active_layer_try_flood_fill(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                     1, 1, 0xFFABC123, 4) ||
+        !expect_pixel_eq("active_fill", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFFABC123)) {
+        fprintf(stderr, "active_layer_try_flood_fill failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (active_layer_try_flood_fill(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                    -1, 1, 0xFFFFFFFF, 4)) {
+        fprintf(stderr, "active_layer_try_flood_fill bounds guard failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
     canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFFABCDEF);
     if (!active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
                                         1, 1, 0xFFFFFFFF, 4) ||
@@ -690,6 +710,7 @@ static int test_active_layer_ops_helpers(void) {
     stack.layers[1].locked = 1;
     if (active_layer_try_flip_horizontal(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
         active_layer_try_invert_rgb(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+        active_layer_try_flood_fill(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0, 0, 0xFFFFFFFF, 4) ||
         active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 1, 0, 0xFFFFFFFF, 4)) {
         fprintf(stderr, "active layer locked guards failed\n");
         snapshot_stack_clear(undo_stack, &undo_count);
@@ -701,6 +722,7 @@ static int test_active_layer_ops_helpers(void) {
     canvas_free(&stack.layers[1].canvas);
     if (active_layer_try_flip_vertical(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
         active_layer_try_rotate_180(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+        active_layer_try_flood_fill(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0, 0, 0xFFFFFFFF, 4) ||
         active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, &redo_count, -1, 0, 0xFFFFFFFF, 4)) {
         fprintf(stderr, "active layer null pixel guards failed\n");
         snapshot_stack_clear(undo_stack, &undo_count);
