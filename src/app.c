@@ -1,6 +1,7 @@
 #include "app.h"
 #include "canvas.h"
 #include "image_io.h"
+#include "layer_name_shortcuts.h"
 #include "layers.h"
 
 #include <SDL2/SDL.h>
@@ -554,30 +555,32 @@ static int handle_layer_name_shortcut(
 ) {
     int (*can_reset)(const LayerStack *) = NULL;
     int (*reset)(LayerStack *) = NULL;
+    LayerNameResetShortcut shortcut;
 
     if (!layers || key != SDLK_F2) {
         return 0;
     }
 
-    if (shift && !ctrl && !alt) {
+    shortcut = layer_name_reset_shortcut_from_modifiers(ctrl, alt, shift);
+    if (shortcut == LAYER_NAME_RESET_SHORTCUT_NON_BACKGROUND_LOCKED) {
         can_reset = layer_stack_can_reset_non_background_locked_names;
         reset = layer_stack_reset_non_background_locked_names;
-    } else if (alt && shift && !ctrl) {
+    } else if (shortcut == LAYER_NAME_RESET_SHORTCUT_NON_BACKGROUND_VISIBLE) {
         can_reset = layer_stack_can_reset_non_background_visible_names;
         reset = layer_stack_reset_non_background_visible_names;
-    } else if (alt && !ctrl && !shift) {
+    } else if (shortcut == LAYER_NAME_RESET_SHORTCUT_LOCKED) {
         can_reset = layer_stack_can_reset_locked_names;
         reset = layer_stack_reset_locked_names;
-    } else if (ctrl && alt && shift) {
+    } else if (shortcut == LAYER_NAME_RESET_SHORTCUT_NON_BACKGROUND_UNLOCKED) {
         can_reset = layer_stack_can_reset_non_background_unlocked_names;
         reset = layer_stack_reset_non_background_unlocked_names;
-    } else if (ctrl && alt) {
+    } else if (shortcut == LAYER_NAME_RESET_SHORTCUT_VISIBLE) {
         can_reset = layer_stack_can_reset_visible_names;
         reset = layer_stack_reset_visible_names;
-    } else if (ctrl && shift) {
+    } else if (shortcut == LAYER_NAME_RESET_SHORTCUT_UNLOCKED) {
         can_reset = layer_stack_can_reset_unlocked_names;
         reset = layer_stack_reset_unlocked_names;
-    } else if (ctrl) {
+    } else if (shortcut == LAYER_NAME_RESET_SHORTCUT_ALL) {
         can_reset = layer_stack_can_reset_all_names;
         reset = layer_stack_reset_all_names;
     }
