@@ -692,6 +692,19 @@ typedef struct {
     ActiveEditHotkeyFn action;
 } ActiveEditHotkey;
 
+typedef int (*MousePositionHotkeyFn)(LayerStack *layers,
+                                     Snapshot *undo_stack, int *undo_count,
+                                     Snapshot *redo_stack, int *redo_count,
+                                     const Canvas *sample,
+                                     int mx, int my,
+                                     uint32_t *brush_color_rgb, uint32_t *brush_color,
+                                     int *brush_opacity, Tool *tool);
+
+typedef struct {
+    SDL_Keycode key;
+    MousePositionHotkeyFn action;
+} MousePositionHotkey;
+
 static const BrushColorHotkey BRUSH_COLOR_HOTKEYS[] = {
     {SDLK_b, COLOR_BRUSH, TOOL_BRUSH},
     {SDLK_e, COLOR_ERASE, TOOL_ERASER},
@@ -717,6 +730,40 @@ static const ActiveEditHotkey ACTIVE_EDIT_HOTKEYS[] = {
     {SDLK_v, try_flip_vertical_active_layer},
     {SDLK_j, try_rotate_active_layer_180},
     {SDLK_x, try_invert_active_layer_rgb},
+};
+
+static int mouse_position_fill_hotkey(LayerStack *layers,
+                                      Snapshot *undo_stack, int *undo_count,
+                                      Snapshot *redo_stack, int *redo_count,
+                                      const Canvas *sample,
+                                      int mx, int my,
+                                      uint32_t *brush_color_rgb, uint32_t *brush_color,
+                                      int *brush_opacity, Tool *tool) {
+    (void)sample;
+    (void)brush_color_rgb;
+    (void)brush_opacity;
+    (void)tool;
+    return try_flood_fill_active_layer(layers, undo_stack, undo_count, redo_stack, redo_count, mx, my, *brush_color);
+}
+
+static int mouse_position_sample_hotkey(LayerStack *layers,
+                                        Snapshot *undo_stack, int *undo_count,
+                                        Snapshot *redo_stack, int *redo_count,
+                                        const Canvas *sample,
+                                        int mx, int my,
+                                        uint32_t *brush_color_rgb, uint32_t *brush_color,
+                                        int *brush_opacity, Tool *tool) {
+    (void)layers;
+    (void)undo_stack;
+    (void)undo_count;
+    (void)redo_stack;
+    (void)redo_count;
+    return try_sample_canvas_color(sample, mx, my, brush_color_rgb, brush_color, brush_opacity, tool);
+}
+
+static const MousePositionHotkey MOUSE_POSITION_HOTKEYS[] = {
+    {SDLK_f, mouse_position_fill_hotkey},
+    {SDLK_i, mouse_position_sample_hotkey},
 };
 
 static int handle_brush_state_hotkey(SDL_Keycode key,
@@ -797,6 +844,7 @@ static int handle_mouse_position_hotkey(SDL_Keycode key,
                                         const Canvas *sample,
                                         uint32_t *brush_color_rgb, uint32_t *brush_color,
                                         int *brush_opacity, Tool *tool) {
+    size_t i;
     int mx = 0;
     int my = 0;
 
@@ -805,11 +853,12 @@ static int handle_mouse_position_hotkey(SDL_Keycode key,
     }
 
     SDL_GetMouseState(&mx, &my);
-    if (key == SDLK_f) {
-        return try_flood_fill_active_layer(layers, undo_stack, undo_count, redo_stack, redo_count, mx, my, *brush_color);
-    }
-    if (key == SDLK_i) {
-        return try_sample_canvas_color(sample, mx, my, brush_color_rgb, brush_color, brush_opacity, tool);
+    for (i = 0; i < sizeof(MOUSE_POSITION_HOTKEYS) / sizeof(MOUSE_POSITION_HOTKEYS[0]); i++) {
+        if (MOUSE_POSITION_HOTKEYS[i].key == key) {
+            return MOUSE_POSITION_HOTKEYS[i].action(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                    sample, mx, my, brush_color_rgb, brush_color,
+                                                    brush_opacity, tool);
+        }
     }
 
     return 0;
