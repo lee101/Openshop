@@ -232,7 +232,7 @@ int layer_snapshot_apply(const LayerSnapshot *snapshot, LayerStack *stack) {
         stack->active_layer = stack->layer_count - 1;
     }
     stack->solo_index = snapshot->solo_index;
-    if (stack->solo_index >= stack->layer_count) {
+    if (stack->solo_index < 0 || stack->solo_index >= stack->layer_count) {
         stack->solo_index = -1;
     }
     return 1;

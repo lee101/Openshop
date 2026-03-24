@@ -483,6 +483,21 @@ static int test_layer_snapshot_apply_clamps_invalid_focus_indices(void) {
         return 0;
     }
 
+    snapshot.active_layer = 1;
+    snapshot.solo_index = -7;
+    if (!layer_snapshot_apply(&snapshot, &dest)) {
+        fprintf(stderr, "snapshot clamp negative solo reapply failed\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&dest);
+        return 0;
+    }
+    if (dest.active_layer != 1 || dest.solo_index != -1) {
+        fprintf(stderr, "snapshot apply should clamp negative solo indices back to cleared state\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&dest);
+        return 0;
+    }
+
     layer_snapshot_free(&snapshot);
     layer_stack_free(&dest);
     return 1;
