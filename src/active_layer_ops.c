@@ -180,6 +180,9 @@ int active_layer_try_begin_brush_stroke(LayerStack *layers,
     if (tool != TOOL_BRUSH && tool != TOOL_ERASER) {
         return 0;
     }
+    if (x < 0 || y < 0 || x >= active->canvas.width || y >= active->canvas.height) {
+        return 0;
+    }
 
     snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
     if (tool == TOOL_ERASER) {
