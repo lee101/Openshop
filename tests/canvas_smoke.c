@@ -4567,6 +4567,12 @@ int main(void) {
         canvas_free(&transform);
         return 1;
     }
+    canvas_set_pixel_raw(&transform, 1, 0, 0x00010203);
+    canvas_invert_rgb(&transform);
+    if (!expect_pixel_eq("invert_transparent_preserve", canvas_get_pixel(&transform, 1, 0), 0x00010203)) {
+        canvas_free(&transform);
+        return 1;
+    }
     canvas_free(&transform);
 
     Canvas translated;

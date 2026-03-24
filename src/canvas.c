@@ -324,6 +324,9 @@ void canvas_invert_rgb(Canvas *c) {
         uint32_t p = c->pixels[i];
         uint32_t a = p & 0xFF000000;
         uint32_t rgb = p & 0x00FFFFFF;
+        if (a == 0) {
+            continue;
+        }
         c->pixels[i] = a | ((~rgb) & 0x00FFFFFF);
     }
 }
