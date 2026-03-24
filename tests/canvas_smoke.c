@@ -234,18 +234,26 @@ static int test_layer_edit_state_helpers(void) {
 
 static int test_brush_render_helpers(void) {
     Canvas canvas = {0};
+    Canvas blank = {0};
 
     if (!canvas_init(&canvas, 7, 7)) {
         fprintf(stderr, "brush render canvas init failed\n");
         return 0;
     }
+    if (!canvas_init(&blank, 7, 7)) {
+        fprintf(stderr, "brush render blank canvas init failed\n");
+        canvas_free(&canvas);
+        return 0;
+    }
     canvas_clear(&canvas, 0x00000000);
+    canvas_clear(&blank, 0x00000000);
 
     stamp_brush(&canvas, 3, 3, 1, 0xFF112233, BRUSH_SHAPE_DIAMOND);
     if (!expect_pixel_eq("stamp_center", canvas_get_pixel(&canvas, 3, 3), 0xFF112233) ||
         !expect_pixel_eq("stamp_diamond_tip", canvas_get_pixel(&canvas, 3, 2), 0xFF112233) ||
         !expect_pixel_eq("stamp_diamond_corner", canvas_get_pixel(&canvas, 2, 2), 0x00000000)) {
         canvas_free(&canvas);
+        canvas_free(&blank);
         return 0;
     }
 
@@ -253,22 +261,47 @@ static int test_brush_render_helpers(void) {
     if (!expect_pixel_eq("line_mid", canvas_get_pixel(&canvas, 3, 1), 0xFF445566) ||
         !expect_pixel_eq("line_thickness", canvas_get_pixel(&canvas, 3, 2), 0xFF445566)) {
         canvas_free(&canvas);
+        canvas_free(&blank);
+        return 0;
+    }
+
+    stamp_brush(&blank, 3, 3, 0, 0xFFFFFFFF, BRUSH_SHAPE_ROUND);
+    if (!expect_pixel_eq("stamp_zero_radius", canvas_get_pixel(&blank, 3, 3), 0x00000000)) {
+        canvas_free(&canvas);
+        canvas_free(&blank);
+        return 0;
+    }
+
+    draw_brush_line(&blank, 0, 0, 6, 6, 1, 0xFF778899, BRUSH_SHAPE_ROUND);
+    if (!expect_pixel_eq("line_diagonal_mid", canvas_get_pixel(&blank, 3, 3), 0xFF778899)) {
+        canvas_free(&canvas);
+        canvas_free(&blank);
         return 0;
     }
 
     erase_stamp(&canvas, 3, 3, 1, 0x00000000, BRUSH_SHAPE_DIAMOND);
     if (!expect_pixel_eq("erase_center", canvas_get_pixel(&canvas, 3, 3), 0x00000000)) {
         canvas_free(&canvas);
+        canvas_free(&blank);
         return 0;
     }
 
     erase_line(&canvas, 1, 1, 5, 1, 1, 0x00000000, BRUSH_SHAPE_SQUARE);
     if (!expect_pixel_eq("erase_line_mid", canvas_get_pixel(&canvas, 3, 1), 0x00000000)) {
         canvas_free(&canvas);
+        canvas_free(&blank);
+        return 0;
+    }
+
+    erase_line(&blank, 6, 0, 0, 6, 1, 0x00000000, BRUSH_SHAPE_ROUND);
+    if (!expect_pixel_eq("erase_diagonal_mid", canvas_get_pixel(&blank, 3, 3), 0x00000000)) {
+        canvas_free(&canvas);
+        canvas_free(&blank);
         return 0;
     }
 
     canvas_free(&canvas);
+    canvas_free(&blank);
     return 1;
 }
 
