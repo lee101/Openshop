@@ -793,6 +793,13 @@ static int test_layer_history_commit_change_helper(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (noop_snapshot.pixels || noop_snapshot.width != 0 || noop_snapshot.height != 0 ||
+        noop_snapshot.layer_count != 0 || noop_snapshot.solo_index != -1) {
+        fprintf(stderr, "history commit helper should reset noop snapshot ownership\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (history.redo_count != 1) {
         fprintf(stderr, "history commit helper should keep redo for unchanged state\n");
         layer_history_reset(&history);
@@ -828,6 +835,33 @@ static int test_layer_history_commit_change_helper(void) {
     }
     if (!layer_history_step_redo(&history, &stack) ||
         !expect_pixel_eq("history_commit_helper_redo", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF101112)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    LayerSnapshot failed_snapshot = {0};
+    if (!layer_snapshot_capture(&failed_snapshot, &stack)) {
+        fprintf(stderr, "history commit helper failed capture failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_history_commit_change(&history, &failed_snapshot, &stack, 0)) {
+        fprintf(stderr, "history commit helper should skip failed operations\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (failed_snapshot.pixels || failed_snapshot.width != 0 || failed_snapshot.height != 0 ||
+        failed_snapshot.layer_count != 0 || failed_snapshot.solo_index != -1) {
+        fprintf(stderr, "history commit helper should reset failed snapshot ownership\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (history.undo_count != 2 || history.redo_count != 0) {
+        fprintf(stderr, "history commit helper should leave history unchanged after failed operation\n");
         layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
