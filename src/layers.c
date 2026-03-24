@@ -234,6 +234,8 @@ static int layer_stack_matches_bool_filter(int value, int required_value) {
 
 static int layer_stack_remap_visibility(LayerStack *stack, int preserve_index, int invert_visibility,
                                         int required_hidden, int required_locked) {
+    int desired_visible[MAX_LAYERS];
+    int changed = 0;
     if (!stack || stack->layer_count <= 0) {
         return 0;
     }
@@ -251,16 +253,29 @@ static int layer_stack_remap_visibility(LayerStack *stack, int preserve_index, i
             next_visible = layer_stack_matches_bool_filter(is_hidden, required_hidden) &&
                            layer_stack_matches_bool_filter(stack->layers[i].locked ? 1 : 0, required_locked);
         }
-        stack->layers[i].visible = next_visible;
+        desired_visible[i] = next_visible;
         visible_count += next_visible;
     }
 
     if (visible_count == 0) {
-        stack->layers[preserve_index].visible = 1;
+        desired_visible[preserve_index] = 1;
+    }
+    for (int i = 0; i < stack->layer_count; i++) {
+        if (stack->layers[i].visible != desired_visible[i]) {
+            changed = 1;
+            stack->layers[i].visible = desired_visible[i];
+        }
+    }
+    if (stack->active_layer != preserve_index) {
+        changed = 1;
+    }
+    stack->active_layer = preserve_index;
+    if (stack->solo_index != -1) {
+        changed = 1;
     }
     stack->active_layer = preserve_index;
     stack->solo_index = -1;
-    return 1;
+    return changed;
 }
 
 int layer_stack_init(LayerStack *stack, int width, int height, uint32_t background_color) {

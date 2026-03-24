@@ -2681,8 +2681,8 @@ static int test_layers_basic(void) {
         return 0;
     }
     stack.layers[1].locked = 1;
-    if (!layer_stack_show_unlocked_only(&stack, 1)) {
-        fprintf(stderr, "show unlocked only fallback failed\n");
+    if (layer_stack_show_unlocked_only(&stack, 1)) {
+        fprintf(stderr, "show unlocked only preserve fallback should no-op\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -2725,14 +2725,20 @@ static int test_layers_basic(void) {
         return 0;
     }
     stack.layers[0].locked = 0;
-    if (!layer_stack_show_locked_only(&stack, 0)) {
-        fprintf(stderr, "show locked only fallback failed\n");
+    if (layer_stack_show_locked_only(&stack, 0)) {
+        fprintf(stderr, "show locked only preserve fallback should no-op\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
     }
     if (!stack.layers[0].visible) {
         fprintf(stderr, "show locked only should keep the active layer visible when nothing is locked\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_show_locked_only(&stack, 0)) {
+        fprintf(stderr, "redundant show locked only should no-op after preserve fallback\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -2775,8 +2781,8 @@ static int test_layers_basic(void) {
         return 0;
     }
     stack.layers[1].locked = 0;
-    if (!layer_stack_show_hidden_locked_only(&stack, 1)) {
-        fprintf(stderr, "show hidden locked only fallback failed\n");
+    if (layer_stack_show_hidden_locked_only(&stack, 1)) {
+        fprintf(stderr, "show hidden locked only preserve fallback should no-op\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -2825,14 +2831,20 @@ static int test_layers_basic(void) {
         return 0;
     }
     stack.layers[1].locked = 1;
-    if (!layer_stack_show_hidden_unlocked_only(&stack, 1)) {
-        fprintf(stderr, "show hidden unlocked only fallback failed\n");
+    if (layer_stack_show_hidden_unlocked_only(&stack, 1)) {
+        fprintf(stderr, "show hidden unlocked only preserve fallback should no-op\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
     }
     if (!stack.layers[1].visible) {
         fprintf(stderr, "show hidden unlocked only should keep the active layer visible when no hidden unlocked layers exist\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_show_hidden_unlocked_only(&stack, 1)) {
+        fprintf(stderr, "redundant show hidden unlocked only should no-op after preserve fallback\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
