@@ -1339,6 +1339,48 @@ static int expect_prepare_shape_preview_motion_rejection(
     return 1;
 }
 
+static int expect_prepare_shape_commit(
+    const char *label,
+    const int *shaping,
+    Tool tool,
+    int shape_start_x,
+    int shape_start_y,
+    int x,
+    int y,
+    int shift,
+    int *out_x,
+    int *out_y,
+    int want_prepared,
+    int want_x,
+    int want_y
+) {
+    int prepared = app_prepare_shape_commit(
+        shaping,
+        tool,
+        shape_start_x,
+        shape_start_y,
+        x,
+        y,
+        shift,
+        out_x,
+        out_y
+    );
+
+    if (prepared != want_prepared) {
+        fprintf(stderr, "%s prepared mismatch: got %d want %d\n", label, prepared, want_prepared);
+        return 0;
+    }
+    if (out_x && *out_x != want_x) {
+        fprintf(stderr, "%s out_x mismatch: got %d want %d\n", label, *out_x, want_x);
+        return 0;
+    }
+    if (out_y && *out_y != want_y) {
+        fprintf(stderr, "%s out_y mismatch: got %d want %d\n", label, *out_y, want_y);
+        return 0;
+    }
+    return 1;
+}
+
 typedef struct {
     const char *label;
     Canvas *preview_canvas;
@@ -2029,6 +2071,111 @@ int main(void) {
             4
         );
     }
+    shaping = 1;
+    sentinel_x = -111;
+    sentinel_y = -222;
+    ok = ok && expect_prepare_shape_commit(
+        "prepare_shape_commit_success",
+        &shaping,
+        TOOL_RECT,
+        0,
+        0,
+        3,
+        2,
+        0,
+        &sentinel_x,
+        &sentinel_y,
+        1,
+        3,
+        2
+    );
+    shaping = 1;
+    sentinel_x = -333;
+    sentinel_y = -444;
+    ok = ok && expect_prepare_shape_commit(
+        "prepare_shape_commit_shift_constrained",
+        &shaping,
+        TOOL_LINE,
+        1,
+        1,
+        3,
+        2,
+        1,
+        &sentinel_x,
+        &sentinel_y,
+        1,
+        3,
+        3
+    );
+    shaping = 0;
+    sentinel_x = 17;
+    sentinel_y = 18;
+    ok = ok && expect_prepare_shape_commit(
+        "prepare_shape_commit_inactive_noop",
+        &shaping,
+        TOOL_RECT,
+        0,
+        0,
+        3,
+        2,
+        0,
+        &sentinel_x,
+        &sentinel_y,
+        0,
+        17,
+        18
+    );
+    sentinel_x = 19;
+    sentinel_y = 20;
+    ok = ok && expect_prepare_shape_commit(
+        "prepare_shape_commit_null_shaping_noop",
+        NULL,
+        TOOL_RECT,
+        0,
+        0,
+        3,
+        2,
+        0,
+        &sentinel_x,
+        &sentinel_y,
+        0,
+        19,
+        20
+    );
+    shaping = 1;
+    sentinel_y = 21;
+    ok = ok && expect_prepare_shape_commit(
+        "prepare_shape_commit_null_out_x_noop",
+        &shaping,
+        TOOL_RECT,
+        0,
+        0,
+        3,
+        2,
+        0,
+        NULL,
+        &sentinel_y,
+        0,
+        0,
+        21
+    );
+    shaping = 1;
+    sentinel_x = 22;
+    ok = ok && expect_prepare_shape_commit(
+        "prepare_shape_commit_null_out_y_noop",
+        &shaping,
+        TOOL_RECT,
+        0,
+        0,
+        3,
+        2,
+        0,
+        &sentinel_x,
+        NULL,
+        0,
+        22,
+        0
+    );
     {
         Canvas prep_preview_canvas = {4, 4, preview_restore_copy};
         int prep_preview_active = 0;

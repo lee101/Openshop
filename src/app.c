@@ -1239,7 +1239,19 @@ static void finalize_shape_preview(
     }
 
     sdl_shortcut_modifiers(NULL, NULL, &shift);
-    app_constrain_shape_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
+    if (!app_prepare_shape_commit(
+        shaping,
+        tool,
+        shape_start_x,
+        shape_start_y,
+        end_x,
+        end_y,
+        shift,
+        &end_x,
+        &end_y
+    )) {
+        return;
+    }
     active = app_active_editable_layer(layers);
     if (active) {
         push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);

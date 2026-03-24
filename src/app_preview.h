@@ -59,4 +59,16 @@ int app_prepare_shape_preview_motion(
     int *out_y
 );
 
+int app_prepare_shape_commit(
+    const int *shaping,
+    Tool tool,
+    int shape_start_x,
+    int shape_start_y,
+    int x,
+    int y,
+    int shift,
+    int *out_x,
+    int *out_y
+);
+
 #endif

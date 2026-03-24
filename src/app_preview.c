@@ -114,3 +114,22 @@ int app_prepare_shape_preview_motion(
     app_restore_shape_preview(preview_pixels, shape_base_pixels, pixel_count, preview_active);
     return 1;
 }
+
+int app_prepare_shape_commit(
+    const int *shaping,
+    Tool tool,
+    int shape_start_x,
+    int shape_start_y,
+    int x,
+    int y,
+    int shift,
+    int *out_x,
+    int *out_y
+) {
+    if (!shaping || !*shaping || !out_x || !out_y) {
+        return 0;
+    }
+
+    app_constrain_shape_end(tool, shape_start_x, shape_start_y, x, y, shift, out_x, out_y);
+    return 1;
+}
