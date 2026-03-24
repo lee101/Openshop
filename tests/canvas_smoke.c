@@ -4393,6 +4393,15 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_move(&stack, 1, 0) ||
+        stack.active_layer != 1 ||
+        strcmp(stack.layers[0].name, "Upper Merge") != 0 ||
+        strcmp(stack.layers[1].name, "Background Copy") != 0) {
+        fprintf(stderr, "zero-direction move no-op failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_move(&stack, 1, 1)) {
         fprintf(stderr, "should not move top layer beyond bounds\n");
         canvas_free(&composite);

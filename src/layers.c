@@ -753,6 +753,9 @@ int layer_stack_move(LayerStack *stack, int index, int direction) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
     }
+    if (direction == 0) {
+        return 0;
+    }
 
     int other = index + direction;
     if (other < 0 || other >= stack->layer_count) {
