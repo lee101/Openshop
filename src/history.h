@@ -40,6 +40,7 @@ int layer_snapshot_capture(LayerSnapshot *snapshot, const LayerStack *stack);
 // All rejected snapshots, including early null/empty failures, leave the destination stack unchanged.
 int layer_snapshot_apply(const LayerSnapshot *snapshot, LayerStack *stack);
 // Compares a snapshot to the current stack; null inputs or failed current-state capture return false.
+// Failed comparisons leave the caller snapshot unchanged.
 int layer_snapshot_matches_stack(const LayerSnapshot *snapshot, const LayerStack *stack);
 // Low-level stack primitives kept for targeted tests and incremental callers.
 // Fully resets each populated entry in `stack` and zeroes `count`; null inputs are ignored.
