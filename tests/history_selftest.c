@@ -257,6 +257,108 @@ int main(void) {
 
     snapshot_stack_clear(undo_stack, &undo_count);
     snapshot_stack_clear(redo_stack, &redo_count);
+    if ((strcmp(stack.layers[1].name, "Paint") != 0 && !layer_stack_rename(&stack, 1, "Paint")) ||
+        (strcmp(stack.layers[2].name, "FX") != 0 && !layer_stack_rename(&stack, 2, "FX"))) {
+        fprintf(stderr, "structural mutation rename setup failed\n");
+        layer_stack_free(&stack);
+        return 1;
+    }
+    stack.active_layer = 1;
+    snapshot_push(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count);
+    if (layer_stack_duplicate(&stack, 1, "Paint Copy") != 2 ||
+        !expect_int(stack.layer_count, 4, "duplicate_layer_count") ||
+        !expect_int(stack.active_layer, 2, "duplicate_active_layer") ||
+        !expect_name(&stack, 2, "Paint Copy", "duplicate_name")) {
+        fprintf(stderr, "duplicate setup failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    if (!snapshot_undo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        !expect_int(stack.layer_count, 3, "undo_duplicate_layer_count") ||
+        !expect_int(stack.active_layer, 1, "undo_duplicate_active_layer") ||
+        !expect_name(&stack, 1, "Paint", "undo_duplicate_name")) {
+        fprintf(stderr, "undo duplicate failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    if (!snapshot_redo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        !expect_int(stack.layer_count, 4, "redo_duplicate_layer_count") ||
+        !expect_int(stack.active_layer, 2, "redo_duplicate_active_layer") ||
+        !expect_name(&stack, 2, "Paint Copy", "redo_duplicate_name")) {
+        fprintf(stderr, "redo duplicate failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+
+    snapshot_push(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count);
+    if (!layer_stack_move(&stack, 2, -1) ||
+        !expect_int(stack.active_layer, 1, "move_active_layer") ||
+        !expect_name(&stack, 1, "Paint Copy", "move_name_after")) {
+        fprintf(stderr, "move setup failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    if (!snapshot_undo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        !expect_int(stack.active_layer, 2, "undo_move_active_layer") ||
+        !expect_name(&stack, 2, "Paint Copy", "undo_move_name")) {
+        fprintf(stderr, "undo move failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    if (!snapshot_redo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        !expect_int(stack.active_layer, 1, "redo_move_active_layer") ||
+        !expect_name(&stack, 1, "Paint Copy", "redo_move_name")) {
+        fprintf(stderr, "redo move failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+
+    stack.active_layer = 1;
+    snapshot_push(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count);
+    if (!layer_stack_merge_down(&stack, 1) ||
+        !expect_int(stack.layer_count, 3, "merge_layer_count") ||
+        !expect_int(stack.active_layer, 0, "merge_active_layer") ||
+        !expect_name(&stack, 0, "Background", "merge_base_name")) {
+        fprintf(stderr, "merge setup failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    if (!snapshot_undo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        !expect_int(stack.layer_count, 4, "undo_merge_layer_count") ||
+        !expect_int(stack.active_layer, 1, "undo_merge_active_layer") ||
+        !expect_name(&stack, 1, "Paint Copy", "undo_merge_name")) {
+        fprintf(stderr, "undo merge failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    if (!snapshot_redo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        !expect_int(stack.layer_count, 3, "redo_merge_layer_count") ||
+        !expect_int(stack.active_layer, 0, "redo_merge_active_layer")) {
+        fprintf(stderr, "redo merge failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
     layer_stack_free(&stack);
     puts("history selftest ok");
     return 0;
