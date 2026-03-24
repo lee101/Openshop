@@ -1675,6 +1675,18 @@ static int test_active_layer_ops_helpers(void) {
         }
     }
 
+    if (active_layer_try_adjust_opacity_with_result(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                    55, 4) != ACTIVE_LAYER_ACTION_CHANGED ||
+        stack.layers[0].opacity_percent != 55) {
+        fprintf(stderr, "active_layer_try_adjust_opacity_with_result changed failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    stack.layers[0].opacity_percent = 100;
     if (!active_layer_try_adjust_opacity(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 55, 4) ||
         stack.layers[0].opacity_percent != 55) {
         fprintf(stderr, "active_layer_try_adjust_opacity failed\n");
@@ -1702,6 +1714,14 @@ static int test_active_layer_ops_helpers(void) {
     {
         int undo_before = undo_count;
         int redo_before = redo_count;
+        if (active_layer_try_adjust_opacity_with_result(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                        101, 4) != ACTIVE_LAYER_ACTION_UNCHANGED) {
+            fprintf(stderr, "active_layer_try_adjust_opacity_with_result unchanged failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
         if (active_layer_try_adjust_opacity(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 101, 4) ||
             stack.layers[0].opacity_percent != 100 ||
             undo_count != undo_before || redo_count != redo_before) {

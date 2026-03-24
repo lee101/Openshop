@@ -377,11 +377,11 @@ int active_layer_try_invert_rgb(LayerStack *layers,
                                                    max_history) == ACTIVE_LAYER_ACTION_CHANGED;
 }
 
-int active_layer_try_adjust_opacity(LayerStack *layers,
-                                    Snapshot *undo_stack, int *undo_count,
-                                    Snapshot *redo_stack, int *redo_count,
-                                    int target_opacity, int max_history) {
-    Layer *active = layer_stack_active(layers);
+ActiveLayerActionResult active_layer_try_adjust_opacity_with_result(LayerStack *layers,
+                                                                    Snapshot *undo_stack, int *undo_count,
+                                                                    Snapshot *redo_stack, int *redo_count,
+                                                                    int target_opacity, int max_history) {
+    Layer *active;
 
     if (target_opacity < 0) {
         target_opacity = 0;
@@ -389,32 +389,58 @@ int active_layer_try_adjust_opacity(LayerStack *layers,
         target_opacity = 100;
     }
 
-    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0 ||
-        !active || active->opacity_percent == target_opacity) {
-        return 0;
+    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
+
+    active = layer_stack_active(layers);
+    if (!active) {
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
+    if (active->opacity_percent == target_opacity) {
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
 
     snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
-    return layer_stack_set_opacity(layers, layers->active_layer, target_opacity);
+    if (!layer_stack_set_opacity(layers, layers->active_layer, target_opacity)) {
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
+    return ACTIVE_LAYER_ACTION_CHANGED;
+}
+
+int active_layer_try_adjust_opacity(LayerStack *layers,
+                                    Snapshot *undo_stack, int *undo_count,
+                                    Snapshot *redo_stack, int *redo_count,
+                                    int target_opacity, int max_history) {
+    return active_layer_try_adjust_opacity_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                       target_opacity, max_history) == ACTIVE_LAYER_ACTION_CHANGED;
+}
+
+ActiveLayerActionResult active_layer_try_nudge_opacity_with_result(LayerStack *layers,
+                                                                   Snapshot *undo_stack, int *undo_count,
+                                                                   Snapshot *redo_stack, int *redo_count,
+                                                                   int delta_percent, int max_history) {
+    Layer *active;
+
+    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
+
+    active = layer_stack_active(layers);
+    if (!active) {
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
+
+    return active_layer_try_adjust_opacity_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                       active->opacity_percent + delta_percent, max_history);
 }
 
 int active_layer_try_nudge_opacity(LayerStack *layers,
                                    Snapshot *undo_stack, int *undo_count,
                                    Snapshot *redo_stack, int *redo_count,
                                    int delta_percent, int max_history) {
-    Layer *active;
-
-    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
-        return 0;
-    }
-
-    active = layer_stack_active(layers);
-    if (!active) {
-        return 0;
-    }
-
-    return active_layer_try_adjust_opacity(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                           active->opacity_percent + delta_percent, max_history);
+    return active_layer_try_nudge_opacity_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                      delta_percent, max_history) == ACTIVE_LAYER_ACTION_CHANGED;
 }
 
 int active_layer_try_flood_fill_with_result(LayerStack *layers,

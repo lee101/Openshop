@@ -54,10 +54,18 @@ int active_layer_try_adjust_opacity(LayerStack *layers,
                                     Snapshot *undo_stack, int *undo_count,
                                     Snapshot *redo_stack, int *redo_count,
                                     int target_opacity, int max_history);
+ActiveLayerActionResult active_layer_try_adjust_opacity_with_result(LayerStack *layers,
+                                                                    Snapshot *undo_stack, int *undo_count,
+                                                                    Snapshot *redo_stack, int *redo_count,
+                                                                    int target_opacity, int max_history);
 int active_layer_try_nudge_opacity(LayerStack *layers,
                                    Snapshot *undo_stack, int *undo_count,
                                    Snapshot *redo_stack, int *redo_count,
                                    int delta_percent, int max_history);
+ActiveLayerActionResult active_layer_try_nudge_opacity_with_result(LayerStack *layers,
+                                                                   Snapshot *undo_stack, int *undo_count,
+                                                                   Snapshot *redo_stack, int *redo_count,
+                                                                   int delta_percent, int max_history);
 int active_layer_try_flood_fill(LayerStack *layers,
                                 Snapshot *undo_stack, int *undo_count,
                                 Snapshot *redo_stack, int *redo_count,

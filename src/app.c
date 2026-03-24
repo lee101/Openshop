@@ -1020,7 +1020,7 @@ static int handle_layer_opacity_hotkey(SDL_Keycode key,
                                        int ctrl, int alt, int shift,
                                        const ActionState *action_state) {
     AppOpacityHotkeyAction opacity_action;
-    int changed = 0;
+    ActiveLayerActionResult result = ACTIVE_LAYER_ACTION_FAILED;
 
     if (!action_state || !action_state->title_state || !action_state->layers ||
         !action_state->undo_stack || !action_state->undo_count || !action_state->redo_stack ||
@@ -1030,22 +1030,22 @@ static int handle_layer_opacity_hotkey(SDL_Keycode key,
 
     opacity_action = app_opacity_hotkey_action(key);
     if (opacity_action == APP_OPACITY_HOTKEY_SET_MAX) {
-        changed = try_adjust_active_layer_opacity(action_state->layers, action_state->undo_stack,
-                                                  action_state->undo_count, action_state->redo_stack,
-                                                  action_state->redo_count, 100);
+        result = active_layer_try_adjust_opacity_with_result(action_state->layers, action_state->undo_stack,
+                                                             action_state->undo_count, action_state->redo_stack,
+                                                             action_state->redo_count, 100, MAX_HISTORY);
     } else if (opacity_action == APP_OPACITY_HOTKEY_NUDGE_DOWN) {
-        changed = try_nudge_active_layer_opacity(action_state->layers, action_state->undo_stack,
-                                                 action_state->undo_count, action_state->redo_stack,
-                                                 action_state->redo_count, -10);
+        result = active_layer_try_nudge_opacity_with_result(action_state->layers, action_state->undo_stack,
+                                                            action_state->undo_count, action_state->redo_stack,
+                                                            action_state->redo_count, -10, MAX_HISTORY);
     } else if (opacity_action == APP_OPACITY_HOTKEY_NUDGE_UP) {
-        changed = try_nudge_active_layer_opacity(action_state->layers, action_state->undo_stack,
-                                                 action_state->undo_count, action_state->redo_stack,
-                                                 action_state->redo_count, 10);
+        result = active_layer_try_nudge_opacity_with_result(action_state->layers, action_state->undo_stack,
+                                                            action_state->undo_count, action_state->redo_stack,
+                                                            action_state->redo_count, 10, MAX_HISTORY);
     } else {
         return 0;
     }
 
-    if (refresh_title_state_on_change(action_state->title_state, changed)) {
+    if (refresh_title_state_on_change(action_state->title_state, result == ACTIVE_LAYER_ACTION_CHANGED)) {
         *action_state->needs_composite = 1;
     }
 
