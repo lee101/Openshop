@@ -1,4 +1,5 @@
 #include "app.h"
+#include "brush_state.h"
 #include "canvas.h"
 #include "display_canvas.h"
 #include "image_io.h"
@@ -26,23 +27,6 @@ static const uint32_t COLOR_BLUE = 0xFF1E88E5;
 static const uint32_t COLOR_YELLOW = 0xFFFDD835;
 static const uint32_t COLOR_PURPLE = 0xFF8E24AA;
 static const int CHECKER_SIZE = 16;
-
-typedef enum {
-    TOOL_BRUSH,
-    TOOL_ERASER,
-    TOOL_LINE,
-    TOOL_RECT,
-    TOOL_FILLED_RECT,
-    TOOL_ELLIPSE,
-    TOOL_FILLED_ELLIPSE
-} Tool;
-
-typedef enum {
-    BRUSH_SHAPE_ROUND = 0,
-    BRUSH_SHAPE_SQUARE,
-    BRUSH_SHAPE_DIAMOND,
-    BRUSH_SHAPE_COUNT
-} BrushShape;
 
 typedef struct {
     int width;
@@ -238,60 +222,6 @@ static void push_snapshot(const LayerStack *layers, Snapshot *stack, int *count,
     if (redo && redo_count) {
         stack_clear(redo, redo_count);
     }
-}
-
-static uint32_t compose_brush_color(uint32_t rgb_color, int opacity_percent) {
-    if (opacity_percent < 1) {
-        opacity_percent = 1;
-    } else if (opacity_percent > 100) {
-        opacity_percent = 100;
-    }
-    uint32_t alpha = (uint32_t)((opacity_percent * 255 + 50) / 100);
-    return (alpha << 24) | (rgb_color & 0x00FFFFFF);
-}
-
-static const char *tool_label(Tool tool) {
-    switch (tool) {
-    case TOOL_BRUSH:
-        return "Brush";
-    case TOOL_ERASER:
-        return "Eraser";
-    case TOOL_LINE:
-        return "Line";
-    case TOOL_RECT:
-        return "Rectangle";
-    case TOOL_FILLED_RECT:
-        return "Filled Rectangle";
-    case TOOL_ELLIPSE:
-        return "Ellipse";
-    case TOOL_FILLED_ELLIPSE:
-        return "Filled Ellipse";
-    default:
-        return "Brush";
-    }
-}
-
-static const char *brush_shape_label(BrushShape shape) {
-    switch (shape) {
-    case BRUSH_SHAPE_ROUND:
-        return "Round";
-    case BRUSH_SHAPE_SQUARE:
-        return "Square";
-    case BRUSH_SHAPE_DIAMOND:
-        return "Diamond";
-    default:
-        return "Round";
-    }
-}
-
-static BrushShape cycle_brush_shape(BrushShape shape, int direction) {
-    int idx = (int)shape + direction;
-    if (idx < 0) {
-        idx = BRUSH_SHAPE_COUNT - 1;
-    } else if (idx >= BRUSH_SHAPE_COUNT) {
-        idx = 0;
-    }
-    return (BrushShape)idx;
 }
 
 static void update_window_title(SDL_Window *window, const LayerStack *layers, Tool tool, BrushShape brush_shape, int radius, uint32_t color, int opacity_percent) {
@@ -745,55 +675,6 @@ static int try_begin_brush_stroke(LayerStack *layers,
     return 1;
 }
 
-static void set_brush_color_tool(uint32_t color_rgb, int brush_opacity,
-                                 uint32_t *brush_color_rgb, uint32_t *brush_color,
-                                 Tool *tool, Tool next_tool) {
-    if (!brush_color_rgb || !brush_color || !tool) {
-        return;
-    }
-    *brush_color_rgb = color_rgb & 0x00FFFFFF;
-    *brush_color = compose_brush_color(*brush_color_rgb, brush_opacity);
-    *tool = next_tool;
-}
-
-static void adjust_brush_opacity(int delta, uint32_t brush_color_rgb,
-                                 int *brush_opacity, uint32_t *brush_color) {
-    if (!brush_opacity || !brush_color) {
-        return;
-    }
-    *brush_opacity += delta;
-    if (*brush_opacity < 1) {
-        *brush_opacity = 1;
-    } else if (*brush_opacity > 100) {
-        *brush_opacity = 100;
-    }
-    *brush_color = compose_brush_color(brush_color_rgb, *brush_opacity);
-}
-
-static void set_tool(Tool next_tool, Tool *tool) {
-    if (tool) {
-        *tool = next_tool;
-    }
-}
-
-static void adjust_brush_radius(int delta, int *brush_radius) {
-    if (!brush_radius) {
-        return;
-    }
-    *brush_radius += delta;
-    if (*brush_radius < 1) {
-        *brush_radius = 1;
-    } else if (*brush_radius > 64) {
-        *brush_radius = 64;
-    }
-}
-
-static void cycle_brush_shape_in_place(BrushShape *brush_shape, int direction) {
-    if (brush_shape) {
-        *brush_shape = cycle_brush_shape(*brush_shape, direction);
-    }
-}
-
 typedef struct {
     SDL_Keycode key;
     uint32_t color_rgb;
@@ -1090,38 +971,38 @@ static int handle_brush_state_hotkey(SDL_Keycode key,
 
     for (i = 0; i < sizeof(BRUSH_COLOR_HOTKEYS) / sizeof(BRUSH_COLOR_HOTKEYS[0]); i++) {
         if (BRUSH_COLOR_HOTKEYS[i].key == key) {
-            set_brush_color_tool(BRUSH_COLOR_HOTKEYS[i].color_rgb, *brush_opacity,
-                                 brush_color_rgb, brush_color, tool, BRUSH_COLOR_HOTKEYS[i].tool);
+            brush_state_set_color_tool(BRUSH_COLOR_HOTKEYS[i].color_rgb, *brush_opacity,
+                                       brush_color_rgb, brush_color, tool, BRUSH_COLOR_HOTKEYS[i].tool);
             return 1;
         }
     }
 
     for (i = 0; i < sizeof(TOOL_HOTKEYS) / sizeof(TOOL_HOTKEYS[0]); i++) {
         if (TOOL_HOTKEYS[i].key == key) {
-            set_tool(TOOL_HOTKEYS[i].tool, tool);
+            brush_state_set_tool(TOOL_HOTKEYS[i].tool, tool);
             return 1;
         }
     }
 
     if (key == SDLK_LEFTBRACKET) {
         if (*brush_radius > 1) {
-            adjust_brush_radius(-1, brush_radius);
+            brush_state_adjust_radius(-1, brush_radius);
         }
     } else if (key == SDLK_RIGHTBRACKET) {
         if (*brush_radius < 64) {
-            adjust_brush_radius(1, brush_radius);
+            brush_state_adjust_radius(1, brush_radius);
         }
     } else if (key == SDLK_COMMA) {
-        cycle_brush_shape_in_place(brush_shape, -1);
+        brush_state_cycle_shape_in_place(brush_shape, -1);
     } else if (key == SDLK_PERIOD) {
-        cycle_brush_shape_in_place(brush_shape, 1);
+        brush_state_cycle_shape_in_place(brush_shape, 1);
     } else if (key == SDLK_MINUS || key == SDLK_KP_MINUS) {
         if (*brush_opacity > 1) {
-            adjust_brush_opacity(-5, *brush_color_rgb, brush_opacity, brush_color);
+            brush_state_adjust_opacity(-5, *brush_color_rgb, brush_opacity, brush_color);
         }
     } else if (key == SDLK_EQUALS || key == SDLK_KP_PLUS) {
         if (*brush_opacity < 100) {
-            adjust_brush_opacity(5, *brush_color_rgb, brush_opacity, brush_color);
+            brush_state_adjust_opacity(5, *brush_color_rgb, brush_opacity, brush_color);
         }
     } else {
         return 0;

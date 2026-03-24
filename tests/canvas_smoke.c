@@ -1,3 +1,4 @@
+#include "../src/brush_state.h"
 #include "../src/canvas.h"
 #include "../src/display_canvas.h"
 #include "../src/layers.h"
@@ -12,6 +13,68 @@ static int expect_pixel_eq(const char *label, uint32_t got, uint32_t want) {
         fprintf(stderr, "%s mismatch: got 0x%08X want 0x%08X\n", label, got, want);
         return 0;
     }
+    return 1;
+}
+
+static int test_brush_state_helpers(void) {
+    uint32_t brush_rgb = 0;
+    uint32_t brush_color = 0;
+    int brush_opacity = 40;
+    int brush_radius = 63;
+    Tool tool = TOOL_RECT;
+    BrushShape shape = BRUSH_SHAPE_ROUND;
+
+    if (compose_brush_color(0x00112233, 0) != 0x03112233 ||
+        compose_brush_color(0x00112233, 101) != 0xFF112233) {
+        fprintf(stderr, "compose_brush_color clamping failed\n");
+        return 0;
+    }
+    if (strcmp(tool_label(TOOL_FILLED_ELLIPSE), "Filled Ellipse") != 0 ||
+        strcmp(brush_shape_label(BRUSH_SHAPE_DIAMOND), "Diamond") != 0) {
+        fprintf(stderr, "brush label formatting failed\n");
+        return 0;
+    }
+
+    brush_state_set_color_tool(0x00ABCDEF, brush_opacity, &brush_rgb, &brush_color, &tool, TOOL_BRUSH);
+    if (brush_rgb != 0x00ABCDEF || brush_color != compose_brush_color(0x00ABCDEF, brush_opacity) ||
+        tool != TOOL_BRUSH) {
+        fprintf(stderr, "brush_state_set_color_tool failed\n");
+        return 0;
+    }
+
+    brush_state_adjust_opacity(70, brush_rgb, &brush_opacity, &brush_color);
+    if (brush_opacity != 100 || brush_color != compose_brush_color(brush_rgb, 100)) {
+        fprintf(stderr, "brush_state_adjust_opacity upper clamp failed\n");
+        return 0;
+    }
+    brush_state_adjust_opacity(-500, brush_rgb, &brush_opacity, &brush_color);
+    if (brush_opacity != 1 || brush_color != compose_brush_color(brush_rgb, 1)) {
+        fprintf(stderr, "brush_state_adjust_opacity lower clamp failed\n");
+        return 0;
+    }
+
+    brush_state_adjust_radius(10, &brush_radius);
+    if (brush_radius != 64) {
+        fprintf(stderr, "brush_state_adjust_radius upper clamp failed\n");
+        return 0;
+    }
+    brush_state_adjust_radius(-100, &brush_radius);
+    if (brush_radius != 1) {
+        fprintf(stderr, "brush_state_adjust_radius lower clamp failed\n");
+        return 0;
+    }
+
+    if (cycle_brush_shape(BRUSH_SHAPE_ROUND, -1) != BRUSH_SHAPE_DIAMOND ||
+        cycle_brush_shape(BRUSH_SHAPE_DIAMOND, 1) != BRUSH_SHAPE_ROUND) {
+        fprintf(stderr, "cycle_brush_shape wrap failed\n");
+        return 0;
+    }
+    brush_state_cycle_shape_in_place(&shape, 1);
+    if (shape != BRUSH_SHAPE_SQUARE) {
+        fprintf(stderr, "brush_state_cycle_shape_in_place failed\n");
+        return 0;
+    }
+
     return 1;
 }
 
@@ -2618,6 +2681,10 @@ int main(void) {
         return 1;
     }
     canvas_free(&mask);
+
+    if (!test_brush_state_helpers()) {
+        return 1;
+    }
 
     if (!test_layers_basic()) {
         return 1;

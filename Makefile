@@ -9,12 +9,12 @@ CFLAGS += $(shell sdl2-config --cflags)
 LDFLAGS += $(shell sdl2-config --libs)
 endif
 
-SRC = src/main.c src/app.c src/canvas.c src/display_canvas.c src/image_io.c src/layers.c src/title_hints.c src/status_text.c
+SRC = src/main.c src/app.c src/brush_state.c src/canvas.c src/display_canvas.c src/image_io.c src/layers.c src/title_hints.c src/status_text.c
 OBJ = $(SRC:.c=.o)
 BIN = openshop
 
 TEST_BIN = canvas_smoke
-TEST_SRC = tests/canvas_smoke.c src/canvas.c src/display_canvas.c src/layers.c src/title_hints.c src/status_text.c
+TEST_SRC = tests/canvas_smoke.c src/brush_state.c src/canvas.c src/display_canvas.c src/layers.c src/title_hints.c src/status_text.c
 IMAGE_TEST_BIN = image_selftest
 IMAGE_TEST_SRC = tests/image_selftest.c src/canvas.c
 SDL_TEST_BIN = image_io_smoke
