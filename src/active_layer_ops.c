@@ -291,6 +291,10 @@ int active_layer_try_begin_brush_stroke(LayerStack *layers,
         !canvas_stamp_would_change(&active->canvas, x, y, brush_radius, clear_color, brush_shape)) {
         return 0;
     }
+    if (tool == TOOL_BRUSH &&
+        !canvas_stamp_would_change(&active->canvas, x, y, brush_radius, brush_color, brush_shape)) {
+        return 0;
+    }
 
     snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
     if (tool == TOOL_ERASER) {
