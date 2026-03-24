@@ -178,6 +178,12 @@ static int test_app_input_rules(void) {
             fprintf(stderr, "mouse position non-hotkey mapping failed\n");
             return 0;
         }
+        if (!app_mouse_position_marks_composite(APP_MOUSE_POSITION_FILL) ||
+            app_mouse_position_marks_composite(APP_MOUSE_POSITION_SAMPLE) ||
+            app_mouse_position_marks_composite(APP_MOUSE_POSITION_NONE)) {
+            fprintf(stderr, "mouse position composite marking failed\n");
+            return 0;
+        }
         if (app_brush_preset_hotkey_action(APP_KEY_b) != APP_BRUSH_PRESET_DEFAULT ||
             app_brush_preset_hotkey_action(APP_KEY_1) != APP_BRUSH_PRESET_DEFAULT ||
             app_brush_preset_hotkey_action(APP_KEY_e) != APP_BRUSH_PRESET_ERASE ||

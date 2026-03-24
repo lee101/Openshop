@@ -141,6 +141,7 @@ AppBrushAdjustAction app_brush_adjust_hotkey_action(int key);
 int app_is_add_layer_hotkey(int key, int ctrl, int alt, int shift);
 AppActiveEditAction app_active_edit_hotkey_action(int key);
 AppMousePositionAction app_mouse_position_hotkey_action(int key);
+int app_mouse_position_marks_composite(AppMousePositionAction action);
 AppBrushPresetAction app_brush_preset_hotkey_action(int key);
 AppBrushToolAction app_brush_tool_hotkey_action(int key);
 
