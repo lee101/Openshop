@@ -6,6 +6,12 @@
 static int layer_snapshot_equals(const LayerSnapshot *a, const LayerSnapshot *b);
 static int layer_snapshot_compare_current(const LayerSnapshot *snapshot, const LayerStack *stack, int *equal_out);
 
+typedef enum {
+    HISTORY_CAPTURE_ERROR = -1,
+    HISTORY_CAPTURE_DUPLICATE = 0,
+    HISTORY_CAPTURE_PUSHED = 1,
+} HistoryCaptureResult;
+
 static void *layer_snapshot_alloc_default(size_t size) {
     return malloc(size);
 }
@@ -51,7 +57,7 @@ static void history_push_existing(LayerSnapshot *stack, int *count, LayerSnapsho
     stack[(*count)++] = *snapshot;
 }
 
-static int history_capture_and_push(
+static HistoryCaptureResult history_capture_and_push(
     const LayerStack *layers,
     LayerSnapshot *stack,
     int *count,
@@ -60,21 +66,21 @@ static int history_capture_and_push(
 ) {
     LayerSnapshot snapshot = {0};
     if (!layers || !stack || !count) {
-        return -1;
+        return HISTORY_CAPTURE_ERROR;
     }
     if (!layer_snapshot_capture(&snapshot, layers)) {
         layer_snapshot_free(&snapshot);
-        return -1;
+        return HISTORY_CAPTURE_ERROR;
     }
     if (*count > 0 && layer_snapshot_equals(&stack[*count - 1], &snapshot)) {
         layer_snapshot_reset(&snapshot);
-        return 0;
+        return HISTORY_CAPTURE_DUPLICATE;
     }
     history_push_existing(stack, count, &snapshot);
     if (other_stack && other_count) {
         layer_history_clear(other_stack, other_count);
     }
-    return 1;
+    return HISTORY_CAPTURE_PUSHED;
 }
 
 static int history_step_apply(
@@ -84,7 +90,7 @@ static int history_step_apply(
     LayerSnapshot *to_stack,
     int *to_count
 ) {
-    int pushed_current = 0;
+    HistoryCaptureResult pushed_current = HISTORY_CAPTURE_DUPLICATE;
     LayerSnapshot snapshot = {0};
     int ok = 0;
 
@@ -93,14 +99,14 @@ static int history_step_apply(
     }
 
     pushed_current = history_capture_and_push(layers, to_stack, to_count, NULL, NULL);
-    if (pushed_current < 0) {
+    if (pushed_current == HISTORY_CAPTURE_ERROR) {
         return 0;
     }
     snapshot = from_stack[--(*from_count)];
     ok = layer_snapshot_apply(&snapshot, layers);
     if (!ok) {
         from_stack[(*from_count)++] = snapshot;
-        if (pushed_current) {
+        if (pushed_current == HISTORY_CAPTURE_PUSHED) {
             layer_snapshot_free(&to_stack[--(*to_count)]);
         }
         return 0;
