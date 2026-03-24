@@ -134,6 +134,12 @@ typedef enum {
     APP_BRUSH_TOOL_FILLED_ELLIPSE
 } AppBrushToolAction;
 
+typedef enum {
+    APP_ESCAPE_NONE = 0,
+    APP_ESCAPE_CANCEL_SHAPE,
+    APP_ESCAPE_QUIT
+} AppEscapeAction;
+
 AppOpacityHotkeyAction app_opacity_hotkey_action(int key);
 AppLayerNavigationAction app_layer_navigation_action(int key, int ctrl, int alt, int shift, int *arg);
 AppFileHotkeyAction app_file_hotkey_action(int key, int ctrl, int alt, int shift);
@@ -145,5 +151,6 @@ AppMousePositionAction app_mouse_position_hotkey_action(int key);
 int app_mouse_position_marks_composite(AppMousePositionAction action);
 AppBrushPresetAction app_brush_preset_hotkey_action(int key);
 AppBrushToolAction app_brush_tool_hotkey_action(int key);
+AppEscapeAction app_escape_action(int key, int shaping);
 
 #endif

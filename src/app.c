@@ -1522,6 +1522,7 @@ int app_run(const char *input_path) {
                 handle_mouse_motion(&mouse_state, e.motion.x, e.motion.y);
                 break;
             case SDL_KEYDOWN: {
+                AppEscapeAction escape_action;
                 SDL_Keycode key = e.key.keysym.sym;
                 const Uint8 *state = SDL_GetKeyboardState(NULL);
                 int ctrl = 0;
@@ -1535,11 +1536,12 @@ int app_run(const char *input_path) {
                     shape_preview_cancel(&shaping, &preview_active);
                 }
 
-                if (key == SDLK_ESCAPE) {
-                    if (shaping) {
-                        shape_preview_cancel(&shaping, &preview_active);
-                        break;
-                    }
+                escape_action = app_escape_action((int)key, shaping);
+                if (escape_action == APP_ESCAPE_CANCEL_SHAPE) {
+                    shape_preview_cancel(&shaping, &preview_active);
+                    break;
+                }
+                if (escape_action == APP_ESCAPE_QUIT) {
                     running = 0;
                     break;
                 }

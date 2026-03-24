@@ -221,6 +221,15 @@ static int test_app_input_rules(void) {
             fprintf(stderr, "brush tool non-hotkey mapping failed\n");
             return 0;
         }
+        if (app_escape_action(APP_KEY_ESCAPE, 1) != APP_ESCAPE_CANCEL_SHAPE ||
+            app_escape_action(APP_KEY_ESCAPE, 0) != APP_ESCAPE_QUIT) {
+            fprintf(stderr, "escape action mapping failed\n");
+            return 0;
+        }
+        if (app_escape_action(APP_KEY_b, 0) != APP_ESCAPE_NONE) {
+            fprintf(stderr, "escape non-hotkey mapping failed\n");
+            return 0;
+        }
     }
 
     return 1;
