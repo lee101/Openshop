@@ -1,5 +1,6 @@
 #include "app.h"
 #include "app_brush.h"
+#include "app_brush_mask.h"
 #include "app_color.h"
 #include "app_layer_state.h"
 #include "app_preview.h"
@@ -304,26 +305,13 @@ static int refresh_after_shortcut(
     return 1;
 }
 
-static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
-    switch (shape) {
-    case BRUSH_SHAPE_ROUND:
-        return x * x + y * y <= radius * radius;
-    case BRUSH_SHAPE_SQUARE:
-        return abs(x) <= radius && abs(y) <= radius;
-    case BRUSH_SHAPE_DIAMOND:
-        return abs(x) + abs(y) <= radius;
-    default:
-        return 0;
-    }
-}
-
 static void stamp_brush(Canvas *c, int cx, int cy, int radius, uint32_t color, BrushShape shape) {
     if (!c || !c->pixels || radius <= 0) {
         return;
     }
     for (int dy = -radius; dy <= radius; dy++) {
         for (int dx = -radius; dx <= radius; dx++) {
-            if (!brush_mask_contains(shape, dx, dy, radius)) {
+            if (!app_brush_mask_contains(shape, dx, dy, radius)) {
                 continue;
             }
             canvas_set_pixel(c, cx + dx, cy + dy, color);
@@ -1235,7 +1223,7 @@ static void erase_stamp(Canvas *c, int cx, int cy, int radius, uint32_t clear_co
     }
     for (int dy = -radius; dy <= radius; dy++) {
         for (int dx = -radius; dx <= radius; dx++) {
-            if (!brush_mask_contains(shape, dx, dy, radius)) {
+            if (!app_brush_mask_contains(shape, dx, dy, radius)) {
                 continue;
             }
             canvas_set_pixel_raw(c, cx + dx, cy + dy, clear_color);
