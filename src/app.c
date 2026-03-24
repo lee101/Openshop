@@ -673,6 +673,114 @@ static int handle_active_layer_structure_shortcut(
     return 0;
 }
 
+static int handle_active_layer_mutation_shortcut(
+    SDL_Keycode key,
+    int ctrl,
+    int shift,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+) {
+    if (!layers) {
+        return 0;
+    }
+
+    if (ctrl && shift && key == SDLK_n) {
+        if (!layer_stack_can_insert(layers)) {
+            fprintf(stderr, "Max layers reached (%d)\n", MAX_LAYERS);
+        } else {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            layer_stack_add(layers, NULL, 0x00000000);
+            if (needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (ctrl && key == SDLK_n) {
+        if (!layer_stack_can_insert(layers)) {
+            fprintf(stderr, "Could not insert a layer above the active layer\n");
+        } else {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            layer_stack_insert(layers, layers->active_layer + 1, NULL, 0x00000000);
+            if (needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (ctrl && key == SDLK_COMMA) {
+        if (!layer_stack_can_insert(layers)) {
+            fprintf(stderr, "Could not insert a layer below the active layer\n");
+        } else {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            layer_stack_insert(layers, layers->active_layer, NULL, 0x00000000);
+            if (needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (ctrl && shift && key == SDLK_m) {
+        if (!layer_stack_can_flatten(layers)) {
+            fprintf(stderr, "Flatten failed (check for locked layers)\n");
+        } else {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            layer_stack_flatten(layers, COLOR_BG);
+            if (needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (ctrl && shift && key == SDLK_e) {
+        if (layer_stack_stamp_visible_would_change(layers, layers->active_layer, COLOR_BG)) {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            if (!layer_stack_stamp_visible_into(layers, layers->active_layer, COLOR_BG)) {
+                fprintf(stderr, "Stamp visible failed (active layer may be locked)\n");
+            } else if (needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (ctrl && shift && key == SDLK_g) {
+        if (!layer_stack_can_insert(layers)) {
+            fprintf(stderr, "Could not stamp visible image into a new layer\n");
+        } else {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            layer_stack_stamp_visible_new(layers, "Visible Stamp", COLOR_BG);
+            if (needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (key == SDLK_DELETE || key == SDLK_BACKSPACE) {
+        if (!layer_stack_can_delete(layers, layers->active_layer)) {
+            fprintf(stderr, "Cannot delete the final or a locked layer\n");
+        } else {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            layer_stack_delete(layers, layers->active_layer);
+            if (needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    return 0;
+}
+
 static uint32_t active_layer_clear_color(const LayerStack *layers) {
     if (!layers) {
         return COLOR_BG;
@@ -1028,38 +1136,16 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (ctrl && shift && key == SDLK_n) {
-                    if (!layer_stack_can_insert(&layers)) {
-                        fprintf(stderr, "Max layers reached (%d)\n", MAX_LAYERS);
-                    } else {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        layer_stack_add(&layers, NULL, 0x00000000);
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (ctrl && key == SDLK_n) {
-                    if (!layer_stack_can_insert(&layers)) {
-                        fprintf(stderr, "Could not insert a layer above the active layer\n");
-                    } else {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        layer_stack_insert(&layers, layers.active_layer + 1, NULL, 0x00000000);
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (ctrl && key == SDLK_COMMA) {
-                    if (!layer_stack_can_insert(&layers)) {
-                        fprintf(stderr, "Could not insert a layer below the active layer\n");
-                    } else {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        layer_stack_insert(&layers, layers.active_layer, NULL, 0x00000000);
-                        needs_composite = 1;
-                    }
+                if (handle_active_layer_mutation_shortcut(
+                        key,
+                        ctrl,
+                        shift,
+                        &layers,
+                        undo_stack,
+                        &undo_count,
+                        redo_stack,
+                        &redo_count,
+                        &needs_composite)) {
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
@@ -1078,43 +1164,6 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (ctrl && shift && key == SDLK_m) {
-                    if (!layer_stack_can_flatten(&layers)) {
-                        fprintf(stderr, "Flatten failed (check for locked layers)\n");
-                    } else {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        layer_stack_flatten(&layers, COLOR_BG);
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (ctrl && shift && key == SDLK_e) {
-                    if (layer_stack_stamp_visible_would_change(&layers, layers.active_layer, COLOR_BG)) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        if (!layer_stack_stamp_visible_into(&layers, layers.active_layer, COLOR_BG)) {
-                            fprintf(stderr, "Stamp visible failed (active layer may be locked)\n");
-                        } else {
-                            needs_composite = 1;
-                        }
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (ctrl && shift && key == SDLK_g) {
-                    if (!layer_stack_can_insert(&layers)) {
-                        fprintf(stderr, "Could not stamp visible image into a new layer\n");
-                    } else {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        layer_stack_stamp_visible_new(&layers, "Visible Stamp", COLOR_BG);
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
                 if (handle_active_layer_structure_shortcut(
                         key,
                         ctrl,
@@ -1125,18 +1174,6 @@ int app_run(const char *input_path) {
                         redo_stack,
                         &redo_count,
                         &needs_composite)) {
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    break;
-                }
-
-                if (key == SDLK_DELETE || key == SDLK_BACKSPACE) {
-                    if (!layer_stack_can_delete(&layers, layers.active_layer)) {
-                        fprintf(stderr, "Cannot delete the final or a locked layer\n");
-                    } else {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        layer_stack_delete(&layers, layers.active_layer);
-                        needs_composite = 1;
-                    }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
                 }
