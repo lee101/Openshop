@@ -672,29 +672,62 @@ static void cycle_brush_shape_in_place(BrushShape *brush_shape, int direction) {
     }
 }
 
+typedef struct {
+    SDL_Keycode key;
+    uint32_t color_rgb;
+    Tool tool;
+} BrushColorHotkey;
+
+typedef struct {
+    SDL_Keycode key;
+    Tool tool;
+} ToolHotkey;
+
+static const BrushColorHotkey BRUSH_COLOR_HOTKEYS[] = {
+    {SDLK_b, COLOR_BRUSH, TOOL_BRUSH},
+    {SDLK_e, COLOR_ERASE, TOOL_ERASER},
+    {SDLK_1, COLOR_BRUSH, TOOL_BRUSH},
+    {SDLK_2, COLOR_RED, TOOL_BRUSH},
+    {SDLK_3, COLOR_GREEN, TOOL_BRUSH},
+    {SDLK_4, COLOR_BLUE, TOOL_BRUSH},
+    {SDLK_5, COLOR_YELLOW, TOOL_BRUSH},
+    {SDLK_6, COLOR_PURPLE, TOOL_BRUSH},
+};
+
+static const ToolHotkey TOOL_HOTKEYS[] = {
+    {SDLK_l, TOOL_LINE},
+    {SDLK_r, TOOL_RECT},
+    {SDLK_t, TOOL_FILLED_RECT},
+    {SDLK_o, TOOL_ELLIPSE},
+    {SDLK_p, TOOL_FILLED_ELLIPSE},
+};
+
 static int handle_brush_state_hotkey(SDL_Keycode key,
                                      uint32_t *brush_color_rgb, uint32_t *brush_color,
                                      int *brush_opacity, int *brush_radius,
                                      BrushShape *brush_shape, Tool *tool) {
+    size_t i;
+
     if (!brush_color_rgb || !brush_color || !brush_opacity || !brush_radius || !brush_shape || !tool) {
         return 0;
     }
 
-    if (key == SDLK_b) {
-        set_brush_color_tool(COLOR_BRUSH, *brush_opacity, brush_color_rgb, brush_color, tool, TOOL_BRUSH);
-    } else if (key == SDLK_e) {
-        set_brush_color_tool(COLOR_ERASE, *brush_opacity, brush_color_rgb, brush_color, tool, TOOL_ERASER);
-    } else if (key == SDLK_l) {
-        set_tool(TOOL_LINE, tool);
-    } else if (key == SDLK_r) {
-        set_tool(TOOL_RECT, tool);
-    } else if (key == SDLK_t) {
-        set_tool(TOOL_FILLED_RECT, tool);
-    } else if (key == SDLK_o) {
-        set_tool(TOOL_ELLIPSE, tool);
-    } else if (key == SDLK_p) {
-        set_tool(TOOL_FILLED_ELLIPSE, tool);
-    } else if (key == SDLK_LEFTBRACKET) {
+    for (i = 0; i < sizeof(BRUSH_COLOR_HOTKEYS) / sizeof(BRUSH_COLOR_HOTKEYS[0]); i++) {
+        if (BRUSH_COLOR_HOTKEYS[i].key == key) {
+            set_brush_color_tool(BRUSH_COLOR_HOTKEYS[i].color_rgb, *brush_opacity,
+                                 brush_color_rgb, brush_color, tool, BRUSH_COLOR_HOTKEYS[i].tool);
+            return 1;
+        }
+    }
+
+    for (i = 0; i < sizeof(TOOL_HOTKEYS) / sizeof(TOOL_HOTKEYS[0]); i++) {
+        if (TOOL_HOTKEYS[i].key == key) {
+            set_tool(TOOL_HOTKEYS[i].tool, tool);
+            return 1;
+        }
+    }
+
+    if (key == SDLK_LEFTBRACKET) {
         if (*brush_radius > 1) {
             adjust_brush_radius(-1, brush_radius);
         }
@@ -714,18 +747,6 @@ static int handle_brush_state_hotkey(SDL_Keycode key,
         if (*brush_opacity < 100) {
             adjust_brush_opacity(5, *brush_color_rgb, brush_opacity, brush_color);
         }
-    } else if (key == SDLK_1) {
-        set_brush_color_tool(COLOR_BRUSH, *brush_opacity, brush_color_rgb, brush_color, tool, TOOL_BRUSH);
-    } else if (key == SDLK_2) {
-        set_brush_color_tool(COLOR_RED, *brush_opacity, brush_color_rgb, brush_color, tool, TOOL_BRUSH);
-    } else if (key == SDLK_3) {
-        set_brush_color_tool(COLOR_GREEN, *brush_opacity, brush_color_rgb, brush_color, tool, TOOL_BRUSH);
-    } else if (key == SDLK_4) {
-        set_brush_color_tool(COLOR_BLUE, *brush_opacity, brush_color_rgb, brush_color, tool, TOOL_BRUSH);
-    } else if (key == SDLK_5) {
-        set_brush_color_tool(COLOR_YELLOW, *brush_opacity, brush_color_rgb, brush_color, tool, TOOL_BRUSH);
-    } else if (key == SDLK_6) {
-        set_brush_color_tool(COLOR_PURPLE, *brush_opacity, brush_color_rgb, brush_color, tool, TOOL_BRUSH);
     } else {
         return 0;
     }
