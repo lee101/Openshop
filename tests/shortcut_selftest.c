@@ -766,6 +766,43 @@ int main(void) {
         30,
         preview_sentinel
     );
+    shaping = 6;
+    shape_start_x = 8;
+    shape_start_y = 10;
+    memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
+    ok = ok && expect_begin_shape_preview(
+        "begin_shape_preview_null_shaping_noop",
+        40,
+        50,
+        NULL,
+        &shape_start_x,
+        &shape_start_y,
+        preview_copy,
+        preview_source,
+        4,
+        6,
+        8,
+        10,
+        preview_sentinel
+    );
+    shaping = 11;
+    shape_start_y = 13;
+    memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
+    ok = ok && expect_begin_shape_preview(
+        "begin_shape_preview_null_start_x_noop",
+        60,
+        70,
+        &shaping,
+        NULL,
+        &shape_start_y,
+        preview_copy,
+        preview_source,
+        4,
+        11,
+        0,
+        13,
+        preview_sentinel
+    );
     ok = ok && expect_cancel_shape_preview("cancel_shape_preview_both", &shaping, &preview_active, 0, 0);
     shaping = 7;
     preview_active = 9;
