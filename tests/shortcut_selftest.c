@@ -1961,6 +1961,44 @@ static int expect_title(
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    const char *tool_label;
+    const char *shape_label;
+    int radius;
+    int opacity_percent;
+    int active_layer_index;
+    int layer_count;
+    const char *layer_name;
+    int active_visible;
+    int active_locked;
+    int active_opacity_percent;
+    int active_is_solo;
+    int visible_layer_count;
+    unsigned int color;
+    const char *want;
+} TitleCase;
+
+static int run_title_case(const TitleCase *test_case) {
+    return expect_title(
+        test_case->label,
+        test_case->tool_label,
+        test_case->shape_label,
+        test_case->radius,
+        test_case->opacity_percent,
+        test_case->active_layer_index,
+        test_case->layer_count,
+        test_case->layer_name,
+        test_case->active_visible,
+        test_case->active_locked,
+        test_case->active_opacity_percent,
+        test_case->active_is_solo,
+        test_case->visible_layer_count,
+        test_case->color,
+        test_case->want
+    );
+}
+
 static int expect_title_prefix(
     const char *label,
     size_t title_size,
@@ -2011,6 +2049,46 @@ static int expect_title_prefix(
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    size_t title_size;
+    const char *tool_label;
+    const char *shape_label;
+    int radius;
+    int opacity_percent;
+    int active_layer_index;
+    int layer_count;
+    const char *layer_name;
+    int active_visible;
+    int active_locked;
+    int active_opacity_percent;
+    int active_is_solo;
+    int visible_layer_count;
+    unsigned int color;
+    const char *want_prefix;
+} TitlePrefixCase;
+
+static int run_title_prefix_case(const TitlePrefixCase *test_case) {
+    return expect_title_prefix(
+        test_case->label,
+        test_case->title_size,
+        test_case->tool_label,
+        test_case->shape_label,
+        test_case->radius,
+        test_case->opacity_percent,
+        test_case->active_layer_index,
+        test_case->layer_count,
+        test_case->layer_name,
+        test_case->active_visible,
+        test_case->active_locked,
+        test_case->active_opacity_percent,
+        test_case->active_is_solo,
+        test_case->visible_layer_count,
+        test_case->color,
+        test_case->want_prefix
+    );
+}
+
 static int expect_title_empty_buffer(
     const char *label,
     size_t title_size,
@@ -2054,6 +2132,44 @@ static int expect_title_empty_buffer(
         return 0;
     }
     return 1;
+}
+
+typedef struct {
+    const char *label;
+    size_t title_size;
+    const char *tool_label;
+    const char *shape_label;
+    int radius;
+    int opacity_percent;
+    int active_layer_index;
+    int layer_count;
+    const char *layer_name;
+    int active_visible;
+    int active_locked;
+    int active_opacity_percent;
+    int active_is_solo;
+    int visible_layer_count;
+    unsigned int color;
+} TitleEmptyBufferCase;
+
+static int run_title_empty_buffer_case(const TitleEmptyBufferCase *test_case) {
+    return expect_title_empty_buffer(
+        test_case->label,
+        test_case->title_size,
+        test_case->tool_label,
+        test_case->shape_label,
+        test_case->radius,
+        test_case->opacity_percent,
+        test_case->active_layer_index,
+        test_case->layer_count,
+        test_case->layer_name,
+        test_case->active_visible,
+        test_case->active_locked,
+        test_case->active_opacity_percent,
+        test_case->active_is_solo,
+        test_case->visible_layer_count,
+        test_case->color
+    );
 }
 
 static int expect_title_unchanged_buffer(
@@ -2101,6 +2217,44 @@ static int expect_title_unchanged_buffer(
         }
     }
     return 1;
+}
+
+typedef struct {
+    const char *label;
+    size_t title_size;
+    const char *tool_label;
+    const char *shape_label;
+    int radius;
+    int opacity_percent;
+    int active_layer_index;
+    int layer_count;
+    const char *layer_name;
+    int active_visible;
+    int active_locked;
+    int active_opacity_percent;
+    int active_is_solo;
+    int visible_layer_count;
+    unsigned int color;
+} TitleUnchangedBufferCase;
+
+static int run_title_unchanged_buffer_case(const TitleUnchangedBufferCase *test_case) {
+    return expect_title_unchanged_buffer(
+        test_case->label,
+        test_case->title_size,
+        test_case->tool_label,
+        test_case->shape_label,
+        test_case->radius,
+        test_case->opacity_percent,
+        test_case->active_layer_index,
+        test_case->layer_count,
+        test_case->layer_name,
+        test_case->active_visible,
+        test_case->active_locked,
+        test_case->active_opacity_percent,
+        test_case->active_is_solo,
+        test_case->visible_layer_count,
+        test_case->color
+    );
 }
 
 static int expect_tool_label(const char *label, Tool tool, const char *want) {
@@ -4274,126 +4428,80 @@ int main(void) {
             ok = ok && run_prepare_shape_preview_motion_rejection_case(&rejection_cases[i]);
         }
     }
-    ok = ok && expect_title(
-        "title_visible_locked_solo",
-        "Brush",
-        "Round",
-        6,
-        100,
-        0,
-        3,
-        "Ink",
-        1,
-        1,
-        75,
-        1,
-        2,
-        0xFF1B1F24u,
-        "Openshop - Brush (Round) | size 6 | brush 100% | layer 1/3 Ink [visible, locked 75%] [solo] | visible 2/3 | #FF1B1F24"
-    );
-    ok = ok && expect_title(
-        "title_hidden_default_name",
-        "Line",
-        "Square",
-        12,
-        40,
-        2,
-        4,
-        "",
-        0,
-        0,
-        100,
-        0,
-        1,
-        0x80123456u,
-        "Openshop - Line (Square) | size 12 | brush 40% | layer 3/4 Layer [hidden 100%] | visible 1/4 | #80123456"
-    );
-    ok = ok && expect_title_prefix(
-        "title_truncates",
-        16,
-        "Filled Rectangle",
-        "Diamond",
-        99,
-        55,
-        8,
-        12,
-        "Very Long Layer Name",
-        1,
-        0,
-        42,
-        0,
-        7,
-        0xABCDEF12u,
-        "Openshop - Fill"
-    );
-    ok = ok && expect_title(
-        "title_null_labels_default",
-        NULL,
-        NULL,
-        5,
-        20,
-        1,
-        2,
-        NULL,
-        1,
-        0,
-        100,
-        0,
-        2,
-        0x00000000u,
-        "Openshop - Brush (Round) | size 5 | brush 20% | layer 2/2 Layer [visible 100%] | visible 2/2 | #00000000"
-    );
-    ok = ok && expect_title(
-        "title_extreme_numeric_values",
-        "Ellipse",
-        "Diamond",
-        0,
-        0,
-        98,
-        120,
-        "Edge",
-        0,
-        1,
-        0,
-        0,
-        0,
-        0xFFFFFFFFu,
-        "Openshop - Ellipse (Diamond) | size 0 | brush 0% | layer 99/120 Edge [hidden, locked 0%] | visible 0/120 | #FFFFFFFF"
-    );
-    ok = ok && expect_title_empty_buffer(
-        "title_size_one",
-        1,
-        "Brush",
-        "Round",
-        3,
-        10,
-        0,
-        1,
-        "Tiny",
-        1,
-        0,
-        100,
-        0,
-        1,
-        0xFF000000u
-    );
-    ok = ok && expect_title_unchanged_buffer(
-        "title_size_zero",
-        0,
-        "Brush",
-        "Round",
-        3,
-        10,
-        0,
-        1,
-        "Tiny",
-        1,
-        0,
-        100,
-        0,
-        1,
-        0xFF000000u
-    );
+    {
+        const TitleCase title_cases[] = {
+            {
+                "title_visible_locked_solo",
+                "Brush", "Round",
+                6, 100, 0, 3, "Ink",
+                1, 1, 75, 1, 2, 0xFF1B1F24u,
+                "Openshop - Brush (Round) | size 6 | brush 100% | layer 1/3 Ink [visible, locked 75%] [solo] | visible 2/3 | #FF1B1F24",
+            },
+            {
+                "title_hidden_default_name",
+                "Line", "Square",
+                12, 40, 2, 4, "",
+                0, 0, 100, 0, 1, 0x80123456u,
+                "Openshop - Line (Square) | size 12 | brush 40% | layer 3/4 Layer [hidden 100%] | visible 1/4 | #80123456",
+            },
+            {
+                "title_null_labels_default",
+                NULL, NULL,
+                5, 20, 1, 2, NULL,
+                1, 0, 100, 0, 2, 0x00000000u,
+                "Openshop - Brush (Round) | size 5 | brush 20% | layer 2/2 Layer [visible 100%] | visible 2/2 | #00000000",
+            },
+            {
+                "title_extreme_numeric_values",
+                "Ellipse", "Diamond",
+                0, 0, 98, 120, "Edge",
+                0, 1, 0, 0, 0, 0xFFFFFFFFu,
+                "Openshop - Ellipse (Diamond) | size 0 | brush 0% | layer 99/120 Edge [hidden, locked 0%] | visible 0/120 | #FFFFFFFF",
+            },
+        };
+        const TitlePrefixCase title_prefix_cases[] = {
+            {
+                "title_truncates",
+                16,
+                "Filled Rectangle", "Diamond",
+                99, 55, 8, 12, "Very Long Layer Name",
+                1, 0, 42, 0, 7, 0xABCDEF12u,
+                "Openshop - Fill",
+            },
+        };
+        const TitleEmptyBufferCase title_empty_buffer_cases[] = {
+            {
+                "title_size_one",
+                1,
+                "Brush", "Round",
+                3, 10, 0, 1, "Tiny",
+                1, 0, 100, 0, 1, 0xFF000000u,
+            },
+        };
+        const TitleUnchangedBufferCase title_unchanged_buffer_cases[] = {
+            {
+                "title_size_zero",
+                0,
+                "Brush", "Round",
+                3, 10, 0, 1, "Tiny",
+                1, 0, 100, 0, 1, 0xFF000000u,
+            },
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(title_cases) / sizeof(title_cases[0]); i++) {
+            ok = ok && run_title_case(&title_cases[i]);
+        }
+        for (i = 0; i < sizeof(title_prefix_cases) / sizeof(title_prefix_cases[0]); i++) {
+            ok = ok && run_title_prefix_case(&title_prefix_cases[i]);
+        }
+        for (i = 0; i < sizeof(title_empty_buffer_cases) / sizeof(title_empty_buffer_cases[0]); i++) {
+            ok = ok && run_title_empty_buffer_case(&title_empty_buffer_cases[i]);
+        }
+        for (i = 0; i < sizeof(title_unchanged_buffer_cases) / sizeof(title_unchanged_buffer_cases[0]); i++) {
+            ok = ok && run_title_unchanged_buffer_case(&title_unchanged_buffer_cases[i]);
+        }
+    }
 
     if (!ok) {
         return 1;
