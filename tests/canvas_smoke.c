@@ -1448,6 +1448,36 @@ static int test_active_layer_ops_helpers(void) {
         int redo_before = redo_count;
         canvas_clear(&stack.layers[0].canvas, 0xFF998877);
         if (active_layer_try_commit_shape(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                          TOOL_ELLIPSE, 0, 0, 4, 4, 1, 0xFF998877, 4) ||
+            !expect_pixel_eq("active_commit_shape_same_ellipse", canvas_get_pixel(&stack.layers[0].canvas, 2, 0), 0xFF998877) ||
+            undo_count != undo_before || redo_count != redo_before) {
+            fprintf(stderr, "active_layer_try_commit_shape same ellipse no-op failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    {
+        int undo_before = undo_count;
+        int redo_before = redo_count;
+        canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 0, 0xFF010203);
+        if (active_layer_try_commit_shape(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                          TOOL_ELLIPSE, -8, -8, -2, -2, 1, 0xFF998877, 4) ||
+            !expect_pixel_eq("active_commit_shape_offscreen_ellipse", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF010203) ||
+            undo_count != undo_before || redo_count != redo_before) {
+            fprintf(stderr, "active_layer_try_commit_shape offscreen ellipse no-op failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    {
+        int undo_before = undo_count;
+        int redo_before = redo_count;
+        canvas_clear(&stack.layers[0].canvas, 0xFF998877);
+        if (active_layer_try_commit_shape(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
                                           TOOL_RECT, 0, 0, 3, 3, 1, 0xFF998877, 4) ||
             !expect_pixel_eq("active_commit_shape_same_rect", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF998877) ||
             undo_count != undo_before || redo_count != redo_before) {

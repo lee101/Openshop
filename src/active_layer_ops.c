@@ -191,6 +191,44 @@ static int canvas_filled_ellipse_would_change(const Canvas *canvas,
     return 0;
 }
 
+static int canvas_ellipse_outline_would_change(const Canvas *canvas,
+                                               int x0, int y0, int x1, int y1,
+                                               int radius, uint32_t color, BrushShape shape) {
+    int cx;
+    int cy;
+    int rx;
+    int ry;
+    int y;
+
+    if (!canvas || !canvas->pixels || radius <= 0) {
+        return 0;
+    }
+
+    cx = (x0 + x1) / 2;
+    cy = (y0 + y1) / 2;
+    rx = abs(x1 - x0) / 2;
+    ry = abs(y1 - y0) / 2;
+    if (rx <= 0 || ry <= 0) {
+        return 0;
+    }
+
+    for (y = -ry; y <= ry; y++) {
+        double norm = 1.0 - ((double)(y * y) / (double)(ry * ry));
+        int x;
+
+        if (norm < 0.0) {
+            continue;
+        }
+        x = (int)((double)rx * sqrt(norm) + 0.5);
+        if (canvas_stamp_would_change(canvas, cx + x, cy + y, radius, color, shape) ||
+            canvas_stamp_would_change(canvas, cx - x, cy + y, radius, color, shape)) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 static int active_layer_apply_transform(LayerStack *layers,
                                         Snapshot *undo_stack, int *undo_count,
                                         Snapshot *redo_stack, int *redo_count,
@@ -398,6 +436,11 @@ int active_layer_try_commit_shape(LayerStack *layers,
                                   brush_radius, brush_color, BRUSH_SHAPE_ROUND) &&
         !canvas_line_would_change(&active->canvas, shape_start_x, end_y, shape_start_x, shape_start_y,
                                   brush_radius, brush_color, BRUSH_SHAPE_ROUND)) {
+        return 0;
+    }
+    if (tool == TOOL_ELLIPSE &&
+        !canvas_ellipse_outline_would_change(&active->canvas, shape_start_x, shape_start_y, end_x, end_y,
+                                             brush_radius, brush_color, BRUSH_SHAPE_ROUND)) {
         return 0;
     }
     if (brush_radius <= 0 &&
