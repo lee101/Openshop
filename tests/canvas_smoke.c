@@ -1872,6 +1872,19 @@ static int test_active_layer_ops_helpers(void) {
     }
 
     canvas_clear(&stack.layers[0].canvas, 0x00000000);
+    if (active_layer_try_commit_shape_with_result(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                  TOOL_FILLED_RECT, 1, 1, 2, 2, 1, 0xFF998877, 4) !=
+        ACTIVE_LAYER_ACTION_CHANGED ||
+        !expect_pixel_eq("active_commit_shape_result", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFF998877)) {
+        fprintf(stderr, "active_layer_try_commit_shape_with_result changed failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    canvas_clear(&stack.layers[0].canvas, 0x00000000);
     if (!active_layer_try_commit_shape(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
                                        TOOL_FILLED_RECT, 1, 1, 2, 2, 1, 0xFF998877, 4) ||
         !expect_pixel_eq("active_commit_shape", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFF998877)) {
@@ -1885,6 +1898,15 @@ static int test_active_layer_ops_helpers(void) {
         int undo_before = undo_count;
         int redo_before = redo_count;
         canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 0, 0xFF010203);
+        if (active_layer_try_commit_shape_with_result(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                      TOOL_BRUSH, 0, 0, 2, 2, 1, 0xFF998877, 4) !=
+            ACTIVE_LAYER_ACTION_UNCHANGED) {
+            fprintf(stderr, "active_layer_try_commit_shape_with_result unchanged failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
         if (active_layer_try_commit_shape(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
                                           TOOL_BRUSH, 0, 0, 2, 2, 1, 0xFF998877, 4) ||
             !expect_pixel_eq("active_commit_shape_invalid_tool", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF010203) ||

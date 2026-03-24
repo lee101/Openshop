@@ -1309,9 +1309,9 @@ static int handle_left_click_up(LayerStack *layers,
     state = SDL_GetKeyboardState(NULL);
     shift = keyboard_shift_pressed(state);
     constrain_shape_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
-    if (try_commit_shape(layers, undo_stack, undo_count, redo_stack, redo_count,
-                         tool, shape_start_x, shape_start_y, end_x, end_y,
-                         brush_radius, brush_color)) {
+    if (active_layer_try_commit_shape_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                  tool, shape_start_x, shape_start_y, end_x, end_y,
+                                                  brush_radius, brush_color, MAX_HISTORY) == ACTIVE_LAYER_ACTION_CHANGED) {
         *needs_composite = 1;
     }
     shape_preview_cancel(shaping, preview_active);

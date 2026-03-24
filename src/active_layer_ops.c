@@ -496,49 +496,49 @@ int active_layer_try_flood_fill(LayerStack *layers,
     return changed;
 }
 
-int active_layer_try_commit_shape(LayerStack *layers,
-                                  Snapshot *undo_stack, int *undo_count,
-                                  Snapshot *redo_stack, int *redo_count,
-                                  Tool tool, int shape_start_x, int shape_start_y,
-                                  int end_x, int end_y, int brush_radius,
-                                  uint32_t brush_color, int max_history) {
+ActiveLayerActionResult active_layer_try_commit_shape_with_result(LayerStack *layers,
+                                                                  Snapshot *undo_stack, int *undo_count,
+                                                                  Snapshot *redo_stack, int *redo_count,
+                                                                  Tool tool, int shape_start_x, int shape_start_y,
+                                                                  int end_x, int end_y, int brush_radius,
+                                                                  uint32_t brush_color, int max_history) {
     Layer *active;
     int is_shape_tool;
     uint8_t brush_alpha;
 
     if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_FAILED;
     }
 
     active = layer_stack_active(layers);
     if (!active || active->locked || !active->canvas.pixels) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_FAILED;
     }
     is_shape_tool = tool == TOOL_LINE || tool == TOOL_RECT || tool == TOOL_FILLED_RECT ||
                     tool == TOOL_ELLIPSE || tool == TOOL_FILLED_ELLIPSE;
     if (!is_shape_tool) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
     brush_alpha = (uint8_t)((brush_color >> 24) & 0xFF);
     if (brush_alpha == 0) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
     if ((tool == TOOL_ELLIPSE || tool == TOOL_FILLED_ELLIPSE) &&
         (shape_start_x == end_x || shape_start_y == end_y)) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
     if (tool == TOOL_FILLED_RECT &&
         !canvas_filled_rect_would_change(&active->canvas, shape_start_x, shape_start_y, end_x, end_y, brush_color)) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
     if (tool == TOOL_FILLED_ELLIPSE &&
         !canvas_filled_ellipse_would_change(&active->canvas, shape_start_x, shape_start_y, end_x, end_y, brush_color)) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
     if (tool == TOOL_LINE &&
         !canvas_line_would_change(&active->canvas, shape_start_x, shape_start_y, end_x, end_y,
                                   brush_radius, brush_color, BRUSH_SHAPE_ROUND)) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
     if (tool == TOOL_RECT &&
         !canvas_line_would_change(&active->canvas, shape_start_x, shape_start_y, end_x, shape_start_y,
@@ -549,21 +549,32 @@ int active_layer_try_commit_shape(LayerStack *layers,
                                   brush_radius, brush_color, BRUSH_SHAPE_ROUND) &&
         !canvas_line_would_change(&active->canvas, shape_start_x, end_y, shape_start_x, shape_start_y,
                                   brush_radius, brush_color, BRUSH_SHAPE_ROUND)) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
     if (tool == TOOL_ELLIPSE &&
         !canvas_ellipse_outline_would_change(&active->canvas, shape_start_x, shape_start_y, end_x, end_y,
                                              brush_radius, brush_color, BRUSH_SHAPE_ROUND)) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
     if (brush_radius <= 0 &&
         (tool == TOOL_LINE || tool == TOOL_RECT || tool == TOOL_ELLIPSE)) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
 
     snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
     draw_shape(&active->canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
-    return 1;
+    return ACTIVE_LAYER_ACTION_CHANGED;
+}
+
+int active_layer_try_commit_shape(LayerStack *layers,
+                                  Snapshot *undo_stack, int *undo_count,
+                                  Snapshot *redo_stack, int *redo_count,
+                                  Tool tool, int shape_start_x, int shape_start_y,
+                                  int end_x, int end_y, int brush_radius,
+                                  uint32_t brush_color, int max_history) {
+    return active_layer_try_commit_shape_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                     tool, shape_start_x, shape_start_y, end_x, end_y,
+                                                     brush_radius, brush_color, max_history) == ACTIVE_LAYER_ACTION_CHANGED;
 }
 
 int active_layer_try_begin_brush_stroke(LayerStack *layers,
