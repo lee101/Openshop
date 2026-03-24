@@ -82,8 +82,15 @@ typedef enum {
     APP_FILE_HOTKEY_LOAD_ACTIVE_LAYER
 } AppFileHotkeyAction;
 
+typedef enum {
+    APP_HISTORY_HOTKEY_NONE = 0,
+    APP_HISTORY_HOTKEY_UNDO,
+    APP_HISTORY_HOTKEY_REDO
+} AppHistoryHotkeyAction;
+
 AppOpacityHotkeyAction app_opacity_hotkey_action(int key);
 AppLayerNavigationAction app_layer_navigation_action(int key, int ctrl, int alt, int shift, int *arg);
 AppFileHotkeyAction app_file_hotkey_action(int key, int ctrl, int alt, int shift);
+AppHistoryHotkeyAction app_history_hotkey_action(int key, int ctrl, int alt, int shift);
 
 #endif

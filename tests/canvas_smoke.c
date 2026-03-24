@@ -123,6 +123,17 @@ static int test_app_input_rules(void) {
             fprintf(stderr, "file non-hotkey mapping failed\n");
             return 0;
         }
+        if (app_history_hotkey_action(APP_KEY_z, 1, 0, 0) != APP_HISTORY_HOTKEY_UNDO ||
+            app_history_hotkey_action(APP_KEY_y, 1, 0, 0) != APP_HISTORY_HOTKEY_REDO) {
+            fprintf(stderr, "history hotkey mapping failed\n");
+            return 0;
+        }
+        if (app_history_hotkey_action(APP_KEY_z, 0, 0, 0) != APP_HISTORY_HOTKEY_NONE ||
+            app_history_hotkey_action(APP_KEY_y, 1, 0, 1) != APP_HISTORY_HOTKEY_NONE ||
+            app_history_hotkey_action(APP_KEY_b, 1, 0, 0) != APP_HISTORY_HOTKEY_NONE) {
+            fprintf(stderr, "history non-hotkey mapping failed\n");
+            return 0;
+        }
     }
 
     return 1;

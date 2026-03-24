@@ -1301,6 +1301,7 @@ static int handle_translation_hotkey(SDL_Keycode key,
 static int handle_history_hotkey(SDL_Keycode key,
                                  int ctrl, int alt, int shift,
                                  const ActionState *action_state) {
+    AppHistoryHotkeyAction history_action;
     int changed = 0;
 
     if (!ctrl || alt || shift || !action_state || !action_state->title_state || !action_state->layers ||
@@ -1309,11 +1310,12 @@ static int handle_history_hotkey(SDL_Keycode key,
         return 0;
     }
 
-    if (key == SDLK_z) {
+    history_action = app_history_hotkey_action((int)key, ctrl, alt, shift);
+    if (history_action == APP_HISTORY_HOTKEY_UNDO) {
         changed = snapshot_restore(action_state->layers, action_state->undo_stack,
                                    action_state->undo_count, action_state->redo_stack,
                                    action_state->redo_count, MAX_HISTORY);
-    } else if (key == SDLK_y) {
+    } else if (history_action == APP_HISTORY_HOTKEY_REDO) {
         changed = snapshot_restore(action_state->layers, action_state->redo_stack,
                                    action_state->redo_count, action_state->undo_stack,
                                    action_state->undo_count, MAX_HISTORY);

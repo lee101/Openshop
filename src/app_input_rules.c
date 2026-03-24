@@ -126,3 +126,16 @@ AppFileHotkeyAction app_file_hotkey_action(int key, int ctrl, int alt, int shift
     }
     return APP_FILE_HOTKEY_NONE;
 }
+
+AppHistoryHotkeyAction app_history_hotkey_action(int key, int ctrl, int alt, int shift) {
+    if (!ctrl || alt || shift) {
+        return APP_HISTORY_HOTKEY_NONE;
+    }
+    if (key == APP_KEY_z) {
+        return APP_HISTORY_HOTKEY_UNDO;
+    }
+    if (key == APP_KEY_y) {
+        return APP_HISTORY_HOTKEY_REDO;
+    }
+    return APP_HISTORY_HOTKEY_NONE;
+}
