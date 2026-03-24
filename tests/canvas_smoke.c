@@ -1537,6 +1537,28 @@ static int test_active_layer_ops_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    {
+        int width_before = stack.width;
+        int undo_before = undo_count;
+        int redo_before = redo_count;
+
+        canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 0, 0xFFABCDEF);
+        stack.width = -1;
+        if (active_layer_try_begin_brush_stroke_with_result(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                            TOOL_BRUSH, 0, 0, 1, 0xFF010203, BRUSH_SHAPE_ROUND,
+                                                            0xFFFFFFFF, 4) != ACTIVE_LAYER_ACTION_FAILED ||
+            undo_count != undo_before || redo_count != redo_before ||
+            !expect_pixel_eq("active_begin_history_capture_guard", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFFABCDEF)) {
+            fprintf(stderr, "active_layer_try_begin_brush_stroke should fail cleanly when history capture fails\n");
+            stack.width = width_before;
+            layer_stack_free(&single_stack);
+            layer_stack_free(&short_stack);
+            layer_stack_free(&narrow_stack);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        stack.width = width_before;
+    }
 
     canvas_set_pixel_raw(&narrow_stack.layers[0].canvas, 0, 0, 0xFF010203);
     if (active_layer_try_flip_horizontal(&narrow_stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||

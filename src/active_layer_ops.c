@@ -8,6 +8,36 @@
 #include <math.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
+
+static int active_layer_capture_snapshot(Snapshot *captured, const LayerStack *layers) {
+    if (!captured || !layers) {
+        return 0;
+    }
+    return snapshot_from_layers(captured, layers);
+}
+
+static int active_layer_push_captured_snapshot(Snapshot *captured,
+                                               Snapshot *undo_stack, int *undo_count,
+                                               Snapshot *redo_stack, int *redo_count,
+                                               int max_history) {
+    if (!captured || !undo_stack || !undo_count || max_history <= 0) {
+        return 0;
+    }
+
+    if (*undo_count == max_history) {
+        snapshot_free(&undo_stack[0]);
+        memmove(&undo_stack[0], &undo_stack[1], sizeof(Snapshot) * (size_t)(max_history - 1));
+        *undo_count = max_history - 1;
+    }
+
+    undo_stack[(*undo_count)++] = *captured;
+    memset(captured, 0, sizeof(*captured));
+    if (redo_stack && redo_count) {
+        snapshot_stack_clear(redo_stack, redo_count);
+    }
+    return 1;
+}
 
 static int canvas_has_non_matching_pixel(const Canvas *canvas, uint32_t color) {
     size_t pixel_count;
@@ -253,6 +283,7 @@ static ActiveLayerActionResult active_layer_apply_transform_with_result(LayerSta
                                                                        int max_history,
                                                                        void (*transform)(Canvas *)) {
     Layer *active;
+    Snapshot before = {0};
 
     if (!layers || !transform || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
         return ACTIVE_LAYER_ACTION_FAILED;
@@ -275,8 +306,15 @@ static ActiveLayerActionResult active_layer_apply_transform_with_result(LayerSta
     if (transform == canvas_invert_rgb && !canvas_has_visible_pixel(&active->canvas)) {
         return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
-    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
+    if (!active_layer_capture_snapshot(&before, layers)) {
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
     transform(&active->canvas);
+    if (!active_layer_push_captured_snapshot(&before, undo_stack, undo_count, redo_stack, redo_count, max_history)) {
+        snapshot_apply(&before, layers);
+        snapshot_free(&before);
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
     return ACTIVE_LAYER_ACTION_CHANGED;
 }
 
@@ -285,6 +323,7 @@ ActiveLayerActionResult active_layer_try_clear_with_result(LayerStack *layers,
                                                            Snapshot *redo_stack, int *redo_count,
                                                            uint32_t background_color, int max_history) {
     Layer *active;
+    Snapshot before = {0};
     uint32_t clear_color;
 
     if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
@@ -298,8 +337,16 @@ ActiveLayerActionResult active_layer_try_clear_with_result(LayerStack *layers,
     if (!canvas_has_non_matching_pixel(&active->canvas, clear_color)) {
         return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
-    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
+    if (!active_layer_capture_snapshot(&before, layers)) {
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
     if (!layer_stack_clear_layer(layers, layers->active_layer, clear_color)) {
+        snapshot_free(&before);
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
+    if (!active_layer_push_captured_snapshot(&before, undo_stack, undo_count, redo_stack, redo_count, max_history)) {
+        snapshot_apply(&before, layers);
+        snapshot_free(&before);
         return ACTIVE_LAYER_ACTION_FAILED;
     }
     return ACTIVE_LAYER_ACTION_CHANGED;
@@ -382,6 +429,7 @@ ActiveLayerActionResult active_layer_try_adjust_opacity_with_result(LayerStack *
                                                                     Snapshot *redo_stack, int *redo_count,
                                                                     int target_opacity, int max_history) {
     Layer *active;
+    Snapshot before = {0};
 
     if (target_opacity < 0) {
         target_opacity = 0;
@@ -401,8 +449,16 @@ ActiveLayerActionResult active_layer_try_adjust_opacity_with_result(LayerStack *
         return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
 
-    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
+    if (!active_layer_capture_snapshot(&before, layers)) {
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
     if (!layer_stack_set_opacity(layers, layers->active_layer, target_opacity)) {
+        snapshot_free(&before);
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
+    if (!active_layer_push_captured_snapshot(&before, undo_stack, undo_count, redo_stack, redo_count, max_history)) {
+        snapshot_apply(&before, layers);
+        snapshot_free(&before);
         return ACTIVE_LAYER_ACTION_FAILED;
     }
     return ACTIVE_LAYER_ACTION_CHANGED;
@@ -449,6 +505,7 @@ ActiveLayerActionResult active_layer_try_flood_fill_action_result(LayerStack *la
                                                                   int x, int y, uint32_t brush_color,
                                                                   int max_history) {
     Layer *active;
+    Snapshot before = {0};
     uint8_t brush_alpha;
 
     if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
@@ -470,8 +527,17 @@ ActiveLayerActionResult active_layer_try_flood_fill_action_result(LayerStack *la
         return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
 
-    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
+    if (!active_layer_capture_snapshot(&before, layers)) {
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
     if (!canvas_flood_fill(&active->canvas, x, y, brush_color)) {
+        snapshot_apply(&before, layers);
+        snapshot_free(&before);
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
+    if (!active_layer_push_captured_snapshot(&before, undo_stack, undo_count, redo_stack, redo_count, max_history)) {
+        snapshot_apply(&before, layers);
+        snapshot_free(&before);
         return ACTIVE_LAYER_ACTION_FAILED;
     }
     return ACTIVE_LAYER_ACTION_CHANGED;
@@ -510,6 +576,7 @@ ActiveLayerActionResult active_layer_try_commit_shape_with_result(LayerStack *la
                                                                   int end_x, int end_y, int brush_radius,
                                                                   uint32_t brush_color, int max_history) {
     Layer *active;
+    Snapshot before = {0};
     int is_shape_tool;
     uint8_t brush_alpha;
 
@@ -568,8 +635,15 @@ ActiveLayerActionResult active_layer_try_commit_shape_with_result(LayerStack *la
         return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
 
-    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
+    if (!active_layer_capture_snapshot(&before, layers)) {
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
     draw_shape(&active->canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
+    if (!active_layer_push_captured_snapshot(&before, undo_stack, undo_count, redo_stack, redo_count, max_history)) {
+        snapshot_apply(&before, layers);
+        snapshot_free(&before);
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
     return ACTIVE_LAYER_ACTION_CHANGED;
 }
 
@@ -591,6 +665,7 @@ ActiveLayerActionResult active_layer_try_begin_brush_stroke_with_result(LayerSta
                                                                         uint32_t brush_color, BrushShape brush_shape,
                                                                         uint32_t background_color, int max_history) {
     Layer *active;
+    Snapshot before = {0};
     uint8_t brush_alpha;
     uint32_t clear_color;
 
@@ -625,11 +700,18 @@ ActiveLayerActionResult active_layer_try_begin_brush_stroke_with_result(LayerSta
         return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
 
-    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
+    if (!active_layer_capture_snapshot(&before, layers)) {
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
     if (tool == TOOL_ERASER) {
         erase_stamp(&active->canvas, x, y, brush_radius, clear_color, brush_shape);
     } else {
         stamp_brush(&active->canvas, x, y, brush_radius, brush_color, brush_shape);
+    }
+    if (!active_layer_push_captured_snapshot(&before, undo_stack, undo_count, redo_stack, redo_count, max_history)) {
+        snapshot_apply(&before, layers);
+        snapshot_free(&before);
+        return ACTIVE_LAYER_ACTION_FAILED;
     }
     return ACTIVE_LAYER_ACTION_CHANGED;
 }
@@ -717,6 +799,7 @@ ActiveLayerActionResult active_layer_apply_translation_with_result(LayerStack *l
                                                                    int dx, int dy,
                                                                    uint32_t background_color, int max_history) {
     Layer *active;
+    Snapshot before = {0};
     uint32_t clear_color;
 
     if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
@@ -733,8 +816,15 @@ ActiveLayerActionResult active_layer_apply_translation_with_result(LayerStack *l
     if (!canvas_has_non_matching_pixel(&active->canvas, clear_color)) {
         return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
-    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
+    if (!active_layer_capture_snapshot(&before, layers)) {
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
     canvas_translate(&active->canvas, dx, dy, clear_color);
+    if (!active_layer_push_captured_snapshot(&before, undo_stack, undo_count, redo_stack, redo_count, max_history)) {
+        snapshot_apply(&before, layers);
+        snapshot_free(&before);
+        return ACTIVE_LAYER_ACTION_FAILED;
+    }
     return ACTIVE_LAYER_ACTION_CHANGED;
 }
 
