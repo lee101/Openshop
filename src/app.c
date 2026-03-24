@@ -1,6 +1,7 @@
 #include "app.h"
 #include "brush_state.h"
 #include "canvas.h"
+#include "color_sample.h"
 #include "display_canvas.h"
 #include "image_io.h"
 #include "layers.h"
@@ -630,31 +631,6 @@ static int try_commit_shape(LayerStack *layers,
     return 1;
 }
 
-static int try_sample_canvas_color(const Canvas *sample, int x, int y,
-                                   uint32_t *brush_color_rgb, uint32_t *brush_color,
-                                   int *brush_opacity, Tool *tool) {
-    uint32_t sampled_color;
-    int sampled_alpha;
-
-    if (!sample || !brush_color_rgb || !brush_color || !brush_opacity || !tool) {
-        return 0;
-    }
-    if (x < 0 || y < 0 || x >= sample->width || y >= sample->height) {
-        return 0;
-    }
-
-    sampled_color = canvas_get_pixel(sample, x, y);
-    *brush_color_rgb = sampled_color & 0x00FFFFFF;
-    sampled_alpha = (int)((sampled_color >> 24) & 0xFF);
-    *brush_opacity = (sampled_alpha * 100 + 127) / 255;
-    if (*brush_opacity < 1) {
-        *brush_opacity = 1;
-    }
-    *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
-    *tool = TOOL_BRUSH;
-    return 1;
-}
-
 static int try_begin_brush_stroke(LayerStack *layers,
                                   Snapshot *undo_stack, int *undo_count,
                                   Snapshot *redo_stack, int *redo_count,
@@ -802,7 +778,7 @@ static int mouse_position_sample_hotkey(LayerStack *layers,
     (void)undo_count;
     (void)redo_stack;
     (void)redo_count;
-    return try_sample_canvas_color(sample, mx, my, brush_color_rgb, brush_color, brush_opacity, tool);
+    return sample_canvas_brush_state(sample, mx, my, brush_color_rgb, brush_color, brush_opacity, tool);
 }
 
 static const MousePositionHotkey MOUSE_POSITION_HOTKEYS[] = {
@@ -1589,7 +1565,7 @@ static int handle_right_click_sample(SDL_Window *window,
                                      uint32_t *brush_color_rgb, uint32_t *brush_color,
                                      int *brush_opacity, int brush_radius,
                                      BrushShape brush_shape, Tool *tool) {
-    if (!try_sample_canvas_color(sample, x, y, brush_color_rgb, brush_color, brush_opacity, tool)) {
+    if (!sample_canvas_brush_state(sample, x, y, brush_color_rgb, brush_color, brush_opacity, tool)) {
         return 0;
     }
 

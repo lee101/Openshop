@@ -1,5 +1,6 @@
 #include "../src/brush_state.h"
 #include "../src/canvas.h"
+#include "../src/color_sample.h"
 #include "../src/display_canvas.h"
 #include "../src/layers.h"
 #include "../src/status_text.h"
@@ -75,6 +76,51 @@ static int test_brush_state_helpers(void) {
         return 0;
     }
 
+    return 1;
+}
+
+static int test_color_sample_helpers(void) {
+    Canvas canvas = {0};
+    uint32_t brush_rgb = 0;
+    uint32_t brush_color = 0;
+    int brush_opacity = 0;
+    Tool tool = TOOL_RECT;
+
+    if (!canvas_init(&canvas, 2, 2)) {
+        fprintf(stderr, "sample canvas init failed\n");
+        return 0;
+    }
+    canvas_clear(&canvas, 0x00000000);
+    canvas_set_pixel_raw(&canvas, 1, 1, 0x80445566);
+
+    if (!sample_canvas_brush_state(&canvas, 1, 1, &brush_rgb, &brush_color, &brush_opacity, &tool)) {
+        fprintf(stderr, "sample_canvas_brush_state basic sample failed\n");
+        canvas_free(&canvas);
+        return 0;
+    }
+    if (brush_rgb != 0x00445566 || brush_opacity != 50 ||
+        brush_color != compose_brush_color(brush_rgb, brush_opacity) || tool != TOOL_BRUSH) {
+        fprintf(stderr, "sample_canvas_brush_state basic output failed\n");
+        canvas_free(&canvas);
+        return 0;
+    }
+
+    tool = TOOL_RECT;
+    if (sample_canvas_brush_state(&canvas, -1, 0, &brush_rgb, &brush_color, &brush_opacity, &tool)) {
+        fprintf(stderr, "sample_canvas_brush_state bounds check failed\n");
+        canvas_free(&canvas);
+        return 0;
+    }
+
+    canvas_set_pixel_raw(&canvas, 0, 0, 0x00443322);
+    if (!sample_canvas_brush_state(&canvas, 0, 0, &brush_rgb, &brush_color, &brush_opacity, &tool) ||
+        brush_opacity != 1 || brush_color != compose_brush_color(brush_rgb, 1)) {
+        fprintf(stderr, "sample_canvas_brush_state alpha clamp failed\n");
+        canvas_free(&canvas);
+        return 0;
+    }
+
+    canvas_free(&canvas);
     return 1;
 }
 
@@ -2683,6 +2729,10 @@ int main(void) {
     canvas_free(&mask);
 
     if (!test_brush_state_helpers()) {
+        return 1;
+    }
+
+    if (!test_color_sample_helpers()) {
         return 1;
     }
 
