@@ -602,10 +602,12 @@ int main(void) {
     ok = ok && expect_shape_cancel("shape_cancel_ctrl_save", APP_SHAPE_CANCEL_KEY_S, 1, 1);
     ok = ok && expect_shape_cancel("shape_cancel_ctrl_bracket", APP_SHAPE_CANCEL_KEY_LEFTBRACKET, 1, 1);
     ok = ok && expect_shape_cancel("shape_cancel_ctrl_slash", APP_SHAPE_CANCEL_KEY_SLASH, 1, 1);
+    ok = ok && expect_shape_cancel("shape_cancel_ctrl_unmapped_not_cancel", APP_SHAPE_CANCEL_KEY_OTHER, 1, 0);
     ok = ok && expect_shape_cancel("shape_cancel_ctrl_digit_7", APP_SHAPE_CANCEL_KEY_7, 1, 1);
     ok = ok && expect_shape_cancel("shape_cancel_ctrl_digit_8", APP_SHAPE_CANCEL_KEY_8, 1, 1);
     ok = ok && expect_shape_cancel("shape_cancel_tool_switch", APP_SHAPE_CANCEL_KEY_B, 0, 1);
     ok = ok && expect_shape_cancel("shape_cancel_plain_bracket", APP_SHAPE_CANCEL_KEY_RIGHTBRACKET, 0, 1);
+    ok = ok && expect_shape_cancel("shape_cancel_plain_slash_not_cancel", APP_SHAPE_CANCEL_KEY_SLASH, 0, 0);
     ok = ok && expect_shape_cancel("shape_cancel_plain_kp_plus", APP_SHAPE_CANCEL_KEY_KP_PLUS, 0, 1);
     ok = ok && expect_shape_cancel("shape_cancel_plain_kp_minus", APP_SHAPE_CANCEL_KEY_KP_MINUS, 0, 1);
     ok = ok && expect_shape_cancel("shape_cancel_arrow", APP_SHAPE_CANCEL_KEY_LEFT, 0, 1);
