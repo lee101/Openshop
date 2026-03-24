@@ -1270,31 +1270,6 @@ static void handle_canvas_motion(
     }
 }
 
-static void begin_shape_preview(
-    int start_x,
-    int start_y,
-    int *shaping,
-    int *shape_start_x,
-    int *shape_start_y,
-    uint32_t *shape_base_pixels,
-    const Canvas *composite
-) {
-    if (!shaping || !shape_start_x || !shape_start_y) {
-        return;
-    }
-
-    *shaping = 1;
-    *shape_start_x = start_x;
-    *shape_start_y = start_y;
-    if (shape_base_pixels && composite) {
-        memcpy(
-            shape_base_pixels,
-            composite->pixels,
-            (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t)
-        );
-    }
-}
-
 static void finalize_shape_preview(
     SDL_MouseButtonEvent button,
     LayerStack *layers,
@@ -1385,7 +1360,16 @@ static void handle_mouse_button_down(
                 }
             }
         } else if (app_layer_editable(layer_stack_get(layers, layers->active_layer))) {
-            begin_shape_preview(*last_x, *last_y, shaping, shape_start_x, shape_start_y, shape_base_pixels, composite);
+            app_begin_shape_preview(
+                *last_x,
+                *last_y,
+                shaping,
+                shape_start_x,
+                shape_start_y,
+                shape_base_pixels,
+                composite ? composite->pixels : NULL,
+                (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT
+            );
         }
         return;
     }

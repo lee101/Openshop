@@ -100,6 +100,57 @@ static int expect_shape_cancel(const char *label, int key, int ctrl, int want) {
     return 1;
 }
 
+static int expect_begin_shape_preview(
+    const char *label,
+    int start_x,
+    int start_y,
+    int *shaping,
+    int *shape_start_x,
+    int *shape_start_y,
+    uint32_t *shape_base_pixels,
+    const uint32_t *composite_pixels,
+    size_t pixel_count,
+    int want_shaping,
+    int want_shape_start_x,
+    int want_shape_start_y,
+    const uint32_t *want_shape_base_pixels
+) {
+    size_t i;
+
+    app_begin_shape_preview(
+        start_x,
+        start_y,
+        shaping,
+        shape_start_x,
+        shape_start_y,
+        shape_base_pixels,
+        composite_pixels,
+        pixel_count
+    );
+
+    if (shaping && *shaping != want_shaping) {
+        fprintf(stderr, "%s shaping mismatch: got %d want %d\n", label, *shaping, want_shaping);
+        return 0;
+    }
+    if (shape_start_x && *shape_start_x != want_shape_start_x) {
+        fprintf(stderr, "%s shape_start_x mismatch: got %d want %d\n", label, *shape_start_x, want_shape_start_x);
+        return 0;
+    }
+    if (shape_start_y && *shape_start_y != want_shape_start_y) {
+        fprintf(stderr, "%s shape_start_y mismatch: got %d want %d\n", label, *shape_start_y, want_shape_start_y);
+        return 0;
+    }
+    if (shape_base_pixels && want_shape_base_pixels) {
+        for (i = 0; i < pixel_count; i++) {
+            if (shape_base_pixels[i] != want_shape_base_pixels[i]) {
+                fprintf(stderr, "%s shape_base_pixels[%zu] mismatch: got 0x%08X want 0x%08X\n", label, i, shape_base_pixels[i], want_shape_base_pixels[i]);
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
 static int expect_view_result(
     const char *label,
     ViewShortcutKey key,
@@ -522,10 +573,15 @@ int main(void) {
     int sentinel_y = 654;
     int shaping = 1;
     int preview_active = 1;
+    int shape_start_x = -1;
+    int shape_start_y = -1;
     Tool sampled_tool = TOOL_ERASER;
     unsigned int sampled_brush_color = 0xAA112233u;
     unsigned int sampled_brush_color_rgb = 0x00112233u;
     int sampled_brush_opacity = 42;
+    uint32_t preview_source[4] = {0x11111111u, 0x22222222u, 0x33333333u, 0x44444444u};
+    uint32_t preview_copy[4] = {0u, 0u, 0u, 0u};
+    uint32_t preview_sentinel[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
     Layer editable_layer = {0};
     Layer locked_layer = {0};
     Layer empty_layer = {0};
@@ -672,6 +728,44 @@ int main(void) {
     ok = ok && expect_constrained_shape_end("shape_unknown_tool_passthrough", (Tool)999, 10, 10, 25, 13, 1, 25, 13);
     ok = ok && expect_constrained_shape_end_no_output("shape_null_out_x", TOOL_LINE, 10, 10, 25, 13, 1, NULL, &sentinel_y, 0, 654);
     ok = ok && expect_constrained_shape_end_no_output("shape_null_out_y", TOOL_LINE, 10, 10, 25, 13, 1, &sentinel_x, NULL, 321, 0);
+    shaping = 0;
+    shape_start_x = -1;
+    shape_start_y = -1;
+    memset(preview_copy, 0, sizeof(preview_copy));
+    ok = ok && expect_begin_shape_preview(
+        "begin_shape_preview_copy",
+        12,
+        34,
+        &shaping,
+        &shape_start_x,
+        &shape_start_y,
+        preview_copy,
+        preview_source,
+        4,
+        1,
+        12,
+        34,
+        preview_source
+    );
+    shaping = 5;
+    shape_start_x = 7;
+    shape_start_y = 9;
+    memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
+    ok = ok && expect_begin_shape_preview(
+        "begin_shape_preview_no_copy_without_source",
+        20,
+        30,
+        &shaping,
+        &shape_start_x,
+        &shape_start_y,
+        preview_copy,
+        NULL,
+        4,
+        1,
+        20,
+        30,
+        preview_sentinel
+    );
     ok = ok && expect_cancel_shape_preview("cancel_shape_preview_both", &shaping, &preview_active, 0, 0);
     shaping = 7;
     preview_active = 9;
