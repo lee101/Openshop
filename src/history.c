@@ -241,6 +241,25 @@ void layer_history_record(LayerHistory *history, const LayerStack *layers) {
     layer_history_push(layers, history->undo, &history->undo_count, history->redo, &history->redo_count);
 }
 
+int layer_history_record_snapshot(LayerHistory *history, LayerSnapshot *snapshot) {
+    if (!snapshot) {
+        return 0;
+    }
+    if (!history) {
+        layer_snapshot_free(snapshot);
+        return 0;
+    }
+    if (history->undo_count > 0 && layer_snapshot_equals(&history->undo[history->undo_count - 1], snapshot)) {
+        layer_snapshot_free(snapshot);
+        return 0;
+    }
+    history_push_existing(history->undo, &history->undo_count, snapshot);
+    layer_history_clear(history->redo, &history->redo_count);
+    memset(snapshot, 0, sizeof(*snapshot));
+    snapshot->solo_index = -1;
+    return 1;
+}
+
 int layer_history_step_undo(LayerHistory *history, LayerStack *layers) {
     if (!history) {
         return 0;

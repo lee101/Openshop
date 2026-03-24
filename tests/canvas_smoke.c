@@ -522,6 +522,119 @@ static int test_layer_history_skips_duplicate_snapshots(void) {
     return 1;
 }
 
+static int test_layer_history_manual_snapshot_recording(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 3, 3, 0xFFFFFFFF)) {
+        fprintf(stderr, "history manual snapshot init failed\n");
+        return 0;
+    }
+
+    LayerHistory history = {0};
+    layer_history_record(&history, &stack);
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF112233);
+    layer_history_record(&history, &stack);
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF445566);
+
+    if (!layer_history_step_undo(&history, &stack)) {
+        fprintf(stderr, "history manual snapshot undo setup failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (history.redo_count != 1 ||
+        !expect_pixel_eq("history_manual_snapshot_after_undo", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF112233)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    LayerSnapshot snapshot = {0};
+    if (!layer_snapshot_capture(&snapshot, &stack)) {
+        fprintf(stderr, "history manual snapshot capture failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF778899);
+    if (!layer_history_record_snapshot(&history, &snapshot)) {
+        fprintf(stderr, "history manual snapshot commit failed\n");
+        layer_snapshot_free(&snapshot);
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (history.redo_count != 0 || history.undo_count != 2) {
+        fprintf(stderr, "history manual snapshot should clear redo and grow undo\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (!layer_history_step_undo(&history, &stack) ||
+        !expect_pixel_eq("history_manual_snapshot_undo", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF112233)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_history_step_redo(&history, &stack) ||
+        !expect_pixel_eq("history_manual_snapshot_redo", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF778899)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_reset(&history);
+    layer_stack_free(&stack);
+    return 1;
+}
+
+static int test_layer_history_discarded_snapshot_keeps_redo(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 3, 3, 0xFFFFFFFF)) {
+        fprintf(stderr, "history discarded snapshot init failed\n");
+        return 0;
+    }
+
+    LayerHistory history = {0};
+    layer_history_record(&history, &stack);
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF010203);
+    layer_history_record(&history, &stack);
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF040506);
+
+    if (!layer_history_step_undo(&history, &stack)) {
+        fprintf(stderr, "history discarded snapshot undo setup failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    LayerSnapshot snapshot = {0};
+    if (!layer_snapshot_capture(&snapshot, &stack)) {
+        fprintf(stderr, "history discarded snapshot capture failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    layer_snapshot_free(&snapshot);
+
+    if (history.redo_count != 1) {
+        fprintf(stderr, "history discarded snapshot should keep redo intact\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_history_step_redo(&history, &stack) ||
+        !expect_pixel_eq("history_discarded_snapshot_redo", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF040506)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_reset(&history);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layers_basic(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 16, 16, 0xFFFFFFFF)) {
@@ -1498,6 +1611,12 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_skips_duplicate_snapshots()) {
+        return 1;
+    }
+    if (!test_layer_history_manual_snapshot_recording()) {
+        return 1;
+    }
+    if (!test_layer_history_discarded_snapshot_keeps_redo()) {
         return 1;
     }
 

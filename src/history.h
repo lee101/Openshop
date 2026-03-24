@@ -37,6 +37,7 @@ int layer_history_redo(LayerStack *layers, LayerSnapshot *undo_stack, int *undo_
 // Preferred API for app integration: keep undo/redo state inside LayerHistory.
 void layer_history_reset(LayerHistory *history);
 void layer_history_record(LayerHistory *history, const LayerStack *layers);
+int layer_history_record_snapshot(LayerHistory *history, LayerSnapshot *snapshot);
 int layer_history_step_undo(LayerHistory *history, LayerStack *layers);
 int layer_history_step_redo(LayerHistory *history, LayerStack *layers);
 
