@@ -51,6 +51,31 @@ typedef enum {
     BRUSH_SHAPE_COUNT
 } BrushShape;
 
+typedef struct {
+    int running;
+    int drawing;
+    int last_x;
+    int last_y;
+    int brush_radius;
+    int brush_opacity;
+    uint32_t brush_color_rgb;
+    uint32_t brush_color;
+    BrushShape brush_shape;
+    Tool tool;
+    Snapshot undo_stack[MAX_HISTORY];
+    Snapshot redo_stack[MAX_HISTORY];
+    int undo_count;
+    int redo_count;
+    int shaping;
+    int shape_start_x;
+    int shape_start_y;
+    int preview_active;
+    int needs_composite;
+    uint32_t *shape_base_pixels;
+    uint32_t *preview_pixels;
+    Canvas preview_canvas;
+} AppRuntime;
+
 static int handle_history_navigation_shortcut(
     SDL_Keycode key,
     int ctrl,
@@ -2075,57 +2100,33 @@ static int initialize_app_document(
     return 1;
 }
 
-static void initialize_app_runtime(
-    int *running,
-    int *drawing,
-    int *last_x,
-    int *last_y,
-    int *brush_radius,
-    int *brush_opacity,
-    uint32_t *brush_color_rgb,
-    uint32_t *brush_color,
-    BrushShape *brush_shape,
-    Tool *tool,
-    Snapshot *undo_stack,
-    Snapshot *redo_stack,
-    int *undo_count,
-    int *redo_count,
-    int *shaping,
-    int *shape_start_x,
-    int *shape_start_y,
-    int *preview_active,
-    int *needs_composite,
-    uint32_t *preview_pixels,
-    Canvas *preview_canvas
-) {
-    if (!running || !drawing || !last_x || !last_y || !brush_radius || !brush_opacity || !brush_color_rgb ||
-        !brush_color || !brush_shape || !tool || !undo_stack || !redo_stack || !undo_count || !redo_count ||
-        !shaping || !shape_start_x || !shape_start_y || !preview_active || !needs_composite || !preview_canvas) {
+static void initialize_app_runtime(AppRuntime *runtime) {
+    if (!runtime) {
         return;
     }
 
-    *running = 1;
-    *drawing = 0;
-    *last_x = 0;
-    *last_y = 0;
-    *brush_radius = 6;
-    *brush_opacity = 100;
-    *brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
-    *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
-    *brush_shape = BRUSH_SHAPE_ROUND;
-    *tool = TOOL_BRUSH;
-    *undo_count = 0;
-    *redo_count = 0;
-    *shaping = 0;
-    *shape_start_x = 0;
-    *shape_start_y = 0;
-    *preview_active = 0;
-    *needs_composite = 0;
-    memset(undo_stack, 0, sizeof(Snapshot) * MAX_HISTORY);
-    memset(redo_stack, 0, sizeof(Snapshot) * MAX_HISTORY);
-    preview_canvas->width = CANVAS_WIDTH;
-    preview_canvas->height = CANVAS_HEIGHT;
-    preview_canvas->pixels = preview_pixels;
+    runtime->running = 1;
+    runtime->drawing = 0;
+    runtime->last_x = 0;
+    runtime->last_y = 0;
+    runtime->brush_radius = 6;
+    runtime->brush_opacity = 100;
+    runtime->brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
+    runtime->brush_color = compose_brush_color(runtime->brush_color_rgb, runtime->brush_opacity);
+    runtime->brush_shape = BRUSH_SHAPE_ROUND;
+    runtime->tool = TOOL_BRUSH;
+    runtime->undo_count = 0;
+    runtime->redo_count = 0;
+    runtime->shaping = 0;
+    runtime->shape_start_x = 0;
+    runtime->shape_start_y = 0;
+    runtime->preview_active = 0;
+    runtime->needs_composite = 0;
+    memset(runtime->undo_stack, 0, sizeof(runtime->undo_stack));
+    memset(runtime->redo_stack, 0, sizeof(runtime->redo_stack));
+    runtime->preview_canvas.width = CANVAS_WIDTH;
+    runtime->preview_canvas.height = CANVAS_HEIGHT;
+    runtime->preview_canvas.pixels = runtime->preview_pixels;
 }
 
 static int initialize_app(
@@ -2175,91 +2176,50 @@ int app_run(const char *input_path) {
     SDL_Texture *texture = NULL;
     LayerStack layers = {0};
     Canvas composite = {0};
+    AppRuntime runtime = {0};
 
     if (!initialize_app(&window, &renderer, &texture, &layers, &composite, input_path)) {
         return 1;
     }
 
-    int running = 0;
-    int drawing = 0;
-    int last_x = 0;
-    int last_y = 0;
-    int brush_radius = 0;
-    int brush_opacity = 0;
-    uint32_t brush_color_rgb = 0;
-    uint32_t brush_color = 0;
-    BrushShape brush_shape = BRUSH_SHAPE_ROUND;
-    Tool tool = TOOL_BRUSH;
-    Snapshot undo_stack[MAX_HISTORY];
-    Snapshot redo_stack[MAX_HISTORY];
-    int undo_count = 0;
-    int redo_count = 0;
-    int shaping = 0;
-    int shape_start_x = 0;
-    int shape_start_y = 0;
-    int preview_active = 0;
-    int needs_composite = 0;
-    uint32_t *shape_base_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
-    uint32_t *preview_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
-    Canvas preview_canvas = {0};
-    initialize_app_runtime(
-        &running,
-        &drawing,
-        &last_x,
-        &last_y,
-        &brush_radius,
-        &brush_opacity,
-        &brush_color_rgb,
-        &brush_color,
-        &brush_shape,
-        &tool,
-        undo_stack,
-        redo_stack,
-        &undo_count,
-        &redo_count,
-        &shaping,
-        &shape_start_x,
-        &shape_start_y,
-        &preview_active,
-        &needs_composite,
-        preview_pixels,
-        &preview_canvas
-    );
-    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+    runtime.shape_base_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
+    runtime.preview_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
+    initialize_app_runtime(&runtime);
+    refresh_app_title(window, &layers, runtime.tool, runtime.brush_shape, runtime.brush_radius, runtime.brush_color, runtime.brush_opacity);
 
-    while (running) {
+    while (runtime.running) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             switch (e.type) {
             case SDL_QUIT:
-                running = 0;
+                runtime.running = 0;
                 break;
             case SDL_MOUSEBUTTONDOWN:
                 handle_mouse_button_down(
                     e.button,
                     &layers,
                     &composite,
-                    &preview_canvas,
-                    &drawing,
-                    &last_x,
-                    &last_y,
-                    &tool,
-                    brush_shape,
-                    brush_radius,
-                    &brush_color,
-                    &brush_color_rgb,
-                    &brush_opacity,
-                    undo_stack,
-                    &undo_count,
-                    redo_stack,
-                    &redo_count,
-                    &shaping,
-                    &shape_start_x,
-                    &shape_start_y,
-                    shape_base_pixels,
-                    &preview_active,
-                    &preview_canvas,
-                    &needs_composite,
+                    &runtime.preview_canvas,
+                    &runtime.drawing,
+                    &runtime.last_x,
+                    &runtime.last_y,
+                    &runtime.tool,
+                    runtime.brush_shape,
+                    runtime.brush_radius,
+                    &runtime.brush_color,
+                    &runtime.brush_color_rgb,
+                    &runtime.brush_opacity,
+                    runtime.undo_stack,
+                    &runtime.undo_count,
+                    runtime.redo_stack,
+                    &runtime.redo_count,
+                    &runtime.shaping,
+                    &runtime.shape_start_x,
+                    &runtime.shape_start_y,
+                    runtime.shape_base_pixels,
+                    &runtime.preview_active,
+                    &runtime.preview_canvas,
+                    &runtime.needs_composite,
                     window
                 );
                 break;
@@ -2267,41 +2227,41 @@ int app_run(const char *input_path) {
                 handle_mouse_button_up(
                     e.button,
                     &layers,
-                    &drawing,
-                    &shaping,
-                    &preview_active,
-                    shape_start_x,
-                    shape_start_y,
-                    tool,
-                    brush_radius,
-                    brush_color,
-                    undo_stack,
-                    &undo_count,
-                    redo_stack,
-                    &redo_count,
-                    &needs_composite
+                    &runtime.drawing,
+                    &runtime.shaping,
+                    &runtime.preview_active,
+                    runtime.shape_start_x,
+                    runtime.shape_start_y,
+                    runtime.tool,
+                    runtime.brush_radius,
+                    runtime.brush_color,
+                    runtime.undo_stack,
+                    &runtime.undo_count,
+                    runtime.redo_stack,
+                    &runtime.redo_count,
+                    &runtime.needs_composite
                 );
                 break;
             case SDL_MOUSEMOTION:
                 handle_canvas_motion(
                     e.motion.x,
                     e.motion.y,
-                    &drawing,
-                    &last_x,
-                    &last_y,
-                    &shaping,
-                    shape_start_x,
-                    shape_start_y,
+                    &runtime.drawing,
+                    &runtime.last_x,
+                    &runtime.last_y,
+                    &runtime.shaping,
+                    runtime.shape_start_x,
+                    runtime.shape_start_y,
                     &layers,
-                    tool,
-                    brush_shape,
-                    brush_radius,
-                    brush_color,
-                    shape_base_pixels,
-                    preview_pixels,
-                    &preview_canvas,
-                    &preview_active,
-                    &needs_composite
+                    runtime.tool,
+                    runtime.brush_shape,
+                    runtime.brush_radius,
+                    runtime.brush_color,
+                    runtime.shape_base_pixels,
+                    runtime.preview_pixels,
+                    &runtime.preview_canvas,
+                    &runtime.preview_active,
+                    &runtime.needs_composite
                 );
                 break;
             case SDL_KEYDOWN:
@@ -2309,22 +2269,22 @@ int app_run(const char *input_path) {
                     e.key.keysym.sym,
                     &layers,
                     &composite,
-                    &preview_canvas,
-                    preview_active,
-                    undo_stack,
-                    &undo_count,
-                    redo_stack,
-                    &redo_count,
-                    &tool,
-                    &brush_shape,
-                    &brush_radius,
-                    &brush_color,
-                    &brush_color_rgb,
-                    &brush_opacity,
-                    &shaping,
-                    &preview_active,
-                    &running,
-                    &needs_composite,
+                    &runtime.preview_canvas,
+                    runtime.preview_active,
+                    runtime.undo_stack,
+                    &runtime.undo_count,
+                    runtime.redo_stack,
+                    &runtime.redo_count,
+                    &runtime.tool,
+                    &runtime.brush_shape,
+                    &runtime.brush_radius,
+                    &runtime.brush_color,
+                    &runtime.brush_color_rgb,
+                    &runtime.brush_opacity,
+                    &runtime.shaping,
+                    &runtime.preview_active,
+                    &runtime.running,
+                    &runtime.needs_composite,
                     window
                 );
                 break;
@@ -2338,22 +2298,22 @@ int app_run(const char *input_path) {
             texture,
             &layers,
             &composite,
-            &preview_canvas,
-            preview_active,
-            &needs_composite
+            &runtime.preview_canvas,
+            runtime.preview_active,
+            &runtime.needs_composite
         );
         SDL_Delay(16);
     }
 
     shutdown_app(
-        shape_base_pixels,
-        preview_pixels,
+        runtime.shape_base_pixels,
+        runtime.preview_pixels,
         &composite,
         &layers,
-        undo_stack,
-        &undo_count,
-        redo_stack,
-        &redo_count,
+        runtime.undo_stack,
+        &runtime.undo_count,
+        runtime.redo_stack,
+        &runtime.redo_count,
         texture,
         renderer,
         window
