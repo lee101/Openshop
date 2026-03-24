@@ -565,6 +565,100 @@ static int expect_handle_left_canvas_release(
     return 1;
 }
 
+static int expect_handle_canvas_motion(
+    const char *label,
+    LayerStack *layers,
+    int x,
+    int y,
+    int *drawing,
+    int *last_x,
+    int *last_y,
+    int *shaping,
+    int shape_start_x,
+    int shape_start_y,
+    int shift,
+    Tool tool,
+    BrushShape brush_shape,
+    int brush_radius,
+    uint32_t brush_color,
+    uint32_t *shape_base_pixels,
+    uint32_t *preview_pixels,
+    Canvas *preview_canvas,
+    int *preview_active,
+    int *needs_composite,
+    size_t pixel_count,
+    AppCanvasClickResult want_result,
+    int want_last_x,
+    int want_last_y,
+    int want_preview_active,
+    int want_needs_composite,
+    size_t changed_index,
+    uint32_t want_changed,
+    const uint32_t *want_preview_pixels,
+    size_t want_preview_pixel_count
+) {
+    AppCanvasClickResult got = app_handle_canvas_motion(
+        x,
+        y,
+        drawing,
+        last_x,
+        last_y,
+        shaping,
+        shape_start_x,
+        shape_start_y,
+        shift,
+        layers,
+        tool,
+        brush_shape,
+        brush_radius,
+        brush_color,
+        shape_base_pixels,
+        preview_pixels,
+        preview_canvas,
+        preview_active,
+        needs_composite,
+        pixel_count
+    );
+    size_t i;
+
+    if (got != want_result) {
+        fprintf(stderr, "%s result mismatch: got %d want %d\n", label, got, want_result);
+        return 0;
+    }
+    if (last_x && *last_x != want_last_x) {
+        fprintf(stderr, "%s last_x mismatch: got %d want %d\n", label, *last_x, want_last_x);
+        return 0;
+    }
+    if (last_y && *last_y != want_last_y) {
+        fprintf(stderr, "%s last_y mismatch: got %d want %d\n", label, *last_y, want_last_y);
+        return 0;
+    }
+    if (preview_active && *preview_active != want_preview_active) {
+        fprintf(stderr, "%s preview_active mismatch: got %d want %d\n", label, *preview_active, want_preview_active);
+        return 0;
+    }
+    if (needs_composite && *needs_composite != want_needs_composite) {
+        fprintf(stderr, "%s needs_composite mismatch: got %d want %d\n", label, *needs_composite, want_needs_composite);
+        return 0;
+    }
+    if (layers && changed_index < (size_t)layers->width * (size_t)layers->height) {
+        uint32_t got_pixel = layers->layers[layers->active_layer].canvas.pixels[changed_index];
+        if (got_pixel != want_changed) {
+            fprintf(stderr, "%s pixel mismatch: got 0x%08X want 0x%08X\n", label, got_pixel, want_changed);
+            return 0;
+        }
+    }
+    if (preview_pixels && want_preview_pixels) {
+        for (i = 0; i < want_preview_pixel_count; i++) {
+            if (preview_pixels[i] != want_preview_pixels[i]) {
+                fprintf(stderr, "%s preview_pixels[%zu] mismatch: got 0x%08X want 0x%08X\n", label, i, preview_pixels[i], want_preview_pixels[i]);
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
 typedef struct {
     const char *label;
     int width;
@@ -2713,6 +2807,140 @@ int main(void) {
         for (i = 0; i < sizeof(release_cases) / sizeof(release_cases[0]); i++) {
             ok = ok && run_handle_left_canvas_release_case(&release_cases[i]);
         }
+    }
+    {
+        LayerStack stack;
+        Canvas canvas;
+        uint32_t pixels[9];
+        uint32_t preview_pixels_local[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
+        uint32_t shape_base_local[4] = {0x01010101u, 0x02020202u, 0x03030303u, 0x04040404u};
+        Canvas preview_canvas_local = {2, 2, preview_pixels_local};
+        int drawing_state;
+        int local_last_x;
+        int local_last_y;
+        int local_shaping;
+        int local_preview_active;
+        int local_needs_composite;
+
+        init_single_layer_stack(&stack, &canvas, pixels, 5, 5, 0x00000000u, 0);
+        drawing_state = 1;
+        local_last_x = 1;
+        local_last_y = 2;
+        local_shaping = 0;
+        local_preview_active = 0;
+        local_needs_composite = 0;
+        ok = ok && expect_handle_canvas_motion(
+            "handle_canvas_motion_direct_stroke",
+            &stack,
+            3,
+            2,
+            &drawing_state,
+            &local_last_x,
+            &local_last_y,
+            &local_shaping,
+            0,
+            0,
+            0,
+            TOOL_BRUSH,
+            BRUSH_SHAPE_ROUND,
+            1,
+            0xFF556677u,
+            shape_base_local,
+            preview_pixels_local,
+            &preview_canvas_local,
+            &local_preview_active,
+            &local_needs_composite,
+            4,
+            APP_CANVAS_CLICK_DIRECT_STROKE,
+            3,
+            2,
+            0,
+            1,
+            99,
+            0u,
+            preview_pixels_local,
+            4
+        );
+
+        memcpy(preview_pixels_local, (uint32_t[]){0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu}, sizeof(preview_pixels_local));
+        drawing_state = 0;
+        local_last_x = 8;
+        local_last_y = 9;
+        local_shaping = 1;
+        local_preview_active = 0;
+        local_needs_composite = 0;
+        ok = ok && expect_handle_canvas_motion(
+            "handle_canvas_motion_shape_preview",
+            &stack,
+            1,
+            0,
+            &drawing_state,
+            &local_last_x,
+            &local_last_y,
+            &local_shaping,
+            0,
+            0,
+            0,
+            TOOL_LINE,
+            BRUSH_SHAPE_ROUND,
+            0,
+            0xFFABCDEFu,
+            shape_base_local,
+            preview_pixels_local,
+            &preview_canvas_local,
+            &local_preview_active,
+            &local_needs_composite,
+            4,
+            APP_CANVAS_CLICK_SHAPE_PREVIEW,
+            8,
+            9,
+            1,
+            0,
+            0,
+            0x00000000u,
+            shape_base_local,
+            4
+        );
+
+        memcpy(preview_pixels_local, (uint32_t[]){0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu}, sizeof(preview_pixels_local));
+        drawing_state = 0;
+        local_last_x = 6;
+        local_last_y = 7;
+        local_shaping = 0;
+        local_preview_active = 0;
+        local_needs_composite = 0;
+        ok = ok && expect_handle_canvas_motion(
+            "handle_canvas_motion_noop_without_mode",
+            &stack,
+            1,
+            1,
+            &drawing_state,
+            &local_last_x,
+            &local_last_y,
+            &local_shaping,
+            0,
+            0,
+            0,
+            TOOL_RECT,
+            BRUSH_SHAPE_ROUND,
+            1,
+            0xFFABCDEFu,
+            shape_base_local,
+            preview_pixels_local,
+            &preview_canvas_local,
+            &local_preview_active,
+            &local_needs_composite,
+            4,
+            APP_CANVAS_CLICK_NOOP,
+            6,
+            7,
+            0,
+            0,
+            0,
+            0x00000000u,
+            (uint32_t[]){0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu},
+            4
+        );
     }
     {
         ContinueDirectStrokeCase continue_cases[] = {

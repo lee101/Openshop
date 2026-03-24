@@ -2,6 +2,7 @@
 
 #include "app_preview.h"
 #include "app_sampled_color.h"
+#include "app_shape.h"
 
 AppCanvasClickResult app_handle_left_canvas_press(
     LayerStack *layers,
@@ -142,4 +143,72 @@ AppCanvasClickResult app_handle_left_canvas_release(
         redo_count,
         needs_composite
     ) ? APP_CANVAS_CLICK_SHAPE_FINALIZED : APP_CANVAS_CLICK_NOOP;
+}
+
+AppCanvasClickResult app_handle_canvas_motion(
+    int x,
+    int y,
+    int *drawing,
+    int *last_x,
+    int *last_y,
+    int *shaping,
+    int shape_start_x,
+    int shape_start_y,
+    int shift,
+    LayerStack *layers,
+    Tool tool,
+    BrushShape brush_shape,
+    int brush_radius,
+    uint32_t brush_color,
+    uint32_t *shape_base_pixels,
+    uint32_t *preview_pixels,
+    Canvas *preview_canvas,
+    int *preview_active,
+    int *needs_composite,
+    size_t pixel_count
+) {
+    int end_x = x;
+    int end_y = y;
+
+    if (!drawing || !last_x || !last_y || !shaping || !layers || !preview_active) {
+        return APP_CANVAS_CLICK_NOOP;
+    }
+
+    if (*drawing) {
+        return app_continue_direct_stroke(
+            layers,
+            last_x,
+            last_y,
+            x,
+            y,
+            tool,
+            brush_shape,
+            brush_radius,
+            brush_color,
+            needs_composite
+        ) ? APP_CANVAS_CLICK_DIRECT_STROKE : APP_CANVAS_CLICK_NOOP;
+    }
+
+    if (!*shaping) {
+        return APP_CANVAS_CLICK_NOOP;
+    }
+    if (!app_prepare_shape_preview_motion(
+        preview_canvas,
+        preview_pixels,
+        shape_base_pixels,
+        pixel_count,
+        preview_active,
+        tool,
+        shape_start_x,
+        shape_start_y,
+        x,
+        y,
+        shift,
+        &end_x,
+        &end_y
+    )) {
+        return APP_CANVAS_CLICK_NOOP;
+    }
+    app_draw_shape(preview_canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
+    return APP_CANVAS_CLICK_SHAPE_PREVIEW;
 }

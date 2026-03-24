@@ -1135,51 +1135,31 @@ static void handle_canvas_motion(
     int *preview_active,
     int *needs_composite
 ) {
-    if (!drawing || !last_x || !last_y || !shaping || !layers || !preview_active) {
-        return;
-    }
+    int shift = 0;
 
-    if (*drawing) {
-        app_continue_direct_stroke(
-            layers,
-            last_x,
-            last_y,
-            x,
-            y,
-            tool,
-            brush_shape,
-            brush_radius,
-            brush_color,
-            needs_composite
-        );
-        return;
-    }
-
-    if (*shaping) {
-        int shift = 0;
-        int end_x = x;
-        int end_y = y;
-
-        sdl_shortcut_modifiers(NULL, NULL, &shift);
-        if (!app_prepare_shape_preview_motion(
-            preview_canvas,
-            preview_pixels,
-            shape_base_pixels,
-            (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT,
-            preview_active,
-            tool,
-            shape_start_x,
-            shape_start_y,
-            x,
-            y,
-            shift,
-            &end_x,
-            &end_y
-        )) {
-            return;
-        }
-        app_draw_shape(preview_canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
-    }
+    sdl_shortcut_modifiers(NULL, NULL, &shift);
+    app_handle_canvas_motion(
+        x,
+        y,
+        drawing,
+        last_x,
+        last_y,
+        shaping,
+        shape_start_x,
+        shape_start_y,
+        shift,
+        layers,
+        tool,
+        brush_shape,
+        brush_radius,
+        brush_color,
+        shape_base_pixels,
+        preview_pixels,
+        preview_canvas,
+        preview_active,
+        needs_composite,
+        (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT
+    );
 }
 
 static void handle_mouse_button_down(

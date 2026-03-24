@@ -6,6 +6,7 @@
 #include "history_state.h"
 #include "layers.h"
 
+#include <stddef.h>
 #include <stdint.h>
 
 typedef enum {
@@ -74,6 +75,29 @@ AppCanvasClickResult app_handle_left_canvas_release(
     Snapshot *redo_stack,
     int *redo_count,
     int *needs_composite
+);
+
+AppCanvasClickResult app_handle_canvas_motion(
+    int x,
+    int y,
+    int *drawing,
+    int *last_x,
+    int *last_y,
+    int *shaping,
+    int shape_start_x,
+    int shape_start_y,
+    int shift,
+    LayerStack *layers,
+    Tool tool,
+    BrushShape brush_shape,
+    int brush_radius,
+    uint32_t brush_color,
+    uint32_t *shape_base_pixels,
+    uint32_t *preview_pixels,
+    Canvas *preview_canvas,
+    int *preview_active,
+    int *needs_composite,
+    size_t pixel_count
 );
 
 #endif
