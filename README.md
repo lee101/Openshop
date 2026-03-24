@@ -85,7 +85,7 @@ make test-sdl
 - `Ctrl+Shift+M`: flatten visible layers
 - `Ctrl+S`: save the composited image to `output.bmp`
 - `Ctrl+O`: load `input.bmp` into the active layer
-- `Ctrl+Z` / `Ctrl+Y`: undo / redo (layer-aware)
+- `Ctrl+Z` / `Ctrl+Y`: undo / redo (layer-aware, 20 history states)
 - `Esc`: quit
 
 ## Notes
@@ -93,6 +93,7 @@ make test-sdl
 - Layer stack starts with a white background layer; new layers are transparent.
 - Maximum of 16 layers are supported; `1`-`8` target slots or visible ranks 1-8, while `F1`-`F8` target 9-16.
 - The window title shows both the absolute active layer slot and its visible rank; hidden active layers display as `hidden N/M visible`.
+- Undo/redo retains up to 20 layer-aware history states; new edits clear the redo stack.
 - Visible-only shortcuts print a status message when the active layer is hidden or there is no other visible layer/slot to target.
 - Locked layers stay visible in the stack but reject paint, fill, clear, transform, load, merge, flatten, stamp, and delete operations.
 - Solo preview still renders the active layer even if that layer's normal visibility is off.
