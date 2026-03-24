@@ -257,6 +257,68 @@ static int expect_begin_direct_stroke(
     return ok;
 }
 
+static int expect_continue_direct_stroke(
+    const char *label,
+    LayerStack *stack,
+    int initial_last_x,
+    int initial_last_y,
+    int x,
+    int y,
+    Tool tool,
+    BrushShape shape,
+    int radius,
+    uint32_t brush_color,
+    int initial_needs_composite,
+    int want_continued,
+    int want_last_x,
+    int want_last_y,
+    int want_needs_composite,
+    size_t changed_index,
+    uint32_t want_changed
+) {
+    int last_x = initial_last_x;
+    int last_y = initial_last_y;
+    int needs_composite = initial_needs_composite;
+    int continued = app_continue_direct_stroke(
+        stack,
+        &last_x,
+        &last_y,
+        x,
+        y,
+        tool,
+        shape,
+        radius,
+        brush_color,
+        &needs_composite
+    );
+
+    if (continued != want_continued) {
+        fprintf(stderr, "%s continue mismatch: got %d want %d\n", label, continued, want_continued);
+        return 0;
+    }
+    if (last_x != want_last_x || last_y != want_last_y) {
+        fprintf(stderr, "%s last mismatch: got {%d,%d} want {%d,%d}\n", label, last_x, last_y, want_last_x, want_last_y);
+        return 0;
+    }
+    if (needs_composite != want_needs_composite) {
+        fprintf(stderr, "%s needs_composite mismatch: got %d want %d\n", label, needs_composite, want_needs_composite);
+        return 0;
+    }
+    if (stack && stack->layer_count > 0 && stack->layers[stack->active_layer].canvas.pixels) {
+        if (stack->layers[stack->active_layer].canvas.pixels[changed_index] != want_changed) {
+            fprintf(
+                stderr,
+                "%s pixel mismatch: got 0x%08X want 0x%08X\n",
+                label,
+                stack->layers[stack->active_layer].canvas.pixels[changed_index],
+                want_changed
+            );
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static int expect_canvas_action(const char *label, int key, CanvasShortcutAction want) {
     CanvasShortcutAction got = canvas_shortcut_action(key);
     if (got != want) {
@@ -1246,6 +1308,123 @@ int main(void) {
             4,
             0xFF010203u,
             4,
+            0xFF010203u
+        );
+    }
+    {
+        LayerStack stack = {0};
+        uint32_t pixels[25];
+        size_t i;
+
+        stack.width = 5;
+        stack.height = 5;
+        stack.layer_count = 1;
+        stack.active_layer = 0;
+        stack.solo_index = -1;
+        stack.layers[0].canvas.width = 5;
+        stack.layers[0].canvas.height = 5;
+        stack.layers[0].canvas.pixels = pixels;
+        stack.layers[0].visible = 1;
+        stack.layers[0].locked = 0;
+        stack.layers[0].opacity_percent = 100;
+        for (i = 0; i < sizeof(pixels) / sizeof(pixels[0]); i++) {
+            pixels[i] = 0x00000000u;
+        }
+        ok = ok && expect_continue_direct_stroke(
+            "continue_direct_stroke_brush",
+            &stack,
+            1,
+            2,
+            3,
+            2,
+            TOOL_BRUSH,
+            BRUSH_SHAPE_ROUND,
+            1,
+            0xFF556677u,
+            0,
+            1,
+            3,
+            2,
+            1,
+            12,
+            0xFF556677u
+        );
+    }
+    {
+        LayerStack stack = {0};
+        uint32_t pixels[25];
+        size_t i;
+
+        stack.width = 5;
+        stack.height = 5;
+        stack.layer_count = 1;
+        stack.active_layer = 0;
+        stack.solo_index = -1;
+        stack.layers[0].canvas.width = 5;
+        stack.layers[0].canvas.height = 5;
+        stack.layers[0].canvas.pixels = pixels;
+        stack.layers[0].visible = 1;
+        stack.layers[0].locked = 0;
+        stack.layers[0].opacity_percent = 100;
+        for (i = 0; i < sizeof(pixels) / sizeof(pixels[0]); i++) {
+            pixels[i] = 0xFF112233u;
+        }
+        ok = ok && expect_continue_direct_stroke(
+            "continue_direct_stroke_eraser",
+            &stack,
+            1,
+            2,
+            3,
+            2,
+            TOOL_ERASER,
+            BRUSH_SHAPE_ROUND,
+            1,
+            0xFF556677u,
+            0,
+            1,
+            3,
+            2,
+            1,
+            12,
+            0xFFFFFFFFu
+        );
+    }
+    {
+        LayerStack stack = {0};
+        uint32_t pixels[25];
+        size_t i;
+
+        stack.width = 5;
+        stack.height = 5;
+        stack.layer_count = 1;
+        stack.active_layer = 0;
+        stack.solo_index = -1;
+        stack.layers[0].canvas.width = 5;
+        stack.layers[0].canvas.height = 5;
+        stack.layers[0].canvas.pixels = pixels;
+        stack.layers[0].visible = 1;
+        stack.layers[0].locked = 1;
+        stack.layers[0].opacity_percent = 100;
+        for (i = 0; i < sizeof(pixels) / sizeof(pixels[0]); i++) {
+            pixels[i] = 0xFF010203u;
+        }
+        ok = ok && expect_continue_direct_stroke(
+            "continue_direct_stroke_locked_noop",
+            &stack,
+            1,
+            2,
+            3,
+            2,
+            TOOL_BRUSH,
+            BRUSH_SHAPE_ROUND,
+            1,
+            0xFF556677u,
+            0,
+            0,
+            1,
+            2,
+            0,
+            12,
             0xFF010203u
         );
     }

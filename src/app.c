@@ -1171,25 +1171,18 @@ static void handle_canvas_motion(
     }
 
     if (*drawing) {
-        Layer *active = NULL;
-
-        if (x < 0 || y < 0 || x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT) {
-            return;
-        }
-
-        active = app_active_editable_layer(layers);
-        if (active) {
-            if (app_tool_stroke_mark(tool) == APP_STROKE_MARK_ERASE) {
-                app_erase_brush_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, app_active_layer_clear_color(layers->active_layer), brush_shape);
-            } else {
-                app_draw_brush_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, brush_color, brush_shape);
-            }
-            *last_x = x;
-            *last_y = y;
-            if (needs_composite) {
-                *needs_composite = 1;
-            }
-        }
+        app_continue_direct_stroke(
+            layers,
+            last_x,
+            last_y,
+            x,
+            y,
+            tool,
+            brush_shape,
+            brush_radius,
+            brush_color,
+            needs_composite
+        );
         return;
     }
 

@@ -96,6 +96,45 @@ int app_begin_direct_stroke(
     return 1;
 }
 
+int app_continue_direct_stroke(
+    LayerStack *layers,
+    int *last_x,
+    int *last_y,
+    int x,
+    int y,
+    Tool tool,
+    BrushShape shape,
+    int radius,
+    uint32_t brush_color,
+    int *needs_composite
+) {
+    Layer *active = NULL;
+
+    if (!layers || !last_x || !last_y) {
+        return 0;
+    }
+
+    active = app_active_editable_layer(layers);
+    if (!active) {
+        return 0;
+    }
+    if (x < 0 || y < 0 || x >= active->canvas.width || y >= active->canvas.height) {
+        return 0;
+    }
+
+    if (app_tool_stroke_mark(tool) == APP_STROKE_MARK_ERASE) {
+        app_erase_brush_line(&active->canvas, *last_x, *last_y, x, y, radius, app_active_layer_clear_color(layers->active_layer), shape);
+    } else {
+        app_draw_brush_line(&active->canvas, *last_x, *last_y, x, y, radius, brush_color, shape);
+    }
+    *last_x = x;
+    *last_y = y;
+    if (needs_composite) {
+        *needs_composite = 1;
+    }
+    return 1;
+}
+
 void app_stamp_brush(Canvas *canvas, int cx, int cy, int radius, uint32_t color, BrushShape shape) {
     if (!canvas || !canvas->pixels || radius <= 0) {
         return;

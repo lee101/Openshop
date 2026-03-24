@@ -48,6 +48,18 @@ int app_begin_direct_stroke(
     int *drawing,
     int *needs_composite
 );
+int app_continue_direct_stroke(
+    LayerStack *layers,
+    int *last_x,
+    int *last_y,
+    int x,
+    int y,
+    Tool tool,
+    BrushShape shape,
+    int radius,
+    uint32_t brush_color,
+    int *needs_composite
+);
 void app_stamp_brush(Canvas *canvas, int cx, int cy, int radius, uint32_t color, BrushShape shape);
 void app_erase_brush(Canvas *canvas, int cx, int cy, int radius, uint32_t clear_color, BrushShape shape);
 void app_draw_brush_line(Canvas *canvas, int x0, int y0, int x1, int y1, int radius, uint32_t color, BrushShape shape);
