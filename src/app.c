@@ -750,24 +750,24 @@ static int handle_mouse_position_hotkey(SDL_Keycode key,
     }
 }
 
-static int handle_general_key_hotkey(SDL_Keycode key,
-                                     const ActionState *action_state,
-                                     const Canvas *sample,
-                                     uint32_t *brush_color_rgb, uint32_t *brush_color,
-                                     int *brush_opacity, int *brush_radius,
-                                     BrushShape *brush_shape, Tool *tool,
-                                     int *needs_composite) {
+static void handle_general_key_hotkey(SDL_Keycode key,
+                                      const ActionState *action_state,
+                                      const Canvas *sample,
+                                      uint32_t *brush_color_rgb, uint32_t *brush_color,
+                                      int *brush_opacity, int *brush_radius,
+                                      BrushShape *brush_shape, Tool *tool,
+                                      int *needs_composite) {
     ActiveLayerActionResult active_edit_result = ACTIVE_LAYER_ACTION_FAILED;
     AppMousePositionAction mouse_position_action = APP_MOUSE_POSITION_NONE;
     int mouse_position_changed = 0;
 
     if (!action_state) {
-        return 0;
+        return;
     }
 
     if (handle_brush_state_hotkey(key, brush_color_rgb, brush_color, brush_opacity, brush_radius, brush_shape, tool)) {
         update_title_state(action_state->title_state);
-        return 1;
+        return;
     }
 
     active_edit_result = handle_active_edit_hotkey(key, action_state->layers, action_state->undo_stack,
@@ -778,7 +778,7 @@ static int handle_general_key_hotkey(SDL_Keycode key,
             *needs_composite = 1;
         }
         update_title_state(action_state->title_state);
-        return 1;
+        return;
     }
 
     if (handle_mouse_position_hotkey(key, action_state->layers, action_state->undo_stack,
@@ -790,11 +790,10 @@ static int handle_general_key_hotkey(SDL_Keycode key,
             *needs_composite = 1;
         }
         update_title_state(action_state->title_state);
-        return 1;
+        return;
     }
 
     update_title_state(action_state->title_state);
-    return 0;
 }
 
 static int handle_selector_hotkey(SDL_Keycode key,
