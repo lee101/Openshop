@@ -327,6 +327,15 @@ static void update_title_state(const TitleState *title_state) {
                         *title_state->brush_opacity);
 }
 
+static void refresh_title_after_handled_change(const TitleState *title_state,
+                                               int *needs_composite,
+                                               int changed) {
+    if (changed && needs_composite) {
+        *needs_composite = 1;
+    }
+    update_title_state(title_state);
+}
+
 typedef int (*SelectorHotkeyFn)(LayerStack *layers, int arg);
 
 typedef struct {
@@ -880,10 +889,8 @@ static int handle_layer_opacity_hotkey(SDL_Keycode key,
         return 0;
     }
 
-    if (result == ACTIVE_LAYER_ACTION_CHANGED) {
-        *action_state->needs_composite = 1;
-    }
-    update_title_state(action_state->title_state);
+    refresh_title_after_handled_change(action_state->title_state, action_state->needs_composite,
+                                       result == ACTIVE_LAYER_ACTION_CHANGED);
 
     return 1;
 }
@@ -963,12 +970,7 @@ static int handle_layer_navigation_hotkey(SDL_Keycode key,
         return 0;
     }
 
-    if (changed) {
-        update_title_state(action_state->title_state);
-    }
-    if (!changed) {
-        update_title_state(action_state->title_state);
-    }
+    refresh_title_after_handled_change(action_state->title_state, NULL, changed);
     return 1;
 }
 
@@ -1242,10 +1244,8 @@ static int handle_translation_hotkey(SDL_Keycode key,
     result = active_layer_apply_translation_with_result(action_state->layers, action_state->undo_stack,
                                                         action_state->undo_count, action_state->redo_stack,
                                                         action_state->redo_count, dx, dy, COLOR_BG, MAX_HISTORY);
-    if (result == ACTIVE_LAYER_ACTION_CHANGED) {
-        *action_state->needs_composite = 1;
-    }
-    update_title_state(action_state->title_state);
+    refresh_title_after_handled_change(action_state->title_state, action_state->needs_composite,
+                                       result == ACTIVE_LAYER_ACTION_CHANGED);
 
     return 1;
 }
@@ -1275,13 +1275,7 @@ static int handle_history_hotkey(SDL_Keycode key,
         return 0;
     }
 
-    if (changed) {
-        update_title_state(action_state->title_state);
-        *action_state->needs_composite = 1;
-    }
-    if (!changed) {
-        update_title_state(action_state->title_state);
-    }
+    refresh_title_after_handled_change(action_state->title_state, action_state->needs_composite, changed);
 
     return 1;
 }
