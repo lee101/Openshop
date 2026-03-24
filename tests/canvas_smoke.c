@@ -836,6 +836,17 @@ static int test_active_layer_ops_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    canvas_clear(&stack.layers[0].canvas, 0x00000000);
+    if (active_layer_try_begin_brush_stroke(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                            TOOL_BRUSH, 2, 2, 1, 0xFF556677, BRUSH_SHAPE_SQUARE,
+                                            0xFFFFFFFF, 0) ||
+        !expect_pixel_eq("active_stroke_brush_history_guard", canvas_get_pixel(&stack.layers[0].canvas, 2, 2), 0x00000000)) {
+        fprintf(stderr, "active_layer_try_begin_brush_stroke history guard failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     canvas_set_pixel_raw(&stack.layers[0].canvas, 2, 2, 0xFFFFFFFF);
     if (!active_layer_try_begin_brush_stroke(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
@@ -854,6 +865,22 @@ static int test_active_layer_ops_helpers(void) {
                                        TOOL_FILLED_RECT, 1, 1, 2, 2, 1, 0xFF998877, 4) ||
         !expect_pixel_eq("active_commit_shape", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFF998877)) {
         fprintf(stderr, "active_layer_try_commit_shape failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (active_layer_try_adjust_opacity(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 10, 0) ||
+        stack.layers[0].opacity_percent != 65) {
+        fprintf(stderr, "active_layer_try_adjust_opacity history guard failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (active_layer_try_nudge_opacity(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 5, 0) ||
+        stack.layers[0].opacity_percent != 65) {
+        fprintf(stderr, "active_layer_try_nudge_opacity history guard failed\n");
         snapshot_stack_clear(undo_stack, &undo_count);
         snapshot_stack_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
