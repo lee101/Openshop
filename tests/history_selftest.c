@@ -206,6 +206,19 @@ int main(void) {
             return 1;
         }
 
+        temp_stack.layers[1].canvas.pixels[0] = 0;
+        canvas_set_pixel(&temp_stack.layers[1].canvas, 1, 0, 0xFF556677);
+        if (!app_apply_canvas_translation(&temp_stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count, -1, 0) ||
+            !expect_int(temp_undo_count, 2, "canvas_translation_negative_undo_count") ||
+            !expect_pixel(&temp_stack, 1, 0, 0, 0xFF556677, "canvas_translation_negative_shifted_pixel") ||
+            !expect_pixel(&temp_stack, 1, 1, 0, 0x00000000, "canvas_translation_negative_fill_pixel")) {
+            fprintf(stderr, "canvas translation negative helper failed\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            layer_stack_free(&temp_stack);
+            return 1;
+        }
+
         layer_stack_free(&temp_stack);
     }
 
