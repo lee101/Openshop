@@ -6,6 +6,7 @@
 #include "../src/geometry_helpers.h"
 #include "../src/layer_edit_state.h"
 #include "../src/layers.h"
+#include "../src/shape_draw.h"
 #include "../src/status_text.h"
 #include "../src/title_hints.h"
 #include <stdio.h>
@@ -261,6 +262,37 @@ static int test_brush_render_helpers(void) {
 
     erase_line(&canvas, 1, 1, 5, 1, 1, 0x00000000, BRUSH_SHAPE_SQUARE);
     if (!expect_pixel_eq("erase_line_mid", canvas_get_pixel(&canvas, 3, 1), 0x00000000)) {
+        canvas_free(&canvas);
+        return 0;
+    }
+
+    canvas_free(&canvas);
+    return 1;
+}
+
+static int test_shape_draw_helpers(void) {
+    Canvas canvas = {0};
+
+    if (!canvas_init(&canvas, 9, 9)) {
+        fprintf(stderr, "shape draw canvas init failed\n");
+        return 0;
+    }
+    canvas_clear(&canvas, 0x00000000);
+
+    draw_shape(&canvas, TOOL_FILLED_RECT, 2, 2, 5, 5, 1, 0xFF778899);
+    if (!expect_pixel_eq("shape_filled_rect_center", canvas_get_pixel(&canvas, 3, 3), 0xFF778899)) {
+        canvas_free(&canvas);
+        return 0;
+    }
+
+    draw_shape(&canvas, TOOL_LINE, 0, 0, 8, 8, 1, 0xFF112233);
+    if (!expect_pixel_eq("shape_line_mid", canvas_get_pixel(&canvas, 4, 4), 0xFF112233)) {
+        canvas_free(&canvas);
+        return 0;
+    }
+
+    draw_shape(&canvas, TOOL_FILLED_ELLIPSE, 2, 2, 6, 6, 1, 0xFF445566);
+    if (!expect_pixel_eq("shape_filled_ellipse_center", canvas_get_pixel(&canvas, 4, 4), 0xFF445566)) {
         canvas_free(&canvas);
         return 0;
     }
@@ -2890,6 +2922,10 @@ int main(void) {
     }
 
     if (!test_brush_render_helpers()) {
+        return 1;
+    }
+
+    if (!test_shape_draw_helpers()) {
         return 1;
     }
 
