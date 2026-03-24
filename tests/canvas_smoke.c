@@ -432,6 +432,12 @@ static int test_layer_snapshot_free_preserves_metadata_arrays(void) {
     return 1;
 }
 
+static int test_layer_snapshot_free_reset_ignore_null(void) {
+    layer_snapshot_free(NULL);
+    layer_snapshot_reset(NULL);
+    return 1;
+}
+
 static int test_layer_history_stack(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 2, 2, 0xFFFFFFFF)) {
@@ -2775,6 +2781,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_snapshot_free_preserves_metadata_arrays()) {
+        return 1;
+    }
+    if (!test_layer_snapshot_free_reset_ignore_null()) {
         return 1;
     }
     if (!test_layer_history_stack()) {
