@@ -57,10 +57,10 @@ void layer_history_reset(LayerHistory *history);
 // Records the current stack into history when both `history` and `layers` are valid; otherwise this is a no-op.
 void layer_history_record(LayerHistory *history, const LayerStack *layers);
 // On success this transfers snapshot ownership into history and disowns the caller snapshot.
-// On discard/failure it resets the caller snapshot back to an empty state.
+// A null snapshot fails cleanly; other discard/failure paths reset the caller snapshot back to an empty state.
 int layer_history_record_snapshot(LayerHistory *history, LayerSnapshot *snapshot);
 // Commits a previously captured snapshot only when the operation succeeded and changed the stack.
-// Regardless of outcome, the caller snapshot is either transferred into history or reset in place.
+// A null snapshot fails cleanly; otherwise the caller snapshot is either transferred into history or reset in place.
 int layer_history_commit_change(LayerHistory *history, LayerSnapshot *snapshot, const LayerStack *layers, int operation_succeeded);
 // Wrapper versions of undo/redo that preserve history state if the stored snapshot cannot be applied.
 int layer_history_step_undo(LayerHistory *history, LayerStack *layers);
