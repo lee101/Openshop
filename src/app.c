@@ -1,6 +1,7 @@
 #include "app.h"
 #include "canvas.h"
 #include "direct_layer_shortcuts.h"
+#include "history_shortcuts.h"
 #include "image_io.h"
 #include "layer_name_shortcuts.h"
 #include "layers.h"
@@ -209,13 +210,16 @@ static int handle_history_navigation_shortcut(
     int *redo_count,
     int *needs_composite
 ) {
+    HistoryShortcutAction action;
     Snapshot current = {0};
 
     if (!ctrl || !layers || !undo_stack || !undo_count || !redo_stack || !redo_count) {
         return 0;
     }
 
-    if (key == SDLK_z) {
+    action = history_shortcut_action(ctrl, (int)key);
+
+    if (action == HISTORY_SHORTCUT_UNDO) {
         if (*undo_count > 0) {
             if (snapshot_from_layers(&current, layers)) {
                 push_history_snapshot(redo_stack, redo_count, &current);
@@ -230,7 +234,7 @@ static int handle_history_navigation_shortcut(
         return 1;
     }
 
-    if (key == SDLK_y) {
+    if (action == HISTORY_SHORTCUT_REDO) {
         if (*redo_count > 0) {
             if (snapshot_from_layers(&current, layers)) {
                 push_history_snapshot(undo_stack, undo_count, &current);
