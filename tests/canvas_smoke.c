@@ -3686,6 +3686,19 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.layers[0].visible = 0;
+    stack.layers[1].visible = 0;
+    stack.layers[3].visible = 0;
+    stack.active_layer = 2;
+    if (layer_stack_cycle_visible(&stack, 1) != -1 || stack.active_layer != 2) {
+        fprintf(stderr, "visible layer cycling single-match should be unchanged\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[0].visible = 1;
+    stack.layers[1].visible = 0;
+    stack.layers[3].visible = 1;
     stack.active_layer = 0;
     if (layer_stack_cycle_hidden(&stack, 1) != 1 || stack.active_layer != 1) {
         fprintf(stderr, "hidden layer cycling forward failed\n");

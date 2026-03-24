@@ -137,6 +137,9 @@ static int layer_stack_cycle_combined_filter(LayerStack *stack, int direction, i
     }
     int target = layer_stack_find_combined_filter_from(stack, stack ? stack->active_layer : -1, direction, 0,
                                                        required_hidden, required_locked);
+    if (stack && target == stack->active_layer) {
+        return -1;
+    }
     if (target >= 0) {
         stack->active_layer = target;
     }
@@ -642,10 +645,14 @@ int layer_stack_reveal_hidden_unlocked(LayerStack *stack, int from_top) {
 }
 
 int layer_stack_reveal_editable(LayerStack *stack, int direction) {
+    int target;
     if (!stack || stack->layer_count <= 0) {
         return 0;
     }
-    int target = layer_stack_cycle_editable_filtered(stack, direction, EDITABLE_ANY_VISIBILITY);
+    if (direction == 0) {
+        return 0;
+    }
+    target = layer_stack_find_combined_filter_from(stack, stack->active_layer, direction, 0, -1, 0);
     return layer_stack_reveal_target(stack, target);
 }
 
