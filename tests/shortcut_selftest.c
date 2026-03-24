@@ -2631,6 +2631,29 @@ static int expect_cancel_shape_preview(
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    int use_shaping;
+    int use_preview_active;
+    int initial_shaping;
+    int initial_preview_active;
+    int want_shaping;
+    int want_preview_active;
+} CancelShapePreviewCase;
+
+static int run_cancel_shape_preview_case(const CancelShapePreviewCase *test_case) {
+    int shaping = test_case->initial_shaping;
+    int preview_active = test_case->initial_preview_active;
+
+    return expect_cancel_shape_preview(
+        test_case->label,
+        test_case->use_shaping ? &shaping : NULL,
+        test_case->use_preview_active ? &preview_active : NULL,
+        test_case->want_shaping,
+        test_case->want_preview_active
+    );
+}
+
 static int expect_handle_shape_preview_key(
     const char *label,
     AppShapeCancelKey key,
@@ -2710,6 +2733,24 @@ static int expect_preview_canvas_selection(
         return 0;
     }
     return 1;
+}
+
+typedef struct {
+    const char *label;
+    const Canvas *composite;
+    const Canvas *preview_canvas;
+    int preview_active;
+    const Canvas *want;
+} PreviewCanvasSelectionCase;
+
+static int run_preview_canvas_selection_case(const PreviewCanvasSelectionCase *test_case) {
+    return expect_preview_canvas_selection(
+        test_case->label,
+        test_case->composite,
+        test_case->preview_canvas,
+        test_case->preview_active,
+        test_case->want
+    );
 }
 
 static int expect_restore_shape_preview(
@@ -4451,22 +4492,34 @@ int main(void) {
             );
         }
     }
-    ok = ok && expect_cancel_shape_preview("cancel_shape_preview_both", &shaping, &preview_active, 0, 0);
-    shaping = 7;
-    preview_active = 9;
-    ok = ok && expect_cancel_shape_preview("cancel_shape_preview_null_shape", NULL, &preview_active, 0, 0);
-    ok = ok && expect_cancel_shape_preview("cancel_shape_preview_null_preview", &shaping, NULL, 0, 0);
-    ok = ok && expect_preview_canvas_selection("preview_canvas_active", &composite_canvas, &preview_canvas, 1, &preview_canvas);
-    ok = ok && expect_preview_canvas_selection("preview_canvas_inactive", &composite_canvas, &preview_canvas, 0, &composite_canvas);
-    ok = ok && expect_preview_canvas_selection(
-        "preview_canvas_missing_pixels_falls_back",
-        &composite_canvas,
-        &preview_canvas_without_pixels,
-        1,
-        &composite_canvas
-    );
-    ok = ok && expect_preview_canvas_selection("preview_canvas_null_preview_falls_back", &composite_canvas, NULL, 1, &composite_canvas);
-    ok = ok && expect_preview_canvas_selection("preview_canvas_null_composite_allowed", NULL, &preview_canvas, 0, NULL);
+    {
+        const CancelShapePreviewCase cancel_shape_preview_cases[] = {
+            {"cancel_shape_preview_both", 1, 1, 1, 1, 0, 0},
+            {"cancel_shape_preview_null_shape", 0, 1, 7, 9, 0, 0},
+            {"cancel_shape_preview_null_preview", 1, 0, 7, 9, 0, 0},
+        };
+        const PreviewCanvasSelectionCase preview_canvas_selection_cases[] = {
+            {"preview_canvas_active", &composite_canvas, &preview_canvas, 1, &preview_canvas},
+            {"preview_canvas_inactive", &composite_canvas, &preview_canvas, 0, &composite_canvas},
+            {
+                "preview_canvas_missing_pixels_falls_back",
+                &composite_canvas,
+                &preview_canvas_without_pixels,
+                1,
+                &composite_canvas,
+            },
+            {"preview_canvas_null_preview_falls_back", &composite_canvas, NULL, 1, &composite_canvas},
+            {"preview_canvas_null_composite_allowed", NULL, &preview_canvas, 0, NULL},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(cancel_shape_preview_cases) / sizeof(cancel_shape_preview_cases[0]); i++) {
+            ok = ok && run_cancel_shape_preview_case(&cancel_shape_preview_cases[i]);
+        }
+        for (i = 0; i < sizeof(preview_canvas_selection_cases) / sizeof(preview_canvas_selection_cases[0]); i++) {
+            ok = ok && run_preview_canvas_selection_case(&preview_canvas_selection_cases[i]);
+        }
+    }
     {
         const RestoreShapePreviewCase restore_shape_preview_cases[] = {
             {
