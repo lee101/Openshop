@@ -57,6 +57,16 @@ typedef struct {
     uint32_t *pixels;
 } Snapshot;
 
+typedef struct {
+    SDL_Window *window;
+    LayerStack *layers;
+    Tool *tool;
+    BrushShape *brush_shape;
+    int *brush_radius;
+    uint32_t *brush_color;
+    int *brush_opacity;
+} TitleState;
+
 typedef int (*LayerIndexedActionFn)(LayerStack *layers, int index);
 
 static void snapshot_free(Snapshot *s) {
@@ -547,6 +557,26 @@ static int refresh_title_on_change(SDL_Window *window, const LayerStack *layers,
                                    int changed) {
     if (changed) {
         update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+    }
+    return changed;
+}
+
+static void update_title_state(const TitleState *title_state) {
+    if (!title_state || !title_state->window || !title_state->layers || !title_state->tool ||
+        !title_state->brush_shape || !title_state->brush_radius ||
+        !title_state->brush_color || !title_state->brush_opacity) {
+        return;
+    }
+
+    update_window_title(title_state->window, title_state->layers,
+                        *title_state->tool, *title_state->brush_shape,
+                        *title_state->brush_radius, *title_state->brush_color,
+                        *title_state->brush_opacity);
+}
+
+static int refresh_title_state_on_change(const TitleState *title_state, int changed) {
+    if (changed) {
+        update_title_state(title_state);
     }
     return changed;
 }
@@ -1096,7 +1126,7 @@ static int handle_mouse_position_hotkey(SDL_Keycode key,
 }
 
 static int handle_general_key_hotkey(SDL_Keycode key,
-                                     SDL_Window *window,
+                                     const TitleState *title_state,
                                      LayerStack *layers,
                                      Snapshot *undo_stack, int *undo_count,
                                      Snapshot *redo_stack, int *redo_count,
@@ -1106,7 +1136,7 @@ static int handle_general_key_hotkey(SDL_Keycode key,
                                      BrushShape *brush_shape, Tool *tool,
                                      int *needs_composite) {
     if (handle_brush_state_hotkey(key, brush_color_rgb, brush_color, brush_opacity, brush_radius, brush_shape, tool)) {
-        update_window_title(window, layers, *tool, *brush_shape, *brush_radius, *brush_color, *brush_opacity);
+        update_title_state(title_state);
         return 1;
     }
 
@@ -1114,7 +1144,7 @@ static int handle_general_key_hotkey(SDL_Keycode key,
         if (needs_composite) {
             *needs_composite = 1;
         }
-        update_window_title(window, layers, *tool, *brush_shape, *brush_radius, *brush_color, *brush_opacity);
+        update_title_state(title_state);
         return 1;
     }
 
@@ -1123,24 +1153,21 @@ static int handle_general_key_hotkey(SDL_Keycode key,
         if (needs_composite && key == SDLK_f) {
             *needs_composite = 1;
         }
-        update_window_title(window, layers, *tool, *brush_shape, *brush_radius, *brush_color, *brush_opacity);
+        update_title_state(title_state);
         return 1;
     }
 
-    update_window_title(window, layers, *tool, *brush_shape, *brush_radius, *brush_color, *brush_opacity);
+    update_title_state(title_state);
     return 0;
 }
 
 static int handle_selector_hotkey(SDL_Keycode key,
                                   int ctrl, int alt, int shift,
-                                  SDL_Window *window,
-                                  LayerStack *layers,
-                                  Tool tool, BrushShape brush_shape,
-                                  int brush_radius, uint32_t brush_color,
-                                  int brush_opacity) {
+                                  const TitleState *title_state,
+                                  LayerStack *layers) {
     size_t i;
 
-    if (!window || !layers) {
+    if (!title_state || !layers) {
         return 0;
     }
 
@@ -1151,9 +1178,7 @@ static int handle_selector_hotkey(SDL_Keycode key,
             hotkey->ctrl == ctrl &&
             hotkey->alt == alt &&
             hotkey->shift == shift) {
-            refresh_title_on_change(window, layers, tool, brush_shape, brush_radius,
-                                    brush_color, brush_opacity,
-                                    hotkey->action(layers, hotkey->arg) >= 0);
+            refresh_title_state_on_change(title_state, hotkey->action(layers, hotkey->arg) >= 0);
             return 1;
         }
     }
@@ -1294,14 +1319,11 @@ static int handle_indexed_layer_silent_hotkey(SDL_Keycode key,
 
 static int handle_layer_navigation_hotkey(SDL_Keycode key,
                                           int ctrl, int alt, int shift,
-                                          SDL_Window *window,
-                                          LayerStack *layers,
-                                          Tool tool, BrushShape brush_shape,
-                                          int brush_radius, uint32_t brush_color,
-                                          int brush_opacity) {
+                                          const TitleState *title_state,
+                                          LayerStack *layers) {
     int changed = 0;
 
-    if (!window || !layers || alt || shift) {
+    if (!title_state || !layers || alt || shift) {
         return 0;
     }
 
@@ -1315,8 +1337,7 @@ static int handle_layer_navigation_hotkey(SDL_Keycode key,
         return 0;
     }
 
-    refresh_title_on_change(window, layers, tool, brush_shape, brush_radius, brush_color,
-                            brush_opacity, changed);
+    refresh_title_state_on_change(title_state, changed);
     return 1;
 }
 
@@ -2048,6 +2069,7 @@ int app_run(const char *input_path) {
     uint32_t *shape_base_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
     uint32_t *preview_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
     Canvas preview_canvas = {CANVAS_WIDTH, CANVAS_HEIGHT, preview_pixels};
+    TitleState title_state = {window, &layers, &tool, &brush_shape, &brush_radius, &brush_color, &brush_opacity};
     memset(undo_stack, 0, sizeof(undo_stack));
     memset(redo_stack, 0, sizeof(redo_stack));
     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -2147,8 +2169,7 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (handle_selector_hotkey(key, ctrl, alt, shift, window, &layers, tool, brush_shape,
-                                           brush_radius, brush_color, brush_opacity)) {
+                if (handle_selector_hotkey(key, ctrl, alt, shift, &title_state, &layers)) {
                     break;
                 }
 
@@ -2159,9 +2180,7 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (handle_layer_navigation_hotkey(key, ctrl, alt, shift, window, &layers,
-                                                   tool, brush_shape, brush_radius, brush_color,
-                                                   brush_opacity)) {
+                if (handle_layer_navigation_hotkey(key, ctrl, alt, shift, &title_state, &layers)) {
                     break;
                 }
 
@@ -2173,7 +2192,7 @@ int app_run(const char *input_path) {
 
                 {
                     const Canvas *sample = current_display_canvas(preview_active, &preview_canvas, &composite);
-                    handle_general_key_hotkey(key, window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                    handle_general_key_hotkey(key, &title_state, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
                                               sample, &brush_color_rgb, &brush_color, &brush_opacity,
                                               &brush_radius, &brush_shape, &tool, &needs_composite);
                 }
