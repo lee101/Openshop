@@ -4109,6 +4109,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_reveal_hidden(&stack, -1)) {
+        fprintf(stderr, "reveal hidden backward should fail when no hidden layers remain\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[0].visible = 1;
     stack.layers[1].visible = 0;
     stack.layers[2].visible = 0;
