@@ -3078,6 +3078,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_cycle_hidden(&stack, 0) != -1 || stack.active_layer != 1) {
+        fprintf(stderr, "hidden layer cycling zero-direction no-op failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[0].visible = 1;
     stack.layers[1].visible = 1;
     stack.active_layer = 0;
@@ -3104,6 +3110,12 @@ static int test_layers_basic(void) {
     }
     if (layer_stack_cycle_locked(&stack, -1) != 1 || stack.active_layer != 1) {
         fprintf(stderr, "locked layer cycling backward failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_cycle_locked(&stack, 0) != -1 || stack.active_layer != 1) {
+        fprintf(stderr, "locked layer cycling zero-direction no-op failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -3177,6 +3189,12 @@ static int test_layers_basic(void) {
     }
     if (layer_stack_cycle_hidden_locked(&stack, -1) != 3 || stack.active_layer != 3) {
         fprintf(stderr, "hidden locked layer cycling backward failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_cycle_hidden_locked(&stack, 0) != -1 || stack.active_layer != 3) {
+        fprintf(stderr, "hidden locked layer cycling zero-direction no-op failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -3262,6 +3280,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_cycle_hidden_unlocked(&stack, 0) != -1 || stack.active_layer != 3) {
+        fprintf(stderr, "hidden unlocked layer cycling zero-direction no-op failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.active_layer = 2;
     stack.solo_index = 0;
     if (layer_stack_select_bottom_hidden_unlocked(&stack) != 1 || stack.active_layer != 1) {
@@ -3341,6 +3365,12 @@ static int test_layers_basic(void) {
     }
     if (layer_stack_cycle_unlocked(&stack, -1) != 2 || stack.active_layer != 2) {
         fprintf(stderr, "unlocked layer cycling backward failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_cycle_unlocked(&stack, 0) != -1 || stack.active_layer != 2) {
+        fprintf(stderr, "unlocked layer cycling zero-direction no-op failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
