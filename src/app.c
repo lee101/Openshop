@@ -1,4 +1,5 @@
 #include "app.h"
+#include "brush_shortcuts.h"
 #include "canvas.h"
 #include "direct_layer_shortcuts.h"
 #include "file_shortcuts.h"
@@ -831,6 +832,7 @@ static int handle_view_and_canvas_shortcut(
     int *brush_opacity,
     int *needs_composite
 ) {
+    BrushShortcutAction brush_action;
     PaintShortcutAction paint_action;
     Layer *active = NULL;
     const Canvas *sample = NULL;
@@ -871,6 +873,8 @@ static int handle_view_and_canvas_shortcut(
 
     paint_action = paint_shortcut_action((int)key);
 
+    brush_action = brush_shortcut_action((int)key);
+
     if (paint_action == PAINT_SHORTCUT_TOOL_BRUSH) {
         *brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
         *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
@@ -889,19 +893,19 @@ static int handle_view_and_canvas_shortcut(
         *tool = TOOL_ELLIPSE;
     } else if (paint_action == PAINT_SHORTCUT_TOOL_FILLED_ELLIPSE) {
         *tool = TOOL_FILLED_ELLIPSE;
-    } else if (key == SDLK_LEFTBRACKET) {
+    } else if (brush_action == BRUSH_SHORTCUT_RADIUS_DOWN) {
         if (*brush_radius > 1) {
             *brush_radius -= 1;
         }
-    } else if (key == SDLK_RIGHTBRACKET) {
+    } else if (brush_action == BRUSH_SHORTCUT_RADIUS_UP) {
         if (*brush_radius < 64) {
             *brush_radius += 1;
         }
-    } else if (key == SDLK_COMMA) {
+    } else if (brush_action == BRUSH_SHORTCUT_SHAPE_PREV) {
         *brush_shape = cycle_brush_shape(*brush_shape, -1);
-    } else if (key == SDLK_PERIOD) {
+    } else if (brush_action == BRUSH_SHORTCUT_SHAPE_NEXT) {
         *brush_shape = cycle_brush_shape(*brush_shape, 1);
-    } else if (key == SDLK_MINUS || key == SDLK_KP_MINUS) {
+    } else if (brush_action == BRUSH_SHORTCUT_OPACITY_DOWN) {
         if (*brush_opacity > 1) {
             *brush_opacity -= 5;
             if (*brush_opacity < 1) {
@@ -909,7 +913,7 @@ static int handle_view_and_canvas_shortcut(
             }
             *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
         }
-    } else if (key == SDLK_EQUALS || key == SDLK_KP_PLUS) {
+    } else if (brush_action == BRUSH_SHORTCUT_OPACITY_UP) {
         if (*brush_opacity < 100) {
             *brush_opacity += 5;
             if (*brush_opacity > 100) {

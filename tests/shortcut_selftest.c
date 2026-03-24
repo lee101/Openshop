@@ -1,3 +1,4 @@
+#include "../src/brush_shortcuts.h"
 #include "../src/direct_layer_shortcuts.h"
 #include "../src/file_shortcuts.h"
 #include "../src/history_shortcuts.h"
@@ -60,6 +61,15 @@ static int expect_paint_action(const char *label, int key, PaintShortcutAction w
     return 1;
 }
 
+static int expect_brush_action(const char *label, int key, BrushShortcutAction want) {
+    BrushShortcutAction got = brush_shortcut_action(key);
+    if (got != want) {
+        fprintf(stderr, "%s mismatch: got %d want %d\n", label, got, want);
+        return 0;
+    }
+    return 1;
+}
+
 int main(void) {
     int ok = 1;
 
@@ -102,6 +112,14 @@ int main(void) {
     ok = ok && expect_paint_action("color_yellow", '5', PAINT_SHORTCUT_COLOR_YELLOW);
     ok = ok && expect_paint_action("color_purple", '6', PAINT_SHORTCUT_COLOR_PURPLE);
     ok = ok && expect_paint_action("paint_other_key", '7', PAINT_SHORTCUT_NONE);
+    ok = ok && expect_brush_action("radius_down", '[', BRUSH_SHORTCUT_RADIUS_DOWN);
+    ok = ok && expect_brush_action("radius_up", ']', BRUSH_SHORTCUT_RADIUS_UP);
+    ok = ok && expect_brush_action("shape_prev", ',', BRUSH_SHORTCUT_SHAPE_PREV);
+    ok = ok && expect_brush_action("shape_next", '.', BRUSH_SHORTCUT_SHAPE_NEXT);
+    ok = ok && expect_brush_action("opacity_down", '-', BRUSH_SHORTCUT_OPACITY_DOWN);
+    ok = ok && expect_brush_action("opacity_up_equals", '=', BRUSH_SHORTCUT_OPACITY_UP);
+    ok = ok && expect_brush_action("opacity_up_plus", '+', BRUSH_SHORTCUT_OPACITY_UP);
+    ok = ok && expect_brush_action("brush_other_key", '/', BRUSH_SHORTCUT_NONE);
 
     if (!ok) {
         return 1;

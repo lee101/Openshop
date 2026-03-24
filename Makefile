@@ -9,7 +9,7 @@ CFLAGS += $(shell sdl2-config --cflags)
 LDFLAGS += $(shell sdl2-config --libs)
 endif
 
-SRC = src/main.c src/app.c src/canvas.c src/image_io.c src/layers.c src/layer_name_shortcuts.c src/direct_layer_shortcuts.c src/history_shortcuts.c src/history_state.c src/file_shortcuts.c src/merge_shortcuts.c src/paint_shortcuts.c
+SRC = src/main.c src/app.c src/canvas.c src/image_io.c src/layers.c src/layer_name_shortcuts.c src/direct_layer_shortcuts.c src/history_shortcuts.c src/history_state.c src/file_shortcuts.c src/merge_shortcuts.c src/paint_shortcuts.c src/brush_shortcuts.c
 OBJ = $(SRC:.c=.o)
 BIN = openshop
 
@@ -18,7 +18,7 @@ TEST_SRC = tests/canvas_smoke.c src/canvas.c src/layers.c
 IMAGE_TEST_BIN = image_selftest
 IMAGE_TEST_SRC = tests/image_selftest.c src/canvas.c
 SHORTCUT_TEST_BIN = shortcut_selftest
-SHORTCUT_TEST_SRC = tests/shortcut_selftest.c src/layer_name_shortcuts.c src/direct_layer_shortcuts.c src/history_shortcuts.c src/file_shortcuts.c src/merge_shortcuts.c src/paint_shortcuts.c
+SHORTCUT_TEST_SRC = tests/shortcut_selftest.c src/layer_name_shortcuts.c src/direct_layer_shortcuts.c src/history_shortcuts.c src/file_shortcuts.c src/merge_shortcuts.c src/paint_shortcuts.c src/brush_shortcuts.c
 HISTORY_TEST_BIN = history_selftest
 HISTORY_TEST_SRC = tests/history_selftest.c src/canvas.c src/layers.c src/history_state.c
 SDL_TEST_BIN = image_io_smoke
