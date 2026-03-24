@@ -60,6 +60,48 @@ static int ensure_layer_canvas(Layer *layer, int width, int height) {
     return canvas_init(&layer->canvas, width, height);
 }
 
+static int layer_name_exists(const LayerStack *stack, int exclude_index, const char *name) {
+    if (!stack || !name || !name[0]) {
+        return 0;
+    }
+    for (int i = 0; i < stack->layer_count; i++) {
+        if (i == exclude_index) {
+            continue;
+        }
+        if (strncmp(stack->layers[i].name, name, LAYER_NAME_MAX) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void assign_unique_layer_name(const LayerStack *stack, int index, const char *preferred, const char *fallback_prefix, char *dest) {
+    if (!dest) {
+        return;
+    }
+
+    const char *base = (preferred && preferred[0]) ? preferred : fallback_prefix;
+    if (!base || !base[0]) {
+        base = "Layer";
+    }
+
+    if (!layer_name_exists(stack, index, base)) {
+        strncpy(dest, base, LAYER_NAME_MAX - 1);
+        dest[LAYER_NAME_MAX - 1] = '\0';
+        return;
+    }
+
+    for (int suffix = 2; suffix < 1000; suffix++) {
+        snprintf(dest, LAYER_NAME_MAX, "%s %d", base, suffix);
+        if (!layer_name_exists(stack, index, dest)) {
+            return;
+        }
+    }
+
+    strncpy(dest, base, LAYER_NAME_MAX - 1);
+    dest[LAYER_NAME_MAX - 1] = '\0';
+}
+
 int layer_stack_init(LayerStack *stack, int width, int height, uint32_t background_color) {
     if (!stack || width <= 0 || height <= 0) {
         return 0;
@@ -159,12 +201,9 @@ int layer_stack_insert(LayerStack *stack, int index, const char *name, uint32_t 
     layer->visible = 1;
     layer->locked = 0;
     layer->opacity_percent = 100;
-    if (name && name[0]) {
-        strncpy(layer->name, name, LAYER_NAME_MAX - 1);
-        layer->name[LAYER_NAME_MAX - 1] = '\0';
-    } else {
-        snprintf(layer->name, LAYER_NAME_MAX, "Layer %d", index + 1);
-    }
+    char fallback_name[LAYER_NAME_MAX];
+    snprintf(fallback_name, sizeof(fallback_name), "Layer %d", index + 1);
+    assign_unique_layer_name(stack, index, name, fallback_name, layer->name);
 
     stack->layer_count++;
     stack->active_layer = index;
@@ -464,12 +503,9 @@ int layer_stack_duplicate(LayerStack *stack, int index, const char *name) {
     size_t total = (size_t)stack->width * (size_t)stack->height;
     memcpy(dup->canvas.pixels, source->canvas.pixels, total * sizeof(uint32_t));
 
-    if (name && name[0]) {
-        strncpy(dup->name, name, LAYER_NAME_MAX - 1);
-        dup->name[LAYER_NAME_MAX - 1] = '\0';
-    } else {
-        snprintf(dup->name, LAYER_NAME_MAX, "%s Copy", source->name[0] ? source->name : "Layer");
-    }
+    char base_name[LAYER_NAME_MAX];
+    snprintf(base_name, sizeof(base_name), "%s Copy", source->name[0] ? source->name : "Layer");
+    assign_unique_layer_name(stack, insert_at, name, base_name, dup->name);
 
     stack->layer_count++;
     stack->active_layer = insert_at;

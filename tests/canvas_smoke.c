@@ -605,6 +605,36 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_duplicate(&stack, 0, NULL) != 1) {
+        fprintf(stderr, "auto-named duplicate layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[1].name, "Upper Merge Copy") != 0) {
+        fprintf(stderr, "first auto duplicate name failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_duplicate(&stack, 0, NULL) != 1) {
+        fprintf(stderr, "second auto-named duplicate layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[1].name, "Upper Merge Copy 2") != 0) {
+        fprintf(stderr, "second auto duplicate name should be unique\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 1) || !layer_stack_delete(&stack, 1)) {
+        fprintf(stderr, "cleanup auto-named duplicates failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_move(&stack, 1, -1) || stack.active_layer != 0) {
         fprintf(stderr, "move layer down failed\n");
         canvas_free(&composite);
@@ -831,8 +861,20 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (strcmp(stack.layers[3].name, "Overflow") != 0) {
+        fprintf(stderr, "first overflow stamp name failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_stamp_visible_new(&stack, "Overflow", 0xFFFFFFFF) != 4) {
         fprintf(stderr, "third stamp visible new layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[4].name, "Overflow 2") != 0) {
+        fprintf(stderr, "second overflow stamp name should be unique\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
