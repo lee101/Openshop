@@ -205,10 +205,16 @@ typedef struct {
 } FillPoint;
 
 int canvas_flood_fill(Canvas *c, int x, int y, uint32_t new_color) {
+    uint8_t alpha;
+
     if (!c || !c->pixels) {
         return 0;
     }
     if (x < 0 || y < 0 || x >= c->width || y >= c->height) {
+        return 0;
+    }
+    alpha = (uint8_t)((new_color >> 24) & 0xFF);
+    if (alpha == 0) {
         return 0;
     }
     uint32_t target = canvas_get_pixel(c, x, y);
