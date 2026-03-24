@@ -1370,6 +1370,22 @@ static int test_active_layer_ops_helpers(void) {
             return 0;
         }
     }
+    {
+        int undo_before = undo_count;
+        int redo_before = redo_count;
+        canvas_clear(&stack.layers[0].canvas, 0xFFFFFFFF);
+        if (active_layer_try_begin_brush_stroke(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                TOOL_ERASER, 1, 1, 1, 0xFF556677, BRUSH_SHAPE_ROUND,
+                                                0xFFFFFFFF, 4) ||
+            !expect_pixel_eq("active_stroke_blank_erase", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFFFFFFFF) ||
+            undo_count != undo_before || redo_count != redo_before) {
+            fprintf(stderr, "active_layer_try_begin_brush_stroke blank erase no-op failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
 
     canvas_clear(&stack.layers[0].canvas, 0x00000000);
     if (!active_layer_try_commit_shape(&stack, undo_stack, &undo_count, redo_stack, &redo_count,

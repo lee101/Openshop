@@ -1,6 +1,7 @@
 #include "active_layer_ops.h"
 
 #include "brush_render.h"
+#include "geometry_helpers.h"
 #include "layer_edit_state.h"
 #include "shape_draw.h"
 
@@ -29,6 +30,39 @@ static int canvas_is_uniform(const Canvas *canvas) {
     }
 
     return !canvas_has_non_matching_pixel(canvas, canvas->pixels[0]);
+}
+
+static int canvas_stamp_would_change(const Canvas *canvas,
+                                     int cx, int cy, int radius,
+                                     uint32_t color, BrushShape shape) {
+    int dx;
+    int dy;
+
+    if (!canvas || !canvas->pixels || radius <= 0) {
+        return 0;
+    }
+
+    for (dy = -radius; dy <= radius; dy++) {
+        for (dx = -radius; dx <= radius; dx++) {
+            int px;
+            int py;
+
+            if (!brush_mask_contains(shape, dx, dy, radius)) {
+                continue;
+            }
+
+            px = cx + dx;
+            py = cy + dy;
+            if (px < 0 || py < 0 || px >= canvas->width || py >= canvas->height) {
+                continue;
+            }
+            if (canvas_get_pixel(canvas, px, py) != color) {
+                return 1;
+            }
+        }
+    }
+
+    return 0;
 }
 
 static int active_layer_apply_transform(LayerStack *layers,
@@ -229,6 +263,7 @@ int active_layer_try_begin_brush_stroke(LayerStack *layers,
                                         uint32_t background_color, int max_history) {
     Layer *active;
     uint8_t brush_alpha;
+    uint32_t clear_color;
 
     if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
         return 0;
@@ -251,10 +286,15 @@ int active_layer_try_begin_brush_stroke(LayerStack *layers,
     if (x < 0 || y < 0 || x >= active->canvas.width || y >= active->canvas.height) {
         return 0;
     }
+    clear_color = active_layer_clear_color(layers, background_color);
+    if (tool == TOOL_ERASER &&
+        !canvas_stamp_would_change(&active->canvas, x, y, brush_radius, clear_color, brush_shape)) {
+        return 0;
+    }
 
     snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
     if (tool == TOOL_ERASER) {
-        erase_stamp(&active->canvas, x, y, brush_radius, active_layer_clear_color(layers, background_color), brush_shape);
+        erase_stamp(&active->canvas, x, y, brush_radius, clear_color, brush_shape);
     } else {
         stamp_brush(&active->canvas, x, y, brush_radius, brush_color, brush_shape);
     }
