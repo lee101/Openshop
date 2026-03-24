@@ -1086,7 +1086,15 @@ int app_run(const char *input_path) {
                 if (ctrl && key >= SDLK_1 && key <= SDLK_8) {
                     int target = (int)(key - SDLK_1);
                     if (target < layers.layer_count) {
-                        layers.active_layer = target;
+                        if (shift) {
+                            push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                            layers.active_layer = target;
+                            if (layer_stack_toggle_solo(&layers, target)) {
+                                needs_composite = 1;
+                            }
+                        } else {
+                            layers.active_layer = target;
+                        }
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
                     break;

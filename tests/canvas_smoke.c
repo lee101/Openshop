@@ -59,6 +59,19 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.active_layer = 0;
+    if (!layer_stack_toggle_solo(&stack, 0) || stack.solo_index != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "direct solo target bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_solo(&stack, 0) || stack.solo_index != -1) {
+        fprintf(stderr, "direct solo target toggle-off failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_show_all(&stack)) {
         fprintf(stderr, "show all failed\n");
         canvas_free(&composite);
