@@ -41,11 +41,21 @@ static int test_brush_state_helpers(void) {
         fprintf(stderr, "brush label formatting failed\n");
         return 0;
     }
+    if (strcmp(tool_label((Tool)999), "Brush") != 0 ||
+        strcmp(brush_shape_label((BrushShape)999), "Round") != 0) {
+        fprintf(stderr, "brush label fallback failed\n");
+        return 0;
+    }
 
     brush_state_set_color_tool(0x00ABCDEF, brush_opacity, &brush_rgb, &brush_color, &tool, TOOL_BRUSH);
     if (brush_rgb != 0x00ABCDEF || brush_color != compose_brush_color(0x00ABCDEF, brush_opacity) ||
         tool != TOOL_BRUSH) {
         fprintf(stderr, "brush_state_set_color_tool failed\n");
+        return 0;
+    }
+    brush_state_set_color_tool(0x00FFFFFF, brush_opacity, NULL, &brush_color, &tool, TOOL_ERASER);
+    if (tool != TOOL_BRUSH) {
+        fprintf(stderr, "brush_state_set_color_tool null guard failed\n");
         return 0;
     }
 
@@ -59,6 +69,11 @@ static int test_brush_state_helpers(void) {
         fprintf(stderr, "brush_state_adjust_opacity lower clamp failed\n");
         return 0;
     }
+    brush_state_adjust_opacity(10, brush_rgb, NULL, &brush_color);
+    if (brush_color != compose_brush_color(brush_rgb, 1)) {
+        fprintf(stderr, "brush_state_adjust_opacity null guard failed\n");
+        return 0;
+    }
 
     brush_state_adjust_radius(10, &brush_radius);
     if (brush_radius != 64) {
@@ -70,6 +85,8 @@ static int test_brush_state_helpers(void) {
         fprintf(stderr, "brush_state_adjust_radius lower clamp failed\n");
         return 0;
     }
+    brush_state_adjust_radius(5, NULL);
+    brush_state_set_tool(TOOL_ERASER, NULL);
 
     if (cycle_brush_shape(BRUSH_SHAPE_ROUND, -1) != BRUSH_SHAPE_DIAMOND ||
         cycle_brush_shape(BRUSH_SHAPE_DIAMOND, 1) != BRUSH_SHAPE_ROUND) {
@@ -81,6 +98,7 @@ static int test_brush_state_helpers(void) {
         fprintf(stderr, "brush_state_cycle_shape_in_place failed\n");
         return 0;
     }
+    brush_state_cycle_shape_in_place(NULL, 1);
 
     return 1;
 }
@@ -411,6 +429,13 @@ static int test_snapshot_history_helpers(void) {
         fprintf(stderr, "snapshot test stack init failed\n");
         return 0;
     }
+    if (snapshot_from_layers(NULL, &stack) || snapshot_from_layers(&snap, NULL) ||
+        snapshot_apply(NULL, &stack) || snapshot_apply(&snap, NULL) ||
+        snapshot_restore(NULL, undo_stack, &undo_count, redo_stack, &redo_count, 2)) {
+        fprintf(stderr, "snapshot guard checks failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_add(&stack, "Top", 0x00000000) < 0) {
         fprintf(stderr, "snapshot test add layer failed\n");
         layer_stack_free(&stack);
@@ -438,6 +463,12 @@ static int test_snapshot_history_helpers(void) {
         return 0;
     }
     snapshot_free(&snap);
+
+    if (snapshot_apply(&snap, &stack)) {
+        fprintf(stderr, "snapshot_apply freed snapshot failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     snapshot_push(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 2);
     if (undo_count != 1) {
@@ -471,6 +502,24 @@ static int test_snapshot_history_helpers(void) {
         snapshot_stack_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
         return 0;
+    }
+
+    {
+        Snapshot bad = {0};
+        bad.width = stack.width + 1;
+        bad.height = stack.height;
+        bad.layer_count = stack.layer_count;
+        bad.pixels = (uint32_t *)calloc((size_t)stack.width * (size_t)stack.height * (size_t)stack.layer_count,
+                                        sizeof(uint32_t));
+        if (!bad.pixels || snapshot_apply(&bad, &stack)) {
+            fprintf(stderr, "snapshot_apply dimension mismatch failed\n");
+            free(bad.pixels);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        free(bad.pixels);
     }
 
     snapshot_stack_clear(undo_stack, &undo_count);
