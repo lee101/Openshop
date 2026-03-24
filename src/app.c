@@ -299,6 +299,24 @@ static void refresh_app_title(
     update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
 }
 
+static int refresh_after_shortcut(
+    int handled,
+    SDL_Window *window,
+    const LayerStack *layers,
+    Tool tool,
+    BrushShape brush_shape,
+    int brush_radius,
+    uint32_t brush_color,
+    int brush_opacity
+) {
+    if (!handled) {
+        return 0;
+    }
+
+    refresh_app_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+    return 1;
+}
+
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
     switch (shape) {
     case BRUSH_SHAPE_ROUND:
@@ -1781,45 +1799,66 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (handle_active_layer_mutation_shortcut(
-                        key,
-                        ctrl,
-                        shift,
+                if (refresh_after_shortcut(
+                        handle_active_layer_mutation_shortcut(
+                            key,
+                            ctrl,
+                            shift,
+                            &layers,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count,
+                            &needs_composite),
+                        window,
                         &layers,
-                        undo_stack,
-                        &undo_count,
-                        redo_stack,
-                        &redo_count,
-                        &needs_composite)) {
-                    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        tool,
+                        brush_shape,
+                        brush_radius,
+                        brush_color,
+                        brush_opacity)) {
                     break;
                 }
 
-                if (handle_active_layer_state_shortcut(
-                        key,
-                        ctrl,
-                        shift,
+                if (refresh_after_shortcut(
+                        handle_active_layer_state_shortcut(
+                            key,
+                            ctrl,
+                            shift,
+                            &layers,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count,
+                            &needs_composite),
+                        window,
                         &layers,
-                        undo_stack,
-                        &undo_count,
-                        redo_stack,
-                        &redo_count,
-                        &needs_composite)) {
-                    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        tool,
+                        brush_shape,
+                        brush_radius,
+                        brush_color,
+                        brush_opacity)) {
                     break;
                 }
 
-                if (handle_active_layer_structure_shortcut(
-                        key,
-                        ctrl,
-                        shift,
+                if (refresh_after_shortcut(
+                        handle_active_layer_structure_shortcut(
+                            key,
+                            ctrl,
+                            shift,
+                            &layers,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count,
+                            &needs_composite),
+                        window,
                         &layers,
-                        undo_stack,
-                        &undo_count,
-                        redo_stack,
-                        &redo_count,
-                        &needs_composite)) {
-                    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        tool,
+                        brush_shape,
+                        brush_radius,
+                        brush_color,
+                        brush_opacity)) {
                     break;
                 }
 
@@ -1838,111 +1877,160 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (handle_merge_shortcut(
-                        key,
-                        ctrl,
+                if (refresh_after_shortcut(
+                        handle_merge_shortcut(
+                            key,
+                            ctrl,
+                            &layers,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count,
+                            &needs_composite),
+                        window,
                         &layers,
-                        undo_stack,
-                        &undo_count,
-                        redo_stack,
-                        &redo_count,
-                        &needs_composite)) {
-                    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        tool,
+                        brush_shape,
+                        brush_radius,
+                        brush_color,
+                        brush_opacity)) {
                     break;
                 }
 
-                if (handle_history_navigation_shortcut(
-                        key,
-                        ctrl,
+                if (refresh_after_shortcut(
+                        handle_history_navigation_shortcut(
+                            key,
+                            ctrl,
+                            &layers,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count,
+                            &needs_composite),
+                        window,
                         &layers,
-                        undo_stack,
-                        &undo_count,
-                        redo_stack,
-                        &redo_count,
-                        &needs_composite)) {
-                    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        tool,
+                        brush_shape,
+                        brush_radius,
+                        brush_color,
+                        brush_opacity)) {
                     break;
                 }
 
-                if (handle_direct_layer_shortcut(
-                        key,
-                        ctrl,
-                        alt,
-                        shift,
+                if (refresh_after_shortcut(
+                        handle_direct_layer_shortcut(
+                            key,
+                            ctrl,
+                            alt,
+                            shift,
+                            &layers,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count,
+                            &needs_composite
+                        ),
+                        window,
                         &layers,
-                        undo_stack,
-                        &undo_count,
-                        redo_stack,
-                        &redo_count,
-                        &needs_composite
-                    )) {
-                    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        tool,
+                        brush_shape,
+                        brush_radius,
+                        brush_color,
+                        brush_opacity)) {
                     break;
                 }
 
-                if (handle_layer_opacity_reset_shortcut(
-                        key,
-                        ctrl,
+                if (refresh_after_shortcut(
+                        handle_layer_opacity_reset_shortcut(
+                            key,
+                            ctrl,
+                            &layers,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count,
+                            &needs_composite
+                        ),
+                        window,
                         &layers,
-                        undo_stack,
-                        &undo_count,
-                        redo_stack,
-                        &redo_count,
-                        &needs_composite
-                    )) {
-                    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        tool,
+                        brush_shape,
+                        brush_radius,
+                        brush_color,
+                        brush_opacity)) {
                     break;
                 }
 
-                if (handle_layer_name_shortcut(
-                        key,
-                        ctrl,
-                        alt,
-                        shift,
+                if (refresh_after_shortcut(
+                        handle_layer_name_shortcut(
+                            key,
+                            ctrl,
+                            alt,
+                            shift,
+                            &layers,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count
+                        ),
+                        window,
                         &layers,
-                        undo_stack,
-                        &undo_count,
-                        redo_stack,
-                        &redo_count
-                    )) {
-                    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        tool,
+                        brush_shape,
+                        brush_radius,
+                        brush_color,
+                        brush_opacity)) {
                     break;
                 }
 
-                if (handle_layer_visibility_shortcut(
-                        key,
-                        ctrl,
-                        shift,
+                if (refresh_after_shortcut(
+                        handle_layer_visibility_shortcut(
+                            key,
+                            ctrl,
+                            shift,
+                            &layers,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count,
+                            &needs_composite
+                        ),
+                        window,
                         &layers,
-                        undo_stack,
-                        &undo_count,
-                        redo_stack,
-                        &redo_count,
-                        &needs_composite
-                    )) {
-                    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        tool,
+                        brush_shape,
+                        brush_radius,
+                        brush_color,
+                        brush_opacity)) {
                     break;
                 }
 
-                if (handle_view_and_canvas_shortcut(
-                        key,
-                        shift,
+                if (refresh_after_shortcut(
+                        handle_view_and_canvas_shortcut(
+                            key,
+                            shift,
+                            &layers,
+                            &composite,
+                            &preview_canvas,
+                            preview_active,
+                            undo_stack,
+                            &undo_count,
+                            redo_stack,
+                            &redo_count,
+                            &tool,
+                            &brush_shape,
+                            &brush_radius,
+                            &brush_color,
+                            &brush_color_rgb,
+                            &brush_opacity,
+                            &needs_composite),
+                        window,
                         &layers,
-                        &composite,
-                        &preview_canvas,
-                        preview_active,
-                        undo_stack,
-                        &undo_count,
-                        redo_stack,
-                        &redo_count,
-                        &tool,
-                        &brush_shape,
-                        &brush_radius,
-                        &brush_color,
-                        &brush_color_rgb,
-                        &brush_opacity,
-                        &needs_composite)) {
-                    refresh_app_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                        tool,
+                        brush_shape,
+                        brush_radius,
+                        brush_color,
+                        brush_opacity)) {
                     break;
                 }
 
