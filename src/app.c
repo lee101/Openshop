@@ -93,6 +93,22 @@ typedef struct {
 
 typedef int (*LayerIndexedActionFn)(LayerStack *layers, int index);
 
+static int keyboard_shift_pressed(const Uint8 *state) {
+    return state && (state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT]);
+}
+
+static void keyboard_modifier_state(const Uint8 *state, int *ctrl, int *shift, int *alt) {
+    if (ctrl) {
+        *ctrl = state && (state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL]);
+    }
+    if (shift) {
+        *shift = keyboard_shift_pressed(state);
+    }
+    if (alt) {
+        *alt = state && (state[SDL_SCANCODE_LALT] || state[SDL_SCANCODE_RALT]);
+    }
+}
+
 static void update_window_title(SDL_Window *window, const LayerStack *layers, Tool tool, BrushShape brush_shape, int radius, uint32_t color, int opacity_percent) {
     char title[384];
 
@@ -1229,7 +1245,7 @@ static int handle_shape_preview_motion(Tool tool,
     }
 
     state = SDL_GetKeyboardState(NULL);
-    shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
+    shift = keyboard_shift_pressed(state);
     constrain_shape_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
     memcpy(preview_pixels, shape_base_pixels,
            (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
@@ -1262,7 +1278,7 @@ static int handle_left_click_up(LayerStack *layers,
     }
 
     state = SDL_GetKeyboardState(NULL);
-    shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
+    shift = keyboard_shift_pressed(state);
     constrain_shape_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
     if (try_commit_shape(layers, undo_stack, undo_count, redo_stack, redo_count,
                          tool, shape_start_x, shape_start_y, end_x, end_y,
@@ -1508,10 +1524,12 @@ int app_run(const char *input_path) {
             case SDL_KEYDOWN: {
                 SDL_Keycode key = e.key.keysym.sym;
                 const Uint8 *state = SDL_GetKeyboardState(NULL);
-                int ctrl = state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL];
-                int shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
-                int alt = state[SDL_SCANCODE_LALT] || state[SDL_SCANCODE_RALT];
+                int ctrl = 0;
+                int shift = 0;
+                int alt = 0;
                 action_state.preview_active = preview_active;
+
+                keyboard_modifier_state(state, &ctrl, &shift, &alt);
 
                 if (shaping && app_should_cancel_shape_on_key(key, ctrl)) {
                     shape_preview_cancel(&shaping, &preview_active);
