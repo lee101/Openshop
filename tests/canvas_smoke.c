@@ -310,6 +310,11 @@ static int test_layer_selection_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_selection_try_select_index(&stack, 1) || stack.active_layer != 1) {
+        fprintf(stderr, "layer_selection_try_select_index same index failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     layer_stack_free(&stack);
     return 1;
@@ -769,6 +774,80 @@ static int test_active_layer_ops_helpers(void) {
     Snapshot redo_stack[4] = {0};
     int undo_count = 0;
     int redo_count = 0;
+    int last_x = 0;
+    int last_y = 0;
+
+    if (active_layer_try_clear(NULL, undo_stack, &undo_count, redo_stack, &redo_count, 0xFFFFFFFF, 4) ||
+        active_layer_try_clear(&stack, NULL, &undo_count, redo_stack, &redo_count, 0xFFFFFFFF, 4) ||
+        active_layer_try_clear(&stack, undo_stack, NULL, redo_stack, &redo_count, 0xFFFFFFFF, 4) ||
+        active_layer_try_clear(&stack, undo_stack, &undo_count, NULL, &redo_count, 0xFFFFFFFF, 4) ||
+        active_layer_try_clear(&stack, undo_stack, &undo_count, redo_stack, NULL, 0xFFFFFFFF, 4)) {
+        fprintf(stderr, "active_layer_try_clear null guard failed\n");
+        return 0;
+    }
+    if (active_layer_try_adjust_opacity(NULL, undo_stack, &undo_count, redo_stack, &redo_count, 50, 4) ||
+        active_layer_try_adjust_opacity(&stack, NULL, &undo_count, redo_stack, &redo_count, 50, 4) ||
+        active_layer_try_adjust_opacity(&stack, undo_stack, NULL, redo_stack, &redo_count, 50, 4) ||
+        active_layer_try_adjust_opacity(&stack, undo_stack, &undo_count, NULL, &redo_count, 50, 4) ||
+        active_layer_try_adjust_opacity(&stack, undo_stack, &undo_count, redo_stack, NULL, 50, 4)) {
+        fprintf(stderr, "active_layer_try_adjust_opacity null guard failed\n");
+        return 0;
+    }
+    if (active_layer_try_nudge_opacity(NULL, undo_stack, &undo_count, redo_stack, &redo_count, 10, 4) ||
+        active_layer_try_nudge_opacity(&stack, NULL, &undo_count, redo_stack, &redo_count, 10, 4) ||
+        active_layer_try_nudge_opacity(&stack, undo_stack, NULL, redo_stack, &redo_count, 10, 4) ||
+        active_layer_try_nudge_opacity(&stack, undo_stack, &undo_count, NULL, &redo_count, 10, 4) ||
+        active_layer_try_nudge_opacity(&stack, undo_stack, &undo_count, redo_stack, NULL, 10, 4)) {
+        fprintf(stderr, "active_layer_try_nudge_opacity null guard failed\n");
+        return 0;
+    }
+    if (active_layer_try_flood_fill(NULL, undo_stack, &undo_count, redo_stack, &redo_count, 0, 0, 0xFFFFFFFF, 4) ||
+        active_layer_try_flood_fill(&stack, NULL, &undo_count, redo_stack, &redo_count, 0, 0, 0xFFFFFFFF, 4) ||
+        active_layer_try_flood_fill(&stack, undo_stack, NULL, redo_stack, &redo_count, 0, 0, 0xFFFFFFFF, 4) ||
+        active_layer_try_flood_fill(&stack, undo_stack, &undo_count, NULL, &redo_count, 0, 0, 0xFFFFFFFF, 4) ||
+        active_layer_try_flood_fill(&stack, undo_stack, &undo_count, redo_stack, NULL, 0, 0, 0xFFFFFFFF, 4)) {
+        fprintf(stderr, "active_layer_try_flood_fill null guard failed\n");
+        return 0;
+    }
+    if (active_layer_try_commit_shape(NULL, undo_stack, &undo_count, redo_stack, &redo_count,
+                                      TOOL_LINE, 0, 0, 1, 1, 1, 0xFFFFFFFF, 4) ||
+        active_layer_try_commit_shape(&stack, NULL, &undo_count, redo_stack, &redo_count,
+                                      TOOL_LINE, 0, 0, 1, 1, 1, 0xFFFFFFFF, 4) ||
+        active_layer_try_commit_shape(&stack, undo_stack, NULL, redo_stack, &redo_count,
+                                      TOOL_LINE, 0, 0, 1, 1, 1, 0xFFFFFFFF, 4) ||
+        active_layer_try_commit_shape(&stack, undo_stack, &undo_count, NULL, &redo_count,
+                                      TOOL_LINE, 0, 0, 1, 1, 1, 0xFFFFFFFF, 4) ||
+        active_layer_try_commit_shape(&stack, undo_stack, &undo_count, redo_stack, NULL,
+                                      TOOL_LINE, 0, 0, 1, 1, 1, 0xFFFFFFFF, 4)) {
+        fprintf(stderr, "active_layer_try_commit_shape null guard failed\n");
+        return 0;
+    }
+    if (active_layer_try_begin_brush_stroke(NULL, undo_stack, &undo_count, redo_stack, &redo_count,
+                                            TOOL_BRUSH, 0, 0, 1, 0xFFFFFFFF, BRUSH_SHAPE_ROUND,
+                                            0xFFFFFFFF, 4) ||
+        active_layer_try_begin_brush_stroke(&stack, NULL, &undo_count, redo_stack, &redo_count,
+                                            TOOL_BRUSH, 0, 0, 1, 0xFFFFFFFF, BRUSH_SHAPE_ROUND,
+                                            0xFFFFFFFF, 4) ||
+        active_layer_try_begin_brush_stroke(&stack, undo_stack, NULL, redo_stack, &redo_count,
+                                            TOOL_BRUSH, 0, 0, 1, 0xFFFFFFFF, BRUSH_SHAPE_ROUND,
+                                            0xFFFFFFFF, 4) ||
+        active_layer_try_begin_brush_stroke(&stack, undo_stack, &undo_count, NULL, &redo_count,
+                                            TOOL_BRUSH, 0, 0, 1, 0xFFFFFFFF, BRUSH_SHAPE_ROUND,
+                                            0xFFFFFFFF, 4) ||
+        active_layer_try_begin_brush_stroke(&stack, undo_stack, &undo_count, redo_stack, NULL,
+                                            TOOL_BRUSH, 0, 0, 1, 0xFFFFFFFF, BRUSH_SHAPE_ROUND,
+                                            0xFFFFFFFF, 4)) {
+        fprintf(stderr, "active_layer_try_begin_brush_stroke null guard failed\n");
+        return 0;
+    }
+    if (active_layer_apply_translation(NULL, undo_stack, &undo_count, redo_stack, &redo_count, 1, 0, 0xFFFFFFFF, 4) ||
+        active_layer_apply_translation(&stack, NULL, &undo_count, redo_stack, &redo_count, 1, 0, 0xFFFFFFFF, 4) ||
+        active_layer_apply_translation(&stack, undo_stack, NULL, redo_stack, &redo_count, 1, 0, 0xFFFFFFFF, 4) ||
+        active_layer_apply_translation(&stack, undo_stack, &undo_count, NULL, &redo_count, 1, 0, 0xFFFFFFFF, 4) ||
+        active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, NULL, 1, 0, 0xFFFFFFFF, 4)) {
+        fprintf(stderr, "active_layer_apply_translation null guard failed\n");
+        return 0;
+    }
 
     if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
         fprintf(stderr, "active layer ops stack init failed\n");
@@ -931,36 +1010,32 @@ static int test_active_layer_ops_helpers(void) {
         return 0;
     }
 
-    {
-        int last_x = 0;
-        int last_y = 0;
-        canvas_clear(&stack.layers[0].canvas, 0x00000000);
-        if (!active_layer_continue_brush_stroke(&stack, TOOL_BRUSH, 3, 0, 1, 0xFF334455,
-                                                BRUSH_SHAPE_SQUARE, &last_x, &last_y, 0xFFFFFFFF) ||
-            !expect_pixel_eq("active_continue_brush", canvas_get_pixel(&stack.layers[0].canvas, 3, 0), 0xFF334455) ||
-            last_x != 3 || last_y != 0) {
-            fprintf(stderr, "active_layer_continue_brush_stroke brush failed\n");
-            snapshot_stack_clear(undo_stack, &undo_count);
-            snapshot_stack_clear(redo_stack, &redo_count);
-            layer_stack_free(&stack);
-            return 0;
-        }
+    canvas_clear(&stack.layers[0].canvas, 0x00000000);
+    last_x = 0;
+    last_y = 0;
+    if (!active_layer_continue_brush_stroke(&stack, TOOL_BRUSH, 3, 0, 1, 0xFF334455,
+                                            BRUSH_SHAPE_SQUARE, &last_x, &last_y, 0xFFFFFFFF) ||
+        !expect_pixel_eq("active_continue_brush", canvas_get_pixel(&stack.layers[0].canvas, 3, 0), 0xFF334455) ||
+        last_x != 3 || last_y != 0) {
+        fprintf(stderr, "active_layer_continue_brush_stroke brush failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
     }
 
-    {
-        int last_x = 0;
-        int last_y = 0;
-        canvas_set_pixel_raw(&stack.layers[0].canvas, 3, 0, 0xFFFFFFFF);
-        if (!active_layer_continue_brush_stroke(&stack, TOOL_ERASER, 3, 0, 1, 0xFF000000,
-                                                BRUSH_SHAPE_ROUND, &last_x, &last_y, 0xFF123456) ||
-            !expect_pixel_eq("active_continue_eraser", canvas_get_pixel(&stack.layers[0].canvas, 3, 0), 0xFF123456) ||
-            last_x != 3 || last_y != 0) {
-            fprintf(stderr, "active_layer_continue_brush_stroke eraser failed\n");
-            snapshot_stack_clear(undo_stack, &undo_count);
-            snapshot_stack_clear(redo_stack, &redo_count);
-            layer_stack_free(&stack);
-            return 0;
-        }
+    last_x = 0;
+    last_y = 0;
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 3, 0, 0xFFFFFFFF);
+    if (!active_layer_continue_brush_stroke(&stack, TOOL_ERASER, 3, 0, 1, 0xFF000000,
+                                            BRUSH_SHAPE_ROUND, &last_x, &last_y, 0xFF123456) ||
+        !expect_pixel_eq("active_continue_eraser", canvas_get_pixel(&stack.layers[0].canvas, 3, 0), 0xFF123456) ||
+        last_x != 3 || last_y != 0) {
+        fprintf(stderr, "active_layer_continue_brush_stroke eraser failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
     }
 
     {
