@@ -381,6 +381,57 @@ static int test_layer_snapshot_capture_reuses_existing_snapshot(void) {
     return 1;
 }
 
+static int test_layer_snapshot_free_preserves_metadata_arrays(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "snapshot free init failed\n");
+        return 0;
+    }
+    if (layer_stack_add(&stack, "Ink", 0x00000000) != 1) {
+        fprintf(stderr, "snapshot free add layer failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    stack.layers[1].visible = 0;
+    stack.layers[1].locked = 1;
+    stack.layers[1].opacity_percent = 42;
+
+    LayerSnapshot snapshot = {0};
+    if (!layer_snapshot_capture(&snapshot, &stack)) {
+        fprintf(stderr, "snapshot free capture failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_snapshot_free(&snapshot);
+    if (!snapshot_is_reset(&snapshot)) {
+        if (snapshot.pixels != NULL || snapshot.width != 0 || snapshot.height != 0 ||
+            snapshot.layer_count != 0 || snapshot.active_layer != 0 || snapshot.solo_index != -1) {
+            fprintf(stderr, "snapshot free should clear owned storage and scalar bookkeeping\n");
+            layer_stack_free(&stack);
+            return 0;
+        }
+        if (snapshot.visibility[1] != 0 || snapshot.locked[1] != 1 || snapshot.opacity_percent[1] != 42) {
+            fprintf(stderr, "snapshot free should preserve metadata arrays for callers that reuse them\n");
+            layer_stack_free(&stack);
+            return 0;
+        }
+        if (strcmp(snapshot.names[1], "Ink") != 0) {
+            fprintf(stderr, "snapshot free should preserve layer names\n");
+            layer_stack_free(&stack);
+            return 0;
+        }
+    } else {
+        fprintf(stderr, "snapshot free should not fully reset metadata arrays\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layer_history_stack(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 2, 2, 0xFFFFFFFF)) {
@@ -2707,6 +2758,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_snapshot_capture_reuses_existing_snapshot()) {
+        return 1;
+    }
+    if (!test_layer_snapshot_free_preserves_metadata_arrays()) {
         return 1;
     }
     if (!test_layer_history_stack()) {
