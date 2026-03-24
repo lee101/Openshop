@@ -1351,6 +1351,33 @@ static int handle_file_hotkey(SDL_Keycode key,
     return 0;
 }
 
+static int handle_translation_hotkey(SDL_Keycode key,
+                                     int ctrl, int alt, int shift,
+                                     LayerStack *layers,
+                                     Snapshot *undo_stack, int *undo_count,
+                                     Snapshot *redo_stack, int *redo_count,
+                                     int *needs_composite) {
+    int step;
+    int dx = 0;
+    int dy = 0;
+
+    if (ctrl || alt || !layers || !undo_stack || !undo_count || !redo_stack || !redo_count || !needs_composite) {
+        return 0;
+    }
+
+    if (key != SDLK_UP && key != SDLK_DOWN && key != SDLK_LEFT && key != SDLK_RIGHT) {
+        return 0;
+    }
+
+    step = shift ? 10 : 1;
+    if (key_translation_delta(key, step, &dx, &dy) &&
+        apply_canvas_translation(layers, undo_stack, undo_count, redo_stack, redo_count, dx, dy)) {
+        *needs_composite = 1;
+    }
+
+    return 1;
+}
+
 static int handle_history_hotkey(SDL_Keycode key,
                                  int ctrl, int alt, int shift,
                                  SDL_Window *window,
@@ -1957,14 +1984,9 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (key == SDLK_UP || key == SDLK_DOWN || key == SDLK_LEFT || key == SDLK_RIGHT) {
-                    int step = shift ? 10 : 1;
-                    int dx = 0;
-                    int dy = 0;
-                    if (key_translation_delta(key, step, &dx, &dy) &&
-                        apply_canvas_translation(&layers, undo_stack, &undo_count, redo_stack, &redo_count, dx, dy)) {
-                        needs_composite = 1;
-                    }
+                if (handle_translation_hotkey(key, ctrl, alt, shift, &layers,
+                                              undo_stack, &undo_count, redo_stack, &redo_count,
+                                              &needs_composite)) {
                     break;
                 }
 
