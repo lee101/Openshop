@@ -2,6 +2,16 @@
 
 #include <string.h>
 
+static void copy_preview_pixels(
+    uint32_t *destination_pixels,
+    const uint32_t *source_pixels,
+    size_t pixel_count
+) {
+    if (destination_pixels && source_pixels && pixel_count > 0) {
+        memcpy(destination_pixels, source_pixels, pixel_count * sizeof(*destination_pixels));
+    }
+}
+
 void app_begin_shape_preview(
     int start_x,
     int start_y,
@@ -19,9 +29,7 @@ void app_begin_shape_preview(
     *shaping = 1;
     *shape_start_x = start_x;
     *shape_start_y = start_y;
-    if (shape_base_pixels && composite_pixels && pixel_count > 0) {
-        memcpy(shape_base_pixels, composite_pixels, pixel_count * sizeof(*shape_base_pixels));
-    }
+    copy_preview_pixels(shape_base_pixels, composite_pixels, pixel_count);
 }
 
 void app_cancel_shape_preview(int *shaping, int *preview_active) {
@@ -54,8 +62,6 @@ void app_restore_shape_preview(
         return;
     }
 
-    if (preview_pixels && shape_base_pixels && pixel_count > 0) {
-        memcpy(preview_pixels, shape_base_pixels, pixel_count * sizeof(*preview_pixels));
-    }
+    copy_preview_pixels(preview_pixels, shape_base_pixels, pixel_count);
     *preview_active = 1;
 }

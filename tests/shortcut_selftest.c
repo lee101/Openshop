@@ -996,6 +996,18 @@ int main(void) {
     preview_active = 0;
     memcpy(preview_restore_copy, preview_restore_sentinel, sizeof(preview_restore_copy));
     ok = ok && expect_restore_shape_preview(
+        "restore_shape_preview_partial_copy",
+        preview_restore_copy,
+        preview_restore_source,
+        2,
+        &preview_active,
+        1,
+        (const uint32_t[]){0x01010101u, 0x02020202u, 0xCCCCCCCCu, 0xDDDDDDDDu},
+        4
+    );
+    preview_active = 0;
+    memcpy(preview_restore_copy, preview_restore_sentinel, sizeof(preview_restore_copy));
+    ok = ok && expect_restore_shape_preview(
         "restore_shape_preview_zero_length",
         preview_restore_copy,
         preview_restore_source,
