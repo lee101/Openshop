@@ -828,15 +828,43 @@ int main(void) {
     {
         Snapshot temp_undo[2] = {0};
         Snapshot temp_redo[2] = {0};
+        size_t per_layer = (size_t)stack.width * (size_t)stack.height;
         int temp_undo_count = 0;
         int temp_redo_count = 0;
 
-        if (!layer_stack_rename(&stack, 1, "Redo Old 1") ||
-            !snapshot_from_layers(&temp_redo[temp_redo_count++], &stack) ||
-            !layer_stack_rename(&stack, 1, "Redo Old 2") ||
-            !snapshot_from_layers(&temp_redo[temp_redo_count++], &stack) ||
-            !layer_stack_rename(&stack, 1, "Undo Target") ||
-            !snapshot_from_layers(&temp_undo[temp_undo_count++], &stack) ||
+        if (!layer_stack_rename(&stack, 1, "Redo Old 1")) {
+            fprintf(stderr, "undo redo-rollover setup failed\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+        canvas_set_pixel(&stack.layers[1].canvas, 0, 0, 0xFF110011);
+        if (!snapshot_from_layers(&temp_redo[temp_redo_count++], &stack) ||
+            !layer_stack_rename(&stack, 1, "Redo Old 2")) {
+            fprintf(stderr, "undo redo-rollover setup failed\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+        canvas_set_pixel(&stack.layers[1].canvas, 0, 0, 0xFF220022);
+        if (!snapshot_from_layers(&temp_redo[temp_redo_count++], &stack) ||
+            !layer_stack_rename(&stack, 1, "Undo Target")) {
+            fprintf(stderr, "undo redo-rollover setup failed\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+        canvas_set_pixel(&stack.layers[1].canvas, 0, 0, 0xFF330033);
+        if (!snapshot_from_layers(&temp_undo[temp_undo_count++], &stack) ||
             !layer_stack_rename(&stack, 1, "Undo Current")) {
             fprintf(stderr, "undo redo-rollover setup failed\n");
             snapshot_stack_clear(temp_undo, &temp_undo_count);
@@ -846,13 +874,17 @@ int main(void) {
             layer_stack_free(&stack);
             return 1;
         }
+        canvas_set_pixel(&stack.layers[1].canvas, 0, 0, 0xFF440044);
 
         if (!snapshot_undo(&stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count) ||
             !expect_name(&stack, 1, "Undo Target", "redo_rollover_undo_name") ||
+            !expect_pixel(&stack, 1, 0, 0, 0xFF330033, "redo_rollover_undo_pixel") ||
             !expect_int(temp_undo_count, 0, "redo_rollover_undo_count") ||
             !expect_int(temp_redo_count, 2, "redo_rollover_redo_count") ||
             strcmp(temp_redo[0].names[1], "Redo Old 2") != 0 ||
-            strcmp(temp_redo[1].names[1], "Undo Current") != 0) {
+            strcmp(temp_redo[1].names[1], "Undo Current") != 0 ||
+            temp_redo[0].pixels[per_layer] != 0xFF220022 ||
+            temp_redo[1].pixels[per_layer] != 0xFF440044) {
             fprintf(stderr, "snapshot_undo should roll redo stack forward\n");
             snapshot_stack_clear(temp_undo, &temp_undo_count);
             snapshot_stack_clear(temp_redo, &temp_redo_count);
@@ -869,15 +901,43 @@ int main(void) {
     {
         Snapshot temp_undo[2] = {0};
         Snapshot temp_redo[2] = {0};
+        size_t per_layer = (size_t)stack.width * (size_t)stack.height;
         int temp_undo_count = 0;
         int temp_redo_count = 0;
 
-        if (!layer_stack_rename(&stack, 1, "Undo Old 1") ||
-            !snapshot_from_layers(&temp_undo[temp_undo_count++], &stack) ||
-            !layer_stack_rename(&stack, 1, "Undo Old 2") ||
-            !snapshot_from_layers(&temp_undo[temp_undo_count++], &stack) ||
-            !layer_stack_rename(&stack, 1, "Redo Target") ||
-            !snapshot_from_layers(&temp_redo[temp_redo_count++], &stack) ||
+        if (!layer_stack_rename(&stack, 1, "Undo Old 1")) {
+            fprintf(stderr, "redo undo-rollover setup failed\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+        canvas_set_pixel(&stack.layers[1].canvas, 0, 0, 0xFF550055);
+        if (!snapshot_from_layers(&temp_undo[temp_undo_count++], &stack) ||
+            !layer_stack_rename(&stack, 1, "Undo Old 2")) {
+            fprintf(stderr, "redo undo-rollover setup failed\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+        canvas_set_pixel(&stack.layers[1].canvas, 0, 0, 0xFF660066);
+        if (!snapshot_from_layers(&temp_undo[temp_undo_count++], &stack) ||
+            !layer_stack_rename(&stack, 1, "Redo Target")) {
+            fprintf(stderr, "redo undo-rollover setup failed\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+        canvas_set_pixel(&stack.layers[1].canvas, 0, 0, 0xFF770077);
+        if (!snapshot_from_layers(&temp_redo[temp_redo_count++], &stack) ||
             !layer_stack_rename(&stack, 1, "Redo Current")) {
             fprintf(stderr, "redo undo-rollover setup failed\n");
             snapshot_stack_clear(temp_undo, &temp_undo_count);
@@ -887,13 +947,17 @@ int main(void) {
             layer_stack_free(&stack);
             return 1;
         }
+        canvas_set_pixel(&stack.layers[1].canvas, 0, 0, 0xFF880088);
 
         if (!snapshot_redo(&stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count) ||
             !expect_name(&stack, 1, "Redo Target", "undo_rollover_redo_name") ||
+            !expect_pixel(&stack, 1, 0, 0, 0xFF770077, "undo_rollover_redo_pixel") ||
             !expect_int(temp_undo_count, 2, "undo_rollover_undo_count") ||
             !expect_int(temp_redo_count, 0, "undo_rollover_redo_count") ||
             strcmp(temp_undo[0].names[1], "Undo Old 2") != 0 ||
-            strcmp(temp_undo[1].names[1], "Redo Current") != 0) {
+            strcmp(temp_undo[1].names[1], "Redo Current") != 0 ||
+            temp_undo[0].pixels[per_layer] != 0xFF660066 ||
+            temp_undo[1].pixels[per_layer] != 0xFF880088) {
             fprintf(stderr, "snapshot_redo should roll undo stack forward\n");
             snapshot_stack_clear(temp_undo, &temp_undo_count);
             snapshot_stack_clear(temp_redo, &temp_redo_count);
