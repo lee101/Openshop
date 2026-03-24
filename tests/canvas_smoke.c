@@ -1,3 +1,4 @@
+#include "../src/brush_render.h"
 #include "../src/brush_state.h"
 #include "../src/canvas.h"
 #include "../src/color_sample.h"
@@ -225,6 +226,46 @@ static int test_layer_edit_state_helpers(void) {
     }
 
     layer_stack_free(&stack);
+    return 1;
+}
+
+static int test_brush_render_helpers(void) {
+    Canvas canvas = {0};
+
+    if (!canvas_init(&canvas, 7, 7)) {
+        fprintf(stderr, "brush render canvas init failed\n");
+        return 0;
+    }
+    canvas_clear(&canvas, 0x00000000);
+
+    stamp_brush(&canvas, 3, 3, 1, 0xFF112233, BRUSH_SHAPE_DIAMOND);
+    if (!expect_pixel_eq("stamp_center", canvas_get_pixel(&canvas, 3, 3), 0xFF112233) ||
+        !expect_pixel_eq("stamp_diamond_tip", canvas_get_pixel(&canvas, 3, 2), 0xFF112233) ||
+        !expect_pixel_eq("stamp_diamond_corner", canvas_get_pixel(&canvas, 2, 2), 0x00000000)) {
+        canvas_free(&canvas);
+        return 0;
+    }
+
+    draw_brush_line(&canvas, 1, 1, 5, 1, 1, 0xFF445566, BRUSH_SHAPE_SQUARE);
+    if (!expect_pixel_eq("line_mid", canvas_get_pixel(&canvas, 3, 1), 0xFF445566) ||
+        !expect_pixel_eq("line_thickness", canvas_get_pixel(&canvas, 3, 2), 0xFF445566)) {
+        canvas_free(&canvas);
+        return 0;
+    }
+
+    erase_stamp(&canvas, 3, 3, 1, 0x00000000, BRUSH_SHAPE_DIAMOND);
+    if (!expect_pixel_eq("erase_center", canvas_get_pixel(&canvas, 3, 3), 0x00000000)) {
+        canvas_free(&canvas);
+        return 0;
+    }
+
+    erase_line(&canvas, 1, 1, 5, 1, 1, 0x00000000, BRUSH_SHAPE_SQUARE);
+    if (!expect_pixel_eq("erase_line_mid", canvas_get_pixel(&canvas, 3, 1), 0x00000000)) {
+        canvas_free(&canvas);
+        return 0;
+    }
+
+    canvas_free(&canvas);
     return 1;
 }
 
@@ -2845,6 +2886,10 @@ int main(void) {
     }
 
     if (!test_layer_edit_state_helpers()) {
+        return 1;
+    }
+
+    if (!test_brush_render_helpers()) {
         return 1;
     }
 

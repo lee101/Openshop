@@ -1,4 +1,5 @@
 #include "app.h"
+#include "brush_render.h"
 #include "brush_state.h"
 #include "canvas.h"
 #include "color_sample.h"
@@ -1575,20 +1576,6 @@ static int handle_right_click_sample(SDL_Window *window,
     return 1;
 }
 
-static void stamp_brush(Canvas *c, int cx, int cy, int radius, uint32_t color, BrushShape shape) {
-    if (!c || !c->pixels || radius <= 0) {
-        return;
-    }
-    for (int dy = -radius; dy <= radius; dy++) {
-        for (int dx = -radius; dx <= radius; dx++) {
-            if (!brush_mask_contains(shape, dx, dy, radius)) {
-                continue;
-            }
-            canvas_set_pixel(c, cx + dx, cy + dy, color);
-        }
-    }
-}
-
 static void draw_shape(Canvas *c, Tool tool, int x0, int y0, int x1, int y1, int radius, uint32_t color) {
     switch (tool) {
     case TOOL_LINE:
@@ -1721,74 +1708,6 @@ static int apply_canvas_translation(
     push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
     canvas_translate(&active->canvas, dx, dy, active_layer_clear_color(layers, COLOR_BG));
     return 1;
-}
-
-static void erase_stamp(Canvas *c, int cx, int cy, int radius, uint32_t clear_color, BrushShape shape) {
-    if (!c || !c->pixels || radius <= 0) {
-        return;
-    }
-    for (int dy = -radius; dy <= radius; dy++) {
-        for (int dx = -radius; dx <= radius; dx++) {
-            if (!brush_mask_contains(shape, dx, dy, radius)) {
-                continue;
-            }
-            canvas_set_pixel_raw(c, cx + dx, cy + dy, clear_color);
-        }
-    }
-}
-
-static void erase_line(Canvas *c, int x0, int y0, int x1, int y1, int radius, uint32_t clear_color, BrushShape shape) {
-    if (!c || !c->pixels) {
-        return;
-    }
-    int dx = abs(x1 - x0);
-    int sx = x0 < x1 ? 1 : -1;
-    int dy = -abs(y1 - y0);
-    int sy = y0 < y1 ? 1 : -1;
-    int err = dx + dy;
-
-    while (1) {
-        erase_stamp(c, x0, y0, radius, clear_color, shape);
-        if (x0 == x1 && y0 == y1) {
-            break;
-        }
-        int e2 = 2 * err;
-        if (e2 >= dy) {
-            err += dy;
-            x0 += sx;
-        }
-        if (e2 <= dx) {
-            err += dx;
-            y0 += sy;
-        }
-    }
-}
-
-static void draw_brush_line(Canvas *c, int x0, int y0, int x1, int y1, int radius, uint32_t color, BrushShape shape) {
-    if (!c || !c->pixels) {
-        return;
-    }
-    int dx = abs(x1 - x0);
-    int sx = x0 < x1 ? 1 : -1;
-    int dy = -abs(y1 - y0);
-    int sy = y0 < y1 ? 1 : -1;
-    int err = dx + dy;
-
-    while (1) {
-        stamp_brush(c, x0, y0, radius, color, shape);
-        if (x0 == x1 && y0 == y1) {
-            break;
-        }
-        int e2 = 2 * err;
-        if (e2 >= dy) {
-            err += dy;
-            x0 += sx;
-        }
-        if (e2 <= dx) {
-            err += dx;
-            y0 += sy;
-        }
-    }
 }
 
 int app_run(const char *input_path) {
