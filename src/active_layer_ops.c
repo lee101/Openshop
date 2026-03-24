@@ -268,6 +268,7 @@ int active_layer_continue_brush_stroke(LayerStack *layers,
                                        int *last_x, int *last_y,
                                        uint32_t background_color) {
     Layer *active;
+    uint8_t brush_alpha;
 
     if (!layers || !last_x || !last_y) {
         return 0;
@@ -277,6 +278,13 @@ int active_layer_continue_brush_stroke(LayerStack *layers,
         return 0;
     }
     if (tool != TOOL_BRUSH && tool != TOOL_ERASER) {
+        return 0;
+    }
+    brush_alpha = (uint8_t)((brush_color >> 24) & 0xFF);
+    if (tool == TOOL_BRUSH && brush_alpha == 0) {
+        return 0;
+    }
+    if (brush_radius <= 0) {
         return 0;
     }
     if (x < 0 || y < 0 || x >= active->canvas.width || y >= active->canvas.height) {
