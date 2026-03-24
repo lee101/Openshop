@@ -472,6 +472,58 @@ static int expect_handle_right_canvas_press(
 
 typedef struct {
     const char *label;
+    int initial_shaping;
+    int initial_preview_active;
+    const Canvas *composite;
+    const Canvas *preview_canvas;
+    int preview_canvas_active;
+    int x;
+    int y;
+    Tool initial_tool;
+    unsigned int initial_brush_color;
+    unsigned int initial_brush_color_rgb;
+    int initial_brush_opacity;
+    AppCanvasClickResult want_result;
+    int want_shaping;
+    int want_preview_active;
+    Tool want_tool;
+    unsigned int want_brush_color;
+    unsigned int want_brush_color_rgb;
+    int want_brush_opacity;
+} HandleRightCanvasPressCase;
+
+static int run_handle_right_canvas_press_case(
+    const HandleRightCanvasPressCase *test_case,
+    int *shaping,
+    int *preview_active
+) {
+    *shaping = test_case->initial_shaping;
+    *preview_active = test_case->initial_preview_active;
+    return expect_handle_right_canvas_press(
+        test_case->label,
+        shaping,
+        preview_active,
+        test_case->composite,
+        test_case->preview_canvas,
+        test_case->preview_canvas_active,
+        test_case->x,
+        test_case->y,
+        test_case->initial_tool,
+        test_case->initial_brush_color,
+        test_case->initial_brush_color_rgb,
+        test_case->initial_brush_opacity,
+        test_case->want_result,
+        test_case->want_shaping,
+        test_case->want_preview_active,
+        test_case->want_tool,
+        test_case->want_brush_color,
+        test_case->want_brush_color_rgb,
+        test_case->want_brush_opacity
+    );
+}
+
+typedef struct {
+    const char *label;
     int width;
     int height;
     uint32_t initial_fill;
@@ -2398,75 +2450,46 @@ int main(void) {
             ok = ok && run_handle_left_canvas_press_case(&click_cases[i]);
         }
     }
-    shaping = 1;
-    preview_active = 1;
-    ok = ok && expect_handle_right_canvas_press(
-        "handle_right_canvas_press_cancels_preview",
-        &shaping,
-        &preview_active,
-        &sampled_canvas,
-        &sampled_preview_canvas,
-        1,
-        0,
-        0,
-        TOOL_ERASER,
-        0xAA112233u,
-        0x00112233u,
-        42,
-        APP_CANVAS_CLICK_PREVIEW_CANCELED,
-        0,
-        0,
-        TOOL_ERASER,
-        0xAA112233u,
-        0x00112233u,
-        42
-    );
-    shaping = 0;
-    preview_active = 1;
-    ok = ok && expect_handle_right_canvas_press(
-        "handle_right_canvas_press_samples_color",
-        &shaping,
-        &preview_active,
-        &sampled_canvas,
-        &sampled_preview_canvas,
-        1,
-        0,
-        1,
-        TOOL_ERASER,
-        0xAA112233u,
-        0x00112233u,
-        42,
-        APP_CANVAS_CLICK_COLOR_SAMPLED,
-        0,
-        1,
-        TOOL_BRUSH,
-        0xFF223344u,
-        0x00223344u,
-        100
-    );
-    shaping = 0;
-    preview_active = 1;
-    ok = ok && expect_handle_right_canvas_press(
-        "handle_right_canvas_press_oob_noop",
-        &shaping,
-        &preview_active,
-        &sampled_canvas,
-        &sampled_preview_canvas,
-        1,
-        5,
-        5,
-        TOOL_ERASER,
-        0xAA112233u,
-        0x00112233u,
-        42,
-        APP_CANVAS_CLICK_NOOP,
-        0,
-        1,
-        TOOL_ERASER,
-        0xAA112233u,
-        0x00112233u,
-        42
-    );
+    {
+        const HandleRightCanvasPressCase right_click_cases[] = {
+            {
+                "handle_right_canvas_press_cancels_preview",
+                1, 1,
+                &sampled_canvas, &sampled_preview_canvas, 1, 0, 0,
+                TOOL_ERASER, 0xAA112233u, 0x00112233u, 42,
+                APP_CANVAS_CLICK_PREVIEW_CANCELED,
+                0, 0,
+                TOOL_ERASER, 0xAA112233u, 0x00112233u, 42,
+            },
+            {
+                "handle_right_canvas_press_samples_color",
+                0, 1,
+                &sampled_canvas, &sampled_preview_canvas, 1, 0, 1,
+                TOOL_ERASER, 0xAA112233u, 0x00112233u, 42,
+                APP_CANVAS_CLICK_COLOR_SAMPLED,
+                0, 1,
+                TOOL_BRUSH, 0xFF223344u, 0x00223344u, 100,
+            },
+            {
+                "handle_right_canvas_press_oob_noop",
+                0, 1,
+                &sampled_canvas, &sampled_preview_canvas, 1, 5, 5,
+                TOOL_ERASER, 0xAA112233u, 0x00112233u, 42,
+                APP_CANVAS_CLICK_NOOP,
+                0, 1,
+                TOOL_ERASER, 0xAA112233u, 0x00112233u, 42,
+            },
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(right_click_cases) / sizeof(right_click_cases[0]); i++) {
+            ok = ok && run_handle_right_canvas_press_case(
+                &right_click_cases[i],
+                &shaping,
+                &preview_active
+            );
+        }
+    }
     {
         ContinueDirectStrokeCase continue_cases[] = {
             {
