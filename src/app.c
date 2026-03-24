@@ -254,6 +254,14 @@ static int handle_add_layer_hotkey(SDL_Keycode key,
 
 typedef int (*LayerDirectionalActionFn)(LayerStack *layers, int arg);
 
+static void finish_window_layer_action(SDL_Window *window,
+                                       LayerStack *layers,
+                                       Tool tool, BrushShape brush_shape,
+                                       int brush_radius, uint32_t brush_color, int brush_opacity,
+                                       int *needs_composite,
+                                       int changed,
+                                       int mark_composite);
+
 static void run_indexed_layer_action(SDL_Window *window, LayerStack *layers,
                                      Snapshot *undo_stack, int *undo_count,
                                      Snapshot *redo_stack, int *redo_count,
@@ -267,10 +275,9 @@ static void run_indexed_layer_action(SDL_Window *window, LayerStack *layers,
                                                             MAX_HISTORY, action, layers->active_layer);
     if (result == LAYER_ACTION_HISTORY_FAILED) {
         fprintf(stderr, "%s\n", status_text_action_error(error_action));
-    } else if (result == LAYER_ACTION_HISTORY_CHANGED && mark_composite) {
-        *needs_composite = 1;
     }
-    update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+    finish_window_layer_action(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity,
+                               needs_composite, result == LAYER_ACTION_HISTORY_CHANGED, mark_composite);
 }
 
 static void run_directional_layer_action(SDL_Window *window, LayerStack *layers,
@@ -279,11 +286,13 @@ static void run_directional_layer_action(SDL_Window *window, LayerStack *layers,
                                          Tool tool, BrushShape brush_shape,
                                          int brush_radius, uint32_t brush_color, int brush_opacity,
                                          int *needs_composite, LayerDirectionalActionFn action, int arg) {
-    if (layer_action_history_apply_directional_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                                           MAX_HISTORY, action, arg) == LAYER_ACTION_HISTORY_CHANGED) {
-        *needs_composite = 1;
-    }
-    update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+    finish_window_layer_action(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity,
+                               needs_composite,
+                               layer_action_history_apply_directional_with_result(layers, undo_stack, undo_count,
+                                                                                  redo_stack, redo_count,
+                                                                                  MAX_HISTORY, action, arg) ==
+                                   LAYER_ACTION_HISTORY_CHANGED,
+                               1);
 }
 
 static void run_indexed_layer_action_silent(SDL_Window *window, LayerStack *layers,
@@ -293,12 +302,14 @@ static void run_indexed_layer_action_silent(SDL_Window *window, LayerStack *laye
                                             int brush_radius, uint32_t brush_color, int brush_opacity,
                                             int *needs_composite, LayerIndexedActionFn action,
                                             int mark_composite) {
-    if (layer_action_history_apply_indexed_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                                       MAX_HISTORY, action, layers->active_layer) == LAYER_ACTION_HISTORY_CHANGED &&
-        mark_composite) {
-        *needs_composite = 1;
-    }
-    update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+    finish_window_layer_action(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity,
+                               needs_composite,
+                               layer_action_history_apply_indexed_with_result(layers, undo_stack, undo_count,
+                                                                              redo_stack, redo_count,
+                                                                              MAX_HISTORY, action,
+                                                                              layers->active_layer) ==
+                                   LAYER_ACTION_HISTORY_CHANGED,
+                               mark_composite);
 }
 
 static void destroy_sdl_runtime(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *texture) {
@@ -334,6 +345,19 @@ static void refresh_title_after_handled_change(const TitleState *title_state,
         *needs_composite = 1;
     }
     update_title_state(title_state);
+}
+
+static void finish_window_layer_action(SDL_Window *window,
+                                       LayerStack *layers,
+                                       Tool tool, BrushShape brush_shape,
+                                       int brush_radius, uint32_t brush_color, int brush_opacity,
+                                       int *needs_composite,
+                                       int changed,
+                                       int mark_composite) {
+    if (changed && mark_composite && needs_composite) {
+        *needs_composite = 1;
+    }
+    update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
 }
 
 typedef int (*SelectorHotkeyFn)(LayerStack *layers, int arg);
