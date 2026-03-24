@@ -423,6 +423,70 @@ static int test_layer_snapshot_capture_reuses_existing_snapshot(void) {
     return 1;
 }
 
+static int test_layer_snapshot_apply_clamps_invalid_focus_indices(void) {
+    LayerStack source;
+    if (!layer_stack_init(&source, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "snapshot clamp source init failed\n");
+        return 0;
+    }
+    if (layer_stack_add(&source, "Mid", 0x00000000) != 1 ||
+        layer_stack_add(&source, "Top", 0x00000000) != 2) {
+        fprintf(stderr, "snapshot clamp source add layers failed\n");
+        layer_stack_free(&source);
+        return 0;
+    }
+
+    LayerSnapshot snapshot = {0};
+    if (!layer_snapshot_capture(&snapshot, &source)) {
+        fprintf(stderr, "snapshot clamp capture failed\n");
+        layer_stack_free(&source);
+        return 0;
+    }
+    layer_stack_free(&source);
+
+    snapshot.active_layer = snapshot.layer_count + 5;
+    snapshot.solo_index = snapshot.layer_count + 3;
+
+    LayerStack dest;
+    if (!layer_stack_init(&dest, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "snapshot clamp dest init failed\n");
+        layer_snapshot_free(&snapshot);
+        return 0;
+    }
+
+    if (!layer_snapshot_apply(&snapshot, &dest)) {
+        fprintf(stderr, "snapshot clamp apply failed\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&dest);
+        return 0;
+    }
+    if (dest.active_layer != dest.layer_count - 1 || dest.solo_index != -1) {
+        fprintf(stderr, "snapshot apply should clamp invalid active and solo indices\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&dest);
+        return 0;
+    }
+
+    snapshot.active_layer = -7;
+    snapshot.solo_index = -1;
+    if (!layer_snapshot_apply(&snapshot, &dest)) {
+        fprintf(stderr, "snapshot clamp reapply failed\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&dest);
+        return 0;
+    }
+    if (dest.active_layer != 0 || dest.solo_index != -1) {
+        fprintf(stderr, "snapshot apply should clamp negative active index and preserve cleared solo\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&dest);
+        return 0;
+    }
+
+    layer_snapshot_free(&snapshot);
+    layer_stack_free(&dest);
+    return 1;
+}
+
 static int test_layer_snapshot_free_preserves_metadata_arrays(void) {
     LayerStack stack;
     if (!init_snapshot_metadata_test_stack(&stack, "snapshot free")) {
@@ -2846,6 +2910,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_snapshot_capture_reuses_existing_snapshot()) {
+        return 1;
+    }
+    if (!test_layer_snapshot_apply_clamps_invalid_focus_indices()) {
         return 1;
     }
     if (!test_layer_snapshot_free_preserves_metadata_arrays()) {
