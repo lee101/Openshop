@@ -1,4 +1,5 @@
 #include "../src/app_brush.h"
+#include "../src/app_color.h"
 #include "../src/app_preview.h"
 #include "../src/app_shape.h"
 #include "../src/app_title.h"
@@ -113,6 +114,15 @@ static int expect_view_result(
             want_dx,
             want_dy
         );
+        return 0;
+    }
+    return 1;
+}
+
+static int expect_brush_color(const char *label, unsigned int rgb_color, int opacity_percent, unsigned int want) {
+    unsigned int got = app_compose_brush_color(rgb_color, opacity_percent);
+    if (got != want) {
+        fprintf(stderr, "%s mismatch: got 0x%08X want 0x%08X\n", label, got, want);
         return 0;
     }
     return 1;
@@ -466,6 +476,9 @@ int main(void) {
     ok = ok && expect_view_result("left", VIEW_SHORTCUT_KEY_LEFT, 0, VIEW_SHORTCUT_TRANSLATE, 0, -1, 0);
     ok = ok && expect_view_result("right_shift", VIEW_SHORTCUT_KEY_RIGHT, 1, VIEW_SHORTCUT_TRANSLATE, 0, 10, 0);
     ok = ok && expect_view_result("view_none", VIEW_SHORTCUT_KEY_NONE, 0, VIEW_SHORTCUT_NONE, 0, 0, 0);
+    ok = ok && expect_brush_color("brush_color_low_clamp", 0x00123456u, 0, 0x03123456u);
+    ok = ok && expect_brush_color("brush_color_mid_round", 0x00ABCDEFu, 50, 0x80ABCDEFu);
+    ok = ok && expect_brush_color("brush_color_high_clamp", 0x00FEDCBAu, 150, 0xFFFEDCBAu);
     ok = ok && expect_tool_label("tool_brush_label", TOOL_BRUSH, "Brush");
     ok = ok && expect_tool_label("tool_filled_ellipse_label", TOOL_FILLED_ELLIPSE, "Filled Ellipse");
     ok = ok && expect_tool_label("tool_label_default", (Tool)999, "Brush");

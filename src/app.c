@@ -1,5 +1,6 @@
 #include "app.h"
 #include "app_brush.h"
+#include "app_color.h"
 #include "app_preview.h"
 #include "app_shape.h"
 #include "app_title.h"
@@ -111,16 +112,6 @@ static int handle_history_navigation_shortcut(
     return 0;
 }
 
-static uint32_t compose_brush_color(uint32_t rgb_color, int opacity_percent) {
-    if (opacity_percent < 1) {
-        opacity_percent = 1;
-    } else if (opacity_percent > 100) {
-        opacity_percent = 100;
-    }
-    uint32_t alpha = (uint32_t)((opacity_percent * 255 + 50) / 100);
-    return (alpha << 24) | (rgb_color & 0x00FFFFFF);
-}
-
 static void apply_sampled_brush_color(
     uint32_t sampled_color,
     Tool *tool,
@@ -141,7 +132,7 @@ static void apply_sampled_brush_color(
     if (*brush_opacity < 1) {
         *brush_opacity = 1;
     }
-    *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+    *brush_color = app_compose_brush_color(*brush_color_rgb, *brush_opacity);
     *tool = TOOL_BRUSH;
 }
 
@@ -992,11 +983,11 @@ static int handle_brush_and_paint_shortcut(
 
     if (paint_action == PAINT_SHORTCUT_TOOL_BRUSH) {
         *brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
-        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *brush_color = app_compose_brush_color(*brush_color_rgb, *brush_opacity);
         *tool = TOOL_BRUSH;
     } else if (paint_action == PAINT_SHORTCUT_TOOL_ERASER) {
         *brush_color_rgb = COLOR_ERASE & 0x00FFFFFF;
-        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *brush_color = app_compose_brush_color(*brush_color_rgb, *brush_opacity);
         *tool = TOOL_ERASER;
     } else if (paint_action == PAINT_SHORTCUT_TOOL_LINE) {
         *tool = TOOL_LINE;
@@ -1026,7 +1017,7 @@ static int handle_brush_and_paint_shortcut(
             if (*brush_opacity < 1) {
                 *brush_opacity = 1;
             }
-            *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+            *brush_color = app_compose_brush_color(*brush_color_rgb, *brush_opacity);
         }
     } else if (brush_action == BRUSH_SHORTCUT_OPACITY_UP) {
         if (*brush_opacity < 100) {
@@ -1034,31 +1025,31 @@ static int handle_brush_and_paint_shortcut(
             if (*brush_opacity > 100) {
                 *brush_opacity = 100;
             }
-            *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+            *brush_color = app_compose_brush_color(*brush_color_rgb, *brush_opacity);
         }
     } else if (paint_action == PAINT_SHORTCUT_COLOR_BRUSH) {
         *brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
-        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *brush_color = app_compose_brush_color(*brush_color_rgb, *brush_opacity);
         *tool = TOOL_BRUSH;
     } else if (paint_action == PAINT_SHORTCUT_COLOR_RED) {
         *brush_color_rgb = COLOR_RED & 0x00FFFFFF;
-        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *brush_color = app_compose_brush_color(*brush_color_rgb, *brush_opacity);
         *tool = TOOL_BRUSH;
     } else if (paint_action == PAINT_SHORTCUT_COLOR_GREEN) {
         *brush_color_rgb = COLOR_GREEN & 0x00FFFFFF;
-        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *brush_color = app_compose_brush_color(*brush_color_rgb, *brush_opacity);
         *tool = TOOL_BRUSH;
     } else if (paint_action == PAINT_SHORTCUT_COLOR_BLUE) {
         *brush_color_rgb = COLOR_BLUE & 0x00FFFFFF;
-        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *brush_color = app_compose_brush_color(*brush_color_rgb, *brush_opacity);
         *tool = TOOL_BRUSH;
     } else if (paint_action == PAINT_SHORTCUT_COLOR_YELLOW) {
         *brush_color_rgb = COLOR_YELLOW & 0x00FFFFFF;
-        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *brush_color = app_compose_brush_color(*brush_color_rgb, *brush_opacity);
         *tool = TOOL_BRUSH;
     } else if (paint_action == PAINT_SHORTCUT_COLOR_PURPLE) {
         *brush_color_rgb = COLOR_PURPLE & 0x00FFFFFF;
-        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *brush_color = app_compose_brush_color(*brush_color_rgb, *brush_opacity);
         *tool = TOOL_BRUSH;
     } else {
         return 0;
@@ -2074,7 +2065,7 @@ static void initialize_app_runtime(AppRuntime *runtime) {
     runtime->brush_radius = 6;
     runtime->brush_opacity = 100;
     runtime->brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
-    runtime->brush_color = compose_brush_color(runtime->brush_color_rgb, runtime->brush_opacity);
+    runtime->brush_color = app_compose_brush_color(runtime->brush_color_rgb, runtime->brush_opacity);
     runtime->brush_shape = BRUSH_SHAPE_ROUND;
     runtime->tool = TOOL_BRUSH;
     runtime->undo_count = 0;
