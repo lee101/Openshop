@@ -1351,6 +1351,43 @@ static int handle_file_hotkey(SDL_Keycode key,
     return 0;
 }
 
+static int handle_left_click_down(LayerStack *layers,
+                                  Snapshot *undo_stack, int *undo_count,
+                                  Snapshot *redo_stack, int *redo_count,
+                                  Tool tool, int x, int y,
+                                  int brush_radius, uint32_t brush_color,
+                                  BrushShape brush_shape,
+                                  int *drawing, int *needs_composite,
+                                  int *shaping, int *shape_start_x, int *shape_start_y,
+                                  uint32_t *shape_base_pixels,
+                                  const Canvas *composite) {
+    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count ||
+        !drawing || !needs_composite || !shaping || !shape_start_x || !shape_start_y || !composite) {
+        return 0;
+    }
+
+    if (tool == TOOL_BRUSH || tool == TOOL_ERASER) {
+        if (try_begin_brush_stroke(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                   tool, x, y, brush_radius, brush_color, brush_shape)) {
+            *drawing = 1;
+            *needs_composite = 1;
+        }
+        return 1;
+    }
+
+    if (active_layer_editable(layers)) {
+        *shaping = 1;
+        *shape_start_x = x;
+        *shape_start_y = y;
+        if (shape_base_pixels) {
+            memcpy(shape_base_pixels, composite->pixels,
+                   (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
+        }
+    }
+
+    return 1;
+}
+
 static int handle_translation_hotkey(SDL_Keycode key,
                                      int ctrl, int alt, int shift,
                                      LayerStack *layers,
@@ -1817,24 +1854,11 @@ int app_run(const char *input_path) {
                 if (e.button.button == SDL_BUTTON_LEFT) {
                     last_x = e.button.x;
                     last_y = e.button.y;
-                    if (tool == TOOL_BRUSH || tool == TOOL_ERASER) {
-                        if (try_begin_brush_stroke(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                                                   tool, last_x, last_y, brush_radius, brush_color, brush_shape)) {
-                            drawing = 1;
-                            needs_composite = 1;
-                        }
-                    } else if (active_layer_editable(&layers)) {
-                        shaping = 1;
-                        shape_start_x = last_x;
-                        shape_start_y = last_y;
-                        if (shape_base_pixels) {
-                            memcpy(
-                                shape_base_pixels,
-                                composite.pixels,
-                                (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t)
-                            );
-                        }
-                    }
+                    handle_left_click_down(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                           tool, last_x, last_y, brush_radius, brush_color, brush_shape,
+                                           &drawing, &needs_composite,
+                                           &shaping, &shape_start_x, &shape_start_y,
+                                           shape_base_pixels, &composite);
                 } else if (e.button.button == SDL_BUTTON_RIGHT) {
                     if (shaping) {
                         cancel_shape_preview(&shaping, &preview_active);
