@@ -589,6 +589,19 @@ static int key_translation_delta(SDL_Keycode key, int step, int *dx, int *dy) {
     return 1;
 }
 
+static void destroy_sdl_runtime(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *texture) {
+    if (texture) {
+        SDL_DestroyTexture(texture);
+    }
+    if (renderer) {
+        SDL_DestroyRenderer(renderer);
+    }
+    if (window) {
+        SDL_DestroyWindow(window);
+    }
+    SDL_Quit();
+}
+
 static int refresh_title_on_change(SDL_Window *window, const LayerStack *layers,
                                    Tool tool, BrushShape brush_shape,
                                    int brush_radius, uint32_t brush_color, int brush_opacity,
@@ -1997,7 +2010,7 @@ int app_run(const char *input_path) {
     if (!window) {
         format_status_text_sdl("SDL_CreateWindow", SDL_GetError(), status_message, sizeof(status_message));
         fprintf(stderr, "%s\n", status_message);
-        SDL_Quit();
+        destroy_sdl_runtime(NULL, NULL, NULL);
         return 1;
     }
 
@@ -2005,8 +2018,7 @@ int app_run(const char *input_path) {
     if (!renderer) {
         format_status_text_sdl("SDL_CreateRenderer", SDL_GetError(), status_message, sizeof(status_message));
         fprintf(stderr, "%s\n", status_message);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
+        destroy_sdl_runtime(window, NULL, NULL);
         return 1;
     }
 
@@ -2020,9 +2032,7 @@ int app_run(const char *input_path) {
     if (!texture) {
         format_status_text_sdl("SDL_CreateTexture", SDL_GetError(), status_message, sizeof(status_message));
         fprintf(stderr, "%s\n", status_message);
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
+        destroy_sdl_runtime(window, renderer, NULL);
         return 1;
     }
 
@@ -2030,10 +2040,7 @@ int app_run(const char *input_path) {
     if (!layer_stack_init(&layers, CANVAS_WIDTH, CANVAS_HEIGHT, COLOR_BG)) {
         format_status_text_startup("Layer stack init", status_message, sizeof(status_message));
         fprintf(stderr, "%s\n", status_message);
-        SDL_DestroyTexture(texture);
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
+        destroy_sdl_runtime(window, renderer, texture);
         return 1;
     }
 
@@ -2042,10 +2049,7 @@ int app_run(const char *input_path) {
         format_status_text_startup("Composite canvas init", status_message, sizeof(status_message));
         fprintf(stderr, "%s\n", status_message);
         layer_stack_free(&layers);
-        SDL_DestroyTexture(texture);
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
+        destroy_sdl_runtime(window, renderer, texture);
         return 1;
     }
 
@@ -2216,9 +2220,6 @@ int app_run(const char *input_path) {
     layer_stack_free(&layers);
     stack_clear(undo_stack, &undo_count);
     stack_clear(redo_stack, &redo_count);
-    SDL_DestroyTexture(texture);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
+    destroy_sdl_runtime(window, renderer, texture);
     return 0;
 }
