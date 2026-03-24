@@ -1456,6 +1456,24 @@ static int handle_mouse_button_down(SDL_Window *window,
     return 0;
 }
 
+static int handle_mouse_button_up(LayerStack *layers,
+                                  Snapshot *undo_stack, int *undo_count,
+                                  Snapshot *redo_stack, int *redo_count,
+                                  Uint8 button, int x, int y,
+                                  Tool tool, int brush_radius, uint32_t brush_color,
+                                  int *drawing, int *needs_composite,
+                                  int *shaping, int shape_start_x, int shape_start_y,
+                                  int *preview_active) {
+    if (button == SDL_BUTTON_LEFT) {
+        return handle_left_click_up(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                    tool, x, y, brush_radius, brush_color,
+                                    drawing, needs_composite,
+                                    shaping, shape_start_x, shape_start_y, preview_active);
+    }
+
+    return 0;
+}
+
 static int handle_shape_preview_motion(Tool tool,
                                        int shape_start_x, int shape_start_y,
                                        int x, int y,
@@ -2054,12 +2072,11 @@ int app_run(const char *input_path) {
                                          &brush_color_rgb, &brush_color, &brush_opacity, &tool);
                 break;
             case SDL_MOUSEBUTTONUP:
-                if (e.button.button == SDL_BUTTON_LEFT) {
-                    handle_left_click_up(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                                         tool, e.button.x, e.button.y, brush_radius, brush_color,
-                                         &drawing, &needs_composite,
-                                         &shaping, shape_start_x, shape_start_y, &preview_active);
-                }
+                handle_mouse_button_up(&layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                       e.button.button, e.button.x, e.button.y,
+                                       tool, brush_radius, brush_color,
+                                       &drawing, &needs_composite,
+                                       &shaping, shape_start_x, shape_start_y, &preview_active);
                 break;
             case SDL_MOUSEMOTION:
                 handle_mouse_motion(&layers, tool, e.motion.x, e.motion.y,
