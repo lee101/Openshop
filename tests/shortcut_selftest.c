@@ -822,6 +822,24 @@ int main(void) {
         13,
         preview_sentinel
     );
+    shaping = 12;
+    shape_start_x = 14;
+    memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
+    ok = ok && expect_begin_shape_preview(
+        "begin_shape_preview_null_start_y_noop",
+        80,
+        90,
+        &shaping,
+        &shape_start_x,
+        NULL,
+        preview_copy,
+        preview_source,
+        4,
+        12,
+        14,
+        0,
+        preview_sentinel
+    );
     ok = ok && expect_cancel_shape_preview("cancel_shape_preview_both", &shaping, &preview_active, 0, 0);
     shaping = 7;
     preview_active = 9;
