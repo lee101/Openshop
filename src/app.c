@@ -1397,8 +1397,6 @@ static int handle_right_click_down(SDL_Window *window,
                                    uint32_t *brush_color_rgb, uint32_t *brush_color,
                                    int *brush_opacity, int brush_radius,
                                    BrushShape brush_shape, Tool *tool) {
-    const Canvas *sample;
-
     if (!window || !layers || !shaping || !preview_active || !composite ||
         !brush_color_rgb || !brush_color || !brush_opacity || !tool) {
         return 0;
@@ -1409,8 +1407,8 @@ static int handle_right_click_down(SDL_Window *window,
         return 1;
     }
 
-    sample = (preview_canvas && preview_canvas->pixels) ? preview_canvas : composite;
-    handle_right_click_sample(window, layers, sample, x, y, brush_color_rgb, brush_color,
+    handle_right_click_sample(window, layers, current_display_canvas(*preview_active, preview_canvas, composite),
+                              x, y, brush_color_rgb, brush_color,
                               brush_opacity, brush_radius, brush_shape, tool);
     return 1;
 }
@@ -1670,6 +1668,22 @@ static int handle_right_click_sample(SDL_Window *window,
 
     update_window_title(window, layers, *tool, brush_shape, brush_radius, *brush_color, *brush_opacity);
     return 1;
+}
+
+static const Canvas *current_display_canvas(int preview_active,
+                                            const Canvas *preview_canvas,
+                                            const Canvas *composite) {
+    if (preview_active && preview_canvas && preview_canvas->pixels) {
+        return preview_canvas;
+    }
+    return composite;
+}
+
+static const uint32_t *current_display_pixels(int preview_active,
+                                              const Canvas *preview_canvas,
+                                              const Canvas *composite) {
+    const Canvas *canvas = current_display_canvas(preview_active, preview_canvas, composite);
+    return canvas ? canvas->pixels : NULL;
 }
 
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
@@ -2173,7 +2187,7 @@ int app_run(const char *input_path) {
                 }
 
                 {
-                    const Canvas *sample = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
+                    const Canvas *sample = current_display_canvas(preview_active, &preview_canvas, &composite);
                     handle_general_key_hotkey(key, window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
                                               sample, &brush_color_rgb, &brush_color, &brush_opacity,
                                               &brush_radius, &brush_shape, &tool, &needs_composite);
@@ -2190,11 +2204,7 @@ int app_run(const char *input_path) {
             needs_composite = 0;
         }
 
-        if (preview_active && preview_canvas.pixels) {
-            SDL_UpdateTexture(texture, NULL, preview_canvas.pixels, CANVAS_WIDTH * 4);
-        } else {
-            SDL_UpdateTexture(texture, NULL, composite.pixels, CANVAS_WIDTH * 4);
-        }
+        SDL_UpdateTexture(texture, NULL, current_display_pixels(preview_active, &preview_canvas, &composite), CANVAS_WIDTH * 4);
         SDL_SetRenderDrawColor(renderer, 30, 30, 34, 255);
         SDL_RenderClear(renderer);
 
