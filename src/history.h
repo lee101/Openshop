@@ -53,6 +53,7 @@ int layer_snapshot_matches_stack(const LayerSnapshot *snapshot, const LayerStack
 // Fully resets each populated entry in `stack` and zeroes `count`; null inputs are ignored.
 void layer_history_clear(LayerSnapshot *stack, int *count);
 // Captures the current stack into `stack` when `layers`, `stack`, and `count` are valid.
+// Failed current-state capture leaves both history stacks unchanged.
 // `redo`/`redo_count` are optional; when both are provided they are cleared only after a new snapshot is pushed.
 void layer_history_push(const LayerStack *layers, LayerSnapshot *stack, int *count, LayerSnapshot *redo, int *redo_count);
 // On success these move the current stack state to the opposite history stack and apply the pending snapshot.
@@ -62,6 +63,7 @@ int layer_history_redo(LayerStack *layers, LayerSnapshot *undo_stack, int *undo_
 // Preferred API for app integration: keep undo/redo state inside LayerHistory.
 void layer_history_reset(LayerHistory *history);
 // Records the current stack into history when both `history` and `layers` are valid; otherwise this is a no-op.
+// Failed current-state capture leaves undo/redo counts unchanged.
 void layer_history_record(LayerHistory *history, const LayerStack *layers);
 // On success this transfers snapshot ownership into history and disowns the caller snapshot.
 // A null snapshot fails cleanly; other discard/failure paths reset the caller snapshot back to an empty state.
