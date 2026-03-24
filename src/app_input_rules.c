@@ -160,7 +160,10 @@ AppHistoryHotkeyAction app_history_hotkey_action(int key, int ctrl, int alt, int
     return APP_HISTORY_HOTKEY_NONE;
 }
 
-AppBrushAdjustAction app_brush_adjust_hotkey_action(int key) {
+AppBrushAdjustAction app_brush_adjust_hotkey_action(int key, int ctrl, int alt) {
+    if (ctrl || alt) {
+        return APP_BRUSH_ADJUST_NONE;
+    }
     if (key == APP_KEY_LEFTBRACKET) {
         return APP_BRUSH_ADJUST_RADIUS_DOWN;
     }
@@ -222,7 +225,10 @@ int app_mouse_position_marks_composite(AppMousePositionAction action, int change
     return action == APP_MOUSE_POSITION_FILL && changed;
 }
 
-AppBrushPresetAction app_brush_preset_hotkey_action(int key) {
+AppBrushPresetAction app_brush_preset_hotkey_action(int key, int ctrl, int alt) {
+    if (ctrl || alt) {
+        return APP_BRUSH_PRESET_NONE;
+    }
     if (key == APP_KEY_b || key == APP_KEY_1) {
         return APP_BRUSH_PRESET_DEFAULT;
     }
@@ -247,7 +253,10 @@ AppBrushPresetAction app_brush_preset_hotkey_action(int key) {
     return APP_BRUSH_PRESET_NONE;
 }
 
-AppBrushToolAction app_brush_tool_hotkey_action(int key) {
+AppBrushToolAction app_brush_tool_hotkey_action(int key, int ctrl, int alt) {
+    if (ctrl || alt) {
+        return APP_BRUSH_TOOL_NONE;
+    }
     if (key == APP_KEY_l) {
         return APP_BRUSH_TOOL_LINE;
     }

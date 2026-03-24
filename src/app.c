@@ -584,6 +584,7 @@ static const IndexedLayerSilentHotkey *find_matching_indexed_layer_silent_hotkey
 }
 
 static int handle_brush_state_hotkey(SDL_Keycode key,
+                                     int ctrl, int alt,
                                      uint32_t *brush_color_rgb, uint32_t *brush_color,
                                      int *brush_opacity, int *brush_radius,
                                      BrushShape *brush_shape, Tool *tool) {
@@ -595,7 +596,7 @@ static int handle_brush_state_hotkey(SDL_Keycode key,
         return 0;
     }
 
-    preset_action = app_brush_preset_hotkey_action((int)key);
+    preset_action = app_brush_preset_hotkey_action((int)key, ctrl, alt);
     switch (preset_action) {
     case APP_BRUSH_PRESET_DEFAULT:
         brush_state_set_color_tool(COLOR_BRUSH, *brush_opacity, brush_color_rgb, brush_color, tool, TOOL_BRUSH);
@@ -623,7 +624,7 @@ static int handle_brush_state_hotkey(SDL_Keycode key,
         break;
     }
 
-    tool_action = app_brush_tool_hotkey_action((int)key);
+    tool_action = app_brush_tool_hotkey_action((int)key, ctrl, alt);
     switch (tool_action) {
     case APP_BRUSH_TOOL_LINE:
         brush_state_set_tool(TOOL_LINE, tool);
@@ -645,7 +646,7 @@ static int handle_brush_state_hotkey(SDL_Keycode key,
         break;
     }
 
-    adjust_action = app_brush_adjust_hotkey_action((int)key);
+    adjust_action = app_brush_adjust_hotkey_action((int)key, ctrl, alt);
     if (adjust_action == APP_BRUSH_ADJUST_RADIUS_DOWN) {
         if (*brush_radius > 1) {
             brush_state_adjust_radius(-1, brush_radius);
@@ -767,7 +768,8 @@ static void handle_general_key_hotkey(SDL_Keycode key,
         return;
     }
 
-    if (handle_brush_state_hotkey(key, brush_color_rgb, brush_color, brush_opacity, brush_radius, brush_shape, tool)) {
+    if (handle_brush_state_hotkey(key, ctrl, alt,
+                                  brush_color_rgb, brush_color, brush_opacity, brush_radius, brush_shape, tool)) {
         update_title_state(action_state->title_state);
         return;
     }

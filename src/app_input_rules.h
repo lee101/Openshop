@@ -144,13 +144,13 @@ AppOpacityHotkeyAction app_opacity_hotkey_action(int key, int ctrl, int alt);
 AppLayerNavigationAction app_layer_navigation_action(int key, int ctrl, int alt, int shift, int *arg);
 AppFileHotkeyAction app_file_hotkey_action(int key, int ctrl, int alt, int shift);
 AppHistoryHotkeyAction app_history_hotkey_action(int key, int ctrl, int alt, int shift);
-AppBrushAdjustAction app_brush_adjust_hotkey_action(int key);
+AppBrushAdjustAction app_brush_adjust_hotkey_action(int key, int ctrl, int alt);
 int app_is_add_layer_hotkey(int key, int ctrl, int alt, int shift);
 AppActiveEditAction app_active_edit_hotkey_action(int key, int ctrl, int alt);
 AppMousePositionAction app_mouse_position_hotkey_action(int key);
 int app_mouse_position_marks_composite(AppMousePositionAction action, int changed);
-AppBrushPresetAction app_brush_preset_hotkey_action(int key);
-AppBrushToolAction app_brush_tool_hotkey_action(int key);
+AppBrushPresetAction app_brush_preset_hotkey_action(int key, int ctrl, int alt);
+AppBrushToolAction app_brush_tool_hotkey_action(int key, int ctrl, int alt);
 AppEscapeAction app_escape_action(int key, int shaping);
 
 #endif

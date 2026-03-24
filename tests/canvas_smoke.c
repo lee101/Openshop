@@ -146,17 +146,19 @@ static int test_app_input_rules(void) {
             fprintf(stderr, "history non-hotkey mapping failed\n");
             return 0;
         }
-        if (app_brush_adjust_hotkey_action(APP_KEY_LEFTBRACKET) != APP_BRUSH_ADJUST_RADIUS_DOWN ||
-            app_brush_adjust_hotkey_action(APP_KEY_RIGHTBRACKET) != APP_BRUSH_ADJUST_RADIUS_UP ||
-            app_brush_adjust_hotkey_action(APP_KEY_COMMA) != APP_BRUSH_ADJUST_SHAPE_PREV ||
-            app_brush_adjust_hotkey_action(APP_KEY_PERIOD) != APP_BRUSH_ADJUST_SHAPE_NEXT ||
-            app_brush_adjust_hotkey_action(APP_KEY_MINUS) != APP_BRUSH_ADJUST_OPACITY_DOWN ||
-            app_brush_adjust_hotkey_action(APP_KEY_KP_PLUS) != APP_BRUSH_ADJUST_OPACITY_UP) {
+        if (app_brush_adjust_hotkey_action(APP_KEY_LEFTBRACKET, 0, 0) != APP_BRUSH_ADJUST_RADIUS_DOWN ||
+            app_brush_adjust_hotkey_action(APP_KEY_RIGHTBRACKET, 0, 0) != APP_BRUSH_ADJUST_RADIUS_UP ||
+            app_brush_adjust_hotkey_action(APP_KEY_COMMA, 0, 0) != APP_BRUSH_ADJUST_SHAPE_PREV ||
+            app_brush_adjust_hotkey_action(APP_KEY_PERIOD, 0, 0) != APP_BRUSH_ADJUST_SHAPE_NEXT ||
+            app_brush_adjust_hotkey_action(APP_KEY_MINUS, 0, 0) != APP_BRUSH_ADJUST_OPACITY_DOWN ||
+            app_brush_adjust_hotkey_action(APP_KEY_KP_PLUS, 0, 0) != APP_BRUSH_ADJUST_OPACITY_UP) {
             fprintf(stderr, "brush adjust hotkey mapping failed\n");
             return 0;
         }
-        if (app_brush_adjust_hotkey_action(APP_KEY_b) != APP_BRUSH_ADJUST_NONE) {
-            fprintf(stderr, "brush adjust non-hotkey mapping failed\n");
+        if (app_brush_adjust_hotkey_action(APP_KEY_b, 0, 0) != APP_BRUSH_ADJUST_NONE ||
+            app_brush_adjust_hotkey_action(APP_KEY_LEFTBRACKET, 1, 0) != APP_BRUSH_ADJUST_NONE ||
+            app_brush_adjust_hotkey_action(APP_KEY_MINUS, 0, 1) != APP_BRUSH_ADJUST_NONE) {
+            fprintf(stderr, "brush adjust non-hotkey or modifier rejection failed\n");
             return 0;
         }
         if (!app_is_add_layer_hotkey(APP_KEY_n, 1, 0, 1)) {
@@ -199,31 +201,35 @@ static int test_app_input_rules(void) {
             fprintf(stderr, "mouse position composite marking failed\n");
             return 0;
         }
-        if (app_brush_preset_hotkey_action(APP_KEY_b) != APP_BRUSH_PRESET_DEFAULT ||
-            app_brush_preset_hotkey_action(APP_KEY_1) != APP_BRUSH_PRESET_DEFAULT ||
-            app_brush_preset_hotkey_action(APP_KEY_e) != APP_BRUSH_PRESET_ERASE ||
-            app_brush_preset_hotkey_action(APP_KEY_2) != APP_BRUSH_PRESET_RED ||
-            app_brush_preset_hotkey_action(APP_KEY_3) != APP_BRUSH_PRESET_GREEN ||
-            app_brush_preset_hotkey_action(APP_KEY_4) != APP_BRUSH_PRESET_BLUE ||
-            app_brush_preset_hotkey_action(APP_KEY_5) != APP_BRUSH_PRESET_YELLOW ||
-            app_brush_preset_hotkey_action(APP_KEY_6) != APP_BRUSH_PRESET_PURPLE) {
+        if (app_brush_preset_hotkey_action(APP_KEY_b, 0, 0) != APP_BRUSH_PRESET_DEFAULT ||
+            app_brush_preset_hotkey_action(APP_KEY_1, 0, 0) != APP_BRUSH_PRESET_DEFAULT ||
+            app_brush_preset_hotkey_action(APP_KEY_e, 0, 0) != APP_BRUSH_PRESET_ERASE ||
+            app_brush_preset_hotkey_action(APP_KEY_2, 0, 0) != APP_BRUSH_PRESET_RED ||
+            app_brush_preset_hotkey_action(APP_KEY_3, 0, 0) != APP_BRUSH_PRESET_GREEN ||
+            app_brush_preset_hotkey_action(APP_KEY_4, 0, 0) != APP_BRUSH_PRESET_BLUE ||
+            app_brush_preset_hotkey_action(APP_KEY_5, 0, 0) != APP_BRUSH_PRESET_YELLOW ||
+            app_brush_preset_hotkey_action(APP_KEY_6, 0, 0) != APP_BRUSH_PRESET_PURPLE) {
             fprintf(stderr, "brush preset hotkey mapping failed\n");
             return 0;
         }
-        if (app_brush_preset_hotkey_action(APP_KEY_l) != APP_BRUSH_PRESET_NONE) {
-            fprintf(stderr, "brush preset non-hotkey mapping failed\n");
+        if (app_brush_preset_hotkey_action(APP_KEY_l, 0, 0) != APP_BRUSH_PRESET_NONE ||
+            app_brush_preset_hotkey_action(APP_KEY_b, 1, 0) != APP_BRUSH_PRESET_NONE ||
+            app_brush_preset_hotkey_action(APP_KEY_e, 0, 1) != APP_BRUSH_PRESET_NONE) {
+            fprintf(stderr, "brush preset non-hotkey or modifier rejection failed\n");
             return 0;
         }
-        if (app_brush_tool_hotkey_action(APP_KEY_l) != APP_BRUSH_TOOL_LINE ||
-            app_brush_tool_hotkey_action(APP_KEY_r) != APP_BRUSH_TOOL_RECT ||
-            app_brush_tool_hotkey_action(APP_KEY_t) != APP_BRUSH_TOOL_FILLED_RECT ||
-            app_brush_tool_hotkey_action(APP_KEY_o) != APP_BRUSH_TOOL_ELLIPSE ||
-            app_brush_tool_hotkey_action(APP_KEY_p) != APP_BRUSH_TOOL_FILLED_ELLIPSE) {
+        if (app_brush_tool_hotkey_action(APP_KEY_l, 0, 0) != APP_BRUSH_TOOL_LINE ||
+            app_brush_tool_hotkey_action(APP_KEY_r, 0, 0) != APP_BRUSH_TOOL_RECT ||
+            app_brush_tool_hotkey_action(APP_KEY_t, 0, 0) != APP_BRUSH_TOOL_FILLED_RECT ||
+            app_brush_tool_hotkey_action(APP_KEY_o, 0, 0) != APP_BRUSH_TOOL_ELLIPSE ||
+            app_brush_tool_hotkey_action(APP_KEY_p, 0, 0) != APP_BRUSH_TOOL_FILLED_ELLIPSE) {
             fprintf(stderr, "brush tool hotkey mapping failed\n");
             return 0;
         }
-        if (app_brush_tool_hotkey_action(APP_KEY_b) != APP_BRUSH_TOOL_NONE) {
-            fprintf(stderr, "brush tool non-hotkey mapping failed\n");
+        if (app_brush_tool_hotkey_action(APP_KEY_b, 0, 0) != APP_BRUSH_TOOL_NONE ||
+            app_brush_tool_hotkey_action(APP_KEY_l, 1, 0) != APP_BRUSH_TOOL_NONE ||
+            app_brush_tool_hotkey_action(APP_KEY_o, 0, 1) != APP_BRUSH_TOOL_NONE) {
+            fprintf(stderr, "brush tool non-hotkey or modifier rejection failed\n");
             return 0;
         }
         if (app_escape_action(APP_KEY_ESCAPE, 1) != APP_ESCAPE_CANCEL_SHAPE ||
