@@ -1,5 +1,6 @@
 #include "app_brush.h"
 #include "app_brush_mask.h"
+#include "app_layer_state.h"
 
 #include <stdlib.h>
 
@@ -53,6 +54,46 @@ int app_tool_draws_directly(Tool tool) {
 
 AppStrokeMark app_tool_stroke_mark(Tool tool) {
     return tool == TOOL_ERASER ? APP_STROKE_MARK_ERASE : APP_STROKE_MARK_BRUSH;
+}
+
+int app_begin_direct_stroke(
+    LayerStack *layers,
+    int x,
+    int y,
+    Tool tool,
+    BrushShape shape,
+    int radius,
+    uint32_t brush_color,
+    Snapshot *undo_stack,
+    int *undo_count,
+    int undo_capacity,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *drawing,
+    int *needs_composite
+) {
+    Layer *active = NULL;
+
+    if (!layers || !undo_stack || !undo_count || undo_capacity <= 0 || !redo_stack || !redo_count || !drawing) {
+        return 0;
+    }
+
+    active = app_active_editable_layer(layers);
+    if (!active) {
+        return 0;
+    }
+
+    snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
+    *drawing = 1;
+    if (app_tool_stroke_mark(tool) == APP_STROKE_MARK_ERASE) {
+        app_erase_brush(&active->canvas, x, y, radius, app_active_layer_clear_color(layers->active_layer), shape);
+    } else {
+        app_stamp_brush(&active->canvas, x, y, radius, brush_color, shape);
+    }
+    if (needs_composite) {
+        *needs_composite = 1;
+    }
+    return 1;
 }
 
 void app_stamp_brush(Canvas *canvas, int cx, int cy, int radius, uint32_t color, BrushShape shape) {

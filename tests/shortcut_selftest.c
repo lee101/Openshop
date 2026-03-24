@@ -12,6 +12,7 @@
 #include "../src/direct_layer_shortcuts.h"
 #include "../src/file_shortcuts.h"
 #include "../src/history_shortcuts.h"
+#include "../src/history_state.h"
 #include "../src/layer_name_shortcuts.h"
 #include "../src/merge_shortcuts.h"
 #include "../src/paint_shortcuts.h"
@@ -164,6 +165,96 @@ static int expect_brush_line_pixel(
         return 0;
     }
     return 1;
+}
+
+static int expect_begin_direct_stroke(
+    const char *label,
+    LayerStack *stack,
+    int x,
+    int y,
+    Tool tool,
+    BrushShape shape,
+    int radius,
+    uint32_t brush_color,
+    int initial_drawing,
+    int initial_needs_composite,
+    int want_started,
+    int want_drawing,
+    int want_needs_composite,
+    size_t changed_index,
+    uint32_t want_changed,
+    size_t snapshot_index,
+    uint32_t want_snapshot
+) {
+    Snapshot undo_stack[2] = {0};
+    Snapshot redo_stack[2] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+    int drawing = initial_drawing;
+    int needs_composite = initial_needs_composite;
+    int ok = 1;
+    int started = app_begin_direct_stroke(
+        stack,
+        x,
+        y,
+        tool,
+        shape,
+        radius,
+        brush_color,
+        undo_stack,
+        &undo_count,
+        2,
+        redo_stack,
+        &redo_count,
+        &drawing,
+        &needs_composite
+    );
+
+    if (started != want_started) {
+        fprintf(stderr, "%s start mismatch: got %d want %d\n", label, started, want_started);
+        ok = 0;
+    }
+    if (drawing != want_drawing) {
+        fprintf(stderr, "%s drawing mismatch: got %d want %d\n", label, drawing, want_drawing);
+        ok = 0;
+    }
+    if (needs_composite != want_needs_composite) {
+        fprintf(stderr, "%s needs_composite mismatch: got %d want %d\n", label, needs_composite, want_needs_composite);
+        ok = 0;
+    }
+    if (stack && stack->layer_count > 0 && stack->layers[stack->active_layer].canvas.pixels) {
+        if (stack->layers[stack->active_layer].canvas.pixels[changed_index] != want_changed) {
+            fprintf(
+                stderr,
+                "%s pixel mismatch: got 0x%08X want 0x%08X\n",
+                label,
+                stack->layers[stack->active_layer].canvas.pixels[changed_index],
+                want_changed
+            );
+            ok = 0;
+        }
+    }
+    if (want_started) {
+        if (undo_count != 1 || redo_count != 0 || !undo_stack[0].pixels || undo_stack[0].pixels[snapshot_index] != want_snapshot) {
+            fprintf(
+                stderr,
+                "%s snapshot mismatch: undo_count=%d redo_count=%d pixel=0x%08X want 0x%08X\n",
+                label,
+                undo_count,
+                redo_count,
+                undo_stack[0].pixels ? undo_stack[0].pixels[snapshot_index] : 0u,
+                want_snapshot
+            );
+            ok = 0;
+        }
+    } else if (undo_count != 0 || redo_count != 0) {
+        fprintf(stderr, "%s no-op snapshot mismatch: undo_count=%d redo_count=%d\n", label, undo_count, redo_count);
+        ok = 0;
+    }
+
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    return ok;
 }
 
 static int expect_canvas_action(const char *label, int key, CanvasShortcutAction want) {
@@ -1041,6 +1132,123 @@ int main(void) {
         0,
         0xFFFFFFFFu
     );
+    {
+        LayerStack stack = {0};
+        uint32_t pixels[9];
+        size_t i;
+
+        stack.width = 3;
+        stack.height = 3;
+        stack.layer_count = 1;
+        stack.active_layer = 0;
+        stack.solo_index = -1;
+        stack.layers[0].canvas.width = 3;
+        stack.layers[0].canvas.height = 3;
+        stack.layers[0].canvas.pixels = pixels;
+        stack.layers[0].visible = 1;
+        stack.layers[0].locked = 0;
+        stack.layers[0].opacity_percent = 100;
+        for (i = 0; i < sizeof(pixels) / sizeof(pixels[0]); i++) {
+            pixels[i] = 0xFF000000u;
+        }
+        ok = ok && expect_begin_direct_stroke(
+            "begin_direct_stroke_brush",
+            &stack,
+            1,
+            1,
+            TOOL_BRUSH,
+            BRUSH_SHAPE_ROUND,
+            1,
+            0x80FFFFFFu,
+            0,
+            0,
+            1,
+            1,
+            1,
+            4,
+            0xFF808080u,
+            4,
+            0xFF000000u
+        );
+    }
+    {
+        LayerStack stack = {0};
+        uint32_t pixels[9];
+        size_t i;
+
+        stack.width = 3;
+        stack.height = 3;
+        stack.layer_count = 1;
+        stack.active_layer = 0;
+        stack.solo_index = -1;
+        stack.layers[0].canvas.width = 3;
+        stack.layers[0].canvas.height = 3;
+        stack.layers[0].canvas.pixels = pixels;
+        stack.layers[0].visible = 1;
+        stack.layers[0].locked = 0;
+        stack.layers[0].opacity_percent = 100;
+        for (i = 0; i < sizeof(pixels) / sizeof(pixels[0]); i++) {
+            pixels[i] = 0xFF123456u;
+        }
+        ok = ok && expect_begin_direct_stroke(
+            "begin_direct_stroke_eraser",
+            &stack,
+            1,
+            1,
+            TOOL_ERASER,
+            BRUSH_SHAPE_ROUND,
+            1,
+            0xFFFFFFFFu,
+            0,
+            0,
+            1,
+            1,
+            1,
+            4,
+            0xFFFFFFFFu,
+            4,
+            0xFF123456u
+        );
+    }
+    {
+        LayerStack stack = {0};
+        uint32_t pixels[9];
+        size_t i;
+
+        stack.width = 3;
+        stack.height = 3;
+        stack.layer_count = 1;
+        stack.active_layer = 0;
+        stack.solo_index = -1;
+        stack.layers[0].canvas.width = 3;
+        stack.layers[0].canvas.height = 3;
+        stack.layers[0].canvas.pixels = pixels;
+        stack.layers[0].visible = 1;
+        stack.layers[0].locked = 1;
+        stack.layers[0].opacity_percent = 100;
+        for (i = 0; i < sizeof(pixels) / sizeof(pixels[0]); i++) {
+            pixels[i] = 0xFF010203u;
+        }
+        ok = ok && expect_begin_direct_stroke(
+            "begin_direct_stroke_locked_noop",
+            &stack,
+            1,
+            1,
+            TOOL_BRUSH,
+            BRUSH_SHAPE_ROUND,
+            1,
+            0xFFFFFFFFu,
+            0,
+            0,
+            0,
+            0,
+            0,
+            4,
+            0xFF010203u,
+            4,
+            0xFF010203u
+        );
+    }
     ok = ok && expect_canvas_action("canvas_clear", 'c', CANVAS_SHORTCUT_CLEAR);
     ok = ok && expect_canvas_action("canvas_flip_h", 'h', CANVAS_SHORTCUT_FLIP_HORIZONTAL);
     ok = ok && expect_canvas_action("canvas_flip_v", 'v', CANVAS_SHORTCUT_FLIP_VERTICAL);

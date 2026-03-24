@@ -1291,19 +1291,22 @@ static void handle_mouse_button_down(
         *last_x = button.x;
         *last_y = button.y;
         if (app_tool_draws_directly(*tool)) {
-            Layer *active = app_active_editable_layer(layers);
-            if (active) {
-                push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-                *drawing = 1;
-                if (app_tool_stroke_mark(*tool) == APP_STROKE_MARK_ERASE) {
-                    app_erase_brush(&active->canvas, *last_x, *last_y, brush_radius, app_active_layer_clear_color(layers->active_layer), brush_shape);
-                } else {
-                    app_stamp_brush(&active->canvas, *last_x, *last_y, brush_radius, *brush_color, brush_shape);
-                }
-                if (needs_composite) {
-                    *needs_composite = 1;
-                }
-            }
+            app_begin_direct_stroke(
+                layers,
+                *last_x,
+                *last_y,
+                *tool,
+                brush_shape,
+                brush_radius,
+                *brush_color,
+                undo_stack,
+                undo_count,
+                MAX_HISTORY,
+                redo_stack,
+                redo_count,
+                drawing,
+                needs_composite
+            );
         } else if (app_active_layer_editable(layers)) {
             app_begin_shape_preview_from_canvas(*last_x, *last_y, shaping, shape_start_x, shape_start_y, shape_base_pixels, composite);
         }
