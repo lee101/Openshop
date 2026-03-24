@@ -936,6 +936,19 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (strcmp(stack.layers[1].name, "Stamp Target") != 0 || !layer_stack_can_reset_name(&stack, 1) ||
+        !layer_stack_reset_name(&stack, 1) || strcmp(stack.layers[1].name, "Layer") != 0) {
+        fprintf(stderr, "stamp visible target name reset failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 1, "Stamp Target")) {
+        fprintf(stderr, "stamp visible target name restore failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!expect_pixel_eq("stamp_visible_pixel", canvas_get_pixel(&stack.layers[1].canvas, 0, 0), 0xFF0D6740) ||
         !expect_pixel_eq("stamp_preserve_source", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF123456)) {
         canvas_free(&composite);
@@ -983,6 +996,18 @@ static int test_layers_basic(void) {
     }
     if (strcmp(stack.layers[2].name, "Visible Stamp") != 0) {
         fprintf(stderr, "stamp visible new name failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_can_reset_name(&stack, 2) || !layer_stack_reset_name(&stack, 2) || strcmp(stack.layers[2].name, "Layer") != 0) {
+        fprintf(stderr, "stamp visible new layer reset failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 2, "Visible Stamp")) {
+        fprintf(stderr, "stamp visible new layer restore failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
