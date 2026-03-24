@@ -359,16 +359,6 @@ static void destroy_sdl_runtime(SDL_Window *window, SDL_Renderer *renderer, SDL_
     SDL_Quit();
 }
 
-static int refresh_title_on_change(SDL_Window *window, const LayerStack *layers,
-                                   Tool tool, BrushShape brush_shape,
-                                   int brush_radius, uint32_t brush_color, int brush_opacity,
-                                   int changed) {
-    if (changed) {
-        update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-    }
-    return changed;
-}
-
 static void update_title_state(const TitleState *title_state) {
     if (!title_state || !title_state->window || !title_state->layers || !title_state->tool ||
         !title_state->brush_shape || !title_state->brush_radius ||
