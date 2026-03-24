@@ -103,7 +103,7 @@ int app_prepare_shape_preview_motion(
     int *out_x,
     int *out_y
 ) {
-    if (!preview_canvas || !preview_canvas->pixels || !preview_pixels || !shape_base_pixels || !out_x || !out_y) {
+    if (!preview_canvas || !preview_canvas->pixels || !preview_pixels || !shape_base_pixels || !preview_active || !out_x || !out_y) {
         return 0;
     }
     if (x < 0 || y < 0 || x >= preview_canvas->width || y >= preview_canvas->height) {

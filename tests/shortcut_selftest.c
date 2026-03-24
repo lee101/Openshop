@@ -1113,6 +1113,61 @@ static int expect_prepare_shape_preview_motion(
     return 1;
 }
 
+static int expect_prepare_shape_preview_motion_rejection(
+    const char *label,
+    Canvas *preview_canvas,
+    uint32_t *preview_pixels,
+    const uint32_t *shape_base_pixels,
+    size_t pixel_count,
+    int *preview_active,
+    Tool tool,
+    int shape_start_x,
+    int shape_start_y,
+    int x,
+    int y,
+    int shift,
+    int *out_x,
+    int *out_y,
+    int want_preview_active,
+    const uint32_t *want_preview_pixels,
+    size_t want_pixel_count
+) {
+    size_t i;
+    int prepared = app_prepare_shape_preview_motion(
+        preview_canvas,
+        preview_pixels,
+        shape_base_pixels,
+        pixel_count,
+        preview_active,
+        tool,
+        shape_start_x,
+        shape_start_y,
+        x,
+        y,
+        shift,
+        out_x,
+        out_y
+    );
+
+    if (prepared != 0) {
+        fprintf(stderr, "%s prepared mismatch: got %d want 0\n", label, prepared);
+        return 0;
+    }
+    if (preview_active && *preview_active != want_preview_active) {
+        fprintf(stderr, "%s preview active mismatch: got %d want %d\n", label, *preview_active, want_preview_active);
+        return 0;
+    }
+    if (preview_pixels && want_preview_pixels) {
+        for (i = 0; i < want_pixel_count; i++) {
+            if (preview_pixels[i] != want_preview_pixels[i]) {
+                fprintf(stderr, "%s preview_pixels[%zu] mismatch: got 0x%08X want 0x%08X\n", label, i, preview_pixels[i], want_preview_pixels[i]);
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
 int main(void) {
     int ok = 1;
     int sentinel_x = 321;
@@ -2066,6 +2121,90 @@ int main(void) {
             0,
             -999,
             -999,
+            prep_preview_want,
+            4
+        );
+    }
+    {
+        Canvas prep_preview_canvas = {4, 4, preview_restore_copy};
+        int prep_preview_active = 7;
+        uint32_t prep_preview_pixels[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
+        uint32_t prep_shape_base[4] = {0x01010101u, 0x02020202u, 0x03030303u, 0x04040404u};
+        uint32_t prep_preview_want[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
+        int out_y = -999;
+
+        ok = ok && expect_prepare_shape_preview_motion_rejection(
+            "prepare_shape_preview_motion_null_out_x",
+            &prep_preview_canvas,
+            prep_preview_pixels,
+            prep_shape_base,
+            4,
+            &prep_preview_active,
+            TOOL_RECT,
+            1,
+            1,
+            2,
+            2,
+            0,
+            NULL,
+            &out_y,
+            7,
+            prep_preview_want,
+            4
+        );
+    }
+    {
+        Canvas prep_preview_canvas = {4, 4, preview_restore_copy};
+        int prep_preview_active = 7;
+        uint32_t prep_preview_pixels[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
+        uint32_t prep_shape_base[4] = {0x01010101u, 0x02020202u, 0x03030303u, 0x04040404u};
+        uint32_t prep_preview_want[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
+        int out_x = -999;
+
+        ok = ok && expect_prepare_shape_preview_motion_rejection(
+            "prepare_shape_preview_motion_null_out_y",
+            &prep_preview_canvas,
+            prep_preview_pixels,
+            prep_shape_base,
+            4,
+            &prep_preview_active,
+            TOOL_RECT,
+            1,
+            1,
+            2,
+            2,
+            0,
+            &out_x,
+            NULL,
+            7,
+            prep_preview_want,
+            4
+        );
+    }
+    {
+        Canvas prep_preview_canvas = {4, 4, preview_restore_copy};
+        uint32_t prep_preview_pixels[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
+        uint32_t prep_shape_base[4] = {0x01010101u, 0x02020202u, 0x03030303u, 0x04040404u};
+        uint32_t prep_preview_want[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
+        int out_x = -999;
+        int out_y = -999;
+
+        ok = ok && expect_prepare_shape_preview_motion_rejection(
+            "prepare_shape_preview_motion_null_flag",
+            &prep_preview_canvas,
+            prep_preview_pixels,
+            prep_shape_base,
+            4,
+            NULL,
+            TOOL_RECT,
+            1,
+            1,
+            2,
+            2,
+            0,
+            &out_x,
+            &out_y,
+            0,
             prep_preview_want,
             4
         );
