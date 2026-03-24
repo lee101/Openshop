@@ -46,6 +46,8 @@ int layer_stack_can_reset_all_names(const LayerStack *stack);
 int layer_stack_reset_all_names(LayerStack *stack);
 int layer_stack_can_reset_unlocked_names(const LayerStack *stack);
 int layer_stack_reset_unlocked_names(LayerStack *stack);
+int layer_stack_can_reset_visible_names(const LayerStack *stack);
+int layer_stack_reset_visible_names(LayerStack *stack);
 int layer_stack_clear_layer(LayerStack *stack, int index, uint32_t color);
 int layer_stack_set_opacity(LayerStack *stack, int index, int opacity_percent);
 int layer_stack_can_delete(const LayerStack *stack, int index);

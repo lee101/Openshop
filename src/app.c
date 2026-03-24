@@ -544,6 +544,7 @@ static int handle_direct_layer_shortcut(
 static int handle_layer_name_shortcut(
     SDL_Keycode key,
     int ctrl,
+    int alt,
     int shift,
     LayerStack *layers,
     Snapshot *undo_stack,
@@ -553,6 +554,14 @@ static int handle_layer_name_shortcut(
 ) {
     if (!layers || key != SDLK_F2) {
         return 0;
+    }
+
+    if (ctrl && alt) {
+        if (layer_stack_can_reset_visible_names(layers)) {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            layer_stack_reset_visible_names(layers);
+        }
+        return 1;
     }
 
     if (ctrl && shift) {
@@ -1593,6 +1602,7 @@ int app_run(const char *input_path) {
                 if (handle_layer_name_shortcut(
                         key,
                         ctrl,
+                        alt,
                         shift,
                         &layers,
                         undo_stack,
