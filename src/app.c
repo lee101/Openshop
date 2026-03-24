@@ -1388,6 +1388,33 @@ static int handle_left_click_down(LayerStack *layers,
     return 1;
 }
 
+static int handle_right_click_down(SDL_Window *window,
+                                   const LayerStack *layers,
+                                   int x, int y,
+                                   int *shaping, int *preview_active,
+                                   const Canvas *preview_canvas,
+                                   const Canvas *composite,
+                                   uint32_t *brush_color_rgb, uint32_t *brush_color,
+                                   int *brush_opacity, int brush_radius,
+                                   BrushShape brush_shape, Tool *tool) {
+    const Canvas *sample;
+
+    if (!window || !layers || !shaping || !preview_active || !composite ||
+        !brush_color_rgb || !brush_color || !brush_opacity || !tool) {
+        return 0;
+    }
+
+    if (*shaping) {
+        cancel_shape_preview(shaping, preview_active);
+        return 1;
+    }
+
+    sample = (preview_canvas && preview_canvas->pixels) ? preview_canvas : composite;
+    handle_right_click_sample(window, layers, sample, x, y, brush_color_rgb, brush_color,
+                              brush_opacity, brush_radius, brush_shape, tool);
+    return 1;
+}
+
 static int handle_shape_preview_motion(Tool tool,
                                        int shape_start_x, int shape_start_y,
                                        int x, int y,
@@ -1958,15 +1985,11 @@ int app_run(const char *input_path) {
                                            &shaping, &shape_start_x, &shape_start_y,
                                            shape_base_pixels, &composite);
                 } else if (e.button.button == SDL_BUTTON_RIGHT) {
-                    if (shaping) {
-                        cancel_shape_preview(&shaping, &preview_active);
-                        break;
-                    }
-                    int x = e.button.x;
-                    int y = e.button.y;
-                    const Canvas *sample = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
-                    handle_right_click_sample(window, &layers, sample, x, y, &brush_color_rgb, &brush_color,
-                                              &brush_opacity, brush_radius, brush_shape, &tool);
+                    handle_right_click_down(window, &layers, e.button.x, e.button.y,
+                                            &shaping, &preview_active,
+                                            &preview_canvas, &composite,
+                                            &brush_color_rgb, &brush_color,
+                                            &brush_opacity, brush_radius, brush_shape, &tool);
                 }
                 break;
             case SDL_MOUSEBUTTONUP:
