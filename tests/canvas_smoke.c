@@ -95,6 +95,81 @@ static int test_layer_snapshot_restore(void) {
     return 1;
 }
 
+static int test_layer_snapshot_expand_restore(void) {
+    LayerStack source;
+    if (!layer_stack_init(&source, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "snapshot source init failed\n");
+        return 0;
+    }
+    if (layer_stack_add(&source, "Mid", 0x00000000) != 1 ||
+        layer_stack_add(&source, "Top", 0x00000000) != 2) {
+        fprintf(stderr, "snapshot source add layers failed\n");
+        layer_stack_free(&source);
+        return 0;
+    }
+
+    canvas_set_pixel(&source.layers[0].canvas, 0, 0, 0xFF101112);
+    canvas_set_pixel(&source.layers[1].canvas, 1, 1, 0xFF202122);
+    canvas_set_pixel(&source.layers[2].canvas, 2, 2, 0xFF303132);
+    source.layers[1].visible = 0;
+    source.layers[2].locked = 1;
+    source.layers[2].opacity_percent = 63;
+    source.active_layer = 2;
+    source.solo_index = 2;
+
+    LayerSnapshot snapshot = {0};
+    if (!layer_snapshot_capture(&snapshot, &source)) {
+        fprintf(stderr, "snapshot expand capture failed\n");
+        layer_stack_free(&source);
+        return 0;
+    }
+    layer_stack_free(&source);
+
+    LayerStack dest;
+    if (!layer_stack_init(&dest, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "snapshot dest init failed\n");
+        layer_snapshot_free(&snapshot);
+        return 0;
+    }
+
+    if (!layer_snapshot_apply(&snapshot, &dest)) {
+        fprintf(stderr, "snapshot expand apply failed\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&dest);
+        return 0;
+    }
+
+    if (dest.layer_count != 3 || dest.active_layer != 2 || dest.solo_index != 2) {
+        fprintf(stderr, "snapshot expand bookkeeping failed\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&dest);
+        return 0;
+    }
+    if (strcmp(dest.layers[1].name, "Mid") != 0 || strcmp(dest.layers[2].name, "Top") != 0) {
+        fprintf(stderr, "snapshot expand should restore layer names\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&dest);
+        return 0;
+    }
+    if (dest.layers[1].visible || !dest.layers[2].locked || dest.layers[2].opacity_percent != 63) {
+        fprintf(stderr, "snapshot expand should restore visibility/lock/opacity\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&dest);
+        return 0;
+    }
+    if (!expect_pixel_eq("snapshot_expand_background", canvas_get_pixel(&dest.layers[0].canvas, 0, 0), 0xFF101112) ||
+        !expect_pixel_eq("snapshot_expand_hidden_mid", canvas_get_pixel(&dest.layers[1].canvas, 1, 1), 0xFF202122) ||
+        !expect_pixel_eq("snapshot_expand_top", canvas_get_pixel(&dest.layers[2].canvas, 2, 2), 0xFF303132)) {
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&dest);
+        return 0;
+    }
+
+    layer_snapshot_free(&snapshot);
+    layer_stack_free(&dest);
+    return 1;
+}
+
 static int test_layers_basic(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 16, 16, 0xFFFFFFFF)) {
@@ -1044,6 +1119,9 @@ static int test_layers_basic(void) {
 
 int main(void) {
     if (!test_layer_snapshot_restore()) {
+        return 1;
+    }
+    if (!test_layer_snapshot_expand_restore()) {
         return 1;
     }
 
