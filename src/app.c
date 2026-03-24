@@ -1191,21 +1191,24 @@ static void handle_canvas_motion(
         int end_x = x;
         int end_y = y;
 
-        if (!shape_base_pixels || !preview_canvas || !preview_canvas->pixels || !preview_pixels) {
-            return;
-        }
-        if (x < 0 || y < 0 || x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT) {
-            return;
-        }
-
         sdl_shortcut_modifiers(NULL, NULL, &shift);
-        app_constrain_shape_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
-        app_restore_shape_preview(
+        if (!app_prepare_shape_preview_motion(
+            preview_canvas,
             preview_pixels,
             shape_base_pixels,
             (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT,
-            preview_active
-        );
+            preview_active,
+            tool,
+            shape_start_x,
+            shape_start_y,
+            x,
+            y,
+            shift,
+            &end_x,
+            &end_y
+        )) {
+            return;
+        }
         draw_shape(preview_canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
     }
 }

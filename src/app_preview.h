@@ -2,6 +2,7 @@
 #define APP_PREVIEW_H
 
 #include "canvas.h"
+#include "app_brush.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -40,6 +41,22 @@ void app_restore_shape_preview(
     const uint32_t *shape_base_pixels,
     size_t pixel_count,
     int *preview_active
+);
+
+int app_prepare_shape_preview_motion(
+    Canvas *preview_canvas,
+    uint32_t *preview_pixels,
+    const uint32_t *shape_base_pixels,
+    size_t pixel_count,
+    int *preview_active,
+    Tool tool,
+    int shape_start_x,
+    int shape_start_y,
+    int x,
+    int y,
+    int shift,
+    int *out_x,
+    int *out_y
 );
 
 #endif

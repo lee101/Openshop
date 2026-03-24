@@ -1,4 +1,5 @@
 #include "app_preview.h"
+#include "app_shape.h"
 
 #include <string.h>
 
@@ -85,4 +86,31 @@ void app_restore_shape_preview(
 
     copy_preview_pixels(preview_pixels, shape_base_pixels, pixel_count);
     *preview_active = 1;
+}
+
+int app_prepare_shape_preview_motion(
+    Canvas *preview_canvas,
+    uint32_t *preview_pixels,
+    const uint32_t *shape_base_pixels,
+    size_t pixel_count,
+    int *preview_active,
+    Tool tool,
+    int shape_start_x,
+    int shape_start_y,
+    int x,
+    int y,
+    int shift,
+    int *out_x,
+    int *out_y
+) {
+    if (!preview_canvas || !preview_canvas->pixels || !preview_pixels || !shape_base_pixels || !out_x || !out_y) {
+        return 0;
+    }
+    if (x < 0 || y < 0 || x >= preview_canvas->width || y >= preview_canvas->height) {
+        return 0;
+    }
+
+    app_constrain_shape_end(tool, shape_start_x, shape_start_y, x, y, shift, out_x, out_y);
+    app_restore_shape_preview(preview_pixels, shape_base_pixels, pixel_count, preview_active);
+    return 1;
 }
