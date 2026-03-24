@@ -766,6 +766,25 @@ int main(void) {
         30,
         preview_sentinel
     );
+    shaping = 4;
+    shape_start_x = 2;
+    shape_start_y = 3;
+    memcpy(preview_copy, preview_sentinel, sizeof(preview_copy));
+    ok = ok && expect_begin_shape_preview(
+        "begin_shape_preview_zero_length_no_copy",
+        22,
+        33,
+        &shaping,
+        &shape_start_x,
+        &shape_start_y,
+        preview_copy,
+        preview_source,
+        0,
+        1,
+        22,
+        33,
+        preview_sentinel
+    );
     shaping = 6;
     shape_start_x = 8;
     shape_start_y = 10;
