@@ -1,4 +1,5 @@
 #include "../src/canvas.h"
+#include "../src/history.h"
 #include "../src/layers.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,6 +10,88 @@ static int expect_pixel_eq(const char *label, uint32_t got, uint32_t want) {
         fprintf(stderr, "%s mismatch: got 0x%08X want 0x%08X\n", label, got, want);
         return 0;
     }
+    return 1;
+}
+
+static int test_layer_snapshot_restore(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "snapshot stack init failed\n");
+        return 0;
+    }
+    if (layer_stack_add(&stack, "Ink", 0x00000000) != 1) {
+        fprintf(stderr, "snapshot add second layer failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF010203);
+    canvas_set_pixel(&stack.layers[1].canvas, 1, 1, 0xFFABCDEF);
+    stack.layers[1].opacity_percent = 47;
+    stack.active_layer = 1;
+
+    LayerSnapshot snapshot = {0};
+    if (!layer_snapshot_capture(&snapshot, &stack)) {
+        fprintf(stderr, "snapshot capture failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (layer_stack_add(&stack, "Locked Extra", 0x00000000) != 2 ||
+        layer_stack_add(&stack, "Locked Extra 2", 0x00000000) != 3) {
+        fprintf(stderr, "snapshot extra layer setup failed\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[2].locked = 1;
+    stack.layers[3].locked = 1;
+    stack.layers[2].visible = 0;
+    stack.layers[3].opacity_percent = 12;
+    stack.solo_index = 3;
+    stack.active_layer = 3;
+    canvas_set_pixel(&stack.layers[3].canvas, 2, 2, 0xFF556677);
+
+    if (!layer_snapshot_apply(&snapshot, &stack)) {
+        fprintf(stderr, "snapshot apply failed\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (stack.layer_count != 2 || stack.active_layer != 1 || stack.solo_index != -1) {
+        fprintf(stderr, "snapshot apply bookkeeping failed\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.layers[2].canvas.pixels || stack.layers[3].canvas.pixels) {
+        fprintf(stderr, "snapshot apply should free truncated layer canvases\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || strcmp(stack.layers[1].name, "Ink") != 0) {
+        fprintf(stderr, "snapshot apply should restore layer names\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!stack.layers[0].visible || !stack.layers[1].visible || stack.layers[1].locked || stack.layers[1].opacity_percent != 47) {
+        fprintf(stderr, "snapshot apply should restore layer metadata\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("snapshot_restore_background", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF010203) ||
+        !expect_pixel_eq("snapshot_restore_ink", canvas_get_pixel(&stack.layers[1].canvas, 1, 1), 0xFFABCDEF)) {
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_snapshot_free(&snapshot);
+    layer_stack_free(&stack);
     return 1;
 }
 
@@ -960,6 +1043,10 @@ static int test_layers_basic(void) {
 }
 
 int main(void) {
+    if (!test_layer_snapshot_restore()) {
+        return 1;
+    }
+
     Canvas c;
     if (!canvas_init(&c, 64, 64)) {
         fprintf(stderr, "canvas_init failed\n");
