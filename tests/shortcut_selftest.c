@@ -4,6 +4,7 @@
 #include "../src/app_color.h"
 #include "../src/app_layer_state.h"
 #include "../src/app_preview.h"
+#include "../src/app_runtime_shortcuts.h"
 #include "../src/app_sampled_color.h"
 #include "../src/app_shape.h"
 #include "../src/app_shape_cancel.h"
@@ -20,6 +21,16 @@
 #include "../src/view_shortcuts.h"
 #include <stdio.h>
 #include <string.h>
+
+static void init_single_layer_stack(
+    LayerStack *stack,
+    Canvas *canvas,
+    uint32_t *pixels,
+    int width,
+    int height,
+    uint32_t fill,
+    int locked
+);
 
 static int expect_shortcut(const char *label, int ctrl, int alt, int shift, LayerNameResetShortcut want) {
     LayerNameResetShortcut got = layer_name_reset_shortcut_from_modifiers(ctrl, alt, shift);
@@ -97,6 +108,98 @@ static int run_history_shortcut_case(const HistoryShortcutCase *test_case) {
         test_case->ctrl,
         test_case->key,
         test_case->want
+    );
+}
+
+static int expect_history_navigation_shortcut(
+    const char *label,
+    int ctrl,
+    int key,
+    uint32_t initial_fill,
+    uint32_t mutated_fill,
+    int prepare_redo,
+    int want_handled,
+    int want_needs_composite,
+    int want_undo_count,
+    int want_redo_count,
+    uint32_t want_pixel
+) {
+    LayerStack stack;
+    Canvas canvas;
+    uint32_t pixels[4];
+    Snapshot undo_stack[2] = {0};
+    Snapshot redo_stack[2] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+    int needs_composite = 0;
+    int handled = 0;
+
+    init_single_layer_stack(&stack, &canvas, pixels, 2, 2, initial_fill, 0);
+    snapshot_push(&stack, undo_stack, &undo_count, 2, redo_stack, &redo_count);
+    pixels[0] = mutated_fill;
+    if (prepare_redo) {
+        snapshot_undo(&stack, undo_stack, &undo_count, 2, redo_stack, &redo_count);
+        needs_composite = 0;
+    }
+
+    handled = app_handle_history_navigation_shortcut(
+        key,
+        ctrl,
+        &stack,
+        undo_stack,
+        &undo_count,
+        2,
+        redo_stack,
+        &redo_count,
+        &needs_composite
+    );
+
+    if (handled != want_handled) {
+        fprintf(stderr, "%s handled mismatch: got %d want %d\n", label, handled, want_handled);
+        return 0;
+    }
+    if (needs_composite != want_needs_composite) {
+        fprintf(stderr, "%s needs_composite mismatch: got %d want %d\n", label, needs_composite, want_needs_composite);
+        return 0;
+    }
+    if (undo_count != want_undo_count || redo_count != want_redo_count) {
+        fprintf(stderr, "%s history count mismatch: undo %d/%d redo %d/%d\n", label, undo_count, want_undo_count, redo_count, want_redo_count);
+        return 0;
+    }
+    if (pixels[0] != want_pixel) {
+        fprintf(stderr, "%s pixel mismatch: got 0x%08X want 0x%08X\n", label, pixels[0], want_pixel);
+        return 0;
+    }
+    return 1;
+}
+
+typedef struct {
+    const char *label;
+    int ctrl;
+    int key;
+    uint32_t initial_fill;
+    uint32_t mutated_fill;
+    int prepare_redo;
+    int want_handled;
+    int want_needs_composite;
+    int want_undo_count;
+    int want_redo_count;
+    uint32_t want_pixel;
+} HistoryNavigationShortcutCase;
+
+static int run_history_navigation_shortcut_case(const HistoryNavigationShortcutCase *test_case) {
+    return expect_history_navigation_shortcut(
+        test_case->label,
+        test_case->ctrl,
+        test_case->key,
+        test_case->initial_fill,
+        test_case->mutated_fill,
+        test_case->prepare_redo,
+        test_case->want_handled,
+        test_case->want_needs_composite,
+        test_case->want_undo_count,
+        test_case->want_redo_count,
+        test_case->want_pixel
     );
 }
 
@@ -187,16 +290,6 @@ typedef struct {
 static int run_brush_shortcut_case(const BrushShortcutCase *test_case) {
     return expect_brush_action(test_case->label, test_case->key, test_case->want);
 }
-
-static void init_single_layer_stack(
-    LayerStack *stack,
-    Canvas *canvas,
-    uint32_t *pixels,
-    int width,
-    int height,
-    uint32_t fill,
-    int locked
-);
 
 static int expect_direct_draw_tool(const char *label, Tool tool, int want) {
     int got = app_tool_draws_directly(tool);
@@ -1368,6 +1461,88 @@ typedef struct {
 
 static int run_canvas_action_case(const CanvasActionCase *test_case) {
     return expect_canvas_action(test_case->label, test_case->key, test_case->want);
+}
+
+static int expect_canvas_mutation_shortcut(
+    const char *label,
+    CanvasShortcutAction action,
+    int locked,
+    const uint32_t *initial_pixels,
+    int want_handled,
+    int want_needs_composite,
+    int want_undo_count,
+    const uint32_t *want_pixels
+) {
+    LayerStack stack;
+    Canvas canvas;
+    uint32_t pixels[4];
+    Snapshot undo_stack[2] = {0};
+    Snapshot redo_stack[2] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+    int needs_composite = 0;
+    int handled = 0;
+    size_t i;
+
+    init_single_layer_stack(&stack, &canvas, pixels, 2, 2, 0x00000000u, locked);
+    for (i = 0; i < 4; i++) {
+        pixels[i] = initial_pixels[i];
+    }
+
+    handled = app_handle_canvas_mutation_shortcut(
+        action,
+        &stack,
+        undo_stack,
+        &undo_count,
+        2,
+        redo_stack,
+        &redo_count,
+        &needs_composite
+    );
+
+    if (handled != want_handled) {
+        fprintf(stderr, "%s handled mismatch: got %d want %d\n", label, handled, want_handled);
+        return 0;
+    }
+    if (needs_composite != want_needs_composite) {
+        fprintf(stderr, "%s needs_composite mismatch: got %d want %d\n", label, needs_composite, want_needs_composite);
+        return 0;
+    }
+    if (undo_count != want_undo_count || redo_count != 0) {
+        fprintf(stderr, "%s history count mismatch: undo %d/%d redo %d/0\n", label, undo_count, want_undo_count, redo_count);
+        return 0;
+    }
+    for (i = 0; i < 4; i++) {
+        if (pixels[i] != want_pixels[i]) {
+            fprintf(stderr, "%s pixels[%zu] mismatch: got 0x%08X want 0x%08X\n", label, i, pixels[i], want_pixels[i]);
+            return 0;
+        }
+    }
+    return 1;
+}
+
+typedef struct {
+    const char *label;
+    CanvasShortcutAction action;
+    int locked;
+    uint32_t initial_pixels[4];
+    int want_handled;
+    int want_needs_composite;
+    int want_undo_count;
+    uint32_t want_pixels[4];
+} CanvasMutationShortcutCase;
+
+static int run_canvas_mutation_shortcut_case(const CanvasMutationShortcutCase *test_case) {
+    return expect_canvas_mutation_shortcut(
+        test_case->label,
+        test_case->action,
+        test_case->locked,
+        test_case->initial_pixels,
+        test_case->want_handled,
+        test_case->want_needs_composite,
+        test_case->want_undo_count,
+        test_case->want_pixels
+    );
 }
 
 static int expect_shape_cancel(const char *label, int key, int ctrl, int want) {
@@ -3886,6 +4061,39 @@ int main(void) {
         }
     }
     {
+        const HistoryNavigationShortcutCase history_navigation_cases[] = {
+            {
+                "history_navigation_undo",
+                1, 'z',
+                0xFF102030u, 0xFFABCDEFu,
+                0,
+                1, 1, 0, 1,
+                0xFF102030u,
+            },
+            {
+                "history_navigation_redo",
+                1, 'y',
+                0xFF102030u, 0xFFABCDEFu,
+                1,
+                1, 1, 1, 0,
+                0xFFABCDEFu,
+            },
+            {
+                "history_navigation_missing_ctrl_noop",
+                0, 'z',
+                0xFF102030u, 0xFFABCDEFu,
+                0,
+                0, 0, 1, 0,
+                0xFFABCDEFu,
+            },
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(history_navigation_cases) / sizeof(history_navigation_cases[0]); i++) {
+            ok = ok && run_history_navigation_shortcut_case(&history_navigation_cases[i]);
+        }
+    }
+    {
         const PaintShortcutCase paint_shortcut_cases[] = {
             {"tool_brush", 'b', PAINT_SHORTCUT_TOOL_BRUSH},
             {"tool_eraser", 'e', PAINT_SHORTCUT_TOOL_ERASER},
@@ -3919,6 +4127,55 @@ int main(void) {
         }
         for (i = 0; i < sizeof(brush_shortcut_cases) / sizeof(brush_shortcut_cases[0]); i++) {
             ok = ok && run_brush_shortcut_case(&brush_shortcut_cases[i]);
+        }
+    }
+    {
+        const CanvasMutationShortcutCase canvas_mutation_cases[] = {
+            {
+                "canvas_mutation_clear_editable",
+                CANVAS_SHORTCUT_CLEAR,
+                0,
+                {0xFF111111u, 0xFF222222u, 0xFF333333u, 0xFF444444u},
+                1,
+                1,
+                1,
+                {0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu},
+            },
+            {
+                "canvas_mutation_clear_locked_noop",
+                CANVAS_SHORTCUT_CLEAR,
+                1,
+                {0xFF111111u, 0xFF222222u, 0xFF333333u, 0xFF444444u},
+                1,
+                0,
+                0,
+                {0xFF111111u, 0xFF222222u, 0xFF333333u, 0xFF444444u},
+            },
+            {
+                "canvas_mutation_flip_horizontal",
+                CANVAS_SHORTCUT_FLIP_HORIZONTAL,
+                0,
+                {0xFF000001u, 0xFF000002u, 0xFF000003u, 0xFF000004u},
+                1,
+                1,
+                1,
+                {0xFF000002u, 0xFF000001u, 0xFF000004u, 0xFF000003u},
+            },
+            {
+                "canvas_mutation_unknown_noop",
+                CANVAS_SHORTCUT_NONE,
+                0,
+                {0xFF000001u, 0xFF000002u, 0xFF000003u, 0xFF000004u},
+                0,
+                0,
+                0,
+                {0xFF000001u, 0xFF000002u, 0xFF000003u, 0xFF000004u},
+            },
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(canvas_mutation_cases) / sizeof(canvas_mutation_cases[0]); i++) {
+            ok = ok && run_canvas_mutation_shortcut_case(&canvas_mutation_cases[i]);
         }
     }
     {
