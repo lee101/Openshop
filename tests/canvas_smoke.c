@@ -1530,6 +1530,17 @@ static int test_layers_basic(void) {
         }
     }
     {
+        char hint[2] = {'X', 'Y'};
+        format_hidden_layer_hint(&stack, hint, 0);
+        if (hint[0] != 'X' || hint[1] != 'Y') {
+            fprintf(stderr, "hidden hint zero-size guard failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        format_hidden_layer_hint(&stack, NULL, 4);
+    }
+    {
         char hint[1] = {'X'};
         format_hidden_layer_hint(&stack, hint, sizeof(hint));
         if (hint[0] != '\0') {
@@ -1606,6 +1617,17 @@ static int test_layers_basic(void) {
             layer_stack_free(&stack);
             return 0;
         }
+    }
+    {
+        char title[2] = {'X', 'Y'};
+        format_window_title(&stack, "Brush", "Round", 2, 0xFF445566, 90, title, 0);
+        if (title[0] != 'X' || title[1] != 'Y') {
+            fprintf(stderr, "window title zero-size guard failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        format_window_title(&stack, "Brush", "Round", 2, 0xFF445566, 90, NULL, 8);
     }
     {
         LayerStack empty = {0};
@@ -1716,6 +1738,17 @@ static int test_layers_basic(void) {
         }
     }
     {
+        char status_message[2] = {'X', 'Y'};
+        format_status_text_startup("Init", status_message, 0);
+        if (status_message[0] != 'X' || status_message[1] != 'Y') {
+            fprintf(stderr, "startup zero-size guard failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        format_status_text_startup("Init", NULL, 8);
+    }
+    {
         char status_message[1] = {'X'};
         format_status_text_max_layers(MAX_LAYERS, status_message, sizeof(status_message));
         if (status_message[0] != '\0') {
@@ -1734,6 +1767,17 @@ static int test_layers_basic(void) {
             layer_stack_free(&stack);
             return 0;
         }
+    }
+    {
+        char status_message[2] = {'X', 'Y'};
+        format_status_text_sdl("SDL", "detail", status_message, 0);
+        if (status_message[0] != 'X' || status_message[1] != 'Y') {
+            fprintf(stderr, "sdl zero-size guard failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        format_status_text_sdl("SDL", "detail", NULL, 8);
     }
     {
         char status_message[1] = {'X'};
@@ -1756,6 +1800,17 @@ static int test_layers_basic(void) {
         }
     }
     {
+        char status_message[2] = {'X', 'Y'};
+        format_status_text_file_load("input.bmp", status_message, 0);
+        if (status_message[0] != 'X' || status_message[1] != 'Y') {
+            fprintf(stderr, "file load zero-size guard failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        format_status_text_file_load("input.bmp", NULL, 8);
+    }
+    {
         char status_message[16];
         memset(status_message, 'X', sizeof(status_message));
         format_status_text_file_save("very-long-output-name.bmp", status_message, sizeof(status_message));
@@ -1765,6 +1820,17 @@ static int test_layers_basic(void) {
             layer_stack_free(&stack);
             return 0;
         }
+    }
+    {
+        char status_message[2] = {'X', 'Y'};
+        format_status_text_file_save("output.bmp", status_message, 0);
+        if (status_message[0] != 'X' || status_message[1] != 'Y') {
+            fprintf(stderr, "file save zero-size guard failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        format_status_text_file_save("output.bmp", NULL, 8);
     }
     stack.layers[0].visible = 1;
     stack.layers[0].locked = 0;
