@@ -515,14 +515,22 @@ int layer_stack_unlock_all(LayerStack *stack) {
 }
 
 int layer_stack_show_all(LayerStack *stack) {
+    int changed = 0;
+
     if (!stack) {
         return 0;
     }
     for (int i = 0; i < stack->layer_count; i++) {
-        stack->layers[i].visible = 1;
+        if (!stack->layers[i].visible) {
+            stack->layers[i].visible = 1;
+            changed = 1;
+        }
+    }
+    if (stack->solo_index != -1) {
+        changed = 1;
     }
     stack->solo_index = -1;
-    return 1;
+    return changed;
 }
 
 int layer_stack_show(LayerStack *stack, int index) {

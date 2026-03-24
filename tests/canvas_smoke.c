@@ -2073,6 +2073,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_show_all(&stack)) {
+        fprintf(stderr, "show all no-op failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     layer_stack_composite(&stack, &composite, 0xFFFFFFFF);
     if ((canvas_get_pixel(&composite, 8, 8) & 0x00FFFFFF) == 0x00FFFFFF) {
         fprintf(stderr, "show all did not restore visible composite\n");
