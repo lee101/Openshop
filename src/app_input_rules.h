@@ -88,9 +88,20 @@ typedef enum {
     APP_HISTORY_HOTKEY_REDO
 } AppHistoryHotkeyAction;
 
+typedef enum {
+    APP_BRUSH_ADJUST_NONE = 0,
+    APP_BRUSH_ADJUST_RADIUS_DOWN,
+    APP_BRUSH_ADJUST_RADIUS_UP,
+    APP_BRUSH_ADJUST_SHAPE_PREV,
+    APP_BRUSH_ADJUST_SHAPE_NEXT,
+    APP_BRUSH_ADJUST_OPACITY_DOWN,
+    APP_BRUSH_ADJUST_OPACITY_UP
+} AppBrushAdjustAction;
+
 AppOpacityHotkeyAction app_opacity_hotkey_action(int key);
 AppLayerNavigationAction app_layer_navigation_action(int key, int ctrl, int alt, int shift, int *arg);
 AppFileHotkeyAction app_file_hotkey_action(int key, int ctrl, int alt, int shift);
 AppHistoryHotkeyAction app_history_hotkey_action(int key, int ctrl, int alt, int shift);
+AppBrushAdjustAction app_brush_adjust_hotkey_action(int key);
 
 #endif

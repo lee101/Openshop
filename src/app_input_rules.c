@@ -139,3 +139,25 @@ AppHistoryHotkeyAction app_history_hotkey_action(int key, int ctrl, int alt, int
     }
     return APP_HISTORY_HOTKEY_NONE;
 }
+
+AppBrushAdjustAction app_brush_adjust_hotkey_action(int key) {
+    if (key == APP_KEY_LEFTBRACKET) {
+        return APP_BRUSH_ADJUST_RADIUS_DOWN;
+    }
+    if (key == APP_KEY_RIGHTBRACKET) {
+        return APP_BRUSH_ADJUST_RADIUS_UP;
+    }
+    if (key == APP_KEY_COMMA) {
+        return APP_BRUSH_ADJUST_SHAPE_PREV;
+    }
+    if (key == APP_KEY_PERIOD) {
+        return APP_BRUSH_ADJUST_SHAPE_NEXT;
+    }
+    if (key == APP_KEY_MINUS || key == APP_KEY_KP_MINUS) {
+        return APP_BRUSH_ADJUST_OPACITY_DOWN;
+    }
+    if (key == APP_KEY_EQUALS || key == APP_KEY_KP_PLUS) {
+        return APP_BRUSH_ADJUST_OPACITY_UP;
+    }
+    return APP_BRUSH_ADJUST_NONE;
+}

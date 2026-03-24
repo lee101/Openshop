@@ -134,6 +134,19 @@ static int test_app_input_rules(void) {
             fprintf(stderr, "history non-hotkey mapping failed\n");
             return 0;
         }
+        if (app_brush_adjust_hotkey_action(APP_KEY_LEFTBRACKET) != APP_BRUSH_ADJUST_RADIUS_DOWN ||
+            app_brush_adjust_hotkey_action(APP_KEY_RIGHTBRACKET) != APP_BRUSH_ADJUST_RADIUS_UP ||
+            app_brush_adjust_hotkey_action(APP_KEY_COMMA) != APP_BRUSH_ADJUST_SHAPE_PREV ||
+            app_brush_adjust_hotkey_action(APP_KEY_PERIOD) != APP_BRUSH_ADJUST_SHAPE_NEXT ||
+            app_brush_adjust_hotkey_action(APP_KEY_MINUS) != APP_BRUSH_ADJUST_OPACITY_DOWN ||
+            app_brush_adjust_hotkey_action(APP_KEY_KP_PLUS) != APP_BRUSH_ADJUST_OPACITY_UP) {
+            fprintf(stderr, "brush adjust hotkey mapping failed\n");
+            return 0;
+        }
+        if (app_brush_adjust_hotkey_action(APP_KEY_b) != APP_BRUSH_ADJUST_NONE) {
+            fprintf(stderr, "brush adjust non-hotkey mapping failed\n");
+            return 0;
+        }
     }
 
     return 1;

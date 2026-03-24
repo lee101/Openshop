@@ -730,6 +730,7 @@ static int handle_brush_state_hotkey(SDL_Keycode key,
                                      uint32_t *brush_color_rgb, uint32_t *brush_color,
                                      int *brush_opacity, int *brush_radius,
                                      BrushShape *brush_shape, Tool *tool) {
+    AppBrushAdjustAction adjust_action;
     size_t i;
 
     if (!brush_color_rgb || !brush_color || !brush_opacity || !brush_radius || !brush_shape || !tool) {
@@ -751,23 +752,24 @@ static int handle_brush_state_hotkey(SDL_Keycode key,
         }
     }
 
-    if (key == SDLK_LEFTBRACKET) {
+    adjust_action = app_brush_adjust_hotkey_action((int)key);
+    if (adjust_action == APP_BRUSH_ADJUST_RADIUS_DOWN) {
         if (*brush_radius > 1) {
             brush_state_adjust_radius(-1, brush_radius);
         }
-    } else if (key == SDLK_RIGHTBRACKET) {
+    } else if (adjust_action == APP_BRUSH_ADJUST_RADIUS_UP) {
         if (*brush_radius < 64) {
             brush_state_adjust_radius(1, brush_radius);
         }
-    } else if (key == SDLK_COMMA) {
+    } else if (adjust_action == APP_BRUSH_ADJUST_SHAPE_PREV) {
         brush_state_cycle_shape_in_place(brush_shape, -1);
-    } else if (key == SDLK_PERIOD) {
+    } else if (adjust_action == APP_BRUSH_ADJUST_SHAPE_NEXT) {
         brush_state_cycle_shape_in_place(brush_shape, 1);
-    } else if (key == SDLK_MINUS || key == SDLK_KP_MINUS) {
+    } else if (adjust_action == APP_BRUSH_ADJUST_OPACITY_DOWN) {
         if (*brush_opacity > 1) {
             brush_state_adjust_opacity(-5, *brush_color_rgb, brush_opacity, brush_color);
         }
-    } else if (key == SDLK_EQUALS || key == SDLK_KP_PLUS) {
+    } else if (adjust_action == APP_BRUSH_ADJUST_OPACITY_UP) {
         if (*brush_opacity < 100) {
             brush_state_adjust_opacity(5, *brush_color_rgb, brush_opacity, brush_color);
         }
