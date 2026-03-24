@@ -330,6 +330,18 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_move_to_visible_rank(&stack, 1, 0) || strcmp(stack.layers[0].name, "Fourth Visible") != 0) {
+        fprintf(stderr, "move visible layer to bottom visible slot failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_move_to_visible_rank(&stack, 0, 1) || strcmp(stack.layers[1].name, "Fourth Visible") != 0) {
+        fprintf(stderr, "move visible layer to top visible slot failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_move_to(&stack, 1, 3) || strcmp(stack.layers[3].name, "Fourth Visible") != 0) {
         fprintf(stderr, "restore absolute layer order after visible-rank move tests failed\n");
         canvas_free(&composite);

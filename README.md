@@ -62,6 +62,7 @@ make test-sdl
 - `Delete` / `Backspace`: delete active layer
 - `Ctrl+]` / `Ctrl+[`: move active layer up/down
 - `Ctrl+Home / Ctrl+End`: move active layer to the top/bottom
+- `Ctrl+Shift+Home / Ctrl+Shift+End`: move the active visible layer to the top/bottom visible slot
 - `Ctrl+- / Ctrl+=`: active layer opacity down/up by 10%
 - `Ctrl+Shift+- / Ctrl+Shift+=`: active layer opacity down/up by 1%
 - `Ctrl+Shift+0`: set active layer opacity to 0%
