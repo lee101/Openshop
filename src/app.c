@@ -1472,6 +1472,8 @@ int app_run(const char *input_path) {
                     }
                     if (layer_stack_show_all(&layers)) {
                         needs_composite = 1;
+                    } else {
+                        fprintf(stderr, "All layers are already visible\n");
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
@@ -1484,6 +1486,8 @@ int app_run(const char *input_path) {
                     }
                     if (layer_stack_show(&layers, layers.active_layer)) {
                         needs_composite = 1;
+                    } else {
+                        fprintf(stderr, "Active layer is already visible\n");
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
