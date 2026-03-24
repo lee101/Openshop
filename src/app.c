@@ -821,6 +821,21 @@ static int handle_general_key_hotkey(SDL_Keycode key,
     return 0;
 }
 
+static int handle_right_click_sample(SDL_Window *window,
+                                     const LayerStack *layers,
+                                     const Canvas *sample,
+                                     int x, int y,
+                                     uint32_t *brush_color_rgb, uint32_t *brush_color,
+                                     int *brush_opacity, int brush_radius,
+                                     BrushShape brush_shape, Tool *tool) {
+    if (!try_sample_canvas_color(sample, x, y, brush_color_rgb, brush_color, brush_opacity, tool)) {
+        return 0;
+    }
+
+    update_window_title(window, layers, *tool, brush_shape, brush_radius, *brush_color, *brush_opacity);
+    return 1;
+}
+
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
     switch (shape) {
     case BRUSH_SHAPE_ROUND:
@@ -1239,9 +1254,8 @@ int app_run(const char *input_path) {
                     int x = e.button.x;
                     int y = e.button.y;
                     const Canvas *sample = (preview_active && preview_canvas.pixels) ? &preview_canvas : &composite;
-                    if (try_sample_canvas_color(sample, x, y, &brush_color_rgb, &brush_color, &brush_opacity, &tool)) {
-                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-                    }
+                    handle_right_click_sample(window, &layers, sample, x, y, &brush_color_rgb, &brush_color,
+                                              &brush_opacity, brush_radius, brush_shape, &tool);
                 }
                 break;
             case SDL_MOUSEBUTTONUP:
