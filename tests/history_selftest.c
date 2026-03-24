@@ -748,6 +748,52 @@ int main(void) {
         }
     }
 
+    {
+        Snapshot temp_stack[2] = {0};
+        Snapshot first = {0};
+        Snapshot second = {0};
+        Snapshot third = {0};
+        uint32_t *second_pixels = NULL;
+        uint32_t *third_pixels = NULL;
+        int temp_count = 0;
+
+        if (!layer_stack_rename(&stack, 1, "Owned First") ||
+            !snapshot_from_layers(&first, &stack) ||
+            !layer_stack_rename(&stack, 1, "Owned Second") ||
+            !snapshot_from_layers(&second, &stack) ||
+            !layer_stack_rename(&stack, 1, "Owned Third") ||
+            !snapshot_from_layers(&third, &stack)) {
+            fprintf(stderr, "owned rollover snapshot init failed\n");
+            snapshot_free(&first);
+            snapshot_free(&second);
+            snapshot_free(&third);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+
+        second_pixels = second.pixels;
+        third_pixels = third.pixels;
+        snapshot_push_existing(temp_stack, &temp_count, 2, &first);
+        snapshot_push_existing(temp_stack, &temp_count, 2, &second);
+        snapshot_push_existing(temp_stack, &temp_count, 2, &third);
+        if (!expect_int(temp_count, 2, "push_existing_rollover_count") ||
+            strcmp(temp_stack[0].names[1], "Owned Second") != 0 ||
+            strcmp(temp_stack[1].names[1], "Owned Third") != 0 ||
+            temp_stack[0].pixels != second_pixels ||
+            temp_stack[1].pixels != third_pixels) {
+            fprintf(stderr, "push_existing rollover failed\n");
+            snapshot_stack_clear(temp_stack, &temp_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+
+        snapshot_stack_clear(temp_stack, &temp_count);
+    }
+
     snapshot_stack_clear(undo_stack, &undo_count);
     snapshot_stack_clear(redo_stack, &redo_count);
     layer_stack_free(&stack);
