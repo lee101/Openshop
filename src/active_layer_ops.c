@@ -577,45 +577,45 @@ int active_layer_try_commit_shape(LayerStack *layers,
                                                      brush_radius, brush_color, max_history) == ACTIVE_LAYER_ACTION_CHANGED;
 }
 
-int active_layer_try_begin_brush_stroke(LayerStack *layers,
-                                        Snapshot *undo_stack, int *undo_count,
-                                        Snapshot *redo_stack, int *redo_count,
-                                        Tool tool, int x, int y, int brush_radius,
-                                        uint32_t brush_color, BrushShape brush_shape,
-                                        uint32_t background_color, int max_history) {
+ActiveLayerActionResult active_layer_try_begin_brush_stroke_with_result(LayerStack *layers,
+                                                                        Snapshot *undo_stack, int *undo_count,
+                                                                        Snapshot *redo_stack, int *redo_count,
+                                                                        Tool tool, int x, int y, int brush_radius,
+                                                                        uint32_t brush_color, BrushShape brush_shape,
+                                                                        uint32_t background_color, int max_history) {
     Layer *active;
     uint8_t brush_alpha;
     uint32_t clear_color;
 
     if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_FAILED;
     }
 
     active = layer_stack_active(layers);
     if (!active || active->locked || !active->canvas.pixels) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_FAILED;
     }
     if (tool != TOOL_BRUSH && tool != TOOL_ERASER) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
     brush_alpha = (uint8_t)((brush_color >> 24) & 0xFF);
     if (tool == TOOL_BRUSH && brush_alpha == 0) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
     if (brush_radius <= 0) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
     if (x < 0 || y < 0 || x >= active->canvas.width || y >= active->canvas.height) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
     clear_color = active_layer_clear_color(layers, background_color);
     if (tool == TOOL_ERASER &&
         !canvas_stamp_would_change(&active->canvas, x, y, brush_radius, clear_color, brush_shape)) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
     if (tool == TOOL_BRUSH &&
         !canvas_stamp_would_change(&active->canvas, x, y, brush_radius, brush_color, brush_shape)) {
-        return 0;
+        return ACTIVE_LAYER_ACTION_UNCHANGED;
     }
 
     snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
@@ -624,7 +624,18 @@ int active_layer_try_begin_brush_stroke(LayerStack *layers,
     } else {
         stamp_brush(&active->canvas, x, y, brush_radius, brush_color, brush_shape);
     }
-    return 1;
+    return ACTIVE_LAYER_ACTION_CHANGED;
+}
+
+int active_layer_try_begin_brush_stroke(LayerStack *layers,
+                                        Snapshot *undo_stack, int *undo_count,
+                                        Snapshot *redo_stack, int *redo_count,
+                                        Tool tool, int x, int y, int brush_radius,
+                                        uint32_t brush_color, BrushShape brush_shape,
+                                        uint32_t background_color, int max_history) {
+    return active_layer_try_begin_brush_stroke_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                           tool, x, y, brush_radius, brush_color, brush_shape,
+                                                           background_color, max_history) == ACTIVE_LAYER_ACTION_CHANGED;
 }
 
 int active_layer_continue_brush_stroke(LayerStack *layers,

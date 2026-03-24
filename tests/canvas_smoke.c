@@ -1741,6 +1741,19 @@ static int test_active_layer_ops_helpers(void) {
     }
 
     canvas_clear(&stack.layers[0].canvas, 0x00000000);
+    if (active_layer_try_begin_brush_stroke_with_result(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                        TOOL_BRUSH, 2, 2, 1, 0xFF556677, BRUSH_SHAPE_SQUARE,
+                                                        0xFFFFFFFF, 4) != ACTIVE_LAYER_ACTION_CHANGED ||
+        !expect_pixel_eq("active_stroke_brush_result", canvas_get_pixel(&stack.layers[0].canvas, 2, 2), 0xFF556677)) {
+        fprintf(stderr, "active_layer_try_begin_brush_stroke_with_result changed failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    canvas_clear(&stack.layers[0].canvas, 0x00000000);
     if (!active_layer_try_begin_brush_stroke(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
                                              TOOL_BRUSH, 2, 2, 1, 0xFF556677, BRUSH_SHAPE_SQUARE,
                                              0xFFFFFFFF, 4) ||
@@ -1778,6 +1791,15 @@ static int test_active_layer_ops_helpers(void) {
         int undo_before = undo_count;
         int redo_before = redo_count;
         canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 0, 0xFF010203);
+        if (active_layer_try_begin_brush_stroke_with_result(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                            TOOL_LINE, 0, 0, 1, 0xFF556677, BRUSH_SHAPE_SQUARE,
+                                                            0xFFFFFFFF, 4) != ACTIVE_LAYER_ACTION_UNCHANGED) {
+            fprintf(stderr, "active_layer_try_begin_brush_stroke_with_result unchanged failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
         if (active_layer_try_begin_brush_stroke(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
                                                 TOOL_LINE, 0, 0, 1, 0xFF556677, BRUSH_SHAPE_SQUARE,
                                                 0xFFFFFFFF, 4) ||

@@ -1174,10 +1174,12 @@ static int handle_left_click_down(const MouseState *mouse_state, int x, int y) {
     }
 
     if (*mouse_state->tool == TOOL_BRUSH || *mouse_state->tool == TOOL_ERASER) {
-        if (try_begin_brush_stroke(mouse_state->layers, mouse_state->undo_stack, mouse_state->undo_count,
-                                   mouse_state->redo_stack, mouse_state->redo_count,
-                                   *mouse_state->tool, x, y, *mouse_state->brush_radius,
-                                   *mouse_state->brush_color, *mouse_state->brush_shape)) {
+        if (active_layer_try_begin_brush_stroke_with_result(mouse_state->layers, mouse_state->undo_stack,
+                                                            mouse_state->undo_count, mouse_state->redo_stack,
+                                                            mouse_state->redo_count, *mouse_state->tool, x, y,
+                                                            *mouse_state->brush_radius, *mouse_state->brush_color,
+                                                            *mouse_state->brush_shape, COLOR_BG, MAX_HISTORY) ==
+            ACTIVE_LAYER_ACTION_CHANGED) {
             *mouse_state->drawing = 1;
             *mouse_state->needs_composite = 1;
         }

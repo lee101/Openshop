@@ -93,6 +93,12 @@ int active_layer_try_begin_brush_stroke(LayerStack *layers,
                                         Tool tool, int x, int y, int brush_radius,
                                         uint32_t brush_color, BrushShape brush_shape,
                                         uint32_t background_color, int max_history);
+ActiveLayerActionResult active_layer_try_begin_brush_stroke_with_result(LayerStack *layers,
+                                                                        Snapshot *undo_stack, int *undo_count,
+                                                                        Snapshot *redo_stack, int *redo_count,
+                                                                        Tool tool, int x, int y, int brush_radius,
+                                                                        uint32_t brush_color, BrushShape brush_shape,
+                                                                        uint32_t background_color, int max_history);
 int active_layer_continue_brush_stroke(LayerStack *layers,
                                        Tool tool, int x, int y,
                                        int brush_radius, uint32_t brush_color,
