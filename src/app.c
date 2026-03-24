@@ -674,6 +674,7 @@ static int handle_brush_state_hotkey(SDL_Keycode key,
 }
 
 static ActiveLayerActionResult handle_active_edit_hotkey(SDL_Keycode key,
+                                                         int ctrl, int alt,
                                                          LayerStack *layers,
                                                          Snapshot *undo_stack, int *undo_count,
                                                          Snapshot *redo_stack, int *redo_count) {
@@ -683,7 +684,7 @@ static ActiveLayerActionResult handle_active_edit_hotkey(SDL_Keycode key,
         return ACTIVE_LAYER_ACTION_FAILED;
     }
 
-    action = app_active_edit_hotkey_action((int)key);
+    action = app_active_edit_hotkey_action((int)key, ctrl, alt);
     switch (action) {
     case APP_ACTIVE_EDIT_CLEAR:
         return active_layer_try_clear_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
@@ -751,6 +752,7 @@ static int handle_mouse_position_hotkey(SDL_Keycode key,
 }
 
 static void handle_general_key_hotkey(SDL_Keycode key,
+                                      int ctrl, int alt,
                                       const ActionState *action_state,
                                       const Canvas *sample,
                                       uint32_t *brush_color_rgb, uint32_t *brush_color,
@@ -770,7 +772,8 @@ static void handle_general_key_hotkey(SDL_Keycode key,
         return;
     }
 
-    active_edit_result = handle_active_edit_hotkey(key, action_state->layers, action_state->undo_stack,
+    active_edit_result = handle_active_edit_hotkey(key, ctrl, alt,
+                                                   action_state->layers, action_state->undo_stack,
                                                    action_state->undo_count, action_state->redo_stack,
                                                    action_state->redo_count);
     if (active_edit_result != ACTIVE_LAYER_ACTION_FAILED) {
@@ -1474,7 +1477,7 @@ int app_run(const char *input_path) {
 
                 {
                     const Canvas *sample = current_display_canvas(preview_active, &preview_canvas, &composite);
-                    handle_general_key_hotkey(key, &action_state,
+                    handle_general_key_hotkey(key, ctrl, alt, &action_state,
                                               sample, &brush_color_rgb, &brush_color, &brush_opacity,
                                               &brush_radius, &brush_shape, &tool, &needs_composite);
                 }

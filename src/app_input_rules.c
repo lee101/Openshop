@@ -186,7 +186,10 @@ int app_is_add_layer_hotkey(int key, int ctrl, int alt, int shift) {
     return ctrl && shift && !alt && key == APP_KEY_n;
 }
 
-AppActiveEditAction app_active_edit_hotkey_action(int key) {
+AppActiveEditAction app_active_edit_hotkey_action(int key, int ctrl, int alt) {
+    if (ctrl || alt) {
+        return APP_ACTIVE_EDIT_NONE;
+    }
     if (key == APP_KEY_c) {
         return APP_ACTIVE_EDIT_CLEAR;
     }

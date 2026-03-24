@@ -169,16 +169,18 @@ static int test_app_input_rules(void) {
             fprintf(stderr, "add layer non-hotkey mapping failed\n");
             return 0;
         }
-        if (app_active_edit_hotkey_action(APP_KEY_c) != APP_ACTIVE_EDIT_CLEAR ||
-            app_active_edit_hotkey_action(APP_KEY_h) != APP_ACTIVE_EDIT_FLIP_HORIZONTAL ||
-            app_active_edit_hotkey_action(APP_KEY_v) != APP_ACTIVE_EDIT_FLIP_VERTICAL ||
-            app_active_edit_hotkey_action(APP_KEY_j) != APP_ACTIVE_EDIT_ROTATE_180 ||
-            app_active_edit_hotkey_action(APP_KEY_x) != APP_ACTIVE_EDIT_INVERT_RGB) {
+        if (app_active_edit_hotkey_action(APP_KEY_c, 0, 0) != APP_ACTIVE_EDIT_CLEAR ||
+            app_active_edit_hotkey_action(APP_KEY_h, 0, 0) != APP_ACTIVE_EDIT_FLIP_HORIZONTAL ||
+            app_active_edit_hotkey_action(APP_KEY_v, 0, 0) != APP_ACTIVE_EDIT_FLIP_VERTICAL ||
+            app_active_edit_hotkey_action(APP_KEY_j, 0, 0) != APP_ACTIVE_EDIT_ROTATE_180 ||
+            app_active_edit_hotkey_action(APP_KEY_x, 0, 0) != APP_ACTIVE_EDIT_INVERT_RGB) {
             fprintf(stderr, "active edit hotkey mapping failed\n");
             return 0;
         }
-        if (app_active_edit_hotkey_action(APP_KEY_b) != APP_ACTIVE_EDIT_NONE) {
-            fprintf(stderr, "active edit non-hotkey mapping failed\n");
+        if (app_active_edit_hotkey_action(APP_KEY_b, 0, 0) != APP_ACTIVE_EDIT_NONE ||
+            app_active_edit_hotkey_action(APP_KEY_c, 1, 0) != APP_ACTIVE_EDIT_NONE ||
+            app_active_edit_hotkey_action(APP_KEY_v, 0, 1) != APP_ACTIVE_EDIT_NONE) {
+            fprintf(stderr, "active edit non-hotkey or modifier rejection failed\n");
             return 0;
         }
         if (app_mouse_position_hotkey_action(APP_KEY_f) != APP_MOUSE_POSITION_FILL ||
