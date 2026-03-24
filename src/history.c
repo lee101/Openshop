@@ -57,11 +57,11 @@ static int history_capture_and_push(
 ) {
     LayerSnapshot snapshot = {0};
     if (!layers || !stack || !count) {
-        return 0;
+        return -1;
     }
     if (!layer_snapshot_capture(&snapshot, layers)) {
         layer_snapshot_free(&snapshot);
-        return 0;
+        return -1;
     }
     if (*count > 0 && layer_snapshot_equals(&stack[*count - 1], &snapshot)) {
         layer_snapshot_reset(&snapshot);
@@ -90,6 +90,9 @@ static int history_step_apply(
     }
 
     pushed_current = history_capture_and_push(layers, to_stack, to_count, NULL, NULL);
+    if (pushed_current < 0) {
+        return 0;
+    }
     snapshot = from_stack[--(*from_count)];
     ok = layer_snapshot_apply(&snapshot, layers);
     if (!ok) {
