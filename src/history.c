@@ -162,6 +162,20 @@ int layer_snapshot_apply(const LayerSnapshot *snapshot, LayerStack *stack) {
     return 1;
 }
 
+int layer_snapshot_matches_stack(const LayerSnapshot *snapshot, const LayerStack *stack) {
+    LayerSnapshot current = {0};
+    int equal = 0;
+    if (!snapshot || !stack) {
+        return 0;
+    }
+    if (!layer_snapshot_capture(&current, stack)) {
+        return 0;
+    }
+    equal = layer_snapshot_equals(snapshot, &current);
+    layer_snapshot_free(&current);
+    return equal;
+}
+
 void layer_history_clear(LayerSnapshot *stack, int *count) {
     if (!stack || !count) {
         return;

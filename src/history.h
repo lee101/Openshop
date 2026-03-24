@@ -29,6 +29,7 @@ typedef struct {
 void layer_snapshot_free(LayerSnapshot *snapshot);
 int layer_snapshot_capture(LayerSnapshot *snapshot, const LayerStack *stack);
 int layer_snapshot_apply(const LayerSnapshot *snapshot, LayerStack *stack);
+int layer_snapshot_matches_stack(const LayerSnapshot *snapshot, const LayerStack *stack);
 // Low-level stack primitives kept for targeted tests and incremental callers.
 void layer_history_clear(LayerSnapshot *stack, int *count);
 void layer_history_push(const LayerStack *layers, LayerSnapshot *stack, int *count, LayerSnapshot *redo, int *redo_count);

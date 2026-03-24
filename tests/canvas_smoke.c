@@ -635,6 +635,105 @@ static int test_layer_history_discarded_snapshot_keeps_redo(void) {
     return 1;
 }
 
+static int test_layer_snapshot_matches_stack_noop_edits(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "history noop-match init failed\n");
+        return 0;
+    }
+    if (layer_stack_add(&stack, "Ink", 0x00000000) != 1) {
+        fprintf(stderr, "history noop-match add layer failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    LayerSnapshot snapshot = {0};
+    if (!layer_snapshot_capture(&snapshot, &stack)) {
+        fprintf(stderr, "history noop-match capture failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_clear_layer(&stack, 1, 0x00000000) || !layer_snapshot_matches_stack(&snapshot, &stack)) {
+        fprintf(stderr, "history noop clear should match captured snapshot\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    canvas_translate(&stack.layers[1].canvas, 1, 0, 0x00000000);
+    if (!layer_snapshot_matches_stack(&snapshot, &stack)) {
+        fprintf(stderr, "history noop translate should match captured snapshot\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    canvas_set_pixel(&stack.layers[1].canvas, 0, 0, 0xFF123456);
+    if (layer_snapshot_matches_stack(&snapshot, &stack)) {
+        fprintf(stderr, "history changed stack should not match captured snapshot\n");
+        layer_snapshot_free(&snapshot);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_snapshot_free(&snapshot);
+    layer_stack_free(&stack);
+    return 1;
+}
+
+static int test_layer_history_skip_noop_snapshot_commit(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "history noop-commit init failed\n");
+        return 0;
+    }
+
+    LayerHistory history = {0};
+    layer_history_record(&history, &stack);
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF010203);
+    layer_history_record(&history, &stack);
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF040506);
+
+    if (!layer_history_step_undo(&history, &stack)) {
+        fprintf(stderr, "history noop-commit undo setup failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    LayerSnapshot snapshot = {0};
+    if (!layer_snapshot_capture(&snapshot, &stack)) {
+        fprintf(stderr, "history noop-commit capture failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_snapshot_matches_stack(&snapshot, &stack)) {
+        fprintf(stderr, "history noop-commit expected immediate snapshot match\n");
+        layer_snapshot_free(&snapshot);
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    layer_snapshot_free(&snapshot);
+    if (history.redo_count != 1) {
+        fprintf(stderr, "history noop-commit should preserve redo when snapshot is discarded\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_history_step_redo(&history, &stack) ||
+        !expect_pixel_eq("history_noop_commit_redo", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF040506)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_reset(&history);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layers_basic(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 16, 16, 0xFFFFFFFF)) {
@@ -1617,6 +1716,12 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_discarded_snapshot_keeps_redo()) {
+        return 1;
+    }
+    if (!test_layer_snapshot_matches_stack_noop_edits()) {
+        return 1;
+    }
+    if (!test_layer_history_skip_noop_snapshot_commit()) {
         return 1;
     }
 
