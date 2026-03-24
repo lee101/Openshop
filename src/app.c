@@ -479,22 +479,20 @@ static int try_add_layer(LayerStack *layers,
 
 static int handle_add_layer_hotkey(SDL_Keycode key,
                                    int ctrl, int alt, int shift,
-                                   SDL_Window *window,
-                                   LayerStack *layers,
-                                   Snapshot *undo_stack, int *undo_count,
-                                   Snapshot *redo_stack, int *redo_count,
-                                   Tool tool, BrushShape brush_shape,
-                                   int brush_radius, uint32_t brush_color,
-                                   int brush_opacity, int *needs_composite) {
+                                   const ActionState *action_state) {
     if (!(ctrl && shift) || alt || key != SDLK_n ||
-        !window || !layers || !undo_stack || !undo_count || !redo_stack || !redo_count || !needs_composite) {
+        !action_state || !action_state->title_state || !action_state->layers ||
+        !action_state->undo_stack || !action_state->undo_count ||
+        !action_state->redo_stack || !action_state->redo_count || !action_state->needs_composite) {
         return 0;
     }
 
-    if (try_add_layer(layers, undo_stack, undo_count, redo_stack, redo_count)) {
-        *needs_composite = 1;
+    if (try_add_layer(action_state->layers, action_state->undo_stack,
+                      action_state->undo_count, action_state->redo_stack,
+                      action_state->redo_count)) {
+        *action_state->needs_composite = 1;
     }
-    update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+    update_title_state(action_state->title_state);
     return 1;
 }
 
@@ -1139,38 +1137,43 @@ static int handle_mouse_position_hotkey(SDL_Keycode key,
 }
 
 static int handle_general_key_hotkey(SDL_Keycode key,
-                                     const TitleState *title_state,
-                                     LayerStack *layers,
-                                     Snapshot *undo_stack, int *undo_count,
-                                     Snapshot *redo_stack, int *redo_count,
+                                     const ActionState *action_state,
                                      const Canvas *sample,
                                      uint32_t *brush_color_rgb, uint32_t *brush_color,
                                      int *brush_opacity, int *brush_radius,
                                      BrushShape *brush_shape, Tool *tool,
                                      int *needs_composite) {
+    if (!action_state) {
+        return 0;
+    }
+
     if (handle_brush_state_hotkey(key, brush_color_rgb, brush_color, brush_opacity, brush_radius, brush_shape, tool)) {
-        update_title_state(title_state);
+        update_title_state(action_state->title_state);
         return 1;
     }
 
-    if (handle_active_edit_hotkey(key, layers, undo_stack, undo_count, redo_stack, redo_count)) {
+    if (handle_active_edit_hotkey(key, action_state->layers, action_state->undo_stack,
+                                  action_state->undo_count, action_state->redo_stack,
+                                  action_state->redo_count)) {
         if (needs_composite) {
             *needs_composite = 1;
         }
-        update_title_state(title_state);
+        update_title_state(action_state->title_state);
         return 1;
     }
 
-    if (handle_mouse_position_hotkey(key, layers, undo_stack, undo_count, redo_stack, redo_count,
+    if (handle_mouse_position_hotkey(key, action_state->layers, action_state->undo_stack,
+                                     action_state->undo_count, action_state->redo_stack,
+                                     action_state->redo_count,
                                      sample, brush_color_rgb, brush_color, brush_opacity, tool)) {
         if (needs_composite && key == SDLK_f) {
             *needs_composite = 1;
         }
-        update_title_state(title_state);
+        update_title_state(action_state->title_state);
         return 1;
     }
 
-    update_title_state(title_state);
+    update_title_state(action_state->title_state);
     return 0;
 }
 
@@ -2141,10 +2144,7 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (handle_add_layer_hotkey(key, ctrl, alt, shift, window, &layers,
-                                            undo_stack, &undo_count, redo_stack, &redo_count,
-                                            tool, brush_shape, brush_radius, brush_color,
-                                            brush_opacity, &needs_composite)) {
+                if (handle_add_layer_hotkey(key, ctrl, alt, shift, &action_state)) {
                     break;
                 }
 
@@ -2186,7 +2186,7 @@ int app_run(const char *input_path) {
 
                 {
                     const Canvas *sample = current_display_canvas(preview_active, &preview_canvas, &composite);
-                    handle_general_key_hotkey(key, &title_state, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                    handle_general_key_hotkey(key, &action_state,
                                               sample, &brush_color_rgb, &brush_color, &brush_opacity,
                                               &brush_radius, &brush_shape, &tool, &needs_composite);
                 }
