@@ -1365,6 +1365,7 @@ static int handle_translation_hotkey(SDL_Keycode key,
                                      const ActionState *action_state) {
     int dx = 0;
     int dy = 0;
+    int matched = 0;
 
     if (!action_state || !action_state->layers || !action_state->undo_stack ||
         !action_state->undo_count || !action_state->redo_stack || !action_state->redo_count ||
@@ -1372,8 +1373,12 @@ static int handle_translation_hotkey(SDL_Keycode key,
         return 0;
     }
 
-    if (app_translation_hotkey_delta((int)key, ctrl, alt, shift, &dx, &dy) &&
-        active_layer_apply_translation(action_state->layers, action_state->undo_stack, action_state->undo_count,
+    matched = app_translation_hotkey_delta((int)key, ctrl, alt, shift, &dx, &dy);
+    if (!matched) {
+        return 0;
+    }
+
+    if (active_layer_apply_translation(action_state->layers, action_state->undo_stack, action_state->undo_count,
                                        action_state->redo_stack, action_state->redo_count,
                                        dx, dy, COLOR_BG, MAX_HISTORY)) {
         *action_state->needs_composite = 1;
