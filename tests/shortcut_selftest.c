@@ -2784,6 +2784,43 @@ static int expect_constrained_shape_end_no_output(
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    Tool tool;
+    int x0;
+    int y0;
+    int x1;
+    int y1;
+    int shift;
+    int use_out_x;
+    int use_out_y;
+    int initial_x;
+    int initial_y;
+    int want_x;
+    int want_y;
+} ConstrainedShapeEndNoOutputCase;
+
+static int run_constrained_shape_end_no_output_case(
+    const ConstrainedShapeEndNoOutputCase *test_case
+) {
+    int out_x = test_case->initial_x;
+    int out_y = test_case->initial_y;
+
+    return expect_constrained_shape_end_no_output(
+        test_case->label,
+        test_case->tool,
+        test_case->x0,
+        test_case->y0,
+        test_case->x1,
+        test_case->y1,
+        test_case->shift,
+        test_case->use_out_x ? &out_x : NULL,
+        test_case->use_out_y ? &out_y : NULL,
+        test_case->want_x,
+        test_case->want_y
+    );
+}
+
 static int expect_cancel_shape_preview(
     const char *label,
     int *shaping,
@@ -3659,8 +3696,6 @@ static int run_prepare_shape_preview_motion_rejection_case(
 
 int main(void) {
     int ok = 1;
-    int sentinel_x = 321;
-    int sentinel_y = 654;
     int shaping = 1;
     int preview_active = 1;
     int shape_start_x = -1;
@@ -4517,8 +4552,17 @@ int main(void) {
             ok = ok && run_constrained_shape_end_case(&constrained_shape_end_cases[i]);
         }
     }
-    ok = ok && expect_constrained_shape_end_no_output("shape_null_out_x", TOOL_LINE, 10, 10, 25, 13, 1, NULL, &sentinel_y, 0, 654);
-    ok = ok && expect_constrained_shape_end_no_output("shape_null_out_y", TOOL_LINE, 10, 10, 25, 13, 1, &sentinel_x, NULL, 321, 0);
+    {
+        const ConstrainedShapeEndNoOutputCase constrained_shape_end_no_output_cases[] = {
+            {"shape_null_out_x", TOOL_LINE, 10, 10, 25, 13, 1, 0, 1, 321, 654, 0, 654},
+            {"shape_null_out_y", TOOL_LINE, 10, 10, 25, 13, 1, 1, 0, 321, 654, 321, 0},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(constrained_shape_end_no_output_cases) / sizeof(constrained_shape_end_no_output_cases[0]); i++) {
+            ok = ok && run_constrained_shape_end_no_output_case(&constrained_shape_end_no_output_cases[i]);
+        }
+    }
     {
         const DrawShapeCase draw_shape_cases[] = {
             {
