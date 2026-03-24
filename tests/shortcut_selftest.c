@@ -661,6 +661,83 @@ static int expect_handle_canvas_motion(
 
 typedef struct {
     const char *label;
+    int initial_drawing;
+    int initial_last_x;
+    int initial_last_y;
+    int initial_shaping;
+    int initial_preview_active;
+    int initial_needs_composite;
+    int x;
+    int y;
+    int shape_start_x;
+    int shape_start_y;
+    int shift;
+    Tool tool;
+    BrushShape brush_shape;
+    int brush_radius;
+    uint32_t brush_color;
+    AppCanvasClickResult want_result;
+    int want_last_x;
+    int want_last_y;
+    int want_preview_active;
+    int want_needs_composite;
+    size_t changed_index;
+    uint32_t want_changed;
+    const uint32_t *want_preview_pixels;
+    size_t want_preview_pixel_count;
+} HandleCanvasMotionCase;
+
+static int run_handle_canvas_motion_case(const HandleCanvasMotionCase *test_case) {
+    LayerStack stack;
+    Canvas canvas;
+    uint32_t pixels[25];
+    uint32_t preview_pixels_local[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
+    uint32_t shape_base_local[4] = {0x01010101u, 0x02020202u, 0x03030303u, 0x04040404u};
+    Canvas preview_canvas_local = {2, 2, preview_pixels_local};
+    int drawing = test_case->initial_drawing;
+    int last_x = test_case->initial_last_x;
+    int last_y = test_case->initial_last_y;
+    int shaping = test_case->initial_shaping;
+    int preview_active = test_case->initial_preview_active;
+    int needs_composite = test_case->initial_needs_composite;
+
+    init_single_layer_stack(&stack, &canvas, pixels, 5, 5, 0x00000000u, 0);
+    return expect_handle_canvas_motion(
+        test_case->label,
+        &stack,
+        test_case->x,
+        test_case->y,
+        &drawing,
+        &last_x,
+        &last_y,
+        &shaping,
+        test_case->shape_start_x,
+        test_case->shape_start_y,
+        test_case->shift,
+        test_case->tool,
+        test_case->brush_shape,
+        test_case->brush_radius,
+        test_case->brush_color,
+        shape_base_local,
+        preview_pixels_local,
+        &preview_canvas_local,
+        &preview_active,
+        &needs_composite,
+        4,
+        test_case->want_result,
+        test_case->want_last_x,
+        test_case->want_last_y,
+        test_case->want_preview_active,
+        test_case->want_needs_composite,
+        test_case->changed_index,
+        test_case->want_changed,
+        test_case->want_preview_pixels,
+        test_case->want_preview_pixel_count
+    );
+}
+
+typedef struct {
+    const char *label;
     int width;
     int height;
     uint32_t initial_fill;
@@ -2809,138 +2886,46 @@ int main(void) {
         }
     }
     {
-        LayerStack stack;
-        Canvas canvas;
-        uint32_t pixels[9];
-        uint32_t preview_pixels_local[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
-        uint32_t shape_base_local[4] = {0x01010101u, 0x02020202u, 0x03030303u, 0x04040404u};
-        Canvas preview_canvas_local = {2, 2, preview_pixels_local};
-        int drawing_state;
-        int local_last_x;
-        int local_last_y;
-        int local_shaping;
-        int local_preview_active;
-        int local_needs_composite;
+        static const uint32_t unchanged_preview_pixels[4] = {
+            0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu,
+        };
+        HandleCanvasMotionCase motion_cases[] = {
+            {
+                "handle_canvas_motion_direct_stroke",
+                1, 1, 2, 0, 0, 0,
+                3, 2, 0, 0, 0,
+                TOOL_BRUSH, BRUSH_SHAPE_ROUND, 1, 0xFF556677u,
+                APP_CANVAS_CLICK_DIRECT_STROKE,
+                3, 2, 0, 1,
+                99, 0u,
+                unchanged_preview_pixels, 4,
+            },
+            {
+                "handle_canvas_motion_shape_preview",
+                0, 8, 9, 1, 0, 0,
+                1, 0, 0, 0, 0,
+                TOOL_LINE, BRUSH_SHAPE_ROUND, 0, 0xFFABCDEFu,
+                APP_CANVAS_CLICK_SHAPE_PREVIEW,
+                8, 9, 1, 0,
+                0, 0x00000000u,
+                (const uint32_t[]){0x01010101u, 0x02020202u, 0x03030303u, 0x04040404u}, 4,
+            },
+            {
+                "handle_canvas_motion_noop_without_mode",
+                0, 6, 7, 0, 0, 0,
+                1, 1, 0, 0, 0,
+                TOOL_RECT, BRUSH_SHAPE_ROUND, 1, 0xFFABCDEFu,
+                APP_CANVAS_CLICK_NOOP,
+                6, 7, 0, 0,
+                0, 0x00000000u,
+                unchanged_preview_pixels, 4,
+            },
+        };
+        size_t i;
 
-        init_single_layer_stack(&stack, &canvas, pixels, 5, 5, 0x00000000u, 0);
-        drawing_state = 1;
-        local_last_x = 1;
-        local_last_y = 2;
-        local_shaping = 0;
-        local_preview_active = 0;
-        local_needs_composite = 0;
-        ok = ok && expect_handle_canvas_motion(
-            "handle_canvas_motion_direct_stroke",
-            &stack,
-            3,
-            2,
-            &drawing_state,
-            &local_last_x,
-            &local_last_y,
-            &local_shaping,
-            0,
-            0,
-            0,
-            TOOL_BRUSH,
-            BRUSH_SHAPE_ROUND,
-            1,
-            0xFF556677u,
-            shape_base_local,
-            preview_pixels_local,
-            &preview_canvas_local,
-            &local_preview_active,
-            &local_needs_composite,
-            4,
-            APP_CANVAS_CLICK_DIRECT_STROKE,
-            3,
-            2,
-            0,
-            1,
-            99,
-            0u,
-            preview_pixels_local,
-            4
-        );
-
-        memcpy(preview_pixels_local, (uint32_t[]){0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu}, sizeof(preview_pixels_local));
-        drawing_state = 0;
-        local_last_x = 8;
-        local_last_y = 9;
-        local_shaping = 1;
-        local_preview_active = 0;
-        local_needs_composite = 0;
-        ok = ok && expect_handle_canvas_motion(
-            "handle_canvas_motion_shape_preview",
-            &stack,
-            1,
-            0,
-            &drawing_state,
-            &local_last_x,
-            &local_last_y,
-            &local_shaping,
-            0,
-            0,
-            0,
-            TOOL_LINE,
-            BRUSH_SHAPE_ROUND,
-            0,
-            0xFFABCDEFu,
-            shape_base_local,
-            preview_pixels_local,
-            &preview_canvas_local,
-            &local_preview_active,
-            &local_needs_composite,
-            4,
-            APP_CANVAS_CLICK_SHAPE_PREVIEW,
-            8,
-            9,
-            1,
-            0,
-            0,
-            0x00000000u,
-            shape_base_local,
-            4
-        );
-
-        memcpy(preview_pixels_local, (uint32_t[]){0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu}, sizeof(preview_pixels_local));
-        drawing_state = 0;
-        local_last_x = 6;
-        local_last_y = 7;
-        local_shaping = 0;
-        local_preview_active = 0;
-        local_needs_composite = 0;
-        ok = ok && expect_handle_canvas_motion(
-            "handle_canvas_motion_noop_without_mode",
-            &stack,
-            1,
-            1,
-            &drawing_state,
-            &local_last_x,
-            &local_last_y,
-            &local_shaping,
-            0,
-            0,
-            0,
-            TOOL_RECT,
-            BRUSH_SHAPE_ROUND,
-            1,
-            0xFFABCDEFu,
-            shape_base_local,
-            preview_pixels_local,
-            &preview_canvas_local,
-            &local_preview_active,
-            &local_needs_composite,
-            4,
-            APP_CANVAS_CLICK_NOOP,
-            6,
-            7,
-            0,
-            0,
-            0,
-            0x00000000u,
-            (uint32_t[]){0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu},
-            4
-        );
+        for (i = 0; i < sizeof(motion_cases) / sizeof(motion_cases[0]); i++) {
+            ok = ok && run_handle_canvas_motion_case(&motion_cases[i]);
+        }
     }
     {
         ContinueDirectStrokeCase continue_cases[] = {
