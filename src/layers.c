@@ -403,6 +403,9 @@ int layer_stack_cycle(LayerStack *stack, int direction) {
     if (!stack || stack->layer_count <= 0 || direction == 0) {
         return -1;
     }
+    if (stack->layer_count == 1) {
+        return -1;
+    }
     int idx = stack->active_layer + direction;
     if (idx < 0) {
         idx = stack->layer_count - 1;

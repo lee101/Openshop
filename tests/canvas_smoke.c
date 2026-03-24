@@ -3630,6 +3630,23 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    {
+        LayerStack single = {0};
+        if (!layer_stack_init(&single, 4, 4, 0xFFFFFFFF)) {
+            fprintf(stderr, "single-layer cycle init failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        if (layer_stack_cycle(&single, 1) != -1 || single.active_layer != 0) {
+            fprintf(stderr, "single-layer cycle should be unchanged\n");
+            layer_stack_free(&single);
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        layer_stack_free(&single);
+    }
     if (layer_stack_add(&stack, "Third", 0x00000000) != 2 || layer_stack_add(&stack, "Fourth", 0x00000000) != 3) {
         fprintf(stderr, "setup extended layer cycling failed\n");
         canvas_free(&composite);
