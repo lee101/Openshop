@@ -159,6 +159,16 @@ static int expect_paint_action(const char *label, int key, PaintShortcutAction w
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    int key;
+    PaintShortcutAction want;
+} PaintShortcutCase;
+
+static int run_paint_shortcut_case(const PaintShortcutCase *test_case) {
+    return expect_paint_action(test_case->label, test_case->key, test_case->want);
+}
+
 static int expect_brush_action(const char *label, int key, BrushShortcutAction want) {
     BrushShortcutAction got = brush_shortcut_action(key);
     if (got != want) {
@@ -166,6 +176,16 @@ static int expect_brush_action(const char *label, int key, BrushShortcutAction w
         return 0;
     }
     return 1;
+}
+
+typedef struct {
+    const char *label;
+    int key;
+    BrushShortcutAction want;
+} BrushShortcutCase;
+
+static int run_brush_shortcut_case(const BrushShortcutCase *test_case) {
+    return expect_brush_action(test_case->label, test_case->key, test_case->want);
 }
 
 static void init_single_layer_stack(
@@ -3669,28 +3689,42 @@ int main(void) {
             ok = ok && run_merge_shortcut_case(&merge_shortcut_cases[i]);
         }
     }
-    ok = ok && expect_paint_action("tool_brush", 'b', PAINT_SHORTCUT_TOOL_BRUSH);
-    ok = ok && expect_paint_action("tool_eraser", 'e', PAINT_SHORTCUT_TOOL_ERASER);
-    ok = ok && expect_paint_action("tool_line", 'l', PAINT_SHORTCUT_TOOL_LINE);
-    ok = ok && expect_paint_action("tool_rect", 'r', PAINT_SHORTCUT_TOOL_RECT);
-    ok = ok && expect_paint_action("tool_filled_rect", 't', PAINT_SHORTCUT_TOOL_FILLED_RECT);
-    ok = ok && expect_paint_action("tool_ellipse", 'o', PAINT_SHORTCUT_TOOL_ELLIPSE);
-    ok = ok && expect_paint_action("tool_filled_ellipse", 'p', PAINT_SHORTCUT_TOOL_FILLED_ELLIPSE);
-    ok = ok && expect_paint_action("color_brush", '1', PAINT_SHORTCUT_COLOR_BRUSH);
-    ok = ok && expect_paint_action("color_red", '2', PAINT_SHORTCUT_COLOR_RED);
-    ok = ok && expect_paint_action("color_green", '3', PAINT_SHORTCUT_COLOR_GREEN);
-    ok = ok && expect_paint_action("color_blue", '4', PAINT_SHORTCUT_COLOR_BLUE);
-    ok = ok && expect_paint_action("color_yellow", '5', PAINT_SHORTCUT_COLOR_YELLOW);
-    ok = ok && expect_paint_action("color_purple", '6', PAINT_SHORTCUT_COLOR_PURPLE);
-    ok = ok && expect_paint_action("paint_other_key", '7', PAINT_SHORTCUT_NONE);
-    ok = ok && expect_brush_action("radius_down", '[', BRUSH_SHORTCUT_RADIUS_DOWN);
-    ok = ok && expect_brush_action("radius_up", ']', BRUSH_SHORTCUT_RADIUS_UP);
-    ok = ok && expect_brush_action("shape_prev", ',', BRUSH_SHORTCUT_SHAPE_PREV);
-    ok = ok && expect_brush_action("shape_next", '.', BRUSH_SHORTCUT_SHAPE_NEXT);
-    ok = ok && expect_brush_action("opacity_down", '-', BRUSH_SHORTCUT_OPACITY_DOWN);
-    ok = ok && expect_brush_action("opacity_up_equals", '=', BRUSH_SHORTCUT_OPACITY_UP);
-    ok = ok && expect_brush_action("opacity_up_plus", '+', BRUSH_SHORTCUT_OPACITY_UP);
-    ok = ok && expect_brush_action("brush_other_key", '/', BRUSH_SHORTCUT_NONE);
+    {
+        const PaintShortcutCase paint_shortcut_cases[] = {
+            {"tool_brush", 'b', PAINT_SHORTCUT_TOOL_BRUSH},
+            {"tool_eraser", 'e', PAINT_SHORTCUT_TOOL_ERASER},
+            {"tool_line", 'l', PAINT_SHORTCUT_TOOL_LINE},
+            {"tool_rect", 'r', PAINT_SHORTCUT_TOOL_RECT},
+            {"tool_filled_rect", 't', PAINT_SHORTCUT_TOOL_FILLED_RECT},
+            {"tool_ellipse", 'o', PAINT_SHORTCUT_TOOL_ELLIPSE},
+            {"tool_filled_ellipse", 'p', PAINT_SHORTCUT_TOOL_FILLED_ELLIPSE},
+            {"color_brush", '1', PAINT_SHORTCUT_COLOR_BRUSH},
+            {"color_red", '2', PAINT_SHORTCUT_COLOR_RED},
+            {"color_green", '3', PAINT_SHORTCUT_COLOR_GREEN},
+            {"color_blue", '4', PAINT_SHORTCUT_COLOR_BLUE},
+            {"color_yellow", '5', PAINT_SHORTCUT_COLOR_YELLOW},
+            {"color_purple", '6', PAINT_SHORTCUT_COLOR_PURPLE},
+            {"paint_other_key", '7', PAINT_SHORTCUT_NONE},
+        };
+        const BrushShortcutCase brush_shortcut_cases[] = {
+            {"radius_down", '[', BRUSH_SHORTCUT_RADIUS_DOWN},
+            {"radius_up", ']', BRUSH_SHORTCUT_RADIUS_UP},
+            {"shape_prev", ',', BRUSH_SHORTCUT_SHAPE_PREV},
+            {"shape_next", '.', BRUSH_SHORTCUT_SHAPE_NEXT},
+            {"opacity_down", '-', BRUSH_SHORTCUT_OPACITY_DOWN},
+            {"opacity_up_equals", '=', BRUSH_SHORTCUT_OPACITY_UP},
+            {"opacity_up_plus", '+', BRUSH_SHORTCUT_OPACITY_UP},
+            {"brush_other_key", '/', BRUSH_SHORTCUT_NONE},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(paint_shortcut_cases) / sizeof(paint_shortcut_cases[0]); i++) {
+            ok = ok && run_paint_shortcut_case(&paint_shortcut_cases[i]);
+        }
+        for (i = 0; i < sizeof(brush_shortcut_cases) / sizeof(brush_shortcut_cases[0]); i++) {
+            ok = ok && run_brush_shortcut_case(&brush_shortcut_cases[i]);
+        }
+    }
     ok = ok && expect_direct_draw_tool("tool_draws_directly_brush", TOOL_BRUSH, 1);
     ok = ok && expect_direct_draw_tool("tool_draws_directly_eraser", TOOL_ERASER, 1);
     ok = ok && expect_direct_draw_tool("tool_draws_directly_line", TOOL_LINE, 0);
