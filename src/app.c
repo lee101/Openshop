@@ -442,26 +442,6 @@ static int try_begin_brush_stroke(LayerStack *layers,
                                                COLOR_BG, MAX_HISTORY);
 }
 
-typedef struct {
-    SDL_Keycode key;
-    uint32_t color_rgb;
-    Tool tool;
-} BrushColorHotkey;
-
-typedef struct {
-    SDL_Keycode key;
-    Tool tool;
-} ToolHotkey;
-
-typedef int (*ActiveEditHotkeyFn)(LayerStack *layers,
-                                  Snapshot *undo_stack, int *undo_count,
-                                  Snapshot *redo_stack, int *redo_count);
-
-typedef struct {
-    SDL_Keycode key;
-    ActiveEditHotkeyFn action;
-} ActiveEditHotkey;
-
 typedef int (*SelectorHotkeyFn)(LayerStack *layers, int arg);
 
 typedef struct {
@@ -502,14 +482,6 @@ typedef struct {
     LayerIndexedActionFn action;
     int mark_composite;
 } IndexedLayerSilentHotkey;
-
-static const ActiveEditHotkey ACTIVE_EDIT_HOTKEYS[] = {
-    {SDLK_c, try_clear_active_layer},
-    {SDLK_h, try_flip_horizontal_active_layer},
-    {SDLK_v, try_flip_vertical_active_layer},
-    {SDLK_j, try_rotate_active_layer_180},
-    {SDLK_x, try_invert_active_layer_rgb},
-};
 
 static int mouse_position_fill_hotkey(LayerStack *layers,
                                       Snapshot *undo_stack, int *undo_count,
