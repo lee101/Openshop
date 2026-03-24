@@ -320,6 +320,7 @@ int active_layer_try_flood_fill(LayerStack *layers,
                                 Snapshot *redo_stack, int *redo_count,
                                 int x, int y, uint32_t brush_color, int max_history) {
     Layer *active;
+    uint8_t brush_alpha;
 
     if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
         return 0;
@@ -327,6 +328,10 @@ int active_layer_try_flood_fill(LayerStack *layers,
 
     active = layer_stack_active(layers);
     if (!active || active->locked || !active->canvas.pixels) {
+        return 0;
+    }
+    brush_alpha = (uint8_t)((brush_color >> 24) & 0xFF);
+    if (brush_alpha == 0) {
         return 0;
     }
     if (x < 0 || y < 0 || x >= active->canvas.width || y >= active->canvas.height) {
