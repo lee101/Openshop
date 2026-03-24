@@ -187,6 +187,25 @@ int main(void) {
 
         snapshot_stack_clear(temp_undo, &temp_undo_count);
         snapshot_stack_clear(temp_redo, &temp_redo_count);
+
+        if (layer_stack_add(&temp_stack, "Top", 0x00000000) != 1) {
+            fprintf(stderr, "temp top layer add failed\n");
+            layer_stack_free(&temp_stack);
+            return 1;
+        }
+
+        canvas_set_pixel(&temp_stack.layers[1].canvas, 0, 0, 0xFF102030);
+        if (!app_apply_canvas_translation(&temp_stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count, 1, 0) ||
+            !expect_int(temp_undo_count, 1, "canvas_translation_top_undo_count") ||
+            !expect_pixel(&temp_stack, 1, 1, 0, 0xFF102030, "canvas_translation_top_shifted_pixel") ||
+            !expect_pixel(&temp_stack, 1, 0, 0, 0x00000000, "canvas_translation_top_fill_pixel")) {
+            fprintf(stderr, "canvas translation top-layer helper failed\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            layer_stack_free(&temp_stack);
+            return 1;
+        }
+
         layer_stack_free(&temp_stack);
     }
 
