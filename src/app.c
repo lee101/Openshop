@@ -1110,6 +1110,20 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (key == SDLK_HOME) {
+                    if ((shift ? layer_stack_select_top_visible(&layers) : layer_stack_select_top(&layers)) >= 0) {
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    }
+                    break;
+                }
+
+                if (key == SDLK_END) {
+                    if ((shift ? layer_stack_select_bottom_visible(&layers) : layer_stack_select_bottom(&layers)) >= 0) {
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    }
+                    break;
+                }
+
                 if (key == SDLK_UP || key == SDLK_DOWN || key == SDLK_LEFT || key == SDLK_RIGHT) {
                     int step = shift ? 10 : 1;
                     int dx = 0;

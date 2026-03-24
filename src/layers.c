@@ -212,6 +212,40 @@ int layer_stack_cycle_visible(LayerStack *stack, int direction) {
     return -1;
 }
 
+static int layer_stack_select_edge(LayerStack *stack, int top, int visible_only) {
+    if (!stack || stack->layer_count <= 0) {
+        return -1;
+    }
+
+    int start = top ? (stack->layer_count - 1) : 0;
+    int end = top ? -1 : stack->layer_count;
+    int step = top ? -1 : 1;
+    for (int idx = start; idx != end; idx += step) {
+        if (visible_only && !stack->layers[idx].visible) {
+            continue;
+        }
+        stack->active_layer = idx;
+        return idx;
+    }
+    return -1;
+}
+
+int layer_stack_select_top(LayerStack *stack) {
+    return layer_stack_select_edge(stack, 1, 0);
+}
+
+int layer_stack_select_bottom(LayerStack *stack) {
+    return layer_stack_select_edge(stack, 0, 0);
+}
+
+int layer_stack_select_top_visible(LayerStack *stack) {
+    return layer_stack_select_edge(stack, 1, 1);
+}
+
+int layer_stack_select_bottom_visible(LayerStack *stack) {
+    return layer_stack_select_edge(stack, 0, 1);
+}
+
 int layer_stack_toggle_solo(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;

@@ -191,6 +191,30 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_select_top(&stack) != 1 || stack.active_layer != 1) {
+        fprintf(stderr, "select top layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_bottom(&stack) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "select bottom layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_top_visible(&stack) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "select top visible layer should skip hidden top layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_bottom_visible(&stack) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "select bottom visible layer should stay on only visible layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_show(&stack, 1)) {
         fprintf(stderr, "restore top layer after visible cycling failed\n");
         canvas_free(&composite);
@@ -218,6 +242,18 @@ static int test_layers_basic(void) {
     }
     if (layer_stack_cycle_visible(&stack, -1) != 0 || stack.active_layer != 0) {
         fprintf(stderr, "visible cycling backward should wrap across hidden layers\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_top_visible(&stack) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "select top visible layer should choose highest visible layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_bottom_visible(&stack) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "select bottom visible layer should choose lowest visible layer\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
