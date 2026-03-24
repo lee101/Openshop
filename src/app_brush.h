@@ -21,5 +21,6 @@ typedef enum {
 const char *app_tool_label(Tool tool);
 const char *app_brush_shape_label(BrushShape shape);
 BrushShape app_cycle_brush_shape(BrushShape shape, int direction);
+int app_tool_draws_directly(Tool tool);
 
 #endif

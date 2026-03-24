@@ -43,3 +43,7 @@ BrushShape app_cycle_brush_shape(BrushShape shape, int direction) {
     }
     return (BrushShape)idx;
 }
+
+int app_tool_draws_directly(Tool tool) {
+    return tool == TOOL_BRUSH || tool == TOOL_ERASER;
+}

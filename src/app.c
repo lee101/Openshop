@@ -1372,7 +1372,7 @@ static void handle_mouse_button_down(
     if (button.button == SDL_BUTTON_LEFT) {
         *last_x = button.x;
         *last_y = button.y;
-        if (*tool == TOOL_BRUSH || *tool == TOOL_ERASER) {
+        if (app_tool_draws_directly(*tool)) {
             Layer *active = app_active_editable_layer(layers);
             if (active) {
                 push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
