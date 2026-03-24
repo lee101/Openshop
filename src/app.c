@@ -556,6 +556,14 @@ static int handle_layer_name_shortcut(
         return 0;
     }
 
+    if (alt && !ctrl && !shift) {
+        if (layer_stack_can_reset_locked_names(layers)) {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+            layer_stack_reset_locked_names(layers);
+        }
+        return 1;
+    }
+
     if (ctrl && alt && shift) {
         if (layer_stack_can_reset_non_background_unlocked_names(layers)) {
             push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);

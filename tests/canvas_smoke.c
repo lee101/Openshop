@@ -230,6 +230,26 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_rename(&stack, 0, "Backdrop Lock") || !layer_stack_toggle_lock(&stack, 0) ||
+        !layer_stack_toggle_lock(&stack, 1) || !layer_stack_can_reset_locked_names(&stack) || !layer_stack_reset_locked_names(&stack)) {
+        fprintf(stderr, "reset locked names setup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || strcmp(stack.layers[1].name, "Layer") != 0) {
+        fprintf(stderr, "reset locked names labels failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_can_reset_locked_names(&stack) || layer_stack_reset_locked_names(&stack) ||
+        !layer_stack_toggle_lock(&stack, 0) || !layer_stack_toggle_lock(&stack, 1) || strcmp(stack.layers[1].name, "Layer") != 0) {
+        fprintf(stderr, "reset locked names cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_toggle_solo(&stack, 1)) {
         fprintf(stderr, "solo hidden layer failed\n");
         canvas_free(&composite);
