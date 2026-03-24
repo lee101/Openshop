@@ -869,6 +869,32 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (ctrl && shift && key == SDLK_LEFTBRACKET) {
+                    if (layers.active_layer > 0) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        if (!layer_stack_move_to_edge(&layers, layers.active_layer, -1)) {
+                            fprintf(stderr, "Layer is already at the bottom\n");
+                        } else {
+                            needs_composite = 1;
+                        }
+                    }
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
+                if (ctrl && shift && key == SDLK_RIGHTBRACKET) {
+                    if (layers.active_layer + 1 < layers.layer_count) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        if (!layer_stack_move_to_edge(&layers, layers.active_layer, 1)) {
+                            fprintf(stderr, "Layer is already at the top\n");
+                        } else {
+                            needs_composite = 1;
+                        }
+                    }
+                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    break;
+                }
+
                 if (ctrl && key == SDLK_LEFTBRACKET) {
                     if (layers.active_layer > 0) {
                         push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);

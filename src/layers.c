@@ -430,6 +430,36 @@ int layer_stack_move(LayerStack *stack, int index, int direction) {
     return 1;
 }
 
+int layer_stack_move_to_edge(LayerStack *stack, int index, int direction) {
+    if (!stack || index < 0 || index >= stack->layer_count || direction == 0) {
+        return 0;
+    }
+
+    int target = direction < 0 ? 0 : stack->layer_count - 1;
+    if (index == target) {
+        return 0;
+    }
+
+    Layer moved = stack->layers[index];
+    if (direction < 0) {
+        memmove(&stack->layers[1], &stack->layers[0], (size_t)index * sizeof(Layer));
+    } else {
+        memmove(&stack->layers[index], &stack->layers[index + 1], (size_t)(stack->layer_count - index - 1) * sizeof(Layer));
+    }
+    stack->layers[target] = moved;
+    stack->active_layer = target;
+
+    if (stack->solo_index == index) {
+        stack->solo_index = target;
+    } else if (direction < 0 && stack->solo_index >= 0 && stack->solo_index < index) {
+        stack->solo_index++;
+    } else if (direction > 0 && stack->solo_index > index) {
+        stack->solo_index--;
+    }
+
+    return 1;
+}
+
 int layer_stack_can_merge_down(const LayerStack *stack, int index) {
     if (!stack || index <= 0 || index >= stack->layer_count) {
         return 0;

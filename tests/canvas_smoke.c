@@ -525,6 +525,50 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_add(&stack, "Move A", 0x00000000) != 2 || layer_stack_add(&stack, "Move B", 0x00000000) != 3) {
+        fprintf(stderr, "setup move-to-edge layers failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_move_to_edge(&stack, 1, 1) || stack.active_layer != 3) {
+        fprintf(stderr, "move layer to top failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Upper Merge") != 0 || strcmp(stack.layers[1].name, "Move A") != 0 ||
+        strcmp(stack.layers[2].name, "Move B") != 0 || strcmp(stack.layers[3].name, "Background Copy") != 0) {
+        fprintf(stderr, "move-to-top order failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != 3 || !layer_stack_move_to_edge(&stack, 2, -1) || stack.active_layer != 0 || stack.solo_index != 3) {
+        fprintf(stderr, "move layer to bottom bookkeeping failed (active=%d solo=%d)\n", stack.active_layer, stack.solo_index);
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Move B") != 0 || strcmp(stack.layers[1].name, "Upper Merge") != 0 ||
+        strcmp(stack.layers[2].name, "Move A") != 0 || strcmp(stack.layers[3].name, "Background Copy") != 0) {
+        fprintf(stderr, "move-to-bottom order failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_move_to_edge(&stack, 0, -1) || layer_stack_move_to_edge(&stack, 3, 1)) {
+        fprintf(stderr, "move-to-edge should reject no-op bounds\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_solo(&stack, 3) || !layer_stack_delete(&stack, 2) || !layer_stack_delete(&stack, 0)) {
+        fprintf(stderr, "cleanup move-to-edge layers failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     canvas_set_pixel(&stack.layers[1].canvas, 0, 0, 0xFFFF00FF);
     if (!expect_pixel_eq("duplicate_independent", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF0040BF)) {
         canvas_free(&composite);

@@ -46,6 +46,7 @@ int layer_stack_delete(LayerStack *stack, int index);
 int layer_stack_can_duplicate(const LayerStack *stack, int index);
 int layer_stack_duplicate(LayerStack *stack, int index, const char *name);
 int layer_stack_move(LayerStack *stack, int index, int direction);
+int layer_stack_move_to_edge(LayerStack *stack, int index, int direction);
 int layer_stack_can_merge_down(const LayerStack *stack, int index);
 int layer_stack_merge_down(LayerStack *stack, int index);
 int layer_stack_can_merge_up(const LayerStack *stack, int index);
