@@ -13,6 +13,8 @@ static void *layer_snapshot_alloc_default(size_t size) {
 static void *(*layer_snapshot_alloc_pixels)(size_t size) = layer_snapshot_alloc_default;
 
 #ifdef OPENSHOP_TESTING
+typedef void *(*layer_snapshot_alloc_fn)(size_t size);
+
 void layer_snapshot_set_alloc_for_tests(layer_snapshot_alloc_fn alloc_fn) {
     layer_snapshot_alloc_pixels = alloc_fn ? alloc_fn : layer_snapshot_alloc_default;
 }

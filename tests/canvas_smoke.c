@@ -6,6 +6,11 @@
 #include <string.h>
 #include <sys/resource.h>
 
+#ifdef OPENSHOP_TESTING
+typedef void *(*layer_snapshot_alloc_fn)(size_t size);
+void layer_snapshot_set_alloc_for_tests(layer_snapshot_alloc_fn alloc_fn);
+#endif
+
 static int expect_pixel_eq(const char *label, uint32_t got, uint32_t want) {
     if (got != want) {
         fprintf(stderr, "%s mismatch: got 0x%08X want 0x%08X\n", label, got, want);
