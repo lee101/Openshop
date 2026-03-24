@@ -1179,7 +1179,7 @@ static void handle_canvas_motion(
 
         active = app_active_editable_layer(layers);
         if (active) {
-            if (tool == TOOL_ERASER) {
+            if (app_tool_stroke_mark(tool) == APP_STROKE_MARK_ERASE) {
                 app_erase_brush_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, app_active_layer_clear_color(layers->active_layer), brush_shape);
             } else {
                 app_draw_brush_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, brush_color, brush_shape);
