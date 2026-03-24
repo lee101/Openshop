@@ -71,7 +71,7 @@ int layer_history_record_snapshot(LayerHistory *history, LayerSnapshot *snapshot
 // Otherwise the caller snapshot is either transferred into history or reset in place.
 int layer_history_commit_change(LayerHistory *history, LayerSnapshot *snapshot, const LayerStack *layers, int operation_succeeded);
 // Wrapper versions of undo/redo that preserve history state if the current stack cannot be captured
-// or if the stored snapshot cannot be applied.
+// or if the stored snapshot cannot be applied. Full destination history stacks evict their oldest retained snapshot.
 int layer_history_step_undo(LayerHistory *history, LayerStack *layers);
 int layer_history_step_redo(LayerHistory *history, LayerStack *layers);
 
