@@ -213,6 +213,7 @@ static int test_layer_snapshot_capture_apply_guard_paths(void) {
         fprintf(stderr, "snapshot guard init failed\n");
         return 0;
     }
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF102030);
 
     LayerSnapshot snapshot = {0};
     snapshot.width = 7;
@@ -251,11 +252,19 @@ static int test_layer_snapshot_capture_apply_guard_paths(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!expect_pixel_eq("snapshot_apply_rejected_width_preserves_stack", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF102030)) {
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     snapshot.width = stack.width;
     snapshot.height = stack.height + 1;
     if (layer_snapshot_apply(&snapshot, &stack)) {
         fprintf(stderr, "snapshot apply should reject height mismatches\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("snapshot_apply_rejected_height_preserves_stack", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF102030)) {
         layer_stack_free(&stack);
         return 0;
     }
@@ -267,10 +276,18 @@ static int test_layer_snapshot_capture_apply_guard_paths(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!expect_pixel_eq("snapshot_apply_rejected_empty_count_preserves_stack", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF102030)) {
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     snapshot.layer_count = MAX_LAYERS + 1;
     if (layer_snapshot_apply(&snapshot, &stack)) {
         fprintf(stderr, "snapshot apply should reject oversized layer counts\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("snapshot_apply_rejected_oversized_count_preserves_stack", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF102030)) {
         layer_stack_free(&stack);
         return 0;
     }
