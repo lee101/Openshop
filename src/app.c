@@ -1206,11 +1206,10 @@ static int handle_general_key_hotkey(SDL_Keycode key,
 
 static int handle_selector_hotkey(SDL_Keycode key,
                                   int ctrl, int alt, int shift,
-                                  const TitleState *title_state,
-                                  LayerStack *layers) {
+                                  const ActionState *action_state) {
     size_t i;
 
-    if (!title_state || !layers) {
+    if (!action_state || !action_state->title_state || !action_state->layers) {
         return 0;
     }
 
@@ -1221,7 +1220,8 @@ static int handle_selector_hotkey(SDL_Keycode key,
             hotkey->ctrl == ctrl &&
             hotkey->alt == alt &&
             hotkey->shift == shift) {
-            refresh_title_state_on_change(title_state, hotkey->action(layers, hotkey->arg) >= 0);
+            refresh_title_state_on_change(action_state->title_state,
+                                          hotkey->action(action_state->layers, hotkey->arg) >= 0);
             return 1;
         }
     }
@@ -1362,25 +1362,24 @@ static int handle_indexed_layer_silent_hotkey(SDL_Keycode key,
 
 static int handle_layer_navigation_hotkey(SDL_Keycode key,
                                           int ctrl, int alt, int shift,
-                                          const TitleState *title_state,
-                                          LayerStack *layers) {
+                                          const ActionState *action_state) {
     int changed = 0;
 
-    if (!title_state || !layers || alt || shift) {
+    if (!action_state || !action_state->title_state || !action_state->layers || alt || shift) {
         return 0;
     }
 
     if (ctrl && key >= SDLK_1 && key <= SDLK_8) {
-        changed = try_select_layer_index(layers, (int)(key - SDLK_1));
+        changed = try_select_layer_index(action_state->layers, (int)(key - SDLK_1));
     } else if (!ctrl && key == SDLK_PAGEUP) {
-        changed = layer_stack_cycle(layers, 1) >= 0;
+        changed = layer_stack_cycle(action_state->layers, 1) >= 0;
     } else if (!ctrl && key == SDLK_PAGEDOWN) {
-        changed = layer_stack_cycle(layers, -1) >= 0;
+        changed = layer_stack_cycle(action_state->layers, -1) >= 0;
     } else {
         return 0;
     }
 
-    refresh_title_state_on_change(title_state, changed);
+    refresh_title_state_on_change(action_state->title_state, changed);
     return 1;
 }
 
@@ -2154,7 +2153,7 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (handle_selector_hotkey(key, ctrl, alt, shift, &title_state, &layers)) {
+                if (handle_selector_hotkey(key, ctrl, alt, shift, &action_state)) {
                     break;
                 }
 
@@ -2162,7 +2161,7 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (handle_layer_navigation_hotkey(key, ctrl, alt, shift, &title_state, &layers)) {
+                if (handle_layer_navigation_hotkey(key, ctrl, alt, shift, &action_state)) {
                     break;
                 }
 
