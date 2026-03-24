@@ -159,6 +159,56 @@ static int expect_title(
     return 1;
 }
 
+static int expect_title_prefix(
+    const char *label,
+    size_t title_size,
+    const char *tool_label,
+    const char *shape_label,
+    int radius,
+    int opacity_percent,
+    int active_layer_index,
+    int layer_count,
+    const char *layer_name,
+    int active_visible,
+    int active_locked,
+    int active_opacity_percent,
+    int active_is_solo,
+    int visible_layer_count,
+    unsigned int color,
+    const char *want_prefix
+) {
+    char title[256];
+
+    memset(title, 'Z', sizeof(title));
+    app_title_format(
+        title,
+        title_size,
+        tool_label,
+        shape_label,
+        radius,
+        opacity_percent,
+        active_layer_index,
+        layer_count,
+        layer_name,
+        active_visible,
+        active_locked,
+        active_opacity_percent,
+        active_is_solo,
+        visible_layer_count,
+        color
+    );
+
+    if (strncmp(title, want_prefix, title_size - 1) != 0) {
+        fprintf(stderr, "%s prefix mismatch:\n got  %.*s\n want %s\n", label, (int)(title_size - 1), title, want_prefix);
+        return 0;
+    }
+    if (title[title_size - 1] != '\0') {
+        fprintf(stderr, "%s missing terminator at %zu\n", label, title_size - 1);
+        return 0;
+    }
+    return 1;
+}
+
 int main(void) {
     int ok = 1;
 
@@ -257,6 +307,41 @@ int main(void) {
         1,
         0x80123456u,
         "Openshop - Line (Square) | size 12 | brush 40% | layer 3/4 Layer [hidden 100%] | visible 1/4 | #80123456"
+    );
+    ok = ok && expect_title_prefix(
+        "title_truncates",
+        16,
+        "Filled Rectangle",
+        "Diamond",
+        99,
+        55,
+        8,
+        12,
+        "Very Long Layer Name",
+        1,
+        0,
+        42,
+        0,
+        7,
+        0xABCDEF12u,
+        "Openshop - Fill"
+    );
+    ok = ok && expect_title(
+        "title_null_labels_default",
+        NULL,
+        NULL,
+        5,
+        20,
+        1,
+        2,
+        NULL,
+        1,
+        0,
+        100,
+        0,
+        2,
+        0x00000000u,
+        "Openshop - Brush (Round) | size 5 | brush 20% | layer 2/2 Layer [visible 100%] | visible 2/2 | #00000000"
     );
 
     if (!ok) {
