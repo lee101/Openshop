@@ -26,7 +26,7 @@ typedef struct {
     int redo_count;
 } LayerHistory;
 
-// Frees pixel storage and clears scalar bookkeeping, but does not scrub metadata arrays.
+// Frees pixel storage and clears scalar bookkeeping, but preserves metadata arrays for callers that inspect or reuse them.
 void layer_snapshot_free(LayerSnapshot *snapshot);
 // Fully resets a snapshot, including owned storage and metadata arrays.
 void layer_snapshot_reset(LayerSnapshot *snapshot);
