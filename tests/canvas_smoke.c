@@ -170,6 +170,74 @@ static int test_layer_snapshot_expand_restore(void) {
     return 1;
 }
 
+static int test_layer_history_stack(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 2, 2, 0xFFFFFFFF)) {
+        fprintf(stderr, "history stack init failed\n");
+        return 0;
+    }
+
+    LayerSnapshot undo[HISTORY_CAPACITY] = {0};
+    LayerSnapshot redo[HISTORY_CAPACITY] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+
+    for (int i = 0; i < HISTORY_CAPACITY + 2; i++) {
+        layer_history_push(&stack, undo, &undo_count, redo, &redo_count);
+        canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF000000u | (uint32_t)i);
+    }
+
+    if (undo_count != HISTORY_CAPACITY || redo_count != 0) {
+        fprintf(stderr, "history stack capacity bookkeeping failed\n");
+        layer_history_clear(undo, &undo_count);
+        layer_history_clear(redo, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (!layer_history_undo(&stack, undo, &undo_count, redo, &redo_count)) {
+        fprintf(stderr, "history undo failed\n");
+        layer_history_clear(undo, &undo_count);
+        layer_history_clear(redo, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("history_undo_latest", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF000014)) {
+        layer_history_clear(undo, &undo_count);
+        layer_history_clear(redo, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (!layer_history_redo(&stack, undo, &undo_count, redo, &redo_count)) {
+        fprintf(stderr, "history redo failed\n");
+        layer_history_clear(undo, &undo_count);
+        layer_history_clear(redo, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("history_redo_latest", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF000015)) {
+        layer_history_clear(undo, &undo_count);
+        layer_history_clear(redo, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_push(&stack, undo, &undo_count, redo, &redo_count);
+    if (redo_count != 0) {
+        fprintf(stderr, "history push should clear redo stack\n");
+        layer_history_clear(undo, &undo_count);
+        layer_history_clear(redo, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_clear(undo, &undo_count);
+    layer_history_clear(redo, &redo_count);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layers_basic(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 16, 16, 0xFFFFFFFF)) {
@@ -1122,6 +1190,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_snapshot_expand_restore()) {
+        return 1;
+    }
+    if (!test_layer_history_stack()) {
         return 1;
     }
 

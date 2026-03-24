@@ -4,6 +4,8 @@
 #include "layers.h"
 #include <stdint.h>
 
+#define HISTORY_CAPACITY 20
+
 typedef struct {
     int width;
     int height;
@@ -20,5 +22,9 @@ typedef struct {
 void layer_snapshot_free(LayerSnapshot *snapshot);
 int layer_snapshot_capture(LayerSnapshot *snapshot, const LayerStack *stack);
 int layer_snapshot_apply(const LayerSnapshot *snapshot, LayerStack *stack);
+void layer_history_clear(LayerSnapshot *stack, int *count);
+void layer_history_push(const LayerStack *layers, LayerSnapshot *stack, int *count, LayerSnapshot *redo, int *redo_count);
+int layer_history_undo(LayerStack *layers, LayerSnapshot *undo_stack, int *undo_count, LayerSnapshot *redo_stack, int *redo_count);
+int layer_history_redo(LayerStack *layers, LayerSnapshot *undo_stack, int *undo_count, LayerSnapshot *redo_stack, int *redo_count);
 
 #endif

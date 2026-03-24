@@ -13,8 +13,6 @@
 #define WINDOW_HEIGHT 768
 #define CANVAS_WIDTH 800
 #define CANVAS_HEIGHT 600
-#define MAX_HISTORY 20
-
 static const uint32_t COLOR_BG = 0xFFFFFFFF;     // white
 static const uint32_t COLOR_BRUSH = 0xFF1B1F24;  // near-black
 static const uint32_t COLOR_ERASE = 0xFFFFFFFF;  // background fallback
@@ -41,37 +39,6 @@ typedef enum {
     BRUSH_SHAPE_DIAMOND,
     BRUSH_SHAPE_COUNT
 } BrushShape;
-
-static void stack_clear(LayerSnapshot *stack, int *count) {
-    if (!stack || !count) {
-        return;
-    }
-    for (int i = 0; i < *count; i++) {
-        layer_snapshot_free(&stack[i]);
-    }
-    *count = 0;
-}
-
-static void push_snapshot(const LayerStack *layers, LayerSnapshot *stack, int *count, LayerSnapshot *redo, int *redo_count) {
-    if (!layers || !stack || !count) {
-        return;
-    }
-    if (*count == MAX_HISTORY) {
-        layer_snapshot_free(&stack[0]);
-        memmove(&stack[0], &stack[1], sizeof(LayerSnapshot) * (size_t)(MAX_HISTORY - 1));
-        *count = MAX_HISTORY - 1;
-    }
-
-    LayerSnapshot s = {0};
-    if (!layer_snapshot_capture(&s, layers)) {
-        layer_snapshot_free(&s);
-        return;
-    }
-    stack[(*count)++] = s;
-    if (redo && redo_count) {
-        stack_clear(redo, redo_count);
-    }
-}
 
 static uint32_t compose_brush_color(uint32_t rgb_color, int opacity_percent) {
     if (opacity_percent < 1) {
@@ -175,7 +142,7 @@ static int apply_active_layer_opacity_value(
     if (!active || active->opacity_percent == opacity_percent) {
         return 0;
     }
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
     return layer_stack_set_opacity(layers, layers->active_layer, opacity_percent);
 }
 
@@ -200,7 +167,7 @@ static int apply_active_layer_opacity_delta(
     if (target == active->opacity_percent) {
         return 0;
     }
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
     return layer_stack_adjust_opacity(layers, layers->active_layer, delta_percent);
 }
 
@@ -231,7 +198,7 @@ static int apply_active_visible_rank_move(
         }
         return 0;
     }
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
     if (!layer_stack_move_to_visible_rank(layers, layers->active_layer, target_rank)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -354,7 +321,7 @@ static int apply_active_layer_move(
         }
         return 0;
     }
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
     if (!layer_stack_move_to(layers, current_index, target_index)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -380,7 +347,7 @@ static int apply_layer_add(
     uint32_t clear_color,
     const char *failure_message
 ) {
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
     if (layer_stack_add(layers, name, clear_color) < 0) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -401,7 +368,7 @@ static int apply_layer_insert(
     uint32_t clear_color,
     const char *failure_message
 ) {
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
     if (layer_stack_insert(layers, index, name, clear_color) < 0) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -421,7 +388,7 @@ static int apply_visible_stamp_new(
     uint32_t background_color,
     const char *failure_message
 ) {
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
     if (layer_stack_stamp_visible_new(layers, name, background_color) < 0) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -441,7 +408,7 @@ static int apply_layer_duplicate(
     const char *name,
     const char *failure_message
 ) {
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
     if (layer_stack_duplicate(layers, index, name) < 0) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -460,7 +427,7 @@ static int apply_toggle_lock(
     int index,
     const char *failure_message
 ) {
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
     if (!layer_stack_toggle_lock(layers, index)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -479,7 +446,7 @@ static int apply_flatten(
     uint32_t background_color,
     const char *failure_message
 ) {
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
     if (!layer_stack_flatten(layers, background_color)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -499,7 +466,7 @@ static int apply_stamp_visible_into(
     uint32_t background_color,
     const char *failure_message
 ) {
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
     if (!layer_stack_stamp_visible_into(layers, index, background_color)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -518,7 +485,7 @@ static int apply_toggle_visibility(
     int index,
     const char *failure_message
 ) {
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
     if (!layer_stack_toggle_visibility(layers, index)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -537,7 +504,7 @@ static int apply_hide_and_advance(
     int index,
     const char *failure_message
 ) {
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
     if (!layer_stack_hide_and_advance(layers, index)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -556,7 +523,7 @@ static int apply_toggle_solo(
     int index,
     const char *failure_message
 ) {
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
     if (!layer_stack_toggle_solo(layers, index)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -575,7 +542,7 @@ static int apply_layer_delete(
     int index,
     const char *failure_message
 ) {
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
     if (!layer_stack_delete(layers, index)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -594,7 +561,7 @@ static int apply_merge_down(
     int index,
     const char *failure_message
 ) {
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
     if (!layer_stack_merge_down(layers, index)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -613,7 +580,7 @@ static int apply_merge_up(
     int index,
     const char *failure_message
 ) {
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
     if (!layer_stack_merge_up(layers, index)) {
         if (failure_message) {
             fprintf(stderr, "%s\n", failure_message);
@@ -804,7 +771,7 @@ static int apply_canvas_transform(
     if (!active || active->locked || !active->canvas.pixels) {
         return 0;
     }
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
     transform(&active->canvas);
     return 1;
 }
@@ -825,7 +792,7 @@ static int apply_canvas_translation(
     if (!active || active->locked || !active->canvas.pixels) {
         return 0;
     }
-    push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    layer_history_push(layers, undo_stack, undo_count, redo_stack, redo_count);
     canvas_translate(&active->canvas, dx, dy, active_layer_clear_color(layers));
     return 1;
 }
@@ -980,8 +947,8 @@ int app_run(const char *input_path) {
     uint32_t brush_color = compose_brush_color(brush_color_rgb, brush_opacity);
     BrushShape brush_shape = BRUSH_SHAPE_ROUND;
     Tool tool = TOOL_BRUSH;
-    LayerSnapshot undo_stack[MAX_HISTORY];
-    LayerSnapshot redo_stack[MAX_HISTORY];
+    LayerSnapshot undo_stack[HISTORY_CAPACITY];
+    LayerSnapshot redo_stack[HISTORY_CAPACITY];
     int undo_count = 0;
     int redo_count = 0;
     int shaping = 0;
@@ -1010,7 +977,7 @@ int app_run(const char *input_path) {
                     if (tool == TOOL_BRUSH || tool == TOOL_ERASER) {
                         Layer *active = layer_stack_active(&layers);
                         if (active && !active->locked && active->canvas.pixels) {
-                            push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                            layer_history_push(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                             drawing = 1;
                             if (tool == TOOL_ERASER) {
                                 erase_stamp(&active->canvas, last_x, last_y, brush_radius, active_layer_clear_color(&layers), brush_shape);
@@ -1064,7 +1031,7 @@ int app_run(const char *input_path) {
                         constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
                         Layer *active = layer_stack_active(&layers);
                         if (active && !active->locked && active->canvas.pixels) {
-                            push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                            layer_history_push(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                             draw_shape(&active->canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
                             needs_composite = 1;
                         }
@@ -1436,7 +1403,7 @@ int app_run(const char *input_path) {
                         fprintf(stderr, "Active layer is locked\n");
                         break;
                     }
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                    layer_history_push(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (!canvas_load_bmp(&active->canvas, "input.bmp", active_layer_clear_color(&layers))) {
                         fprintf(stderr, "Failed to load input.bmp\n");
                     } else {
@@ -1476,19 +1443,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_z) {
-                    if (undo_count > 0) {
-                        LayerSnapshot current = {0};
-                        if (layer_snapshot_capture(&current, &layers)) {
-                            if (redo_count == MAX_HISTORY) {
-                                layer_snapshot_free(&redo_stack[0]);
-                                memmove(&redo_stack[0], &redo_stack[1], sizeof(LayerSnapshot) * (size_t)(MAX_HISTORY - 1));
-                                redo_count = MAX_HISTORY - 1;
-                            }
-                            redo_stack[redo_count++] = current;
-                        }
-                        LayerSnapshot prev = undo_stack[--undo_count];
-                        layer_snapshot_apply(&prev, &layers);
-                        layer_snapshot_free(&prev);
+                    if (layer_history_undo(&layers, undo_stack, &undo_count, redo_stack, &redo_count)) {
                         needs_composite = 1;
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
@@ -1496,19 +1451,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_y) {
-                    if (redo_count > 0) {
-                        LayerSnapshot current = {0};
-                        if (layer_snapshot_capture(&current, &layers)) {
-                            if (undo_count == MAX_HISTORY) {
-                                layer_snapshot_free(&undo_stack[0]);
-                                memmove(&undo_stack[0], &undo_stack[1], sizeof(LayerSnapshot) * (size_t)(MAX_HISTORY - 1));
-                                undo_count = MAX_HISTORY - 1;
-                            }
-                            undo_stack[undo_count++] = current;
-                        }
-                        LayerSnapshot next = redo_stack[--redo_count];
-                        layer_snapshot_apply(&next, &layers);
-                        layer_snapshot_free(&next);
+                    if (layer_history_redo(&layers, undo_stack, &undo_count, redo_stack, &redo_count)) {
                         needs_composite = 1;
                         update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     }
@@ -1591,7 +1534,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && key == SDLK_a) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                    layer_history_push(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (layer_stack_show_all(&layers)) {
                         needs_composite = 1;
                     }
@@ -1600,7 +1543,7 @@ int app_run(const char *input_path) {
                 }
 
                 if (ctrl && shift && key == SDLK_r) {
-                    push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                    layer_history_push(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     if (layer_stack_show(&layers, layers.active_layer)) {
                         needs_composite = 1;
                     }
@@ -1735,7 +1678,7 @@ int app_run(const char *input_path) {
                     tool = TOOL_BRUSH;
                 } else if (key == SDLK_c) {
                     if (active_layer_editable(&layers)) {
-                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        layer_history_push(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                     }
                     if (layer_stack_clear_layer(&layers, layers.active_layer, active_layer_clear_color(&layers))) {
                         needs_composite = 1;
@@ -1763,7 +1706,7 @@ int app_run(const char *input_path) {
                     if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
                         Layer *active = layer_stack_active(&layers);
                         if (active && !active->locked) {
-                            push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                            layer_history_push(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
                         }
                         if (!active || active->locked || !canvas_flood_fill(&active->canvas, mx, my, brush_color)) {
                             fprintf(stderr, "Fill failed\n");
@@ -1833,8 +1776,8 @@ int app_run(const char *input_path) {
     free(preview_pixels);
     canvas_free(&composite);
     layer_stack_free(&layers);
-    stack_clear(undo_stack, &undo_count);
-    stack_clear(redo_stack, &redo_count);
+    layer_history_clear(undo_stack, &undo_count);
+    layer_history_clear(redo_stack, &redo_count);
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);

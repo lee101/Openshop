@@ -22,6 +22,18 @@ static void snapshot_drop_top_layer(LayerStack *stack) {
     }
 }
 
+static void history_push_existing(LayerSnapshot *stack, int *count, LayerSnapshot *snapshot) {
+    if (!stack || !count || !snapshot) {
+        return;
+    }
+    if (*count == HISTORY_CAPACITY) {
+        layer_snapshot_free(&stack[0]);
+        memmove(&stack[0], &stack[1], sizeof(LayerSnapshot) * (size_t)(HISTORY_CAPACITY - 1));
+        *count = HISTORY_CAPACITY - 1;
+    }
+    stack[(*count)++] = *snapshot;
+}
+
 void layer_snapshot_free(LayerSnapshot *snapshot) {
     if (!snapshot) {
         return;
@@ -123,4 +135,63 @@ int layer_snapshot_apply(const LayerSnapshot *snapshot, LayerStack *stack) {
         stack->solo_index = -1;
     }
     return 1;
+}
+
+void layer_history_clear(LayerSnapshot *stack, int *count) {
+    if (!stack || !count) {
+        return;
+    }
+    for (int i = 0; i < *count; i++) {
+        layer_snapshot_free(&stack[i]);
+    }
+    *count = 0;
+}
+
+void layer_history_push(const LayerStack *layers, LayerSnapshot *stack, int *count, LayerSnapshot *redo, int *redo_count) {
+    if (!layers || !stack || !count) {
+        return;
+    }
+
+    LayerSnapshot snapshot = {0};
+    if (!layer_snapshot_capture(&snapshot, layers)) {
+        layer_snapshot_free(&snapshot);
+        return;
+    }
+
+    history_push_existing(stack, count, &snapshot);
+    if (redo && redo_count) {
+        layer_history_clear(redo, redo_count);
+    }
+}
+
+int layer_history_undo(LayerStack *layers, LayerSnapshot *undo_stack, int *undo_count, LayerSnapshot *redo_stack, int *redo_count) {
+    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || *undo_count <= 0) {
+        return 0;
+    }
+
+    LayerSnapshot current = {0};
+    if (layer_snapshot_capture(&current, layers)) {
+        history_push_existing(redo_stack, redo_count, &current);
+    }
+
+    LayerSnapshot previous = undo_stack[--(*undo_count)];
+    int ok = layer_snapshot_apply(&previous, layers);
+    layer_snapshot_free(&previous);
+    return ok;
+}
+
+int layer_history_redo(LayerStack *layers, LayerSnapshot *undo_stack, int *undo_count, LayerSnapshot *redo_stack, int *redo_count) {
+    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || *redo_count <= 0) {
+        return 0;
+    }
+
+    LayerSnapshot current = {0};
+    if (layer_snapshot_capture(&current, layers)) {
+        history_push_existing(undo_stack, undo_count, &current);
+    }
+
+    LayerSnapshot next = redo_stack[--(*redo_count)];
+    int ok = layer_snapshot_apply(&next, layers);
+    layer_snapshot_free(&next);
+    return ok;
 }
