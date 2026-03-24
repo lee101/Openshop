@@ -3103,6 +3103,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_select_top_locked(&stack) != -1 || stack.active_layer != 3) {
+        fprintf(stderr, "select top locked no-op failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[1].locked = 0;
     stack.layers[3].locked = 0;
     stack.active_layer = 0;
@@ -3161,6 +3167,12 @@ static int test_layers_basic(void) {
     }
     if (layer_stack_select_top_hidden_locked(&stack) != 3 || stack.active_layer != 3) {
         fprintf(stderr, "select top hidden locked failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_top_hidden_locked(&stack) != -1 || stack.active_layer != 3) {
+        fprintf(stderr, "select top hidden locked no-op failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
