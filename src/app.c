@@ -1330,6 +1330,38 @@ static int handle_file_hotkey(SDL_Keycode key,
     return 0;
 }
 
+static int handle_history_hotkey(SDL_Keycode key,
+                                 int ctrl, int alt, int shift,
+                                 SDL_Window *window,
+                                 LayerStack *layers,
+                                 Snapshot *undo_stack, int *undo_count,
+                                 Snapshot *redo_stack, int *redo_count,
+                                 Tool tool, BrushShape brush_shape,
+                                 int brush_radius, uint32_t brush_color,
+                                 int brush_opacity, int *needs_composite) {
+    int changed = 0;
+
+    if (!ctrl || alt || shift || !window || !layers || !undo_stack || !undo_count ||
+        !redo_stack || !redo_count || !needs_composite) {
+        return 0;
+    }
+
+    if (key == SDLK_z) {
+        changed = try_restore_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+    } else if (key == SDLK_y) {
+        changed = try_restore_snapshot(layers, redo_stack, redo_count, undo_stack, undo_count);
+    } else {
+        return 0;
+    }
+
+    if (refresh_title_on_change(window, layers, tool, brush_shape, brush_radius, brush_color,
+                                brush_opacity, changed)) {
+        *needs_composite = 1;
+    }
+
+    return 1;
+}
+
 static int handle_right_click_sample(SDL_Window *window,
                                      const LayerStack *layers,
                                      const Canvas *sample,
@@ -1873,23 +1905,10 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (ctrl && key == SDLK_z) {
-                    if (refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
-                                                brush_opacity,
-                                                try_restore_snapshot(&layers, undo_stack, &undo_count, redo_stack,
-                                                                     &redo_count))) {
-                        needs_composite = 1;
-                    }
-                    break;
-                }
-
-                if (ctrl && key == SDLK_y) {
-                    if (refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
-                                                brush_opacity,
-                                                try_restore_snapshot(&layers, redo_stack, &redo_count, undo_stack,
-                                                                     &undo_count))) {
-                        needs_composite = 1;
-                    }
+                if (handle_history_hotkey(key, ctrl, alt, shift, window, &layers,
+                                          undo_stack, &undo_count, redo_stack, &redo_count,
+                                          tool, brush_shape, brush_radius, brush_color,
+                                          brush_opacity, &needs_composite)) {
                     break;
                 }
 
