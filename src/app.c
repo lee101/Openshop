@@ -208,15 +208,6 @@ static int action_move_layer_up(LayerStack *layers, int index) {
     return layer_stack_move(layers, index, 1);
 }
 
-static void try_save_canvas_to_output(const Canvas *save_canvas) {
-    char status_message[128];
-
-    if (!canvas_save_bmp(save_canvas, "output.bmp")) {
-        format_status_text_file_save("output.bmp", status_message, sizeof(status_message));
-        fprintf(stderr, "%s\n", status_message);
-    }
-}
-
 typedef struct {
     uint32_t clear_color;
     int load_succeeded;
@@ -975,6 +966,7 @@ static int handle_file_hotkey(SDL_Keycode key,
                               const ActionState *action_state) {
     AppFileHotkeyAction file_action;
     const Canvas *save_canvas;
+    char status_message[128];
     Layer *active;
     LayerActionHistoryResult result;
     LoadActiveLayerBmpContext load_ctx;
@@ -990,7 +982,10 @@ static int handle_file_hotkey(SDL_Keycode key,
         save_canvas = current_display_canvas(action_state->preview_active,
                                              action_state->preview_canvas,
                                              action_state->composite);
-        try_save_canvas_to_output(save_canvas);
+        if (!canvas_save_bmp(save_canvas, "output.bmp")) {
+            format_status_text_file_save("output.bmp", status_message, sizeof(status_message));
+            fprintf(stderr, "%s\n", status_message);
+        }
         return 1;
     }
 
