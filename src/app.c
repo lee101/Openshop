@@ -1322,6 +1322,79 @@ static void draw_brush_line(Canvas *c, int x0, int y0, int x1, int y1, int radiu
     }
 }
 
+static void handle_canvas_motion(
+    int x,
+    int y,
+    int *drawing,
+    int *last_x,
+    int *last_y,
+    int *shaping,
+    int shape_start_x,
+    int shape_start_y,
+    LayerStack *layers,
+    Tool tool,
+    BrushShape brush_shape,
+    int brush_radius,
+    uint32_t brush_color,
+    uint32_t *shape_base_pixels,
+    uint32_t *preview_pixels,
+    Canvas *preview_canvas,
+    int *preview_active,
+    int *needs_composite
+) {
+    if (!drawing || !last_x || !last_y || !shaping || !layers || !preview_active) {
+        return;
+    }
+
+    if (*drawing) {
+        Layer *active = NULL;
+
+        if (x < 0 || y < 0 || x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT) {
+            return;
+        }
+
+        active = layer_stack_active(layers);
+        if (active && !active->locked && active->canvas.pixels) {
+            if (tool == TOOL_ERASER) {
+                erase_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, active_layer_clear_color(layers), brush_shape);
+            } else {
+                draw_brush_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, brush_color, brush_shape);
+            }
+            *last_x = x;
+            *last_y = y;
+            if (needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return;
+    }
+
+    if (*shaping) {
+        const Uint8 *state = NULL;
+        int shift = 0;
+        int end_x = x;
+        int end_y = y;
+
+        if (!shape_base_pixels || !preview_canvas || !preview_canvas->pixels || !preview_pixels) {
+            return;
+        }
+        if (x < 0 || y < 0 || x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT) {
+            return;
+        }
+
+        state = SDL_GetKeyboardState(NULL);
+        shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
+        constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
+        memcpy(
+            preview_pixels,
+            shape_base_pixels,
+            (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t)
+        );
+        draw_shape(preview_canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
+        *preview_active = 1;
+    }
+}
+
 int app_run(const char *input_path) {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
@@ -1497,44 +1570,26 @@ int app_run(const char *input_path) {
                 }
                 break;
             case SDL_MOUSEMOTION:
-                if (drawing) {
-                    int x = e.motion.x;
-                    int y = e.motion.y;
-                    if (x >= 0 && y >= 0 && x < CANVAS_WIDTH && y < CANVAS_HEIGHT) {
-                        Layer *active = layer_stack_active(&layers);
-                        if (active && !active->locked && active->canvas.pixels) {
-                            if (tool == TOOL_ERASER) {
-                                erase_line(&active->canvas, last_x, last_y, x, y, brush_radius, active_layer_clear_color(&layers), brush_shape);
-                            } else {
-                                draw_brush_line(&active->canvas, last_x, last_y, x, y, brush_radius, brush_color, brush_shape);
-                            }
-                            last_x = x;
-                            last_y = y;
-                            needs_composite = 1;
-                        }
-                    }
-                } else if (shaping) {
-                    if (!shape_base_pixels || !preview_canvas.pixels) {
-                        break;
-                    }
-                    int x = e.motion.x;
-                    int y = e.motion.y;
-                    if (x < 0 || y < 0 || x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT) {
-                        break;
-                    }
-                    const Uint8 *state = SDL_GetKeyboardState(NULL);
-                    int shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
-                    int end_x = x;
-                    int end_y = y;
-                    constrain_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
-                    memcpy(
-                        preview_pixels,
-                        shape_base_pixels,
-                        (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t)
-                    );
-                    draw_shape(&preview_canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
-                    preview_active = 1;
-                }
+                handle_canvas_motion(
+                    e.motion.x,
+                    e.motion.y,
+                    &drawing,
+                    &last_x,
+                    &last_y,
+                    &shaping,
+                    shape_start_x,
+                    shape_start_y,
+                    &layers,
+                    tool,
+                    brush_shape,
+                    brush_radius,
+                    brush_color,
+                    shape_base_pixels,
+                    preview_pixels,
+                    &preview_canvas,
+                    &preview_active,
+                    &needs_composite
+                );
                 break;
             case SDL_KEYDOWN: {
                 SDL_Keycode key = e.key.keysym.sym;
