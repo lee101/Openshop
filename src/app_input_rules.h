@@ -113,6 +113,26 @@ typedef enum {
     APP_MOUSE_POSITION_SAMPLE
 } AppMousePositionAction;
 
+typedef enum {
+    APP_BRUSH_PRESET_NONE = 0,
+    APP_BRUSH_PRESET_DEFAULT,
+    APP_BRUSH_PRESET_ERASE,
+    APP_BRUSH_PRESET_RED,
+    APP_BRUSH_PRESET_GREEN,
+    APP_BRUSH_PRESET_BLUE,
+    APP_BRUSH_PRESET_YELLOW,
+    APP_BRUSH_PRESET_PURPLE
+} AppBrushPresetAction;
+
+typedef enum {
+    APP_BRUSH_TOOL_NONE = 0,
+    APP_BRUSH_TOOL_LINE,
+    APP_BRUSH_TOOL_RECT,
+    APP_BRUSH_TOOL_FILLED_RECT,
+    APP_BRUSH_TOOL_ELLIPSE,
+    APP_BRUSH_TOOL_FILLED_ELLIPSE
+} AppBrushToolAction;
+
 AppOpacityHotkeyAction app_opacity_hotkey_action(int key);
 AppLayerNavigationAction app_layer_navigation_action(int key, int ctrl, int alt, int shift, int *arg);
 AppFileHotkeyAction app_file_hotkey_action(int key, int ctrl, int alt, int shift);
@@ -121,5 +141,7 @@ AppBrushAdjustAction app_brush_adjust_hotkey_action(int key);
 int app_is_add_layer_hotkey(int key, int ctrl, int alt, int shift);
 AppActiveEditAction app_active_edit_hotkey_action(int key);
 AppMousePositionAction app_mouse_position_hotkey_action(int key);
+AppBrushPresetAction app_brush_preset_hotkey_action(int key);
+AppBrushToolAction app_brush_tool_hotkey_action(int key);
 
 #endif

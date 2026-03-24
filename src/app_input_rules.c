@@ -194,3 +194,47 @@ AppMousePositionAction app_mouse_position_hotkey_action(int key) {
     }
     return APP_MOUSE_POSITION_NONE;
 }
+
+AppBrushPresetAction app_brush_preset_hotkey_action(int key) {
+    if (key == APP_KEY_b || key == APP_KEY_1) {
+        return APP_BRUSH_PRESET_DEFAULT;
+    }
+    if (key == APP_KEY_e) {
+        return APP_BRUSH_PRESET_ERASE;
+    }
+    if (key == APP_KEY_2) {
+        return APP_BRUSH_PRESET_RED;
+    }
+    if (key == APP_KEY_3) {
+        return APP_BRUSH_PRESET_GREEN;
+    }
+    if (key == APP_KEY_4) {
+        return APP_BRUSH_PRESET_BLUE;
+    }
+    if (key == APP_KEY_5) {
+        return APP_BRUSH_PRESET_YELLOW;
+    }
+    if (key == APP_KEY_6) {
+        return APP_BRUSH_PRESET_PURPLE;
+    }
+    return APP_BRUSH_PRESET_NONE;
+}
+
+AppBrushToolAction app_brush_tool_hotkey_action(int key) {
+    if (key == APP_KEY_l) {
+        return APP_BRUSH_TOOL_LINE;
+    }
+    if (key == APP_KEY_r) {
+        return APP_BRUSH_TOOL_RECT;
+    }
+    if (key == APP_KEY_t) {
+        return APP_BRUSH_TOOL_FILLED_RECT;
+    }
+    if (key == APP_KEY_o) {
+        return APP_BRUSH_TOOL_ELLIPSE;
+    }
+    if (key == APP_KEY_p) {
+        return APP_BRUSH_TOOL_FILLED_ELLIPSE;
+    }
+    return APP_BRUSH_TOOL_NONE;
+}

@@ -178,6 +178,33 @@ static int test_app_input_rules(void) {
             fprintf(stderr, "mouse position non-hotkey mapping failed\n");
             return 0;
         }
+        if (app_brush_preset_hotkey_action(APP_KEY_b) != APP_BRUSH_PRESET_DEFAULT ||
+            app_brush_preset_hotkey_action(APP_KEY_1) != APP_BRUSH_PRESET_DEFAULT ||
+            app_brush_preset_hotkey_action(APP_KEY_e) != APP_BRUSH_PRESET_ERASE ||
+            app_brush_preset_hotkey_action(APP_KEY_2) != APP_BRUSH_PRESET_RED ||
+            app_brush_preset_hotkey_action(APP_KEY_3) != APP_BRUSH_PRESET_GREEN ||
+            app_brush_preset_hotkey_action(APP_KEY_4) != APP_BRUSH_PRESET_BLUE ||
+            app_brush_preset_hotkey_action(APP_KEY_5) != APP_BRUSH_PRESET_YELLOW ||
+            app_brush_preset_hotkey_action(APP_KEY_6) != APP_BRUSH_PRESET_PURPLE) {
+            fprintf(stderr, "brush preset hotkey mapping failed\n");
+            return 0;
+        }
+        if (app_brush_preset_hotkey_action(APP_KEY_l) != APP_BRUSH_PRESET_NONE) {
+            fprintf(stderr, "brush preset non-hotkey mapping failed\n");
+            return 0;
+        }
+        if (app_brush_tool_hotkey_action(APP_KEY_l) != APP_BRUSH_TOOL_LINE ||
+            app_brush_tool_hotkey_action(APP_KEY_r) != APP_BRUSH_TOOL_RECT ||
+            app_brush_tool_hotkey_action(APP_KEY_t) != APP_BRUSH_TOOL_FILLED_RECT ||
+            app_brush_tool_hotkey_action(APP_KEY_o) != APP_BRUSH_TOOL_ELLIPSE ||
+            app_brush_tool_hotkey_action(APP_KEY_p) != APP_BRUSH_TOOL_FILLED_ELLIPSE) {
+            fprintf(stderr, "brush tool hotkey mapping failed\n");
+            return 0;
+        }
+        if (app_brush_tool_hotkey_action(APP_KEY_b) != APP_BRUSH_TOOL_NONE) {
+            fprintf(stderr, "brush tool non-hotkey mapping failed\n");
+            return 0;
+        }
     }
 
     return 1;

@@ -503,25 +503,6 @@ typedef struct {
     int mark_composite;
 } IndexedLayerSilentHotkey;
 
-static const BrushColorHotkey BRUSH_COLOR_HOTKEYS[] = {
-    {SDLK_b, COLOR_BRUSH, TOOL_BRUSH},
-    {SDLK_e, COLOR_ERASE, TOOL_ERASER},
-    {SDLK_1, COLOR_BRUSH, TOOL_BRUSH},
-    {SDLK_2, COLOR_RED, TOOL_BRUSH},
-    {SDLK_3, COLOR_GREEN, TOOL_BRUSH},
-    {SDLK_4, COLOR_BLUE, TOOL_BRUSH},
-    {SDLK_5, COLOR_YELLOW, TOOL_BRUSH},
-    {SDLK_6, COLOR_PURPLE, TOOL_BRUSH},
-};
-
-static const ToolHotkey TOOL_HOTKEYS[] = {
-    {SDLK_l, TOOL_LINE},
-    {SDLK_r, TOOL_RECT},
-    {SDLK_t, TOOL_FILLED_RECT},
-    {SDLK_o, TOOL_ELLIPSE},
-    {SDLK_p, TOOL_FILLED_ELLIPSE},
-};
-
 static const ActiveEditHotkey ACTIVE_EDIT_HOTKEYS[] = {
     {SDLK_c, try_clear_active_layer},
     {SDLK_h, try_flip_horizontal_active_layer},
@@ -713,25 +694,61 @@ static int handle_brush_state_hotkey(SDL_Keycode key,
                                      int *brush_opacity, int *brush_radius,
                                      BrushShape *brush_shape, Tool *tool) {
     AppBrushAdjustAction adjust_action;
-    size_t i;
+    AppBrushPresetAction preset_action;
+    AppBrushToolAction tool_action;
 
     if (!brush_color_rgb || !brush_color || !brush_opacity || !brush_radius || !brush_shape || !tool) {
         return 0;
     }
 
-    for (i = 0; i < sizeof(BRUSH_COLOR_HOTKEYS) / sizeof(BRUSH_COLOR_HOTKEYS[0]); i++) {
-        if (BRUSH_COLOR_HOTKEYS[i].key == key) {
-            brush_state_set_color_tool(BRUSH_COLOR_HOTKEYS[i].color_rgb, *brush_opacity,
-                                       brush_color_rgb, brush_color, tool, BRUSH_COLOR_HOTKEYS[i].tool);
-            return 1;
-        }
+    preset_action = app_brush_preset_hotkey_action((int)key);
+    switch (preset_action) {
+    case APP_BRUSH_PRESET_DEFAULT:
+        brush_state_set_color_tool(COLOR_BRUSH, *brush_opacity, brush_color_rgb, brush_color, tool, TOOL_BRUSH);
+        return 1;
+    case APP_BRUSH_PRESET_ERASE:
+        brush_state_set_color_tool(COLOR_ERASE, *brush_opacity, brush_color_rgb, brush_color, tool, TOOL_ERASER);
+        return 1;
+    case APP_BRUSH_PRESET_RED:
+        brush_state_set_color_tool(COLOR_RED, *brush_opacity, brush_color_rgb, brush_color, tool, TOOL_BRUSH);
+        return 1;
+    case APP_BRUSH_PRESET_GREEN:
+        brush_state_set_color_tool(COLOR_GREEN, *brush_opacity, brush_color_rgb, brush_color, tool, TOOL_BRUSH);
+        return 1;
+    case APP_BRUSH_PRESET_BLUE:
+        brush_state_set_color_tool(COLOR_BLUE, *brush_opacity, brush_color_rgb, brush_color, tool, TOOL_BRUSH);
+        return 1;
+    case APP_BRUSH_PRESET_YELLOW:
+        brush_state_set_color_tool(COLOR_YELLOW, *brush_opacity, brush_color_rgb, brush_color, tool, TOOL_BRUSH);
+        return 1;
+    case APP_BRUSH_PRESET_PURPLE:
+        brush_state_set_color_tool(COLOR_PURPLE, *brush_opacity, brush_color_rgb, brush_color, tool, TOOL_BRUSH);
+        return 1;
+    case APP_BRUSH_PRESET_NONE:
+    default:
+        break;
     }
 
-    for (i = 0; i < sizeof(TOOL_HOTKEYS) / sizeof(TOOL_HOTKEYS[0]); i++) {
-        if (TOOL_HOTKEYS[i].key == key) {
-            brush_state_set_tool(TOOL_HOTKEYS[i].tool, tool);
-            return 1;
-        }
+    tool_action = app_brush_tool_hotkey_action((int)key);
+    switch (tool_action) {
+    case APP_BRUSH_TOOL_LINE:
+        brush_state_set_tool(TOOL_LINE, tool);
+        return 1;
+    case APP_BRUSH_TOOL_RECT:
+        brush_state_set_tool(TOOL_RECT, tool);
+        return 1;
+    case APP_BRUSH_TOOL_FILLED_RECT:
+        brush_state_set_tool(TOOL_FILLED_RECT, tool);
+        return 1;
+    case APP_BRUSH_TOOL_ELLIPSE:
+        brush_state_set_tool(TOOL_ELLIPSE, tool);
+        return 1;
+    case APP_BRUSH_TOOL_FILLED_ELLIPSE:
+        brush_state_set_tool(TOOL_FILLED_ELLIPSE, tool);
+        return 1;
+    case APP_BRUSH_TOOL_NONE:
+    default:
+        break;
     }
 
     adjust_action = app_brush_adjust_hotkey_action((int)key);
