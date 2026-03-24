@@ -3,6 +3,7 @@
 #include "../src/history_shortcuts.h"
 #include "../src/layer_name_shortcuts.h"
 #include "../src/merge_shortcuts.h"
+#include "../src/paint_shortcuts.h"
 #include <stdio.h>
 
 static int expect_shortcut(const char *label, int ctrl, int alt, int shift, LayerNameResetShortcut want) {
@@ -50,6 +51,15 @@ static int expect_merge_action(const char *label, int ctrl, int key, MergeShortc
     return 1;
 }
 
+static int expect_paint_action(const char *label, int key, PaintShortcutAction want) {
+    PaintShortcutAction got = paint_shortcut_action(key);
+    if (got != want) {
+        fprintf(stderr, "%s mismatch: got %d want %d\n", label, got, want);
+        return 0;
+    }
+    return 1;
+}
+
 int main(void) {
     int ok = 1;
 
@@ -78,6 +88,20 @@ int main(void) {
     ok = ok && expect_merge_action("merge_up", 1, 'u', MERGE_SHORTCUT_UP);
     ok = ok && expect_merge_action("missing_ctrl_merge", 0, 'm', MERGE_SHORTCUT_NONE);
     ok = ok && expect_merge_action("other_key_merge", 1, 'q', MERGE_SHORTCUT_NONE);
+    ok = ok && expect_paint_action("tool_brush", 'b', PAINT_SHORTCUT_TOOL_BRUSH);
+    ok = ok && expect_paint_action("tool_eraser", 'e', PAINT_SHORTCUT_TOOL_ERASER);
+    ok = ok && expect_paint_action("tool_line", 'l', PAINT_SHORTCUT_TOOL_LINE);
+    ok = ok && expect_paint_action("tool_rect", 'r', PAINT_SHORTCUT_TOOL_RECT);
+    ok = ok && expect_paint_action("tool_filled_rect", 't', PAINT_SHORTCUT_TOOL_FILLED_RECT);
+    ok = ok && expect_paint_action("tool_ellipse", 'o', PAINT_SHORTCUT_TOOL_ELLIPSE);
+    ok = ok && expect_paint_action("tool_filled_ellipse", 'p', PAINT_SHORTCUT_TOOL_FILLED_ELLIPSE);
+    ok = ok && expect_paint_action("color_brush", '1', PAINT_SHORTCUT_COLOR_BRUSH);
+    ok = ok && expect_paint_action("color_red", '2', PAINT_SHORTCUT_COLOR_RED);
+    ok = ok && expect_paint_action("color_green", '3', PAINT_SHORTCUT_COLOR_GREEN);
+    ok = ok && expect_paint_action("color_blue", '4', PAINT_SHORTCUT_COLOR_BLUE);
+    ok = ok && expect_paint_action("color_yellow", '5', PAINT_SHORTCUT_COLOR_YELLOW);
+    ok = ok && expect_paint_action("color_purple", '6', PAINT_SHORTCUT_COLOR_PURPLE);
+    ok = ok && expect_paint_action("paint_other_key", '7', PAINT_SHORTCUT_NONE);
 
     if (!ok) {
         return 1;

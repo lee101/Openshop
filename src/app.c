@@ -8,6 +8,7 @@
 #include "layer_name_shortcuts.h"
 #include "layers.h"
 #include "merge_shortcuts.h"
+#include "paint_shortcuts.h"
 
 #include <SDL2/SDL.h>
 #include <stdio.h>
@@ -830,6 +831,7 @@ static int handle_view_and_canvas_shortcut(
     int *brush_opacity,
     int *needs_composite
 ) {
+    PaintShortcutAction paint_action;
     Layer *active = NULL;
     const Canvas *sample = NULL;
     int mx = 0;
@@ -867,23 +869,25 @@ static int handle_view_and_canvas_shortcut(
         return 1;
     }
 
-    if (key == SDLK_b) {
+    paint_action = paint_shortcut_action((int)key);
+
+    if (paint_action == PAINT_SHORTCUT_TOOL_BRUSH) {
         *brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
         *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
         *tool = TOOL_BRUSH;
-    } else if (key == SDLK_e) {
+    } else if (paint_action == PAINT_SHORTCUT_TOOL_ERASER) {
         *brush_color_rgb = COLOR_ERASE & 0x00FFFFFF;
         *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
         *tool = TOOL_ERASER;
-    } else if (key == SDLK_l) {
+    } else if (paint_action == PAINT_SHORTCUT_TOOL_LINE) {
         *tool = TOOL_LINE;
-    } else if (key == SDLK_r) {
+    } else if (paint_action == PAINT_SHORTCUT_TOOL_RECT) {
         *tool = TOOL_RECT;
-    } else if (key == SDLK_t) {
+    } else if (paint_action == PAINT_SHORTCUT_TOOL_FILLED_RECT) {
         *tool = TOOL_FILLED_RECT;
-    } else if (key == SDLK_o) {
+    } else if (paint_action == PAINT_SHORTCUT_TOOL_ELLIPSE) {
         *tool = TOOL_ELLIPSE;
-    } else if (key == SDLK_p) {
+    } else if (paint_action == PAINT_SHORTCUT_TOOL_FILLED_ELLIPSE) {
         *tool = TOOL_FILLED_ELLIPSE;
     } else if (key == SDLK_LEFTBRACKET) {
         if (*brush_radius > 1) {
@@ -913,27 +917,27 @@ static int handle_view_and_canvas_shortcut(
             }
             *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
         }
-    } else if (key == SDLK_1) {
+    } else if (paint_action == PAINT_SHORTCUT_COLOR_BRUSH) {
         *brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
         *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
         *tool = TOOL_BRUSH;
-    } else if (key == SDLK_2) {
+    } else if (paint_action == PAINT_SHORTCUT_COLOR_RED) {
         *brush_color_rgb = COLOR_RED & 0x00FFFFFF;
         *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
         *tool = TOOL_BRUSH;
-    } else if (key == SDLK_3) {
+    } else if (paint_action == PAINT_SHORTCUT_COLOR_GREEN) {
         *brush_color_rgb = COLOR_GREEN & 0x00FFFFFF;
         *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
         *tool = TOOL_BRUSH;
-    } else if (key == SDLK_4) {
+    } else if (paint_action == PAINT_SHORTCUT_COLOR_BLUE) {
         *brush_color_rgb = COLOR_BLUE & 0x00FFFFFF;
         *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
         *tool = TOOL_BRUSH;
-    } else if (key == SDLK_5) {
+    } else if (paint_action == PAINT_SHORTCUT_COLOR_YELLOW) {
         *brush_color_rgb = COLOR_YELLOW & 0x00FFFFFF;
         *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
         *tool = TOOL_BRUSH;
-    } else if (key == SDLK_6) {
+    } else if (paint_action == PAINT_SHORTCUT_COLOR_PURPLE) {
         *brush_color_rgb = COLOR_PURPLE & 0x00FFFFFF;
         *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
         *tool = TOOL_BRUSH;
