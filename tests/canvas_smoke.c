@@ -126,15 +126,13 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (layer_stack_add(&stack, "Mask", 0x00000000) != 2 || !layer_stack_can_reset_all_names(&stack) ||
-        !layer_stack_reset_all_names(&stack)) {
+    if (!layer_stack_reset_all_names(&stack)) {
         fprintf(stderr, "reset all names failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
     }
-    if (strcmp(stack.layers[0].name, "Background") != 0 || strcmp(stack.layers[1].name, "Layer") != 0 ||
-        strcmp(stack.layers[2].name, "Layer 2") != 0) {
+    if (strcmp(stack.layers[0].name, "Background") != 0 || strcmp(stack.layers[1].name, "Layer") != 0) {
         fprintf(stderr, "reset all names labels failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
@@ -142,6 +140,20 @@ static int test_layers_basic(void) {
     }
     if (layer_stack_can_reset_all_names(&stack) || layer_stack_reset_all_names(&stack)) {
         fprintf(stderr, "reset all names should be a no-op after defaults are restored\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_add(&stack, "Mask", 0x00000000) != 2 || !layer_stack_can_reset_all_names(&stack) ||
+        !layer_stack_reset_all_names(&stack)) {
+        fprintf(stderr, "reset all names with extra layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || strcmp(stack.layers[1].name, "Layer") != 0 ||
+        strcmp(stack.layers[2].name, "Layer 2") != 0) {
+        fprintf(stderr, "reset all names extra-layer labels failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
