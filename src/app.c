@@ -1554,6 +1554,32 @@ static int handle_drawing_motion(LayerStack *layers,
     return 1;
 }
 
+static int handle_mouse_motion(LayerStack *layers,
+                               Tool tool, int x, int y,
+                               int brush_radius, uint32_t brush_color,
+                               BrushShape brush_shape,
+                               int drawing, int *last_x, int *last_y,
+                               int shaping, int shape_start_x, int shape_start_y,
+                               uint32_t *shape_base_pixels,
+                               Canvas *preview_canvas,
+                               uint32_t *preview_pixels,
+                               int *preview_active,
+                               int *needs_composite) {
+    if (drawing) {
+        return handle_drawing_motion(layers, tool, x, y, brush_radius, brush_color, brush_shape,
+                                     last_x, last_y, needs_composite);
+    }
+
+    if (shaping) {
+        return handle_shape_preview_motion(tool, shape_start_x, shape_start_y, x, y,
+                                           brush_radius, brush_color,
+                                           shape_base_pixels, preview_canvas,
+                                           preview_pixels, preview_active);
+    }
+
+    return 0;
+}
+
 static int handle_translation_hotkey(SDL_Keycode key,
                                      int ctrl, int alt, int shift,
                                      LayerStack *layers,
@@ -2036,19 +2062,13 @@ int app_run(const char *input_path) {
                 }
                 break;
             case SDL_MOUSEMOTION:
-                if (drawing) {
-                    int x = e.motion.x;
-                    int y = e.motion.y;
-                    handle_drawing_motion(&layers, tool, x, y, brush_radius, brush_color, brush_shape,
-                                          &last_x, &last_y, &needs_composite);
-                } else if (shaping) {
-                    int x = e.motion.x;
-                    int y = e.motion.y;
-                    handle_shape_preview_motion(tool, shape_start_x, shape_start_y, x, y,
-                                                brush_radius, brush_color,
-                                                shape_base_pixels, &preview_canvas,
-                                                preview_pixels, &preview_active);
-                }
+                handle_mouse_motion(&layers, tool, e.motion.x, e.motion.y,
+                                    brush_radius, brush_color, brush_shape,
+                                    drawing, &last_x, &last_y,
+                                    shaping, shape_start_x, shape_start_y,
+                                    shape_base_pixels, &preview_canvas,
+                                    preview_pixels, &preview_active,
+                                    &needs_composite);
                 break;
             case SDL_KEYDOWN: {
                 SDL_Keycode key = e.key.keysym.sym;
