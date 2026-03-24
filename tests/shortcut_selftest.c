@@ -2417,6 +2417,16 @@ static int expect_tool_label(const char *label, Tool tool, const char *want) {
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    Tool tool;
+    const char *want;
+} ToolLabelCase;
+
+static int run_tool_label_case(const ToolLabelCase *test_case) {
+    return expect_tool_label(test_case->label, test_case->tool, test_case->want);
+}
+
 static int expect_brush_shape_label(const char *label, BrushShape shape, const char *want) {
     const char *got = app_brush_shape_label(shape);
     if (strcmp(got, want) != 0) {
@@ -2424,6 +2434,16 @@ static int expect_brush_shape_label(const char *label, BrushShape shape, const c
         return 0;
     }
     return 1;
+}
+
+typedef struct {
+    const char *label;
+    BrushShape shape;
+    const char *want;
+} BrushShapeLabelCase;
+
+static int run_brush_shape_label_case(const BrushShapeLabelCase *test_case) {
+    return expect_brush_shape_label(test_case->label, test_case->shape, test_case->want);
 }
 
 static int expect_cycle_brush_shape(const char *label, BrushShape shape, int direction, BrushShape want) {
@@ -3987,12 +4007,26 @@ int main(void) {
     ok = ok && expect_active_layer_editable("active_layer_editable_null_stack", NULL, 0);
     ok = ok && expect_active_editable_layer("active_editable_layer_null_stack", NULL, NULL);
     layer_stack.active_layer = 0;
-    ok = ok && expect_tool_label("tool_brush_label", TOOL_BRUSH, "Brush");
-    ok = ok && expect_tool_label("tool_filled_ellipse_label", TOOL_FILLED_ELLIPSE, "Filled Ellipse");
-    ok = ok && expect_tool_label("tool_label_default", (Tool)999, "Brush");
-    ok = ok && expect_brush_shape_label("brush_round_label", BRUSH_SHAPE_ROUND, "Round");
-    ok = ok && expect_brush_shape_label("brush_diamond_label", BRUSH_SHAPE_DIAMOND, "Diamond");
-    ok = ok && expect_brush_shape_label("brush_shape_label_default", (BrushShape)999, "Round");
+    {
+        const ToolLabelCase tool_label_cases[] = {
+            {"tool_brush_label", TOOL_BRUSH, "Brush"},
+            {"tool_filled_ellipse_label", TOOL_FILLED_ELLIPSE, "Filled Ellipse"},
+            {"tool_label_default", (Tool)999, "Brush"},
+        };
+        const BrushShapeLabelCase brush_shape_label_cases[] = {
+            {"brush_round_label", BRUSH_SHAPE_ROUND, "Round"},
+            {"brush_diamond_label", BRUSH_SHAPE_DIAMOND, "Diamond"},
+            {"brush_shape_label_default", (BrushShape)999, "Round"},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(tool_label_cases) / sizeof(tool_label_cases[0]); i++) {
+            ok = ok && run_tool_label_case(&tool_label_cases[i]);
+        }
+        for (i = 0; i < sizeof(brush_shape_label_cases) / sizeof(brush_shape_label_cases[0]); i++) {
+            ok = ok && run_brush_shape_label_case(&brush_shape_label_cases[i]);
+        }
+    }
     ok = ok && expect_cycle_brush_shape("brush_shape_cycle_forward", BRUSH_SHAPE_ROUND, 1, BRUSH_SHAPE_SQUARE);
     ok = ok && expect_cycle_brush_shape("brush_shape_cycle_wrap_forward", BRUSH_SHAPE_DIAMOND, 1, BRUSH_SHAPE_ROUND);
     ok = ok && expect_cycle_brush_shape("brush_shape_cycle_wrap_backward", BRUSH_SHAPE_ROUND, -1, BRUSH_SHAPE_DIAMOND);
