@@ -369,7 +369,7 @@ int layer_stack_insert(LayerStack *stack, int index, const char *name, uint32_t 
 }
 
 int layer_stack_cycle(LayerStack *stack, int direction) {
-    if (!stack || stack->layer_count <= 0) {
+    if (!stack || stack->layer_count <= 0 || direction == 0) {
         return -1;
     }
     int idx = stack->active_layer + direction;

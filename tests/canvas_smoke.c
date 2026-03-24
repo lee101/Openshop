@@ -2995,6 +2995,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_cycle(&stack, 0) != -1 || stack.active_layer != 1) {
+        fprintf(stderr, "layer cycling zero-direction no-op failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_add(&stack, "Third", 0x00000000) != 2 || layer_stack_add(&stack, "Fourth", 0x00000000) != 3) {
         fprintf(stderr, "setup extended layer cycling failed\n");
         canvas_free(&composite);
