@@ -53,6 +53,7 @@ void layer_history_clear(LayerSnapshot *stack, int *count);
 // `redo`/`redo_count` are optional; when both are provided they are cleared only after a new snapshot is pushed.
 void layer_history_push(const LayerStack *layers, LayerSnapshot *stack, int *count, LayerSnapshot *redo, int *redo_count);
 // On success these move the current stack state to the opposite history stack and apply the pending snapshot.
+// If the destination history stack is full, its oldest retained snapshot is evicted before the current state is pushed.
 // On failure they leave both history stacks unchanged.
 int layer_history_undo(LayerStack *layers, LayerSnapshot *undo_stack, int *undo_count, LayerSnapshot *redo_stack, int *redo_count);
 int layer_history_redo(LayerStack *layers, LayerSnapshot *undo_stack, int *undo_count, LayerSnapshot *redo_stack, int *redo_count);
