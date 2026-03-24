@@ -209,6 +209,51 @@ static int expect_title_prefix(
     return 1;
 }
 
+static int expect_title_empty_buffer(
+    const char *label,
+    size_t title_size,
+    const char *tool_label,
+    const char *shape_label,
+    int radius,
+    int opacity_percent,
+    int active_layer_index,
+    int layer_count,
+    const char *layer_name,
+    int active_visible,
+    int active_locked,
+    int active_opacity_percent,
+    int active_is_solo,
+    int visible_layer_count,
+    unsigned int color
+) {
+    char title[8];
+
+    memset(title, 'Q', sizeof(title));
+    app_title_format(
+        title,
+        title_size,
+        tool_label,
+        shape_label,
+        radius,
+        opacity_percent,
+        active_layer_index,
+        layer_count,
+        layer_name,
+        active_visible,
+        active_locked,
+        active_opacity_percent,
+        active_is_solo,
+        visible_layer_count,
+        color
+    );
+
+    if (title[0] != '\0') {
+        fprintf(stderr, "%s expected immediate terminator, got %d\n", label, (int)(unsigned char)title[0]);
+        return 0;
+    }
+    return 1;
+}
+
 int main(void) {
     int ok = 1;
 
@@ -359,6 +404,23 @@ int main(void) {
         0,
         0xFFFFFFFFu,
         "Openshop - Ellipse (Diamond) | size 0 | brush 0% | layer 99/120 Edge [hidden, locked 0%] | visible 0/120 | #FFFFFFFF"
+    );
+    ok = ok && expect_title_empty_buffer(
+        "title_size_one",
+        1,
+        "Brush",
+        "Round",
+        3,
+        10,
+        0,
+        1,
+        "Tiny",
+        1,
+        0,
+        100,
+        0,
+        1,
+        0xFF000000u
     );
 
     if (!ok) {
