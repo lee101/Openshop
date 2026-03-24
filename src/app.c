@@ -100,6 +100,30 @@ static uint32_t compose_brush_color(uint32_t rgb_color, int opacity_percent) {
     return (alpha << 24) | (rgb_color & 0x00FFFFFF);
 }
 
+static void apply_sampled_brush_color(
+    uint32_t sampled_color,
+    Tool *tool,
+    uint32_t *brush_color,
+    uint32_t *brush_color_rgb,
+    int *brush_opacity
+) {
+    int sampled_alpha = 0;
+
+    if (!tool || !brush_color || !brush_color_rgb || !brush_opacity) {
+        return;
+    }
+
+    *brush_color = sampled_color;
+    *brush_color_rgb = *brush_color & 0x00FFFFFF;
+    sampled_alpha = (int)((*brush_color >> 24) & 0xFF);
+    *brush_opacity = (sampled_alpha * 100 + 127) / 255;
+    if (*brush_opacity < 1) {
+        *brush_opacity = 1;
+    }
+    *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+    *tool = TOOL_BRUSH;
+}
+
 static const char *tool_label(Tool tool) {
     switch (tool) {
     case TOOL_BRUSH:
@@ -191,17 +215,7 @@ static int handle_canvas_sample_shortcut(
     }
 
     sample = (preview_active && preview_canvas && preview_canvas->pixels) ? preview_canvas : composite;
-    *brush_color = canvas_get_pixel(sample, mx, my);
-    *brush_color_rgb = *brush_color & 0x00FFFFFF;
-    {
-        int sampled_alpha = (int)((*brush_color >> 24) & 0xFF);
-        *brush_opacity = (sampled_alpha * 100 + 127) / 255;
-    }
-    if (*brush_opacity < 1) {
-        *brush_opacity = 1;
-    }
-    *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
-    *tool = TOOL_BRUSH;
+    apply_sampled_brush_color(canvas_get_pixel(sample, mx, my), tool, brush_color, brush_color_rgb, brush_opacity);
     return 1;
 }
 
@@ -1516,7 +1530,6 @@ static void handle_mouse_button_down(
     }
 
     if (button.button == SDL_BUTTON_RIGHT) {
-        int sampled_alpha = 0;
         const Canvas *sample = NULL;
 
         if (*shaping) {
@@ -1528,15 +1541,7 @@ static void handle_mouse_button_down(
         }
 
         sample = (*preview_active && preview_canvas_mut->pixels) ? preview_canvas_mut : composite;
-        *brush_color = canvas_get_pixel(sample, button.x, button.y);
-        *brush_color_rgb = *brush_color & 0x00FFFFFF;
-        sampled_alpha = (int)((*brush_color >> 24) & 0xFF);
-        *brush_opacity = (sampled_alpha * 100 + 127) / 255;
-        if (*brush_opacity < 1) {
-            *brush_opacity = 1;
-        }
-        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
-        *tool = TOOL_BRUSH;
+        apply_sampled_brush_color(canvas_get_pixel(sample, button.x, button.y), tool, brush_color, brush_color_rgb, brush_opacity);
         refresh_app_title(window, layers, *tool, brush_shape, brush_radius, *brush_color, *brush_opacity);
     }
 }
