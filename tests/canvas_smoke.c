@@ -25,6 +25,19 @@ static int snapshot_is_reset(const LayerSnapshot *snapshot) {
            snapshot->names[0][0] == '\0';
 }
 
+static int expect_history_counts(const char *label, int undo_count, int redo_count, int want_undo, int want_redo) {
+    if (undo_count != want_undo || redo_count != want_redo) {
+        fprintf(stderr, "%s count mismatch: undo=%d redo=%d want undo=%d redo=%d\n",
+                label, undo_count, redo_count, want_undo, want_redo);
+        return 0;
+    }
+    return 1;
+}
+
+static int expect_wrapper_history_counts(const char *label, const LayerHistory *history, int want_undo, int want_redo) {
+    return history && expect_history_counts(label, history->undo_count, history->redo_count, want_undo, want_redo);
+}
+
 static int test_layer_snapshot_restore(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
@@ -1336,8 +1349,7 @@ static int test_layer_history_low_level_undo_redo_guard_paths(void) {
         return 0;
     }
 
-    if (undo_count != 0 || redo_count != 0) {
-        fprintf(stderr, "history low-level guard paths should not mutate stack counts\n");
+    if (!expect_history_counts("history_low_level_guard_paths", undo_count, redo_count, 0, 0)) {
         layer_stack_free(&stack);
         return 0;
     }
@@ -1365,8 +1377,7 @@ static int test_layer_history_step_undo_redo_guard_paths(void) {
         return 0;
     }
 
-    if (history.undo_count != 0 || history.redo_count != 0) {
-        fprintf(stderr, "history step guard paths should not mutate wrapper counts\n");
+    if (!expect_wrapper_history_counts("history_step_guard_paths", &history, 0, 0)) {
         layer_stack_free(&stack);
         return 0;
     }
@@ -1397,16 +1408,14 @@ static int test_layer_history_push_record_guard_paths(void) {
     layer_history_push(&stack, NULL, &undo_count, redo_stack, &redo_count);
     layer_history_push(&stack, undo_stack, NULL, redo_stack, &redo_count);
 
-    if (undo_count != 0 || redo_count != 1) {
-        fprintf(stderr, "history push hard guard paths should not mutate stacks or redo\n");
+    if (!expect_history_counts("history_push_hard_guard_paths", undo_count, redo_count, 0, 1)) {
         layer_history_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
         return 0;
     }
 
     layer_history_push(&stack, undo_stack, &undo_count, NULL, &redo_count);
-    if (undo_count != 1 || redo_count != 1) {
-        fprintf(stderr, "history push should allow recording without a redo stack\n");
+    if (!expect_history_counts("history_push_without_redo_stack", undo_count, redo_count, 1, 1)) {
         layer_history_clear(undo_stack, &undo_count);
         layer_history_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
@@ -1414,8 +1423,7 @@ static int test_layer_history_push_record_guard_paths(void) {
     }
 
     layer_history_push(&stack, undo_stack, &undo_count, redo_stack, NULL);
-    if (undo_count != 1 || redo_count != 1) {
-        fprintf(stderr, "history push duplicate snapshots should no-op when redo count is omitted\n");
+    if (!expect_history_counts("history_push_duplicate_without_redo_count", undo_count, redo_count, 1, 1)) {
         layer_history_clear(undo_stack, &undo_count);
         layer_history_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
@@ -1432,8 +1440,7 @@ static int test_layer_history_push_record_guard_paths(void) {
     }
 
     layer_history_record(NULL, &stack);
-    if (history.undo_count != 0 || history.redo_count != 1) {
-        fprintf(stderr, "history record should ignore null history without mutating state\n");
+    if (!expect_wrapper_history_counts("history_record_null_history", &history, 0, 1)) {
         layer_history_reset(&history);
         layer_history_clear(undo_stack, &undo_count);
         layer_history_clear(redo_stack, &redo_count);
@@ -1442,8 +1449,7 @@ static int test_layer_history_push_record_guard_paths(void) {
     }
 
     layer_history_record(&history, NULL);
-    if (history.undo_count != 0 || history.redo_count != 1) {
-        fprintf(stderr, "history record should ignore null layers without mutating state\n");
+    if (!expect_wrapper_history_counts("history_record_null_layers", &history, 0, 1)) {
         layer_history_reset(&history);
         layer_history_clear(undo_stack, &undo_count);
         layer_history_clear(redo_stack, &redo_count);
