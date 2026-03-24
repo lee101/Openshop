@@ -61,6 +61,7 @@ make test-sdl
 - `Ctrl+Shift+]` / `Ctrl+Shift+[` : send active layer to top/bottom
 - `Ctrl+- / Ctrl+=`: active layer opacity down/up
 - `Ctrl+0`: reset active layer opacity to 100%
+- `F2`: reset the active layer name to the next available default label
 - `Ctrl+A`: show all layers and clear solo mode
 - `Ctrl+Shift+R`: reveal the active layer without changing other visibility states
 - `Ctrl+Shift+H`: hide the active layer and jump to the next visible layer

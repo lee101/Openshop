@@ -96,6 +96,24 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_reset_name(&stack, 1) || strcmp(stack.layers[1].name, "Layer") != 0) {
+        fprintf(stderr, "layer reset name failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_reset_name(&stack, 0) || strcmp(stack.layers[0].name, "Layer 2") != 0) {
+        fprintf(stderr, "layer reset name uniqueness failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 0, "Background") || !layer_stack_rename(&stack, 1, "Top")) {
+        fprintf(stderr, "layer reset name restore failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_toggle_solo(&stack, 1)) {
         fprintf(stderr, "solo hidden layer failed\n");
         canvas_free(&composite);

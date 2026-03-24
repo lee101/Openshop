@@ -140,6 +140,10 @@ static void layer_duplicate_name_base(char *dest, size_t dest_size, const char *
     snprintf(dest, dest_size, "%s Copy", source_name);
 }
 
+static void layer_default_name(char *dest, size_t dest_size, const LayerStack *stack, int skip_index) {
+    layer_name_copy_unique(dest, dest_size, stack, skip_index, NULL, "Layer");
+}
+
 int layer_stack_init(LayerStack *stack, int width, int height, uint32_t background_color) {
     if (!stack || width <= 0 || height <= 0) {
         return 0;
@@ -246,7 +250,7 @@ int layer_stack_insert(LayerStack *stack, int index, const char *name, uint32_t 
     if (name && name[0]) {
         layer_name_copy_unique(layer->name, sizeof(layer->name), stack, index, name, "Layer");
     } else {
-        layer_name_copy_unique(layer->name, sizeof(layer->name), stack, index, NULL, "Layer");
+        layer_default_name(layer->name, sizeof(layer->name), stack, index);
     }
 
     stack->layer_count++;
@@ -308,6 +312,33 @@ int layer_stack_rename(LayerStack *stack, int index, const char *name) {
 
     strncpy(next_name, name, LAYER_NAME_MAX - 1);
     next_name[LAYER_NAME_MAX - 1] = '\0';
+    if (strcmp(stack->layers[index].name, next_name) == 0) {
+        return 0;
+    }
+
+    memcpy(stack->layers[index].name, next_name, sizeof(next_name));
+    return 1;
+}
+
+int layer_stack_can_reset_name(const LayerStack *stack, int index) {
+    char next_name[LAYER_NAME_MAX];
+
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+
+    layer_default_name(next_name, sizeof(next_name), stack, index);
+    return strcmp(stack->layers[index].name, next_name) != 0;
+}
+
+int layer_stack_reset_name(LayerStack *stack, int index) {
+    char next_name[LAYER_NAME_MAX];
+
+    if (!layer_stack_can_reset_name(stack, index)) {
+        return 0;
+    }
+
+    layer_default_name(next_name, sizeof(next_name), stack, index);
     if (strcmp(stack->layers[index].name, next_name) == 0) {
         return 0;
     }
