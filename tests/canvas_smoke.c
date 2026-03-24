@@ -1346,6 +1346,35 @@ static int test_layer_history_low_level_undo_redo_guard_paths(void) {
     return 1;
 }
 
+static int test_layer_history_step_undo_redo_guard_paths(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "history step guard init failed\n");
+        return 0;
+    }
+
+    LayerHistory history = {0};
+    if (layer_history_step_undo(NULL, &stack) ||
+        layer_history_step_undo(&history, NULL) ||
+        layer_history_step_undo(&history, &stack) ||
+        layer_history_step_redo(NULL, &stack) ||
+        layer_history_step_redo(&history, NULL) ||
+        layer_history_step_redo(&history, &stack)) {
+        fprintf(stderr, "history step undo/redo should fail cleanly on null or empty inputs\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (history.undo_count != 0 || history.redo_count != 0) {
+        fprintf(stderr, "history step guard paths should not mutate wrapper counts\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layers_basic(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 16, 16, 0xFFFFFFFF)) {
@@ -2364,6 +2393,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_low_level_undo_redo_guard_paths()) {
+        return 1;
+    }
+    if (!test_layer_history_step_undo_redo_guard_paths()) {
         return 1;
     }
 
