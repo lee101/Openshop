@@ -2455,6 +2455,22 @@ static int expect_cycle_brush_shape(const char *label, BrushShape shape, int dir
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    BrushShape shape;
+    int direction;
+    BrushShape want;
+} CycleBrushShapeCase;
+
+static int run_cycle_brush_shape_case(const CycleBrushShapeCase *test_case) {
+    return expect_cycle_brush_shape(
+        test_case->label,
+        test_case->shape,
+        test_case->direction,
+        test_case->want
+    );
+}
+
 static int expect_constrained_shape_end(
     const char *label,
     Tool tool,
@@ -2475,6 +2491,32 @@ static int expect_constrained_shape_end(
         return 0;
     }
     return 1;
+}
+
+typedef struct {
+    const char *label;
+    Tool tool;
+    int x0;
+    int y0;
+    int x1;
+    int y1;
+    int shift;
+    int want_x;
+    int want_y;
+} ConstrainedShapeEndCase;
+
+static int run_constrained_shape_end_case(const ConstrainedShapeEndCase *test_case) {
+    return expect_constrained_shape_end(
+        test_case->label,
+        test_case->tool,
+        test_case->x0,
+        test_case->y0,
+        test_case->x1,
+        test_case->y1,
+        test_case->shift,
+        test_case->want_x,
+        test_case->want_y
+    );
 }
 
 static int expect_constrained_shape_end_no_output(
@@ -4027,17 +4069,31 @@ int main(void) {
             ok = ok && run_brush_shape_label_case(&brush_shape_label_cases[i]);
         }
     }
-    ok = ok && expect_cycle_brush_shape("brush_shape_cycle_forward", BRUSH_SHAPE_ROUND, 1, BRUSH_SHAPE_SQUARE);
-    ok = ok && expect_cycle_brush_shape("brush_shape_cycle_wrap_forward", BRUSH_SHAPE_DIAMOND, 1, BRUSH_SHAPE_ROUND);
-    ok = ok && expect_cycle_brush_shape("brush_shape_cycle_wrap_backward", BRUSH_SHAPE_ROUND, -1, BRUSH_SHAPE_DIAMOND);
-    ok = ok && expect_constrained_shape_end("shape_line_horizontal_snap", TOOL_LINE, 10, 10, 25, 13, 1, 25, 10);
-    ok = ok && expect_constrained_shape_end("shape_line_vertical_snap", TOOL_LINE, 10, 10, 13, 25, 1, 10, 25);
-    ok = ok && expect_constrained_shape_end("shape_line_diagonal_snap", TOOL_LINE, 10, 10, 18, 15, 1, 18, 18);
-    ok = ok && expect_constrained_shape_end("shape_rect_square_snap", TOOL_RECT, 10, 10, 14, 18, 1, 18, 18);
-    ok = ok && expect_constrained_shape_end("shape_filled_rect_square_snap", TOOL_FILLED_RECT, 10, 10, 14, 18, 1, 18, 18);
-    ok = ok && expect_constrained_shape_end("shape_filled_ellipse_square_snap", TOOL_FILLED_ELLIPSE, 10, 10, 4, 18, 1, 2, 18);
-    ok = ok && expect_constrained_shape_end("shape_no_shift_passthrough", TOOL_ELLIPSE, 10, 10, 14, 18, 0, 14, 18);
-    ok = ok && expect_constrained_shape_end("shape_unknown_tool_passthrough", (Tool)999, 10, 10, 25, 13, 1, 25, 13);
+    {
+        const CycleBrushShapeCase cycle_brush_shape_cases[] = {
+            {"brush_shape_cycle_forward", BRUSH_SHAPE_ROUND, 1, BRUSH_SHAPE_SQUARE},
+            {"brush_shape_cycle_wrap_forward", BRUSH_SHAPE_DIAMOND, 1, BRUSH_SHAPE_ROUND},
+            {"brush_shape_cycle_wrap_backward", BRUSH_SHAPE_ROUND, -1, BRUSH_SHAPE_DIAMOND},
+        };
+        const ConstrainedShapeEndCase constrained_shape_end_cases[] = {
+            {"shape_line_horizontal_snap", TOOL_LINE, 10, 10, 25, 13, 1, 25, 10},
+            {"shape_line_vertical_snap", TOOL_LINE, 10, 10, 13, 25, 1, 10, 25},
+            {"shape_line_diagonal_snap", TOOL_LINE, 10, 10, 18, 15, 1, 18, 18},
+            {"shape_rect_square_snap", TOOL_RECT, 10, 10, 14, 18, 1, 18, 18},
+            {"shape_filled_rect_square_snap", TOOL_FILLED_RECT, 10, 10, 14, 18, 1, 18, 18},
+            {"shape_filled_ellipse_square_snap", TOOL_FILLED_ELLIPSE, 10, 10, 4, 18, 1, 2, 18},
+            {"shape_no_shift_passthrough", TOOL_ELLIPSE, 10, 10, 14, 18, 0, 14, 18},
+            {"shape_unknown_tool_passthrough", (Tool)999, 10, 10, 25, 13, 1, 25, 13},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(cycle_brush_shape_cases) / sizeof(cycle_brush_shape_cases[0]); i++) {
+            ok = ok && run_cycle_brush_shape_case(&cycle_brush_shape_cases[i]);
+        }
+        for (i = 0; i < sizeof(constrained_shape_end_cases) / sizeof(constrained_shape_end_cases[0]); i++) {
+            ok = ok && run_constrained_shape_end_case(&constrained_shape_end_cases[i]);
+        }
+    }
     ok = ok && expect_constrained_shape_end_no_output("shape_null_out_x", TOOL_LINE, 10, 10, 25, 13, 1, NULL, &sentinel_y, 0, 654);
     ok = ok && expect_constrained_shape_end_no_output("shape_null_out_y", TOOL_LINE, 10, 10, 25, 13, 1, &sentinel_x, NULL, 321, 0);
     ok = ok && expect_draw_shape_pixel(
