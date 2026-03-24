@@ -648,6 +648,30 @@ static void adjust_brush_opacity(int delta, uint32_t brush_color_rgb,
     *brush_color = compose_brush_color(brush_color_rgb, *brush_opacity);
 }
 
+static void set_tool(Tool next_tool, Tool *tool) {
+    if (tool) {
+        *tool = next_tool;
+    }
+}
+
+static void adjust_brush_radius(int delta, int *brush_radius) {
+    if (!brush_radius) {
+        return;
+    }
+    *brush_radius += delta;
+    if (*brush_radius < 1) {
+        *brush_radius = 1;
+    } else if (*brush_radius > 64) {
+        *brush_radius = 64;
+    }
+}
+
+static void cycle_brush_shape_in_place(BrushShape *brush_shape, int direction) {
+    if (brush_shape) {
+        *brush_shape = cycle_brush_shape(*brush_shape, direction);
+    }
+}
+
 static int brush_mask_contains(BrushShape shape, int x, int y, int radius) {
     switch (shape) {
     case BRUSH_SHAPE_ROUND:
@@ -1718,27 +1742,27 @@ int app_run(const char *input_path) {
                 } else if (key == SDLK_e) {
                     set_brush_color_tool(COLOR_ERASE, brush_opacity, &brush_color_rgb, &brush_color, &tool, TOOL_ERASER);
                 } else if (key == SDLK_l) {
-                    tool = TOOL_LINE;
+                    set_tool(TOOL_LINE, &tool);
                 } else if (key == SDLK_r) {
-                    tool = TOOL_RECT;
+                    set_tool(TOOL_RECT, &tool);
                 } else if (key == SDLK_t) {
-                    tool = TOOL_FILLED_RECT;
+                    set_tool(TOOL_FILLED_RECT, &tool);
                 } else if (key == SDLK_o) {
-                    tool = TOOL_ELLIPSE;
+                    set_tool(TOOL_ELLIPSE, &tool);
                 } else if (key == SDLK_p) {
-                    tool = TOOL_FILLED_ELLIPSE;
+                    set_tool(TOOL_FILLED_ELLIPSE, &tool);
                 } else if (key == SDLK_LEFTBRACKET) {
                     if (brush_radius > 1) {
-                        brush_radius -= 1;
+                        adjust_brush_radius(-1, &brush_radius);
                     }
                 } else if (key == SDLK_RIGHTBRACKET) {
                     if (brush_radius < 64) {
-                        brush_radius += 1;
+                        adjust_brush_radius(1, &brush_radius);
                     }
                 } else if (key == SDLK_COMMA) {
-                    brush_shape = cycle_brush_shape(brush_shape, -1);
+                    cycle_brush_shape_in_place(&brush_shape, -1);
                 } else if (key == SDLK_PERIOD) {
-                    brush_shape = cycle_brush_shape(brush_shape, 1);
+                    cycle_brush_shape_in_place(&brush_shape, 1);
                 } else if (key == SDLK_MINUS || key == SDLK_KP_MINUS) {
                     if (brush_opacity > 1) {
                         adjust_brush_opacity(-5, brush_color_rgb, &brush_opacity, &brush_color);
