@@ -603,6 +603,8 @@ int main(void) {
     ok = ok && expect_brush_mask("brush_mask_diamond_negative_symmetry", BRUSH_SHAPE_DIAMOND, -1, -1, 2, 1);
     ok = ok && expect_brush_mask("brush_mask_default", (BrushShape)999, 0, 0, 2, 0);
     ok = ok && expect_sampled_brush_color("sampled_brush_color_opaque", 0xFF445566u, TOOL_ERASER, 0, 0, 0, TOOL_BRUSH, 0xFF445566u, 0x00445566u, 100);
+    ok = ok && expect_sampled_brush_color("sampled_brush_color_black", 0xFF000000u, TOOL_ERASER, 0, 0, 0, TOOL_BRUSH, 0xFF000000u, 0x00000000u, 100);
+    ok = ok && expect_sampled_brush_color("sampled_brush_color_white", 0xFFFFFFFFu, TOOL_ERASER, 0, 0, 0, TOOL_BRUSH, 0xFFFFFFFFu, 0x00FFFFFFu, 100);
     ok = ok && expect_sampled_brush_color("sampled_brush_color_translucent", 0x80445566u, TOOL_LINE, 0, 0, 0, TOOL_BRUSH, 0x80445566u, 0x00445566u, 50);
     ok = ok && expect_sampled_brush_color("sampled_brush_color_rounds_down", 0x7F445566u, TOOL_LINE, 0, 0, 0, TOOL_BRUSH, 0x80445566u, 0x00445566u, 50);
     ok = ok && expect_sampled_brush_color("sampled_brush_color_rounds_up", 0x81445566u, TOOL_LINE, 0, 0, 0, TOOL_BRUSH, 0x82445566u, 0x00445566u, 51);
