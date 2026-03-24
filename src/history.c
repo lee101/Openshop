@@ -240,10 +240,17 @@ int layer_history_undo(LayerStack *layers, LayerSnapshot *undo_stack, int *undo_
         return 0;
     }
 
-    history_capture_and_push(layers, redo_stack, redo_count, NULL, NULL);
+    int redo_pushed = history_capture_and_push(layers, redo_stack, redo_count, NULL, NULL);
 
     LayerSnapshot previous = undo_stack[--(*undo_count)];
     int ok = layer_snapshot_apply(&previous, layers);
+    if (!ok) {
+        undo_stack[(*undo_count)++] = previous;
+        if (redo_pushed) {
+            layer_snapshot_free(&redo_stack[--(*redo_count)]);
+        }
+        return 0;
+    }
     layer_snapshot_free(&previous);
     return ok;
 }
@@ -253,10 +260,17 @@ int layer_history_redo(LayerStack *layers, LayerSnapshot *undo_stack, int *undo_
         return 0;
     }
 
-    history_capture_and_push(layers, undo_stack, undo_count, NULL, NULL);
+    int undo_pushed = history_capture_and_push(layers, undo_stack, undo_count, NULL, NULL);
 
     LayerSnapshot next = redo_stack[--(*redo_count)];
     int ok = layer_snapshot_apply(&next, layers);
+    if (!ok) {
+        redo_stack[(*redo_count)++] = next;
+        if (undo_pushed) {
+            layer_snapshot_free(&undo_stack[--(*undo_count)]);
+        }
+        return 0;
+    }
     layer_snapshot_free(&next);
     return ok;
 }

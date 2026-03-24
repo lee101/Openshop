@@ -1178,6 +1178,69 @@ static int test_layer_history_visibility_commit_change(void) {
     return 1;
 }
 
+static int test_layer_history_low_level_undo_redo_rolls_back_failed_apply(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "history low-level rollback init failed\n");
+        return 0;
+    }
+
+    LayerSnapshot undo_stack[HISTORY_CAPACITY] = {0};
+    LayerSnapshot redo_stack[HISTORY_CAPACITY] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+
+    if (!layer_snapshot_capture(&undo_stack[undo_count++], &stack)) {
+        fprintf(stderr, "history low-level rollback initial capture failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    undo_stack[0].width++;
+    if (layer_history_undo(&stack, undo_stack, &undo_count, redo_stack, &redo_count)) {
+        fprintf(stderr, "history low-level undo should fail when snapshot apply fails\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (undo_count != 1 || redo_count != 0) {
+        fprintf(stderr, "history low-level undo should roll back stack mutations after apply failure\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (!layer_snapshot_capture(&redo_stack[redo_count++], &stack)) {
+        fprintf(stderr, "history low-level rollback redo capture failed\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    redo_stack[0].width++;
+    if (layer_history_redo(&stack, undo_stack, &undo_count, redo_stack, &redo_count)) {
+        fprintf(stderr, "history low-level redo should fail when snapshot apply fails\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (undo_count != 1 || redo_count != 1) {
+        fprintf(stderr, "history low-level redo should roll back stack mutations after apply failure\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_clear(undo_stack, &undo_count);
+    layer_history_clear(redo_stack, &redo_count);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layers_basic(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 16, 16, 0xFFFFFFFF)) {
@@ -2187,6 +2250,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_visibility_commit_change()) {
+        return 1;
+    }
+    if (!test_layer_history_low_level_undo_redo_rolls_back_failed_apply()) {
         return 1;
     }
 
