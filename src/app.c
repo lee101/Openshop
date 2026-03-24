@@ -193,7 +193,7 @@ static int handle_canvas_mutation_shortcut(
     }
 
     if (canvas_action == CANVAS_SHORTCUT_CLEAR) {
-        if (app_layer_editable(layer_stack_get(layers, layers->active_layer))) {
+        if (app_active_layer_editable(layers)) {
             push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
         }
         changed = layer_stack_clear_layer(layers, layers->active_layer, app_active_layer_clear_color(layers->active_layer));
@@ -1386,7 +1386,7 @@ static void handle_mouse_button_down(
                     *needs_composite = 1;
                 }
             }
-        } else if (app_layer_editable(layer_stack_get(layers, layers->active_layer))) {
+        } else if (app_active_layer_editable(layers)) {
             app_begin_shape_preview_from_canvas(*last_x, *last_y, shaping, shape_start_x, shape_start_y, shape_base_pixels, composite);
         }
         return;

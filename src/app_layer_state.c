@@ -7,3 +7,10 @@ uint32_t app_active_layer_clear_color(int active_layer_index) {
 int app_layer_editable(const Layer *layer) {
     return layer && !layer->locked && layer->canvas.pixels;
 }
+
+int app_active_layer_editable(const LayerStack *stack) {
+    if (!stack || stack->active_layer < 0 || stack->active_layer >= stack->layer_count) {
+        return 0;
+    }
+    return app_layer_editable(&stack->layers[stack->active_layer]);
+}

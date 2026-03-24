@@ -471,6 +471,15 @@ static int expect_layer_editable(const char *label, Layer *layer, int want) {
     return 1;
 }
 
+static int expect_active_layer_editable(const char *label, LayerStack *stack, int want) {
+    int got = app_active_layer_editable(stack);
+    if (got != want) {
+        fprintf(stderr, "%s mismatch: got %d want %d\n", label, got, want);
+        return 0;
+    }
+    return 1;
+}
+
 static int expect_title(
     const char *label,
     const char *tool_label,
@@ -812,6 +821,7 @@ int main(void) {
     Layer editable_layer = {0};
     Layer locked_layer = {0};
     Layer empty_layer = {0};
+    LayerStack layer_stack = {0};
     Canvas composite_canvas = {4, 4, preview_source};
     Canvas preview_canvas = {4, 4, preview_copy};
     Canvas preview_canvas_without_pixels = {4, 4, NULL};
@@ -833,6 +843,11 @@ int main(void) {
     locked_layer.canvas.pixels = (uint32_t *)&locked_layer;
     empty_layer.locked = 0;
     empty_layer.canvas.pixels = NULL;
+    layer_stack.layer_count = 3;
+    layer_stack.active_layer = 0;
+    layer_stack.layers[0] = editable_layer;
+    layer_stack.layers[1] = locked_layer;
+    layer_stack.layers[2] = empty_layer;
 
     ok = ok && expect_shortcut("plain_f2", 0, 0, 0, LAYER_NAME_RESET_SHORTCUT_ACTIVE);
     ok = ok && expect_shortcut("ctrl_f2", 1, 0, 0, LAYER_NAME_RESET_SHORTCUT_ALL);
@@ -1054,6 +1069,12 @@ int main(void) {
     ok = ok && expect_layer_editable("layer_editable_locked", &locked_layer, 0);
     ok = ok && expect_layer_editable("layer_editable_missing_pixels", &empty_layer, 0);
     ok = ok && expect_layer_editable("layer_editable_null", NULL, 0);
+    ok = ok && expect_active_layer_editable("active_layer_editable_true", &layer_stack, 1);
+    layer_stack.active_layer = 1;
+    ok = ok && expect_active_layer_editable("active_layer_editable_locked", &layer_stack, 0);
+    layer_stack.active_layer = 2;
+    ok = ok && expect_active_layer_editable("active_layer_editable_missing_pixels", &layer_stack, 0);
+    ok = ok && expect_active_layer_editable("active_layer_editable_null_stack", NULL, 0);
     ok = ok && expect_tool_label("tool_brush_label", TOOL_BRUSH, "Brush");
     ok = ok && expect_tool_label("tool_filled_ellipse_label", TOOL_FILLED_ELLIPSE, "Filled Ellipse");
     ok = ok && expect_tool_label("tool_label_default", (Tool)999, "Brush");
