@@ -2080,6 +2080,16 @@ static int expect_layer_editable(const char *label, Layer *layer, int want) {
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    Layer *layer;
+    int want;
+} LayerEditableCase;
+
+static int run_layer_editable_case(const LayerEditableCase *test_case) {
+    return expect_layer_editable(test_case->label, test_case->layer, test_case->want);
+}
+
 static int expect_active_layer_editable(const char *label, LayerStack *stack, int want) {
     int got = app_active_layer_editable(stack);
     if (got != want) {
@@ -4108,10 +4118,19 @@ int main(void) {
             ok = ok && run_layer_clear_color_case(&layer_clear_color_cases[i]);
         }
     }
-    ok = ok && expect_layer_editable("layer_editable_true", &editable_layer, 1);
-    ok = ok && expect_layer_editable("layer_editable_locked", &locked_layer, 0);
-    ok = ok && expect_layer_editable("layer_editable_missing_pixels", &empty_layer, 0);
-    ok = ok && expect_layer_editable("layer_editable_null", NULL, 0);
+    {
+        const LayerEditableCase layer_editable_cases[] = {
+            {"layer_editable_true", &editable_layer, 1},
+            {"layer_editable_locked", &locked_layer, 0},
+            {"layer_editable_missing_pixels", &empty_layer, 0},
+            {"layer_editable_null", NULL, 0},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(layer_editable_cases) / sizeof(layer_editable_cases[0]); i++) {
+            ok = ok && run_layer_editable_case(&layer_editable_cases[i]);
+        }
+    }
     ok = ok && expect_active_layer_editable("active_layer_editable_true", &layer_stack, 1);
     ok = ok && expect_active_editable_layer("active_editable_layer_true", &layer_stack, &layer_stack.layers[0]);
     layer_stack.active_layer = 1;
