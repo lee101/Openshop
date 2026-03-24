@@ -1960,6 +1960,82 @@ static int expect_finalize_shape_preview(
     return ok;
 }
 
+typedef struct {
+    const char *label;
+    int width;
+    int height;
+    uint32_t initial_fill;
+    int locked;
+    size_t preset_pixel_index;
+    uint32_t preset_pixel_value;
+    int initial_shaping;
+    int initial_preview_active;
+    int shape_start_x;
+    int shape_start_y;
+    int x;
+    int y;
+    int shift;
+    Tool tool;
+    int brush_radius;
+    uint32_t brush_color;
+    int undo_capacity;
+    int want_finalized;
+    int want_shaping;
+    int want_preview_active;
+    int want_needs_composite;
+    int want_undo_count;
+    size_t snapshot_index;
+    uint32_t want_snapshot;
+    size_t pixel_index;
+    uint32_t want_pixel;
+} FinalizeShapePreviewCase;
+
+static int run_finalize_shape_preview_case(const FinalizeShapePreviewCase *test_case) {
+    LayerStack stack;
+    Canvas canvas;
+    uint32_t pixels[9];
+    int shaping = test_case->initial_shaping;
+    int preview_active = test_case->initial_preview_active;
+
+    init_single_layer_stack(
+        &stack,
+        &canvas,
+        pixels,
+        test_case->width,
+        test_case->height,
+        test_case->initial_fill,
+        test_case->locked
+    );
+    if (test_case->preset_pixel_index < (size_t)test_case->width * (size_t)test_case->height) {
+        pixels[test_case->preset_pixel_index] = test_case->preset_pixel_value;
+    }
+
+    return expect_finalize_shape_preview(
+        test_case->label,
+        &stack,
+        &shaping,
+        &preview_active,
+        test_case->shape_start_x,
+        test_case->shape_start_y,
+        test_case->x,
+        test_case->y,
+        test_case->shift,
+        test_case->tool,
+        test_case->brush_radius,
+        test_case->brush_color,
+        test_case->undo_capacity,
+        test_case->want_finalized,
+        test_case->want_shaping,
+        test_case->want_preview_active,
+        test_case->want_needs_composite,
+        test_case->want_undo_count,
+        test_case->snapshot_index,
+        test_case->want_snapshot,
+        test_case->pixel_index,
+        test_case->want_pixel
+    );
+}
+
 static int expect_draw_shape_pixel(
     const char *label,
     Tool tool,
@@ -3078,106 +3154,49 @@ int main(void) {
         );
     }
     {
-        LayerStack stack;
-        Canvas canvas;
-        uint32_t pixels[9];
+        const FinalizeShapePreviewCase finalize_cases[] = {
+            {
+                "finalize_shape_preview_success",
+                3, 3, 0xFF123456u, 0,
+                0, 0x01020304u,
+                1, 1,
+                0, 0, 2, 0, 0,
+                TOOL_LINE, 1, 0xFFAABBCCu,
+                2,
+                1, 0, 0, 1, 1,
+                0, 0x01020304u,
+                2, 0xFFAABBCCu,
+            },
+            {
+                "finalize_shape_preview_locked_noop",
+                3, 3, 0xFF123456u, 1,
+                4, 0x55667788u,
+                1, 1,
+                0, 0, 2, 1, 0,
+                TOOL_RECT, 1, 0xFFABCDEFu,
+                2,
+                0, 0, 0, 0, 0,
+                0, 0u,
+                4, 0x55667788u,
+            },
+            {
+                "finalize_shape_preview_inactive_noop",
+                3, 3, 0xFF123456u, 0,
+                8, 0x10203040u,
+                0, 1,
+                0, 0, 2, 2, 0,
+                TOOL_FILLED_RECT, 1, 0xFFFFFFFFu,
+                2,
+                0, 0, 1, 0, 0,
+                0, 0u,
+                8, 0x10203040u,
+            },
+        };
+        size_t i;
 
-        init_single_layer_stack(&stack, &canvas, pixels, 3, 3, 0xFF123456u, 0);
-        pixels[0] = 0x01020304u;
-        shaping = 1;
-        preview_active = 1;
-        ok = ok && expect_finalize_shape_preview(
-            "finalize_shape_preview_success",
-            &stack,
-            &shaping,
-            &preview_active,
-            0,
-            0,
-            2,
-            0,
-            0,
-            TOOL_LINE,
-            1,
-            0xFFAABBCCu,
-            2,
-            1,
-            0,
-            0,
-            1,
-            1,
-            0,
-            0x01020304u,
-            2,
-            0xFFAABBCCu
-        );
-    }
-    {
-        LayerStack stack;
-        Canvas canvas;
-        uint32_t pixels[9];
-
-        init_single_layer_stack(&stack, &canvas, pixels, 3, 3, 0xFF123456u, 1);
-        pixels[4] = 0x55667788u;
-        shaping = 1;
-        preview_active = 1;
-        ok = ok && expect_finalize_shape_preview(
-            "finalize_shape_preview_locked_noop",
-            &stack,
-            &shaping,
-            &preview_active,
-            0,
-            0,
-            2,
-            1,
-            0,
-            TOOL_RECT,
-            1,
-            0xFFABCDEFu,
-            2,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0u,
-            4,
-            0x55667788u
-        );
-    }
-    {
-        LayerStack stack;
-        Canvas canvas;
-        uint32_t pixels[9];
-
-        init_single_layer_stack(&stack, &canvas, pixels, 3, 3, 0xFF123456u, 0);
-        pixels[8] = 0x10203040u;
-        shaping = 0;
-        preview_active = 1;
-        ok = ok && expect_finalize_shape_preview(
-            "finalize_shape_preview_inactive_noop",
-            &stack,
-            &shaping,
-            &preview_active,
-            0,
-            0,
-            2,
-            2,
-            0,
-            TOOL_FILLED_RECT,
-            1,
-            0xFFFFFFFFu,
-            2,
-            0,
-            0,
-            1,
-            0,
-            0,
-            0,
-            0u,
-            8,
-            0x10203040u
-        );
+        for (i = 0; i < sizeof(finalize_cases) / sizeof(finalize_cases[0]); i++) {
+            ok = ok && run_finalize_shape_preview_case(&finalize_cases[i]);
+        }
     }
     {
         Canvas prep_preview_canvas = {4, 4, preview_restore_copy};
