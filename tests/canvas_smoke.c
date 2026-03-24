@@ -2379,6 +2379,16 @@ static int test_active_layer_ops_helpers(void) {
         }
     }
     {
+        if (active_layer_try_flood_fill_action_result(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                      1, 1, 0xFFABC123, 4) != ACTIVE_LAYER_ACTION_UNCHANGED) {
+            fprintf(stderr, "active_layer_try_flood_fill_action_result same-color no-op failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    {
         int changed = 1;
         int undo_before = undo_count;
         int redo_before = redo_count;
@@ -2403,6 +2413,17 @@ static int test_active_layer_ops_helpers(void) {
             !expect_pixel_eq("active_fill_transparent", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFF010101) ||
             undo_count != undo_before || redo_count != redo_before) {
             fprintf(stderr, "active_layer_try_flood_fill transparent no-op failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    {
+        canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFF010101);
+        if (active_layer_try_flood_fill_action_result(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                      1, 1, 0x00ABC123, 4) != ACTIVE_LAYER_ACTION_FAILED) {
+            fprintf(stderr, "active_layer_try_flood_fill_action_result transparent guard failed\n");
             snapshot_stack_clear(undo_stack, &undo_count);
             snapshot_stack_clear(redo_stack, &redo_count);
             layer_stack_free(&stack);

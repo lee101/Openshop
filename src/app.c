@@ -719,6 +719,7 @@ static int handle_mouse_position_hotkey(SDL_Keycode key,
                                         AppMousePositionAction *matched_action,
                                         int *changed) {
     AppMousePositionAction action;
+    ActiveLayerActionResult fill_result = ACTIVE_LAYER_ACTION_FAILED;
     int mx = 0;
     int my = 0;
 
@@ -743,8 +744,12 @@ static int handle_mouse_position_hotkey(SDL_Keycode key,
         (void)brush_color_rgb;
         (void)brush_opacity;
         (void)tool;
-        return active_layer_try_flood_fill_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                                       mx, my, *brush_color, MAX_HISTORY, changed);
+        fill_result = active_layer_try_flood_fill_action_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                                mx, my, *brush_color, MAX_HISTORY);
+        if (changed && fill_result == ACTIVE_LAYER_ACTION_CHANGED) {
+            *changed = 1;
+        }
+        return fill_result != ACTIVE_LAYER_ACTION_FAILED;
     case APP_MOUSE_POSITION_SAMPLE:
         return sample_canvas_brush_state(sample, mx, my, brush_color_rgb, brush_color, brush_opacity, tool);
     case APP_MOUSE_POSITION_NONE:
