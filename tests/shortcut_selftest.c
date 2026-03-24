@@ -869,6 +869,20 @@ static int run_handle_right_canvas_press_case(
     );
 }
 
+static int expect_canvas_click_title_refresh(
+    const char *label,
+    AppCanvasClickResult result,
+    int want
+) {
+    int got = app_canvas_click_result_refreshes_title(result);
+
+    if (got != want) {
+        fprintf(stderr, "%s mismatch: got %d want %d\n", label, got, want);
+        return 0;
+    }
+    return 1;
+}
+
 typedef struct {
     const char *label;
     int width;
@@ -3136,6 +3150,21 @@ int main(void) {
                 &preview_active
             );
         }
+        ok = ok && expect_canvas_click_title_refresh(
+            "canvas_click_title_refresh_noop",
+            APP_CANVAS_CLICK_NOOP,
+            0
+        );
+        ok = ok && expect_canvas_click_title_refresh(
+            "canvas_click_title_refresh_preview_canceled",
+            APP_CANVAS_CLICK_PREVIEW_CANCELED,
+            0
+        );
+        ok = ok && expect_canvas_click_title_refresh(
+            "canvas_click_title_refresh_color_sampled",
+            APP_CANVAS_CLICK_COLOR_SAMPLED,
+            1
+        );
     }
     {
         const HandleLeftCanvasReleaseCase release_cases[] = {

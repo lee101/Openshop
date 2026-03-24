@@ -1627,7 +1627,7 @@ static void handle_mouse_button_down(
     }
 
     if (button.button == SDL_BUTTON_RIGHT) {
-        if (app_handle_right_canvas_press(
+        if (app_canvas_click_result_refreshes_title(app_handle_right_canvas_press(
             shaping,
             preview_active,
             composite,
@@ -1639,7 +1639,7 @@ static void handle_mouse_button_down(
             brush_color,
             brush_color_rgb,
             brush_opacity
-        ) == APP_CANVAS_CLICK_COLOR_SAMPLED) {
+        ))) {
             update_window_title(window, layers, *tool, brush_shape, brush_radius, *brush_color, *brush_opacity);
         }
     }

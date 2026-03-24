@@ -18,6 +18,8 @@ typedef enum {
     APP_CANVAS_CLICK_COLOR_SAMPLED,
 } AppCanvasClickResult;
 
+int app_canvas_click_result_refreshes_title(AppCanvasClickResult result);
+
 AppCanvasClickResult app_handle_left_canvas_press(
     LayerStack *layers,
     int x,
