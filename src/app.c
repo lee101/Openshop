@@ -914,6 +914,97 @@ static int handle_merge_shortcut(
     return 0;
 }
 
+static int handle_brush_and_paint_shortcut(
+    PaintShortcutAction paint_action,
+    BrushShortcutAction brush_action,
+    Tool *tool,
+    BrushShape *brush_shape,
+    int *brush_radius,
+    uint32_t *brush_color,
+    uint32_t *brush_color_rgb,
+    int *brush_opacity
+) {
+    if (!tool || !brush_shape || !brush_radius || !brush_color || !brush_color_rgb || !brush_opacity) {
+        return 0;
+    }
+
+    if (paint_action == PAINT_SHORTCUT_TOOL_BRUSH) {
+        *brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
+        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *tool = TOOL_BRUSH;
+    } else if (paint_action == PAINT_SHORTCUT_TOOL_ERASER) {
+        *brush_color_rgb = COLOR_ERASE & 0x00FFFFFF;
+        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *tool = TOOL_ERASER;
+    } else if (paint_action == PAINT_SHORTCUT_TOOL_LINE) {
+        *tool = TOOL_LINE;
+    } else if (paint_action == PAINT_SHORTCUT_TOOL_RECT) {
+        *tool = TOOL_RECT;
+    } else if (paint_action == PAINT_SHORTCUT_TOOL_FILLED_RECT) {
+        *tool = TOOL_FILLED_RECT;
+    } else if (paint_action == PAINT_SHORTCUT_TOOL_ELLIPSE) {
+        *tool = TOOL_ELLIPSE;
+    } else if (paint_action == PAINT_SHORTCUT_TOOL_FILLED_ELLIPSE) {
+        *tool = TOOL_FILLED_ELLIPSE;
+    } else if (brush_action == BRUSH_SHORTCUT_RADIUS_DOWN) {
+        if (*brush_radius > 1) {
+            *brush_radius -= 1;
+        }
+    } else if (brush_action == BRUSH_SHORTCUT_RADIUS_UP) {
+        if (*brush_radius < 64) {
+            *brush_radius += 1;
+        }
+    } else if (brush_action == BRUSH_SHORTCUT_SHAPE_PREV) {
+        *brush_shape = cycle_brush_shape(*brush_shape, -1);
+    } else if (brush_action == BRUSH_SHORTCUT_SHAPE_NEXT) {
+        *brush_shape = cycle_brush_shape(*brush_shape, 1);
+    } else if (brush_action == BRUSH_SHORTCUT_OPACITY_DOWN) {
+        if (*brush_opacity > 1) {
+            *brush_opacity -= 5;
+            if (*brush_opacity < 1) {
+                *brush_opacity = 1;
+            }
+            *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        }
+    } else if (brush_action == BRUSH_SHORTCUT_OPACITY_UP) {
+        if (*brush_opacity < 100) {
+            *brush_opacity += 5;
+            if (*brush_opacity > 100) {
+                *brush_opacity = 100;
+            }
+            *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        }
+    } else if (paint_action == PAINT_SHORTCUT_COLOR_BRUSH) {
+        *brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
+        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *tool = TOOL_BRUSH;
+    } else if (paint_action == PAINT_SHORTCUT_COLOR_RED) {
+        *brush_color_rgb = COLOR_RED & 0x00FFFFFF;
+        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *tool = TOOL_BRUSH;
+    } else if (paint_action == PAINT_SHORTCUT_COLOR_GREEN) {
+        *brush_color_rgb = COLOR_GREEN & 0x00FFFFFF;
+        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *tool = TOOL_BRUSH;
+    } else if (paint_action == PAINT_SHORTCUT_COLOR_BLUE) {
+        *brush_color_rgb = COLOR_BLUE & 0x00FFFFFF;
+        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *tool = TOOL_BRUSH;
+    } else if (paint_action == PAINT_SHORTCUT_COLOR_YELLOW) {
+        *brush_color_rgb = COLOR_YELLOW & 0x00FFFFFF;
+        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *tool = TOOL_BRUSH;
+    } else if (paint_action == PAINT_SHORTCUT_COLOR_PURPLE) {
+        *brush_color_rgb = COLOR_PURPLE & 0x00FFFFFF;
+        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
+        *tool = TOOL_BRUSH;
+    } else {
+        return 0;
+    }
+
+    return 1;
+}
+
 static int handle_view_and_canvas_shortcut(
     SDL_Keycode key,
     int shift,
@@ -990,76 +1081,16 @@ static int handle_view_and_canvas_shortcut(
     brush_action = brush_shortcut_action((int)key);
     canvas_action = canvas_shortcut_action((int)key);
 
-    if (paint_action == PAINT_SHORTCUT_TOOL_BRUSH) {
-        *brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
-        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
-        *tool = TOOL_BRUSH;
-    } else if (paint_action == PAINT_SHORTCUT_TOOL_ERASER) {
-        *brush_color_rgb = COLOR_ERASE & 0x00FFFFFF;
-        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
-        *tool = TOOL_ERASER;
-    } else if (paint_action == PAINT_SHORTCUT_TOOL_LINE) {
-        *tool = TOOL_LINE;
-    } else if (paint_action == PAINT_SHORTCUT_TOOL_RECT) {
-        *tool = TOOL_RECT;
-    } else if (paint_action == PAINT_SHORTCUT_TOOL_FILLED_RECT) {
-        *tool = TOOL_FILLED_RECT;
-    } else if (paint_action == PAINT_SHORTCUT_TOOL_ELLIPSE) {
-        *tool = TOOL_ELLIPSE;
-    } else if (paint_action == PAINT_SHORTCUT_TOOL_FILLED_ELLIPSE) {
-        *tool = TOOL_FILLED_ELLIPSE;
-    } else if (brush_action == BRUSH_SHORTCUT_RADIUS_DOWN) {
-        if (*brush_radius > 1) {
-            *brush_radius -= 1;
-        }
-    } else if (brush_action == BRUSH_SHORTCUT_RADIUS_UP) {
-        if (*brush_radius < 64) {
-            *brush_radius += 1;
-        }
-    } else if (brush_action == BRUSH_SHORTCUT_SHAPE_PREV) {
-        *brush_shape = cycle_brush_shape(*brush_shape, -1);
-    } else if (brush_action == BRUSH_SHORTCUT_SHAPE_NEXT) {
-        *brush_shape = cycle_brush_shape(*brush_shape, 1);
-    } else if (brush_action == BRUSH_SHORTCUT_OPACITY_DOWN) {
-        if (*brush_opacity > 1) {
-            *brush_opacity -= 5;
-            if (*brush_opacity < 1) {
-                *brush_opacity = 1;
-            }
-            *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
-        }
-    } else if (brush_action == BRUSH_SHORTCUT_OPACITY_UP) {
-        if (*brush_opacity < 100) {
-            *brush_opacity += 5;
-            if (*brush_opacity > 100) {
-                *brush_opacity = 100;
-            }
-            *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
-        }
-    } else if (paint_action == PAINT_SHORTCUT_COLOR_BRUSH) {
-        *brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
-        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
-        *tool = TOOL_BRUSH;
-    } else if (paint_action == PAINT_SHORTCUT_COLOR_RED) {
-        *brush_color_rgb = COLOR_RED & 0x00FFFFFF;
-        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
-        *tool = TOOL_BRUSH;
-    } else if (paint_action == PAINT_SHORTCUT_COLOR_GREEN) {
-        *brush_color_rgb = COLOR_GREEN & 0x00FFFFFF;
-        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
-        *tool = TOOL_BRUSH;
-    } else if (paint_action == PAINT_SHORTCUT_COLOR_BLUE) {
-        *brush_color_rgb = COLOR_BLUE & 0x00FFFFFF;
-        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
-        *tool = TOOL_BRUSH;
-    } else if (paint_action == PAINT_SHORTCUT_COLOR_YELLOW) {
-        *brush_color_rgb = COLOR_YELLOW & 0x00FFFFFF;
-        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
-        *tool = TOOL_BRUSH;
-    } else if (paint_action == PAINT_SHORTCUT_COLOR_PURPLE) {
-        *brush_color_rgb = COLOR_PURPLE & 0x00FFFFFF;
-        *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
-        *tool = TOOL_BRUSH;
+    if (handle_brush_and_paint_shortcut(
+            paint_action,
+            brush_action,
+            tool,
+            brush_shape,
+            brush_radius,
+            brush_color,
+            brush_color_rgb,
+            brush_opacity
+        )) {
     } else if (handle_canvas_mutation_shortcut(
                    canvas_action,
                    layers,
