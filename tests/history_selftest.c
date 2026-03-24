@@ -187,6 +187,22 @@ int main(void) {
 
         snapshot_stack_clear(temp_undo, &temp_undo_count);
         snapshot_stack_clear(temp_redo, &temp_redo_count);
+        temp_stack.layers[0].canvas.pixels[0] = 0;
+        temp_stack.layers[0].canvas.pixels[4] = 0;
+        canvas_set_pixel(&temp_stack.layers[0].canvas, 0, 1, 0xFF556677);
+        if (!app_apply_canvas_translation(&temp_stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count, 0, -1) ||
+            !expect_int(temp_undo_count, 1, "canvas_translation_background_vertical_undo_count") ||
+            !expect_pixel(&temp_stack, 0, 0, 0, 0xFF556677, "canvas_translation_background_vertical_shifted_pixel") ||
+            !expect_pixel(&temp_stack, 0, 0, 1, 0xFFFFFFFF, "canvas_translation_background_vertical_fill_pixel")) {
+            fprintf(stderr, "canvas translation background vertical helper failed\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            layer_stack_free(&temp_stack);
+            return 1;
+        }
+
+        snapshot_stack_clear(temp_undo, &temp_undo_count);
+        snapshot_stack_clear(temp_redo, &temp_redo_count);
 
         if (layer_stack_add(&temp_stack, "Top", 0x00000000) != 1) {
             fprintf(stderr, "temp top layer add failed\n");
