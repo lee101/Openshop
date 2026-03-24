@@ -1,6 +1,8 @@
 #include "app_brush.h"
 #include "app_brush_mask.h"
 
+#include <stdlib.h>
+
 const char *app_tool_label(Tool tool) {
     switch (tool) {
     case TOOL_BRUSH:
@@ -77,6 +79,60 @@ void app_erase_brush(Canvas *canvas, int cx, int cy, int radius, uint32_t clear_
                 continue;
             }
             canvas_set_pixel_raw(canvas, cx + dx, cy + dy, clear_color);
+        }
+    }
+}
+
+void app_draw_brush_line(Canvas *canvas, int x0, int y0, int x1, int y1, int radius, uint32_t color, BrushShape shape) {
+    if (!canvas || !canvas->pixels) {
+        return;
+    }
+    int dx = abs(x1 - x0);
+    int sx = x0 < x1 ? 1 : -1;
+    int dy = -abs(y1 - y0);
+    int sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy;
+
+    while (1) {
+        app_stamp_brush(canvas, x0, y0, radius, color, shape);
+        if (x0 == x1 && y0 == y1) {
+            break;
+        }
+        int e2 = 2 * err;
+        if (e2 >= dy) {
+            err += dy;
+            x0 += sx;
+        }
+        if (e2 <= dx) {
+            err += dx;
+            y0 += sy;
+        }
+    }
+}
+
+void app_erase_brush_line(Canvas *canvas, int x0, int y0, int x1, int y1, int radius, uint32_t clear_color, BrushShape shape) {
+    if (!canvas || !canvas->pixels) {
+        return;
+    }
+    int dx = abs(x1 - x0);
+    int sx = x0 < x1 ? 1 : -1;
+    int dy = -abs(y1 - y0);
+    int sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy;
+
+    while (1) {
+        app_erase_brush(canvas, x0, y0, radius, clear_color, shape);
+        if (x0 == x1 && y0 == y1) {
+            break;
+        }
+        int e2 = 2 * err;
+        if (e2 >= dy) {
+            err += dy;
+            x0 += sx;
+        }
+        if (e2 <= dx) {
+            err += dx;
+            y0 += sy;
         }
     }
 }

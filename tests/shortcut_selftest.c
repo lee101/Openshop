@@ -128,6 +128,44 @@ static int expect_brush_stamp_pixel(
     return 1;
 }
 
+static int expect_brush_line_pixel(
+    const char *label,
+    void (*apply_line)(Canvas *, int, int, int, int, int, uint32_t, BrushShape),
+    uint32_t initial_color,
+    uint32_t stroke_color,
+    BrushShape shape,
+    size_t changed_index,
+    uint32_t want_changed,
+    size_t unchanged_index,
+    uint32_t want_unchanged
+) {
+    Canvas canvas = {5, 5, NULL};
+    uint32_t pixels[25];
+    size_t i;
+
+    for (i = 0; i < sizeof(pixels) / sizeof(pixels[0]); i++) {
+        pixels[i] = initial_color;
+    }
+    canvas.width = 5;
+    canvas.height = 5;
+    canvas.pixels = pixels;
+
+    apply_line(&canvas, 1, 2, 3, 2, 1, stroke_color, shape);
+    if (pixels[changed_index] != want_changed || pixels[unchanged_index] != want_unchanged) {
+        fprintf(
+            stderr,
+            "%s mismatch: changed 0x%08X want 0x%08X unchanged 0x%08X want 0x%08X\n",
+            label,
+            pixels[changed_index],
+            want_changed,
+            pixels[unchanged_index],
+            want_unchanged
+        );
+        return 0;
+    }
+    return 1;
+}
+
 static int expect_canvas_action(const char *label, int key, CanvasShortcutAction want) {
     CanvasShortcutAction got = canvas_shortcut_action(key);
     if (got != want) {
@@ -980,6 +1018,28 @@ int main(void) {
         BRUSH_SHAPE_ROUND,
         0x00000000u,
         0xFF112233u
+    );
+    ok = ok && expect_brush_line_pixel(
+        "draw_brush_line_changes_row",
+        app_draw_brush_line,
+        0x00000000u,
+        0xFF556677u,
+        BRUSH_SHAPE_ROUND,
+        12,
+        0xFF556677u,
+        0,
+        0x00000000u
+    );
+    ok = ok && expect_brush_line_pixel(
+        "erase_brush_line_changes_row",
+        app_erase_brush_line,
+        0xFFFFFFFFu,
+        0x00000000u,
+        BRUSH_SHAPE_ROUND,
+        12,
+        0x00000000u,
+        0,
+        0xFFFFFFFFu
     );
     ok = ok && expect_canvas_action("canvas_clear", 'c', CANVAS_SHORTCUT_CLEAR);
     ok = ok && expect_canvas_action("canvas_flip_h", 'h', CANVAS_SHORTCUT_FLIP_HORIZONTAL);

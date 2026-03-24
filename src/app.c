@@ -1119,60 +1119,6 @@ static int handle_view_and_canvas_shortcut(
     return 1;
 }
 
-static void erase_line(Canvas *c, int x0, int y0, int x1, int y1, int radius, uint32_t clear_color, BrushShape shape) {
-    if (!c || !c->pixels) {
-        return;
-    }
-    int dx = abs(x1 - x0);
-    int sx = x0 < x1 ? 1 : -1;
-    int dy = -abs(y1 - y0);
-    int sy = y0 < y1 ? 1 : -1;
-    int err = dx + dy;
-
-    while (1) {
-        app_erase_brush(c, x0, y0, radius, clear_color, shape);
-        if (x0 == x1 && y0 == y1) {
-            break;
-        }
-        int e2 = 2 * err;
-        if (e2 >= dy) {
-            err += dy;
-            x0 += sx;
-        }
-        if (e2 <= dx) {
-            err += dx;
-            y0 += sy;
-        }
-    }
-}
-
-static void draw_brush_line(Canvas *c, int x0, int y0, int x1, int y1, int radius, uint32_t color, BrushShape shape) {
-    if (!c || !c->pixels) {
-        return;
-    }
-    int dx = abs(x1 - x0);
-    int sx = x0 < x1 ? 1 : -1;
-    int dy = -abs(y1 - y0);
-    int sy = y0 < y1 ? 1 : -1;
-    int err = dx + dy;
-
-    while (1) {
-        app_stamp_brush(c, x0, y0, radius, color, shape);
-        if (x0 == x1 && y0 == y1) {
-            break;
-        }
-        int e2 = 2 * err;
-        if (e2 >= dy) {
-            err += dy;
-            x0 += sx;
-        }
-        if (e2 <= dx) {
-            err += dx;
-            y0 += sy;
-        }
-    }
-}
-
 static void sdl_shortcut_modifiers(int *ctrl, int *alt, int *shift) {
     const Uint8 *state = SDL_GetKeyboardState(NULL);
 
@@ -1234,9 +1180,9 @@ static void handle_canvas_motion(
         active = app_active_editable_layer(layers);
         if (active) {
             if (tool == TOOL_ERASER) {
-                erase_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, app_active_layer_clear_color(layers->active_layer), brush_shape);
+                app_erase_brush_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, app_active_layer_clear_color(layers->active_layer), brush_shape);
             } else {
-                draw_brush_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, brush_color, brush_shape);
+                app_draw_brush_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, brush_color, brush_shape);
             }
             *last_x = x;
             *last_y = y;
