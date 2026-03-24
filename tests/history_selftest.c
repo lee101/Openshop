@@ -590,6 +590,57 @@ int main(void) {
         snapshot_free(&saved);
     }
 
+    {
+        Snapshot temp_undo[1] = {0};
+        Snapshot temp_redo[1] = {0};
+        int temp_undo_count = 0;
+        int temp_redo_count = 0;
+
+        if (snapshot_undo(&stack, temp_undo, &temp_undo_count, TEST_HISTORY_CAPACITY, temp_redo, &temp_redo_count) ||
+            snapshot_redo(&stack, temp_undo, &temp_undo_count, TEST_HISTORY_CAPACITY, temp_redo, &temp_redo_count)) {
+            fprintf(stderr, "empty history stacks should be no-op\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+
+        snapshot_push(&stack, temp_undo, &temp_undo_count, 0, temp_redo, &temp_redo_count);
+        if (temp_undo_count != 0 || temp_redo_count != 0) {
+            fprintf(stderr, "zero-capacity snapshot push should be no-op\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+
+        if (!snapshot_from_layers(&temp_undo[0], &stack)) {
+            fprintf(stderr, "temp snapshot init failed\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+        snapshot_push_existing(temp_redo, &temp_redo_count, 0, &temp_undo[0]);
+        if (temp_redo_count != 0) {
+            fprintf(stderr, "zero-capacity push_existing should be no-op\n");
+            snapshot_free(&temp_undo[0]);
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+        snapshot_free(&temp_undo[0]);
+    }
+
     snapshot_stack_clear(undo_stack, &undo_count);
     snapshot_stack_clear(redo_stack, &redo_count);
     layer_stack_free(&stack);
