@@ -359,6 +359,24 @@ int layer_stack_set_opacity(LayerStack *stack, int index, int opacity_percent) {
     return 1;
 }
 
+int layer_stack_adjust_opacity(LayerStack *stack, int index, int delta_percent) {
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    int current = stack->layers[index].opacity_percent;
+    int target = current + delta_percent;
+    if (target < 0) {
+        target = 0;
+    } else if (target > 100) {
+        target = 100;
+    }
+    if (target == current) {
+        return 0;
+    }
+    stack->layers[index].opacity_percent = target;
+    return 1;
+}
+
 int layer_stack_delete(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count || stack->layer_count == 1) {
         return 0;

@@ -453,6 +453,48 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_adjust_opacity(&stack, 1, -1) || stack.layers[1].opacity_percent != 49) {
+        fprintf(stderr, "fine opacity decrease failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_adjust_opacity(&stack, 1, 2) || stack.layers[1].opacity_percent != 51) {
+        fprintf(stderr, "fine opacity increase failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_adjust_opacity(&stack, 1, 1000) || stack.layers[1].opacity_percent != 100) {
+        fprintf(stderr, "opacity clamp to max failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_adjust_opacity(&stack, 1, 1)) {
+        fprintf(stderr, "opacity adjustment should no-op at max\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_adjust_opacity(&stack, 1, -1000) || stack.layers[1].opacity_percent != 0) {
+        fprintf(stderr, "opacity clamp to min failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_adjust_opacity(&stack, 1, -1)) {
+        fprintf(stderr, "opacity adjustment should no-op at min\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_set_opacity(&stack, 1, 50)) {
+        fprintf(stderr, "restore opacity after fine adjustments failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_merge_down(&stack, 1)) {
         fprintf(stderr, "merge down failed\n");
         canvas_free(&composite);

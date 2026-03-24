@@ -60,7 +60,8 @@ make test-sdl
 - `Delete` / `Backspace`: delete active layer
 - `Ctrl+]` / `Ctrl+[`: move active layer up/down
 - `Ctrl+Home / Ctrl+End`: move active layer to the top/bottom
-- `Ctrl+- / Ctrl+=`: active layer opacity down/up
+- `Ctrl+- / Ctrl+=`: active layer opacity down/up by 10%
+- `Ctrl+Shift+- / Ctrl+Shift+=`: active layer opacity down/up by 1%
 - `Ctrl+0`: reset active layer opacity to 100%
 - `Ctrl+A`: show all layers and clear solo mode
 - `Ctrl+Shift+R`: reveal the active layer without changing other visibility states

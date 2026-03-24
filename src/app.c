@@ -909,10 +909,12 @@ int app_run(const char *input_path) {
 
                 if (ctrl && (key == SDLK_MINUS || key == SDLK_KP_MINUS)) {
                     Layer *active = layer_stack_active(&layers);
-                    if (active) {
+                    int delta = shift ? -1 : -10;
+                    if (active && active->opacity_percent > 0) {
                         push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        layer_stack_set_opacity(&layers, layers.active_layer, active->opacity_percent - 10);
-                        needs_composite = 1;
+                        if (layer_stack_adjust_opacity(&layers, layers.active_layer, delta)) {
+                            needs_composite = 1;
+                        }
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
@@ -920,10 +922,12 @@ int app_run(const char *input_path) {
 
                 if (ctrl && (key == SDLK_EQUALS || key == SDLK_KP_PLUS)) {
                     Layer *active = layer_stack_active(&layers);
-                    if (active) {
+                    int delta = shift ? 1 : 10;
+                    if (active && active->opacity_percent < 100) {
                         push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
-                        layer_stack_set_opacity(&layers, layers.active_layer, active->opacity_percent + 10);
-                        needs_composite = 1;
+                        if (layer_stack_adjust_opacity(&layers, layers.active_layer, delta)) {
+                            needs_composite = 1;
+                        }
                     }
                     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
                     break;
