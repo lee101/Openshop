@@ -5,4 +5,5 @@ canvas_smoke
 image_selftest
 image_io_smoke
 shortcut_selftest
+history_selftest
 test-artifacts/

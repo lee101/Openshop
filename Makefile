@@ -9,7 +9,7 @@ CFLAGS += $(shell sdl2-config --cflags)
 LDFLAGS += $(shell sdl2-config --libs)
 endif
 
-SRC = src/main.c src/app.c src/canvas.c src/image_io.c src/layers.c src/layer_name_shortcuts.c src/direct_layer_shortcuts.c src/history_shortcuts.c
+SRC = src/main.c src/app.c src/canvas.c src/image_io.c src/layers.c src/layer_name_shortcuts.c src/direct_layer_shortcuts.c src/history_shortcuts.c src/history_state.c
 OBJ = $(SRC:.c=.o)
 BIN = openshop
 
@@ -19,6 +19,8 @@ IMAGE_TEST_BIN = image_selftest
 IMAGE_TEST_SRC = tests/image_selftest.c src/canvas.c
 SHORTCUT_TEST_BIN = shortcut_selftest
 SHORTCUT_TEST_SRC = tests/shortcut_selftest.c src/layer_name_shortcuts.c src/direct_layer_shortcuts.c src/history_shortcuts.c
+HISTORY_TEST_BIN = history_selftest
+HISTORY_TEST_SRC = tests/history_selftest.c src/canvas.c src/layers.c src/history_state.c
 SDL_TEST_BIN = image_io_smoke
 SDL_TEST_SRC = tests/image_io_smoke.c src/canvas.c src/image_io.c
 
@@ -40,10 +42,11 @@ $(BIN): check-sdl2 $(OBJ)
 
 src/app.o: check-sdl2
 
-test: $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN)
+test: $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN)
 	./$(TEST_BIN)
 	./$(IMAGE_TEST_BIN)
 	./$(SHORTCUT_TEST_BIN)
+	./$(HISTORY_TEST_BIN)
 
 test-sdl: check-sdl2 $(SDL_TEST_BIN)
 	./$(SDL_TEST_BIN)
@@ -57,10 +60,13 @@ $(IMAGE_TEST_BIN): $(IMAGE_TEST_SRC)
 $(SHORTCUT_TEST_BIN): $(SHORTCUT_TEST_SRC)
 	$(CC) -std=c11 -O2 -Wall -Wextra $(SHORTCUT_TEST_SRC) -o $(SHORTCUT_TEST_BIN) -lm
 
+$(HISTORY_TEST_BIN): $(HISTORY_TEST_SRC)
+	$(CC) -std=c11 -O2 -Wall -Wextra $(HISTORY_TEST_SRC) -o $(HISTORY_TEST_BIN) -lm
+
 $(SDL_TEST_BIN): check-sdl2 $(SDL_TEST_SRC)
 	$(CC) $(CFLAGS) $(SDL_TEST_SRC) -o $(SDL_TEST_BIN) $(LDFLAGS) -lm
 
 clean:
-	rm -f $(OBJ) $(BIN) $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(SDL_TEST_BIN)
+	rm -f $(OBJ) $(BIN) $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN) $(SDL_TEST_BIN)
 
 .PHONY: all clean test test-sdl
