@@ -716,6 +716,17 @@ typedef struct {
     int arg;
 } SelectorHotkey;
 
+typedef int (*DirectionalLayerAction)(LayerStack *layers, int direction);
+
+typedef struct {
+    SDL_Keycode key;
+    int ctrl;
+    int alt;
+    int shift;
+    DirectionalLayerAction action;
+    int direction;
+} RevealHotkey;
+
 static const BrushColorHotkey BRUSH_COLOR_HOTKEYS[] = {
     {SDLK_b, COLOR_BRUSH, TOOL_BRUSH},
     {SDLK_e, COLOR_ERASE, TOOL_ERASER},
@@ -878,6 +889,19 @@ static const SelectorHotkey SELECTOR_HOTKEYS[] = {
     {SDLK_END, 0, 1, 1, select_top_editable_hotkey, 0},
 };
 
+static const RevealHotkey REVEAL_HOTKEYS[] = {
+    {SDLK_PAGEUP, 1, 1, 1, layer_stack_reveal_editable, 1},
+    {SDLK_PAGEDOWN, 1, 1, 1, layer_stack_reveal_editable, -1},
+    {SDLK_HOME, 1, 1, 1, layer_stack_reveal_hidden_editable, 0},
+    {SDLK_END, 1, 1, 1, layer_stack_reveal_hidden_editable, 1},
+    {SDLK_COMMA, 1, 0, 1, layer_stack_reveal_hidden_locked, 0},
+    {SDLK_PERIOD, 1, 0, 1, layer_stack_reveal_hidden_locked, 1},
+    {SDLK_SEMICOLON, 1, 1, 0, layer_stack_reveal_hidden_unlocked, 0},
+    {SDLK_QUOTE, 1, 1, 0, layer_stack_reveal_hidden_unlocked, 1},
+    {SDLK_PAGEUP, 1, 0, 1, layer_stack_reveal_hidden, 1},
+    {SDLK_PAGEDOWN, 1, 0, 1, layer_stack_reveal_hidden, -1},
+};
+
 static int handle_brush_state_hotkey(SDL_Keycode key,
                                      uint32_t *brush_color_rgb, uint32_t *brush_color,
                                      int *brush_opacity, int *brush_radius,
@@ -1035,6 +1059,38 @@ static int handle_selector_hotkey(SDL_Keycode key,
             refresh_title_on_change(window, layers, tool, brush_shape, brush_radius,
                                     brush_color, brush_opacity,
                                     hotkey->action(layers, hotkey->arg) >= 0);
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+static int handle_reveal_hotkey(SDL_Keycode key,
+                                int ctrl, int alt, int shift,
+                                SDL_Window *window,
+                                LayerStack *layers,
+                                Snapshot *undo_stack, int *undo_count,
+                                Snapshot *redo_stack, int *redo_count,
+                                Tool tool, BrushShape brush_shape,
+                                int brush_radius, uint32_t brush_color,
+                                int brush_opacity, int *needs_composite) {
+    size_t i;
+
+    if (!window || !layers || !undo_stack || !undo_count || !redo_stack || !redo_count || !needs_composite) {
+        return 0;
+    }
+
+    for (i = 0; i < sizeof(REVEAL_HOTKEYS) / sizeof(REVEAL_HOTKEYS[0]); i++) {
+        const RevealHotkey *hotkey = &REVEAL_HOTKEYS[i];
+
+        if (hotkey->key == key &&
+            hotkey->ctrl == ctrl &&
+            hotkey->alt == alt &&
+            hotkey->shift == shift) {
+            run_directional_layer_action(window, layers, undo_stack, undo_count, redo_stack, redo_count,
+                                         tool, brush_shape, brush_radius, brush_color, brush_opacity,
+                                         needs_composite, hotkey->action, hotkey->direction);
             return 1;
         }
     }
@@ -1865,73 +1921,10 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (ctrl && alt && shift && key == SDLK_PAGEUP) {
-                    run_directional_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                                                 tool, brush_shape, brush_radius, brush_color, brush_opacity,
-                                                 &needs_composite, layer_stack_reveal_editable, 1);
-                    break;
-                }
-
-                if (ctrl && alt && shift && key == SDLK_PAGEDOWN) {
-                    run_directional_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                                                 tool, brush_shape, brush_radius, brush_color, brush_opacity,
-                                                 &needs_composite, layer_stack_reveal_editable, -1);
-                    break;
-                }
-
-                if (ctrl && alt && shift && key == SDLK_HOME) {
-                    run_directional_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                                                 tool, brush_shape, brush_radius, brush_color, brush_opacity,
-                                                 &needs_composite, layer_stack_reveal_hidden_editable, 0);
-                    break;
-                }
-
-                if (ctrl && alt && shift && key == SDLK_END) {
-                    run_directional_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                                                 tool, brush_shape, brush_radius, brush_color, brush_opacity,
-                                                 &needs_composite, layer_stack_reveal_hidden_editable, 1);
-                    break;
-                }
-
-                if (ctrl && shift && key == SDLK_COMMA) {
-                    run_directional_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                                                 tool, brush_shape, brush_radius, brush_color, brush_opacity,
-                                                 &needs_composite, layer_stack_reveal_hidden_locked, 0);
-                    break;
-                }
-
-                if (ctrl && shift && key == SDLK_PERIOD) {
-                    run_directional_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                                                 tool, brush_shape, brush_radius, brush_color, brush_opacity,
-                                                 &needs_composite, layer_stack_reveal_hidden_locked, 1);
-                    break;
-                }
-
-                if (ctrl && alt && key == SDLK_SEMICOLON) {
-                    run_directional_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                                                 tool, brush_shape, brush_radius, brush_color, brush_opacity,
-                                                 &needs_composite, layer_stack_reveal_hidden_unlocked, 0);
-                    break;
-                }
-
-                if (ctrl && alt && key == SDLK_QUOTE) {
-                    run_directional_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                                                 tool, brush_shape, brush_radius, brush_color, brush_opacity,
-                                                 &needs_composite, layer_stack_reveal_hidden_unlocked, 1);
-                    break;
-                }
-
-                if (ctrl && shift && key == SDLK_PAGEUP) {
-                    run_directional_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                                                 tool, brush_shape, brush_radius, brush_color, brush_opacity,
-                                                 &needs_composite, layer_stack_reveal_hidden, 1);
-                    break;
-                }
-
-                if (ctrl && shift && key == SDLK_PAGEDOWN) {
-                    run_directional_layer_action(window, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                                                 tool, brush_shape, brush_radius, brush_color, brush_opacity,
-                                                 &needs_composite, layer_stack_reveal_hidden, -1);
+                if (handle_reveal_hotkey(key, ctrl, alt, shift, window, &layers,
+                                         undo_stack, &undo_count, redo_stack, &redo_count,
+                                         tool, brush_shape, brush_radius, brush_color,
+                                         brush_opacity, &needs_composite)) {
                     break;
                 }
 
