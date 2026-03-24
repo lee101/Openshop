@@ -223,6 +223,52 @@ static int test_layer_history_stack(void) {
         return 0;
     }
 
+    while (undo_count > 1) {
+        if (!layer_history_undo(&stack, undo, &undo_count, redo, &redo_count)) {
+            fprintf(stderr, "history multi-undo failed\n");
+            layer_history_clear(undo, &undo_count);
+            layer_history_clear(redo, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    if (!layer_history_undo(&stack, undo, &undo_count, redo, &redo_count)) {
+        fprintf(stderr, "history oldest-retained undo failed\n");
+        layer_history_clear(undo, &undo_count);
+        layer_history_clear(redo, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("history_oldest_retained", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF000001)) {
+        layer_history_clear(undo, &undo_count);
+        layer_history_clear(redo, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_history_undo(&stack, undo, &undo_count, redo, &redo_count)) {
+        fprintf(stderr, "history undo should stop at retained oldest snapshot\n");
+        layer_history_clear(undo, &undo_count);
+        layer_history_clear(redo, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    while (redo_count > 0) {
+        if (!layer_history_redo(&stack, undo, &undo_count, redo, &redo_count)) {
+            fprintf(stderr, "history multi-redo failed\n");
+            layer_history_clear(undo, &undo_count);
+            layer_history_clear(redo, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    if (!expect_pixel_eq("history_redo_back_to_latest", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF000015)) {
+        layer_history_clear(undo, &undo_count);
+        layer_history_clear(redo, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
     layer_history_push(&stack, undo, &undo_count, redo, &redo_count);
     if (redo_count != 0) {
         fprintf(stderr, "history push should clear redo stack\n");
