@@ -1253,6 +1253,8 @@ static int test_snapshot_history_helpers(void) {
         snapshot_restore(&stack, undo_stack, NULL, redo_stack, &redo_count, 2) ||
         snapshot_restore(&stack, undo_stack, &undo_count, NULL, &redo_count, 2) ||
         snapshot_restore(&stack, undo_stack, &undo_count, redo_stack, NULL, 2) ||
+        snapshot_restore(&stack, undo_stack, &undo_count, undo_stack, &redo_count, 2) ||
+        snapshot_restore(&stack, undo_stack, &undo_count, redo_stack, &undo_count, 2) ||
         snapshot_restore(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0)) {
         fprintf(stderr, "snapshot guard checks failed\n");
         layer_stack_free(&stack);
@@ -1364,6 +1366,22 @@ static int test_snapshot_history_helpers(void) {
         return 0;
     }
     stack.width = 3;
+    if (snapshot_restore(&stack, undo_stack, &undo_count, undo_stack, &redo_count, 2) ||
+        undo_count != 1 || redo_count != 0) {
+        fprintf(stderr, "snapshot_restore should reject aliased history stacks\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (snapshot_restore(&stack, undo_stack, &undo_count, redo_stack, &undo_count, 2) ||
+        undo_count != 1 || redo_count != 0) {
+        fprintf(stderr, "snapshot_restore should reject aliased history counts\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
     snapshot_stack_clear(undo_stack, &undo_count);
     snapshot_stack_clear(redo_stack, &redo_count);
     canvas_set_pixel_raw(&stack.layers[1].canvas, 0, 0, 0xFF000001);

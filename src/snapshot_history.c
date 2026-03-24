@@ -174,6 +174,9 @@ int snapshot_restore(LayerStack *layers,
         *source_count <= 0 || max_history <= 0) {
         return 0;
     }
+    if (source_stack == target_stack || source_count == target_count) {
+        return 0;
+    }
 
     if (!snapshot_from_layers(&current, layers)) {
         return 0;
