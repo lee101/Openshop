@@ -479,6 +479,47 @@ int main(void) {
 
     snapshot_stack_clear(undo_stack, &undo_count);
     snapshot_stack_clear(redo_stack, &redo_count);
+    if (layer_stack_add(&stack, "Meta", 0x00000000) != 1) {
+        fprintf(stderr, "metadata layer add failed\n");
+        layer_stack_free(&stack);
+        return 1;
+    }
+    snapshot_push(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count);
+    if (!layer_stack_toggle_visibility(&stack, 1) ||
+        !layer_stack_toggle_lock(&stack, 1) ||
+        !layer_stack_set_opacity(&stack, 1, 35) ||
+        stack.layers[1].visible ||
+        !stack.layers[1].locked ||
+        stack.layers[1].opacity_percent != 35) {
+        fprintf(stderr, "metadata setup failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    if (!snapshot_undo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        !stack.layers[1].visible ||
+        stack.layers[1].locked ||
+        !expect_int(stack.layers[1].opacity_percent, 100, "undo_metadata_opacity")) {
+        fprintf(stderr, "undo metadata failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+    if (!snapshot_redo(&stack, undo_stack, &undo_count, TEST_HISTORY_CAPACITY, redo_stack, &redo_count) ||
+        stack.layers[1].visible ||
+        !stack.layers[1].locked ||
+        !expect_int(stack.layers[1].opacity_percent, 35, "redo_metadata_opacity")) {
+        fprintf(stderr, "redo metadata failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 1;
+    }
+
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
     layer_stack_free(&stack);
     puts("history selftest ok");
     return 0;
