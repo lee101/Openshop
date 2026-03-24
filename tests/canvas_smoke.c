@@ -717,6 +717,18 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_can_reset_name(&stack, 0) || !layer_stack_reset_name(&stack, 0) || strcmp(stack.layers[0].name, "Background") != 0) {
+        fprintf(stderr, "moved layer reset name failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 0, "Background Copy")) {
+        fprintf(stderr, "moved layer rename restore failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_move(&stack, 0, 1) || stack.active_layer != 1) {
         fprintf(stderr, "move layer up failed\n");
         canvas_free(&composite);
@@ -750,6 +762,26 @@ static int test_layers_basic(void) {
     if (strcmp(stack.layers[0].name, "Upper Merge") != 0 || strcmp(stack.layers[1].name, "Move A") != 0 ||
         strcmp(stack.layers[2].name, "Move B") != 0 || strcmp(stack.layers[3].name, "Background Copy") != 0) {
         fprintf(stderr, "move-to-top order failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_can_reset_all_names(&stack) || !layer_stack_reset_all_names(&stack)) {
+        fprintf(stderr, "move-to-top reset-all failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || strcmp(stack.layers[1].name, "Layer") != 0 ||
+        strcmp(stack.layers[2].name, "Layer 2") != 0 || strcmp(stack.layers[3].name, "Layer 3") != 0) {
+        fprintf(stderr, "move-to-top reset-all labels failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 0, "Upper Merge") || !layer_stack_rename(&stack, 1, "Move A") ||
+        !layer_stack_rename(&stack, 2, "Move B") || !layer_stack_rename(&stack, 3, "Background Copy")) {
+        fprintf(stderr, "move-to-top reset-all restore failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
