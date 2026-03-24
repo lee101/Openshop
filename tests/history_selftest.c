@@ -38,6 +38,37 @@ int main(void) {
     int redo_count = 0;
 
     {
+        Snapshot temp_stack[2] = {0};
+        Snapshot temp_snapshot = {0};
+        LayerStack temp_layers = {0};
+        int temp_count = 1;
+        int temp_redo_count = 1;
+
+        temp_stack[0].width = 9;
+        temp_stack[0].height = 7;
+        temp_stack[0].layer_count = 3;
+        temp_stack[0].active_layer = 2;
+        snapshot_free(NULL);
+        snapshot_stack_clear(NULL, &temp_count);
+        snapshot_stack_clear(temp_stack, NULL);
+        snapshot_push(NULL, temp_stack, &temp_count, 2, redo_stack, &temp_redo_count);
+        snapshot_push(&temp_layers, NULL, &temp_count, 2, redo_stack, &temp_redo_count);
+        snapshot_push(&temp_layers, temp_stack, NULL, 2, redo_stack, &temp_redo_count);
+        snapshot_push_existing(NULL, &temp_count, 2, &temp_snapshot);
+        snapshot_push_existing(temp_stack, NULL, 2, &temp_snapshot);
+        snapshot_push_existing(temp_stack, &temp_count, 2, NULL);
+        if (!expect_int(temp_count, 1, "null_noop_count_preserved") ||
+            !expect_int(temp_redo_count, 1, "null_noop_redo_count_preserved") ||
+            !expect_int(temp_stack[0].width, 9, "null_noop_width_preserved") ||
+            !expect_int(temp_stack[0].height, 7, "null_noop_height_preserved") ||
+            !expect_int(temp_stack[0].layer_count, 3, "null_noop_layer_count_preserved") ||
+            !expect_int(temp_stack[0].active_layer, 2, "null_noop_active_preserved")) {
+            fprintf(stderr, "null-argument helper no-op behavior failed\n");
+            return 1;
+        }
+    }
+
+    {
         Snapshot snapshot = {0};
         LayerStack empty = {0};
         LayerStack sparse = {0};
