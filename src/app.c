@@ -205,6 +205,44 @@ static int handle_canvas_sample_shortcut(
     return 1;
 }
 
+static int handle_canvas_mutation_shortcut(
+    CanvasShortcutAction canvas_action,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+) {
+    int changed = 0;
+
+    if (!layers) {
+        return 0;
+    }
+
+    if (canvas_action == CANVAS_SHORTCUT_CLEAR) {
+        if (active_layer_editable(layers)) {
+            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        }
+        changed = layer_stack_clear_layer(layers, layers->active_layer, active_layer_clear_color(layers));
+    } else if (canvas_action == CANVAS_SHORTCUT_FLIP_HORIZONTAL) {
+        changed = apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_flip_horizontal);
+    } else if (canvas_action == CANVAS_SHORTCUT_FLIP_VERTICAL) {
+        changed = apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_flip_vertical);
+    } else if (canvas_action == CANVAS_SHORTCUT_ROTATE_180) {
+        changed = apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_rotate_180);
+    } else if (canvas_action == CANVAS_SHORTCUT_INVERT_RGB) {
+        changed = apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_invert_rgb);
+    } else {
+        return 0;
+    }
+
+    if (changed && needs_composite) {
+        *needs_composite = 1;
+    }
+    return 1;
+}
+
 static void update_window_title(SDL_Window *window, const LayerStack *layers, Tool tool, BrushShape brush_shape, int radius, uint32_t color, int opacity_percent) {
     if (!window || !layers) {
         return;
@@ -1022,29 +1060,15 @@ static int handle_view_and_canvas_shortcut(
         *brush_color_rgb = COLOR_PURPLE & 0x00FFFFFF;
         *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
         *tool = TOOL_BRUSH;
-    } else if (canvas_action == CANVAS_SHORTCUT_CLEAR) {
-        if (active_layer_editable(layers)) {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-        }
-        if (layer_stack_clear_layer(layers, layers->active_layer, active_layer_clear_color(layers)) && needs_composite) {
-            *needs_composite = 1;
-        }
-    } else if (canvas_action == CANVAS_SHORTCUT_FLIP_HORIZONTAL) {
-        if (apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_flip_horizontal) && needs_composite) {
-            *needs_composite = 1;
-        }
-    } else if (canvas_action == CANVAS_SHORTCUT_FLIP_VERTICAL) {
-        if (apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_flip_vertical) && needs_composite) {
-            *needs_composite = 1;
-        }
-    } else if (canvas_action == CANVAS_SHORTCUT_ROTATE_180) {
-        if (apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_rotate_180) && needs_composite) {
-            *needs_composite = 1;
-        }
-    } else if (canvas_action == CANVAS_SHORTCUT_INVERT_RGB) {
-        if (apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_invert_rgb) && needs_composite) {
-            *needs_composite = 1;
-        }
+    } else if (handle_canvas_mutation_shortcut(
+                   canvas_action,
+                   layers,
+                   undo_stack,
+                   undo_count,
+                   redo_stack,
+                   redo_count,
+                   needs_composite
+               )) {
     } else if (handle_canvas_sample_shortcut(
                    canvas_action,
                    layers,
