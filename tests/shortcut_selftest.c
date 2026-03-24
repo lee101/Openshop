@@ -1505,6 +1505,52 @@ static int run_begin_shape_preview_case(
     );
 }
 
+typedef struct {
+    const char *label;
+    int start_x;
+    int start_y;
+    int initial_shaping;
+    int initial_shape_start_x;
+    int initial_shape_start_y;
+    uint32_t initial_shape_base_pixels[4];
+    const uint32_t *composite_pixels;
+    size_t pixel_count;
+    int want_shaping;
+    int want_shape_start_x;
+    int want_shape_start_y;
+    uint32_t want_shape_base_pixels[4];
+} BeginShapePreviewPartialCopyCase;
+
+static int run_begin_shape_preview_partial_copy_case(
+    const BeginShapePreviewPartialCopyCase *test_case,
+    int *shaping,
+    int *shape_start_x,
+    int *shape_start_y
+) {
+    uint32_t shape_base_pixels[4];
+
+    memcpy(shape_base_pixels, test_case->initial_shape_base_pixels, sizeof(shape_base_pixels));
+    *shaping = test_case->initial_shaping;
+    *shape_start_x = test_case->initial_shape_start_x;
+    *shape_start_y = test_case->initial_shape_start_y;
+
+    return expect_begin_shape_preview(
+        test_case->label,
+        test_case->start_x,
+        test_case->start_y,
+        shaping,
+        shape_start_x,
+        shape_start_y,
+        shape_base_pixels,
+        test_case->composite_pixels,
+        test_case->pixel_count,
+        test_case->want_shaping,
+        test_case->want_shape_start_x,
+        test_case->want_shape_start_y,
+        test_case->want_shape_base_pixels
+    );
+}
+
 static int expect_begin_shape_preview_from_canvas(
     const char *label,
     int start_x,
@@ -4642,21 +4688,32 @@ int main(void) {
         }
     }
     {
-        uint32_t preview_partial[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
+        const BeginShapePreviewPartialCopyCase begin_shape_preview_partial_copy_cases[] = {
+            {
+                "begin_shape_preview_partial_copy",
+                14,
+                24,
+                2,
+                -2,
+                -3,
+                {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu},
+                preview_source,
+                2,
+                1,
+                14,
+                24,
+                {0x11111111u, 0x22222222u, 0xCCCCCCCCu, 0xDDDDDDDDu},
+            },
+        };
+        size_t i;
 
-        shaping = 2;
-        shape_start_x = -2;
-        shape_start_y = -3;
-        app_begin_shape_preview(14, 24, &shaping, &shape_start_x, &shape_start_y, preview_partial, preview_source, 2);
-        if (shaping != 1 ||
-            shape_start_x != 14 ||
-            shape_start_y != 24 ||
-            preview_partial[0] != preview_source[0] ||
-            preview_partial[1] != preview_source[1] ||
-            preview_partial[2] != 0xCCCCCCCCu ||
-            preview_partial[3] != 0xDDDDDDDDu) {
-            fprintf(stderr, "begin_shape_preview_partial_copy failed\n");
-            ok = 0;
+        for (i = 0; i < sizeof(begin_shape_preview_partial_copy_cases) / sizeof(begin_shape_preview_partial_copy_cases[0]); i++) {
+            ok = ok && run_begin_shape_preview_partial_copy_case(
+                &begin_shape_preview_partial_copy_cases[i],
+                &shaping,
+                &shape_start_x,
+                &shape_start_y
+            );
         }
     }
     {
