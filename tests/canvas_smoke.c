@@ -959,6 +959,32 @@ static int test_layer_history_record_snapshot_null_history_resets(void) {
     return 1;
 }
 
+static int test_layer_history_record_snapshot_null_snapshot_is_noop(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 3, 3, 0xFFFFFFFF)) {
+        fprintf(stderr, "history null snapshot record init failed\n");
+        return 0;
+    }
+
+    LayerHistory history = {0};
+    layer_history_record(&history, &stack);
+    if (layer_history_record_snapshot(&history, NULL)) {
+        fprintf(stderr, "history null snapshot record should fail cleanly\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_wrapper_history_counts("history_null_snapshot_record", &history, 1, 0)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_reset(&history);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layer_history_record_snapshot_current_state_clears_redo(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 3, 3, 0xFFFFFFFF)) {
@@ -1389,6 +1415,32 @@ static int test_layer_history_commit_change_resets_without_history_or_layers(voi
         return 0;
     }
 
+    layer_stack_free(&stack);
+    return 1;
+}
+
+static int test_layer_history_commit_change_null_snapshot_is_noop(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 3, 3, 0xFFFFFFFF)) {
+        fprintf(stderr, "history null snapshot commit init failed\n");
+        return 0;
+    }
+
+    LayerHistory history = {0};
+    layer_history_record(&history, &stack);
+    if (layer_history_commit_change(&history, NULL, &stack, 1)) {
+        fprintf(stderr, "history null snapshot commit should fail cleanly\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_wrapper_history_counts("history_null_snapshot_commit", &history, 1, 0)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_reset(&history);
     layer_stack_free(&stack);
     return 1;
 }
@@ -2823,6 +2875,9 @@ int main(void) {
     if (!test_layer_history_record_snapshot_null_history_resets()) {
         return 1;
     }
+    if (!test_layer_history_record_snapshot_null_snapshot_is_noop()) {
+        return 1;
+    }
     if (!test_layer_history_record_snapshot_current_state_clears_redo()) {
         return 1;
     }
@@ -2845,6 +2900,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_commit_change_resets_without_history_or_layers()) {
+        return 1;
+    }
+    if (!test_layer_history_commit_change_null_snapshot_is_noop()) {
         return 1;
     }
     if (!test_layer_history_visibility_commit_change()) {
