@@ -374,13 +374,17 @@ int active_layer_try_nudge_opacity(LayerStack *layers,
                                            active->opacity_percent + delta_percent, max_history);
 }
 
-int active_layer_try_flood_fill(LayerStack *layers,
-                                Snapshot *undo_stack, int *undo_count,
-                                Snapshot *redo_stack, int *redo_count,
-                                int x, int y, uint32_t brush_color, int max_history) {
+int active_layer_try_flood_fill_with_result(LayerStack *layers,
+                                            Snapshot *undo_stack, int *undo_count,
+                                            Snapshot *redo_stack, int *redo_count,
+                                            int x, int y, uint32_t brush_color, int max_history,
+                                            int *changed) {
     Layer *active;
     uint8_t brush_alpha;
 
+    if (changed) {
+        *changed = 0;
+    }
     if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
         return 0;
     }
@@ -397,11 +401,30 @@ int active_layer_try_flood_fill(LayerStack *layers,
         return 0;
     }
     if (canvas_get_pixel(&active->canvas, x, y) == brush_color) {
-        return 0;
+        return 1;
     }
 
     snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
-    return canvas_flood_fill(&active->canvas, x, y, brush_color);
+    if (!canvas_flood_fill(&active->canvas, x, y, brush_color)) {
+        return 0;
+    }
+    if (changed) {
+        *changed = 1;
+    }
+    return 1;
+}
+
+int active_layer_try_flood_fill(LayerStack *layers,
+                                Snapshot *undo_stack, int *undo_count,
+                                Snapshot *redo_stack, int *redo_count,
+                                int x, int y, uint32_t brush_color, int max_history) {
+    int changed = 0;
+
+    if (!active_layer_try_flood_fill_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                 x, y, brush_color, max_history, &changed)) {
+        return 0;
+    }
+    return changed;
 }
 
 int active_layer_try_commit_shape(LayerStack *layers,

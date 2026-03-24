@@ -266,16 +266,18 @@ static int try_flood_fill_active_layer(LayerStack *layers,
                                        Snapshot *undo_stack, int *undo_count,
                                        Snapshot *redo_stack, int *redo_count,
                                        int x, int y, uint32_t brush_color) {
+    int changed = 0;
+
     if (x < 0 || y < 0 || x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT) {
         return 0;
     }
 
-    if (!active_layer_try_flood_fill(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                     x, y, brush_color, MAX_HISTORY)) {
+    if (!active_layer_try_flood_fill_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                 x, y, brush_color, MAX_HISTORY, &changed)) {
         fprintf(stderr, "%s\n", status_text_action_error(STATUS_FILL_FAILED));
         return 0;
     }
-    return 1;
+    return changed;
 }
 
 static int try_clear_active_layer(LayerStack *layers,

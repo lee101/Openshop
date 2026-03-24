@@ -36,6 +36,11 @@ int active_layer_try_flood_fill(LayerStack *layers,
                                 Snapshot *undo_stack, int *undo_count,
                                 Snapshot *redo_stack, int *redo_count,
                                 int x, int y, uint32_t brush_color, int max_history);
+int active_layer_try_flood_fill_with_result(LayerStack *layers,
+                                            Snapshot *undo_stack, int *undo_count,
+                                            Snapshot *redo_stack, int *redo_count,
+                                            int x, int y, uint32_t brush_color, int max_history,
+                                            int *changed);
 int active_layer_try_commit_shape(LayerStack *layers,
                                   Snapshot *undo_stack, int *undo_count,
                                   Snapshot *redo_stack, int *redo_count,
