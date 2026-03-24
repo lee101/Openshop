@@ -155,6 +155,10 @@ int active_layer_try_commit_shape(LayerStack *layers,
     if (!is_shape_tool) {
         return 0;
     }
+    if (brush_radius <= 0 &&
+        (tool == TOOL_LINE || tool == TOOL_RECT || tool == TOOL_ELLIPSE)) {
+        return 0;
+    }
 
     snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
     draw_shape(&active->canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
