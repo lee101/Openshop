@@ -1188,6 +1188,16 @@ static int expect_canvas_action(const char *label, int key, CanvasShortcutAction
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    int key;
+    CanvasShortcutAction want;
+} CanvasActionCase;
+
+static int run_canvas_action_case(const CanvasActionCase *test_case) {
+    return expect_canvas_action(test_case->label, test_case->key, test_case->want);
+}
+
 static int expect_shape_cancel(const char *label, int key, int ctrl, int want) {
     int got = app_should_cancel_shape_on_key(key, ctrl);
     if (got != want) {
@@ -1540,6 +1550,28 @@ static int expect_view_result(
         return 0;
     }
     return 1;
+}
+
+typedef struct {
+    const char *label;
+    ViewShortcutKey key;
+    int shift;
+    ViewShortcutAction want_action;
+    int want_cycle_direction;
+    int want_dx;
+    int want_dy;
+} ViewResultCase;
+
+static int run_view_result_case(const ViewResultCase *test_case) {
+    return expect_view_result(
+        test_case->label,
+        test_case->key,
+        test_case->shift,
+        test_case->want_action,
+        test_case->want_cycle_direction,
+        test_case->want_dx,
+        test_case->want_dy
+    );
 }
 
 static int expect_brush_color(const char *label, unsigned int rgb_color, int opacity_percent, unsigned int want) {
@@ -3594,21 +3626,35 @@ int main(void) {
             ok = ok && run_continue_direct_stroke_case(&continue_cases[i]);
         }
     }
-    ok = ok && expect_canvas_action("canvas_clear", 'c', CANVAS_SHORTCUT_CLEAR);
-    ok = ok && expect_canvas_action("canvas_flip_h", 'h', CANVAS_SHORTCUT_FLIP_HORIZONTAL);
-    ok = ok && expect_canvas_action("canvas_flip_v", 'v', CANVAS_SHORTCUT_FLIP_VERTICAL);
-    ok = ok && expect_canvas_action("canvas_rotate_180", 'j', CANVAS_SHORTCUT_ROTATE_180);
-    ok = ok && expect_canvas_action("canvas_invert_rgb", 'x', CANVAS_SHORTCUT_INVERT_RGB);
-    ok = ok && expect_canvas_action("canvas_fill", 'f', CANVAS_SHORTCUT_FILL);
-    ok = ok && expect_canvas_action("canvas_eyedropper", 'i', CANVAS_SHORTCUT_EYEDROPPER);
-    ok = ok && expect_canvas_action("canvas_other_key", 'k', CANVAS_SHORTCUT_NONE);
-    ok = ok && expect_view_result("pageup", VIEW_SHORTCUT_KEY_PAGEUP, 0, VIEW_SHORTCUT_CYCLE, 1, 0, 0);
-    ok = ok && expect_view_result("pagedown", VIEW_SHORTCUT_KEY_PAGEDOWN, 1, VIEW_SHORTCUT_CYCLE, -1, 0, 0);
-    ok = ok && expect_view_result("up", VIEW_SHORTCUT_KEY_UP, 0, VIEW_SHORTCUT_TRANSLATE, 0, 0, -1);
-    ok = ok && expect_view_result("down_shift", VIEW_SHORTCUT_KEY_DOWN, 1, VIEW_SHORTCUT_TRANSLATE, 0, 0, 10);
-    ok = ok && expect_view_result("left", VIEW_SHORTCUT_KEY_LEFT, 0, VIEW_SHORTCUT_TRANSLATE, 0, -1, 0);
-    ok = ok && expect_view_result("right_shift", VIEW_SHORTCUT_KEY_RIGHT, 1, VIEW_SHORTCUT_TRANSLATE, 0, 10, 0);
-    ok = ok && expect_view_result("view_none", VIEW_SHORTCUT_KEY_NONE, 0, VIEW_SHORTCUT_NONE, 0, 0, 0);
+    {
+        const CanvasActionCase canvas_action_cases[] = {
+            {"canvas_clear", 'c', CANVAS_SHORTCUT_CLEAR},
+            {"canvas_flip_h", 'h', CANVAS_SHORTCUT_FLIP_HORIZONTAL},
+            {"canvas_flip_v", 'v', CANVAS_SHORTCUT_FLIP_VERTICAL},
+            {"canvas_rotate_180", 'j', CANVAS_SHORTCUT_ROTATE_180},
+            {"canvas_invert_rgb", 'x', CANVAS_SHORTCUT_INVERT_RGB},
+            {"canvas_fill", 'f', CANVAS_SHORTCUT_FILL},
+            {"canvas_eyedropper", 'i', CANVAS_SHORTCUT_EYEDROPPER},
+            {"canvas_other_key", 'k', CANVAS_SHORTCUT_NONE},
+        };
+        const ViewResultCase view_result_cases[] = {
+            {"pageup", VIEW_SHORTCUT_KEY_PAGEUP, 0, VIEW_SHORTCUT_CYCLE, 1, 0, 0},
+            {"pagedown", VIEW_SHORTCUT_KEY_PAGEDOWN, 1, VIEW_SHORTCUT_CYCLE, -1, 0, 0},
+            {"up", VIEW_SHORTCUT_KEY_UP, 0, VIEW_SHORTCUT_TRANSLATE, 0, 0, -1},
+            {"down_shift", VIEW_SHORTCUT_KEY_DOWN, 1, VIEW_SHORTCUT_TRANSLATE, 0, 0, 10},
+            {"left", VIEW_SHORTCUT_KEY_LEFT, 0, VIEW_SHORTCUT_TRANSLATE, 0, -1, 0},
+            {"right_shift", VIEW_SHORTCUT_KEY_RIGHT, 1, VIEW_SHORTCUT_TRANSLATE, 0, 10, 0},
+            {"view_none", VIEW_SHORTCUT_KEY_NONE, 0, VIEW_SHORTCUT_NONE, 0, 0, 0},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(canvas_action_cases) / sizeof(canvas_action_cases[0]); i++) {
+            ok = ok && run_canvas_action_case(&canvas_action_cases[i]);
+        }
+        for (i = 0; i < sizeof(view_result_cases) / sizeof(view_result_cases[0]); i++) {
+            ok = ok && run_view_result_case(&view_result_cases[i]);
+        }
+    }
     {
         const ShapeCancelCase shape_cancel_cases[] = {
             {"shape_cancel_ctrl_save", APP_SHAPE_CANCEL_KEY_S, 1, 1},
