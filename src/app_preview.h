@@ -25,4 +25,11 @@ const Canvas *app_preview_canvas_or_composite(
     int preview_active
 );
 
+void app_restore_shape_preview(
+    uint32_t *preview_pixels,
+    const uint32_t *shape_base_pixels,
+    size_t pixel_count,
+    int *preview_active
+);
+
 #endif

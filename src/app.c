@@ -1280,13 +1280,13 @@ static void handle_canvas_motion(
 
         sdl_shortcut_modifiers(NULL, NULL, &shift);
         app_constrain_shape_end(tool, shape_start_x, shape_start_y, end_x, end_y, shift, &end_x, &end_y);
-        memcpy(
+        app_restore_shape_preview(
             preview_pixels,
             shape_base_pixels,
-            (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t)
+            (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT,
+            preview_active
         );
         draw_shape(preview_canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
-        *preview_active = 1;
     }
 }
 

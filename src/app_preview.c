@@ -43,3 +43,19 @@ const Canvas *app_preview_canvas_or_composite(
     }
     return composite;
 }
+
+void app_restore_shape_preview(
+    uint32_t *preview_pixels,
+    const uint32_t *shape_base_pixels,
+    size_t pixel_count,
+    int *preview_active
+) {
+    if (!preview_active) {
+        return;
+    }
+
+    if (preview_pixels && shape_base_pixels && pixel_count > 0) {
+        memcpy(preview_pixels, shape_base_pixels, pixel_count * sizeof(*preview_pixels));
+    }
+    *preview_active = 1;
+}

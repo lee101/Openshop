@@ -626,6 +626,34 @@ static int expect_preview_canvas_selection(
     return 1;
 }
 
+static int expect_restore_shape_preview(
+    const char *label,
+    uint32_t *preview_pixels,
+    const uint32_t *shape_base_pixels,
+    size_t pixel_count,
+    int *preview_active,
+    int want_preview_active,
+    const uint32_t *want_preview_pixels,
+    size_t want_pixel_count
+) {
+    size_t i;
+
+    app_restore_shape_preview(preview_pixels, shape_base_pixels, pixel_count, preview_active);
+    if (preview_active && *preview_active != want_preview_active) {
+        fprintf(stderr, "%s preview active mismatch: got %d want %d\n", label, *preview_active, want_preview_active);
+        return 0;
+    }
+    if (preview_pixels && want_preview_pixels) {
+        for (i = 0; i < want_pixel_count; i++) {
+            if (preview_pixels[i] != want_preview_pixels[i]) {
+                fprintf(stderr, "%s preview_pixels[%zu] mismatch: got 0x%08X want 0x%08X\n", label, i, preview_pixels[i], want_preview_pixels[i]);
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
 int main(void) {
     int ok = 1;
     int sentinel_x = 321;
@@ -647,6 +675,9 @@ int main(void) {
     Canvas composite_canvas = {4, 4, preview_source};
     Canvas preview_canvas = {4, 4, preview_copy};
     Canvas preview_canvas_without_pixels = {4, 4, NULL};
+    uint32_t preview_restore_copy[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
+    uint32_t preview_restore_source[4] = {0x01010101u, 0x02020202u, 0x03030303u, 0x04040404u};
+    uint32_t preview_restore_sentinel[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
 
     editable_layer.locked = 0;
     editable_layer.canvas.pixels = (uint32_t *)&editable_layer;
@@ -950,6 +981,66 @@ int main(void) {
     );
     ok = ok && expect_preview_canvas_selection("preview_canvas_null_preview_falls_back", &composite_canvas, NULL, 1, &composite_canvas);
     ok = ok && expect_preview_canvas_selection("preview_canvas_null_composite_allowed", NULL, &preview_canvas, 0, NULL);
+    preview_active = 0;
+    memcpy(preview_restore_copy, preview_restore_sentinel, sizeof(preview_restore_copy));
+    ok = ok && expect_restore_shape_preview(
+        "restore_shape_preview_copy",
+        preview_restore_copy,
+        preview_restore_source,
+        4,
+        &preview_active,
+        1,
+        preview_restore_source,
+        4
+    );
+    preview_active = 0;
+    memcpy(preview_restore_copy, preview_restore_sentinel, sizeof(preview_restore_copy));
+    ok = ok && expect_restore_shape_preview(
+        "restore_shape_preview_zero_length",
+        preview_restore_copy,
+        preview_restore_source,
+        0,
+        &preview_active,
+        1,
+        preview_restore_sentinel,
+        4
+    );
+    preview_active = 0;
+    memcpy(preview_restore_copy, preview_restore_sentinel, sizeof(preview_restore_copy));
+    ok = ok && expect_restore_shape_preview(
+        "restore_shape_preview_null_destination",
+        NULL,
+        preview_restore_source,
+        4,
+        &preview_active,
+        1,
+        NULL,
+        0
+    );
+    preview_active = 0;
+    memcpy(preview_restore_copy, preview_restore_sentinel, sizeof(preview_restore_copy));
+    ok = ok && expect_restore_shape_preview(
+        "restore_shape_preview_null_source",
+        preview_restore_copy,
+        NULL,
+        4,
+        &preview_active,
+        1,
+        preview_restore_sentinel,
+        4
+    );
+    preview_active = 9;
+    memcpy(preview_restore_copy, preview_restore_sentinel, sizeof(preview_restore_copy));
+    ok = ok && expect_restore_shape_preview(
+        "restore_shape_preview_null_flag",
+        preview_restore_copy,
+        preview_restore_source,
+        4,
+        NULL,
+        0,
+        preview_restore_sentinel,
+        4
+    );
     ok = ok && expect_title(
         "title_visible_locked_solo",
         "Brush",
