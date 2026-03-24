@@ -2408,6 +2408,47 @@ static int expect_prepare_shape_commit(
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    int use_shaping;
+    int shaping_value;
+    Tool tool;
+    int shape_start_x;
+    int shape_start_y;
+    int x;
+    int y;
+    int shift;
+    int use_out_x;
+    int initial_out_x;
+    int use_out_y;
+    int initial_out_y;
+    int want_prepared;
+    int want_x;
+    int want_y;
+} PrepareShapeCommitCase;
+
+static int run_prepare_shape_commit_case(const PrepareShapeCommitCase *test_case) {
+    int shaping = test_case->shaping_value;
+    int out_x = test_case->initial_out_x;
+    int out_y = test_case->initial_out_y;
+
+    return expect_prepare_shape_commit(
+        test_case->label,
+        test_case->use_shaping ? &shaping : NULL,
+        test_case->tool,
+        test_case->shape_start_x,
+        test_case->shape_start_y,
+        test_case->x,
+        test_case->y,
+        test_case->shift,
+        test_case->use_out_x ? &out_x : NULL,
+        test_case->use_out_y ? &out_y : NULL,
+        test_case->want_prepared,
+        test_case->want_x,
+        test_case->want_y
+    );
+}
+
 static int expect_prepare_shape_commit_to_active_layer(
     const char *label,
     LayerStack *layers,
@@ -3710,111 +3751,69 @@ int main(void) {
             4
         );
     }
-    shaping = 1;
-    sentinel_x = -111;
-    sentinel_y = -222;
-    ok = ok && expect_prepare_shape_commit(
-        "prepare_shape_commit_success",
-        &shaping,
-        TOOL_RECT,
-        0,
-        0,
-        3,
-        2,
-        0,
-        &sentinel_x,
-        &sentinel_y,
-        1,
-        3,
-        2
-    );
-    shaping = 1;
-    sentinel_x = -333;
-    sentinel_y = -444;
-    ok = ok && expect_prepare_shape_commit(
-        "prepare_shape_commit_shift_constrained",
-        &shaping,
-        TOOL_LINE,
-        1,
-        1,
-        3,
-        2,
-        1,
-        &sentinel_x,
-        &sentinel_y,
-        1,
-        3,
-        3
-    );
-    shaping = 0;
-    sentinel_x = 17;
-    sentinel_y = 18;
-    ok = ok && expect_prepare_shape_commit(
-        "prepare_shape_commit_inactive_noop",
-        &shaping,
-        TOOL_RECT,
-        0,
-        0,
-        3,
-        2,
-        0,
-        &sentinel_x,
-        &sentinel_y,
-        0,
-        17,
-        18
-    );
-    sentinel_x = 19;
-    sentinel_y = 20;
-    ok = ok && expect_prepare_shape_commit(
-        "prepare_shape_commit_null_shaping_noop",
-        NULL,
-        TOOL_RECT,
-        0,
-        0,
-        3,
-        2,
-        0,
-        &sentinel_x,
-        &sentinel_y,
-        0,
-        19,
-        20
-    );
-    shaping = 1;
-    sentinel_y = 21;
-    ok = ok && expect_prepare_shape_commit(
-        "prepare_shape_commit_null_out_x_noop",
-        &shaping,
-        TOOL_RECT,
-        0,
-        0,
-        3,
-        2,
-        0,
-        NULL,
-        &sentinel_y,
-        0,
-        0,
-        21
-    );
-    shaping = 1;
-    sentinel_x = 22;
-    ok = ok && expect_prepare_shape_commit(
-        "prepare_shape_commit_null_out_y_noop",
-        &shaping,
-        TOOL_RECT,
-        0,
-        0,
-        3,
-        2,
-        0,
-        &sentinel_x,
-        NULL,
-        0,
-        22,
-        0
-    );
+    {
+        const PrepareShapeCommitCase prepare_shape_commit_cases[] = {
+            {
+                "prepare_shape_commit_success",
+                1, 1,
+                TOOL_RECT,
+                0, 0, 3, 2, 0,
+                1, -111,
+                1, -222,
+                1, 3, 2,
+            },
+            {
+                "prepare_shape_commit_shift_constrained",
+                1, 1,
+                TOOL_LINE,
+                1, 1, 3, 2, 1,
+                1, -333,
+                1, -444,
+                1, 3, 3,
+            },
+            {
+                "prepare_shape_commit_inactive_noop",
+                1, 0,
+                TOOL_RECT,
+                0, 0, 3, 2, 0,
+                1, 17,
+                1, 18,
+                0, 17, 18,
+            },
+            {
+                "prepare_shape_commit_null_shaping_noop",
+                0, 0,
+                TOOL_RECT,
+                0, 0, 3, 2, 0,
+                1, 19,
+                1, 20,
+                0, 19, 20,
+            },
+            {
+                "prepare_shape_commit_null_out_x_noop",
+                1, 1,
+                TOOL_RECT,
+                0, 0, 3, 2, 0,
+                0, 0,
+                1, 21,
+                0, 0, 21,
+            },
+            {
+                "prepare_shape_commit_null_out_y_noop",
+                1, 1,
+                TOOL_RECT,
+                0, 0, 3, 2, 0,
+                1, 22,
+                0, 0,
+                0, 22, 0,
+            },
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(prepare_shape_commit_cases) / sizeof(prepare_shape_commit_cases[0]); i++) {
+            ok = ok && run_prepare_shape_commit_case(&prepare_shape_commit_cases[i]);
+        }
+    }
     {
         LayerStack stack;
         Canvas canvas;
