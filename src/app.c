@@ -1010,6 +1010,25 @@ static int handle_brush_and_paint_shortcut(
     return 1;
 }
 
+static ViewShortcutKey view_shortcut_key_from_sdl(SDL_Keycode key) {
+    switch (key) {
+    case SDLK_PAGEUP:
+        return VIEW_SHORTCUT_KEY_PAGEUP;
+    case SDLK_PAGEDOWN:
+        return VIEW_SHORTCUT_KEY_PAGEDOWN;
+    case SDLK_UP:
+        return VIEW_SHORTCUT_KEY_UP;
+    case SDLK_DOWN:
+        return VIEW_SHORTCUT_KEY_DOWN;
+    case SDLK_LEFT:
+        return VIEW_SHORTCUT_KEY_LEFT;
+    case SDLK_RIGHT:
+        return VIEW_SHORTCUT_KEY_RIGHT;
+    default:
+        return VIEW_SHORTCUT_KEY_NONE;
+    }
+}
+
 static int handle_view_and_canvas_shortcut(
     SDL_Keycode key,
     int shift,
@@ -1032,37 +1051,13 @@ static int handle_view_and_canvas_shortcut(
     BrushShortcutAction brush_action;
     CanvasShortcutAction canvas_action;
     PaintShortcutAction paint_action;
-    ViewShortcutKey view_key = VIEW_SHORTCUT_KEY_NONE;
     ViewShortcutResult view_result;
 
     if (!layers || !tool || !brush_shape || !brush_radius || !brush_color || !brush_color_rgb || !brush_opacity) {
         return 0;
     }
 
-    switch (key) {
-    case SDLK_PAGEUP:
-        view_key = VIEW_SHORTCUT_KEY_PAGEUP;
-        break;
-    case SDLK_PAGEDOWN:
-        view_key = VIEW_SHORTCUT_KEY_PAGEDOWN;
-        break;
-    case SDLK_UP:
-        view_key = VIEW_SHORTCUT_KEY_UP;
-        break;
-    case SDLK_DOWN:
-        view_key = VIEW_SHORTCUT_KEY_DOWN;
-        break;
-    case SDLK_LEFT:
-        view_key = VIEW_SHORTCUT_KEY_LEFT;
-        break;
-    case SDLK_RIGHT:
-        view_key = VIEW_SHORTCUT_KEY_RIGHT;
-        break;
-    default:
-        break;
-    }
-
-    view_result = view_shortcut_result(view_key, shift);
+    view_result = view_shortcut_result(view_shortcut_key_from_sdl(key), shift);
     if (view_result.action == VIEW_SHORTCUT_CYCLE) {
         return layer_stack_cycle(layers, view_result.cycle_direction) >= 0;
     }
