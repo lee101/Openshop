@@ -872,6 +872,117 @@ static int test_layer_history_commit_change_helper(void) {
     return 1;
 }
 
+static int test_layer_history_visibility_commit_change(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "history visibility commit init failed\n");
+        return 0;
+    }
+    if (layer_stack_add(&stack, "Top", 0x00000000) != 1) {
+        fprintf(stderr, "history visibility commit add layer failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    LayerHistory history = {0};
+    layer_history_record(&history, &stack);
+    canvas_set_pixel(&stack.layers[1].canvas, 0, 0, 0xFF102030);
+    layer_history_record(&history, &stack);
+    canvas_set_pixel(&stack.layers[1].canvas, 0, 0, 0xFF405060);
+
+    if (!layer_history_step_undo(&history, &stack) || history.redo_count != 1) {
+        fprintf(stderr, "history visibility commit undo setup failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    stack.solo_index = 1;
+    LayerSnapshot show_all_snapshot = {0};
+    if (!layer_snapshot_capture(&show_all_snapshot, &stack)) {
+        fprintf(stderr, "history visibility commit show-all capture failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_show_all(&stack) ||
+        !layer_history_commit_change(&history, &show_all_snapshot, &stack, 1)) {
+        fprintf(stderr, "history visibility commit should record show-all change\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (history.redo_count != 0 || stack.solo_index != -1) {
+        fprintf(stderr, "history visibility commit should clear redo and solo on show-all\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_history_step_undo(&history, &stack) || stack.solo_index != 1) {
+        fprintf(stderr, "history visibility commit undo should restore solo state\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_history_step_redo(&history, &stack) || stack.solo_index != -1) {
+        fprintf(stderr, "history visibility commit redo should restore show-all state\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (!layer_stack_toggle_visibility(&stack, 1)) {
+        fprintf(stderr, "history visibility commit hide top layer failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    LayerSnapshot show_snapshot = {0};
+    if (!layer_snapshot_capture(&show_snapshot, &stack)) {
+        fprintf(stderr, "history visibility commit show capture failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_show(&stack, 1) ||
+        !layer_history_commit_change(&history, &show_snapshot, &stack, 1)) {
+        fprintf(stderr, "history visibility commit should record reveal change\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_history_step_undo(&history, &stack) || stack.layers[1].visible != 0) {
+        fprintf(stderr, "history visibility commit undo should re-hide revealed layer\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    LayerSnapshot noop_show_snapshot = {0};
+    if (!layer_snapshot_capture(&noop_show_snapshot, &stack)) {
+        fprintf(stderr, "history visibility commit noop show capture failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_history_commit_change(&history, &noop_show_snapshot, &stack, 0)) {
+        fprintf(stderr, "history visibility commit should ignore failed reveal\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (history.redo_count != 1) {
+        fprintf(stderr, "history visibility commit should preserve redo after failed reveal\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_reset(&history);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layers_basic(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 16, 16, 0xFFFFFFFF)) {
@@ -1866,6 +1977,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_commit_change_helper()) {
+        return 1;
+    }
+    if (!test_layer_history_visibility_commit_change()) {
         return 1;
     }
 
