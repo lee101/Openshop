@@ -3,6 +3,7 @@
 #include "../src/color_sample.h"
 #include "../src/display_canvas.h"
 #include "../src/geometry_helpers.h"
+#include "../src/layer_edit_state.h"
 #include "../src/layers.h"
 #include "../src/status_text.h"
 #include "../src/title_hints.h"
@@ -171,6 +172,59 @@ static int test_geometry_helpers(void) {
         return 0;
     }
 
+    return 1;
+}
+
+static int test_layer_edit_state_helpers(void) {
+    LayerStack stack;
+
+    if (active_layer_clear_color(NULL, 0xFFAABBCC) != 0xFFAABBCC) {
+        fprintf(stderr, "active_layer_clear_color null fallback failed\n");
+        return 0;
+    }
+
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "layer_stack_init for edit state failed\n");
+        return 0;
+    }
+
+    if (active_layer_clear_color(&stack, 0xFFFFFFFF) != 0xFFFFFFFF) {
+        fprintf(stderr, "active_layer_clear_color background layer failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!active_layer_editable(&stack)) {
+        fprintf(stderr, "active_layer_editable unlocked base failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (layer_stack_add(&stack, "Top", 0x00000000) < 0) {
+        fprintf(stderr, "layer_stack_add for edit state failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (active_layer_clear_color(&stack, 0xFFFFFFFF) != 0x00000000) {
+        fprintf(stderr, "active_layer_clear_color transparent layer failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[stack.active_layer].locked = 1;
+    if (active_layer_editable(&stack)) {
+        fprintf(stderr, "active_layer_editable locked layer failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.layers[stack.active_layer].locked = 0;
+    free(stack.layers[stack.active_layer].canvas.pixels);
+    stack.layers[stack.active_layer].canvas.pixels = NULL;
+    if (active_layer_editable(&stack)) {
+        fprintf(stderr, "active_layer_editable null pixels failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
     return 1;
 }
 
@@ -2787,6 +2841,10 @@ int main(void) {
     }
 
     if (!test_geometry_helpers()) {
+        return 1;
+    }
+
+    if (!test_layer_edit_state_helpers()) {
         return 1;
     }
 

@@ -5,6 +5,7 @@
 #include "display_canvas.h"
 #include "geometry_helpers.h"
 #include "image_io.h"
+#include "layer_edit_state.h"
 #include "layers.h"
 #include "status_text.h"
 #include "title_hints.h"
@@ -344,7 +345,7 @@ static int try_load_active_layer_bmp(LayerStack *layers,
     }
 
     push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-    if (!canvas_load_bmp(&active->canvas, "input.bmp", active_layer_clear_color(layers))) {
+    if (!canvas_load_bmp(&active->canvas, "input.bmp", active_layer_clear_color(layers, COLOR_BG))) {
         fprintf(stderr, "%s\n", status_text_action_error(STATUS_LOAD_INPUT_BMP));
         return 0;
     }
@@ -381,7 +382,7 @@ static int try_clear_active_layer(LayerStack *layers,
     if (active_layer_editable(layers)) {
         push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
     }
-    return layer_stack_clear_layer(layers, layers->active_layer, active_layer_clear_color(layers));
+    return layer_stack_clear_layer(layers, layers->active_layer, active_layer_clear_color(layers, COLOR_BG));
 }
 
 static int try_flip_horizontal_active_layer(LayerStack *layers,
@@ -645,7 +646,7 @@ static int try_begin_brush_stroke(LayerStack *layers,
 
     push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
     if (tool == TOOL_ERASER) {
-        erase_stamp(&active->canvas, x, y, brush_radius, active_layer_clear_color(layers), brush_shape);
+        erase_stamp(&active->canvas, x, y, brush_radius, active_layer_clear_color(layers, COLOR_BG), brush_shape);
     } else {
         stamp_brush(&active->canvas, x, y, brush_radius, brush_color, brush_shape);
     }
@@ -1467,7 +1468,7 @@ static int handle_drawing_motion(LayerStack *layers,
     }
 
     if (tool == TOOL_ERASER) {
-        erase_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, active_layer_clear_color(layers), brush_shape);
+        erase_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, active_layer_clear_color(layers, COLOR_BG), brush_shape);
     } else {
         draw_brush_line(&active->canvas, *last_x, *last_y, x, y, brush_radius, brush_color, brush_shape);
     }
@@ -1681,18 +1682,6 @@ static int should_cancel_shape_on_key(SDL_Keycode key, int ctrl) {
     }
 }
 
-static uint32_t active_layer_clear_color(const LayerStack *layers) {
-    if (!layers) {
-        return COLOR_BG;
-    }
-    return (layers->active_layer == 0) ? COLOR_BG : 0x00000000;
-}
-
-static int active_layer_editable(const LayerStack *layers) {
-    const Layer *active = layers ? layer_stack_get(layers, layers->active_layer) : NULL;
-    return active && !active->locked && active->canvas.pixels;
-}
-
 static int apply_canvas_transform(
     LayerStack *layers,
     Snapshot *undo_stack,
@@ -1730,7 +1719,7 @@ static int apply_canvas_translation(
         return 0;
     }
     push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-    canvas_translate(&active->canvas, dx, dy, active_layer_clear_color(layers));
+    canvas_translate(&active->canvas, dx, dy, active_layer_clear_color(layers, COLOR_BG));
     return 1;
 }
 
