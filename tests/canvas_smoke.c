@@ -896,6 +896,16 @@ static int test_layers_basic(void) {
             return 0;
         }
     }
+    {
+        char hint[1] = {'X'};
+        format_hidden_layer_hint(&stack, hint, sizeof(hint));
+        if (hint[0] != '\0') {
+            fprintf(stderr, "tiny hidden hint formatting failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
     stack.layers[0].opacity_percent = 60;
     stack.layers[0].locked = 1;
     stack.active_layer = 0;
@@ -959,6 +969,18 @@ static int test_layers_basic(void) {
         format_window_title(&stack, "Brush", "Round", 2, 0xFF445566, 90, title, sizeof(title));
         if (title[sizeof(title) - 1] != '\0') {
             fprintf(stderr, "window title should stay null terminated\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    {
+        LayerStack empty = {0};
+        char title[64];
+        format_window_title(&empty, NULL, NULL, 1, 0xFF000000, 1, title, sizeof(title));
+        if (strcmp(title, "Openshop - Tool (Brush) | size 1 | brush 1% | layer 1/0 Layer [") != 0 ||
+            title[sizeof(title) - 1] != '\0') {
+            fprintf(stderr, "window title formatting failed for empty stack fallback\n");
             canvas_free(&composite);
             layer_stack_free(&stack);
             return 0;
@@ -1061,10 +1083,30 @@ static int test_layers_basic(void) {
         }
     }
     {
+        char status_message[1] = {'X'};
+        format_status_text_max_layers(MAX_LAYERS, status_message, sizeof(status_message));
+        if (status_message[0] != '\0') {
+            fprintf(stderr, "max layer tiny-buffer formatting failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    {
         char status_message[64];
         format_status_text_sdl(NULL, NULL, status_message, sizeof(status_message));
         if (strcmp(status_message, "SDL failed: ") != 0) {
             fprintf(stderr, "sdl fallback status text formatting failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    {
+        char status_message[1] = {'X'};
+        format_status_text_sdl("SDL", "detail", status_message, sizeof(status_message));
+        if (status_message[0] != '\0') {
+            fprintf(stderr, "sdl tiny-buffer formatting failed\n");
             canvas_free(&composite);
             layer_stack_free(&stack);
             return 0;
