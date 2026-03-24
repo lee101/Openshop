@@ -38,6 +38,18 @@ static int expect_wrapper_history_counts(const char *label, const LayerHistory *
     return history && expect_history_counts(label, history->undo_count, history->redo_count, want_undo, want_redo);
 }
 
+static int snapshot_has_marker_state(const LayerSnapshot *snapshot) {
+    return snapshot &&
+           snapshot->width == 7 &&
+           snapshot->height == 9 &&
+           snapshot->layer_count == 3 &&
+           snapshot->active_layer == 2 &&
+           snapshot->solo_index == 1 &&
+           snapshot->visibility[0] == 4 &&
+           snapshot->names[0][0] == 'm' &&
+           snapshot->pixels == (uint32_t *)1;
+}
+
 static int test_layer_snapshot_restore(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
@@ -192,6 +204,78 @@ static int test_layer_snapshot_expand_restore(void) {
 
     layer_snapshot_free(&snapshot);
     layer_stack_free(&dest);
+    return 1;
+}
+
+static int test_layer_snapshot_capture_apply_guard_paths(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "snapshot guard init failed\n");
+        return 0;
+    }
+
+    LayerSnapshot snapshot = {0};
+    snapshot.width = 7;
+    snapshot.height = 9;
+    snapshot.layer_count = 3;
+    snapshot.active_layer = 2;
+    snapshot.solo_index = 1;
+    snapshot.visibility[0] = 4;
+    snapshot.names[0][0] = 'm';
+    snapshot.pixels = (uint32_t *)1;
+
+    if (layer_snapshot_capture(NULL, &stack) || layer_snapshot_capture(&snapshot, NULL)) {
+        fprintf(stderr, "snapshot capture should fail cleanly on null inputs\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!snapshot_has_marker_state(&snapshot)) {
+        fprintf(stderr, "snapshot capture null-input paths should leave caller snapshot untouched\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    snapshot.pixels = NULL;
+    if (layer_snapshot_apply(NULL, &stack) || layer_snapshot_apply(&snapshot, NULL) || layer_snapshot_apply(&snapshot, &stack)) {
+        fprintf(stderr, "snapshot apply should fail cleanly on null or empty inputs\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    snapshot.width = stack.width + 1;
+    snapshot.height = stack.height;
+    snapshot.layer_count = 1;
+    snapshot.pixels = (uint32_t *)1;
+    if (layer_snapshot_apply(&snapshot, &stack)) {
+        fprintf(stderr, "snapshot apply should reject width mismatches\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    snapshot.width = stack.width;
+    snapshot.height = stack.height + 1;
+    if (layer_snapshot_apply(&snapshot, &stack)) {
+        fprintf(stderr, "snapshot apply should reject height mismatches\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    snapshot.height = stack.height;
+    snapshot.layer_count = 0;
+    if (layer_snapshot_apply(&snapshot, &stack)) {
+        fprintf(stderr, "snapshot apply should reject empty layer counts\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    snapshot.layer_count = MAX_LAYERS + 1;
+    if (layer_snapshot_apply(&snapshot, &stack)) {
+        fprintf(stderr, "snapshot apply should reject oversized layer counts\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_stack_free(&stack);
     return 1;
 }
 
@@ -2475,6 +2559,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_snapshot_expand_restore()) {
+        return 1;
+    }
+    if (!test_layer_snapshot_capture_apply_guard_paths()) {
         return 1;
     }
     if (!test_layer_history_stack()) {
