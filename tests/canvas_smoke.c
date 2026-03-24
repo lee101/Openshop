@@ -249,6 +249,26 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_rename(&stack, 0, "Backdrop Solo") || !layer_stack_rename(&stack, 1, "Top Solo") ||
+        !layer_stack_toggle_solo(&stack, 1) || !layer_stack_can_reset_visible_names(&stack) || !layer_stack_reset_visible_names(&stack)) {
+        fprintf(stderr, "reset visible names with solo setup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || strcmp(stack.layers[1].name, "Top Solo") != 0 ||
+        stack.solo_index != 1 || !stack.layers[0].visible || stack.layers[1].visible) {
+        fprintf(stderr, "reset visible names with solo labels failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_can_reset_visible_names(&stack) || !layer_stack_toggle_solo(&stack, 1) || !layer_stack_rename(&stack, 1, "Top")) {
+        fprintf(stderr, "reset visible names solo cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_show_all(&stack)) {
         fprintf(stderr, "show all failed\n");
         canvas_free(&composite);
