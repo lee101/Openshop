@@ -102,13 +102,19 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (!layer_stack_reset_name(&stack, 0) || strcmp(stack.layers[0].name, "Layer 2") != 0) {
-        fprintf(stderr, "layer reset name uniqueness failed\n");
+    if (layer_stack_reset_name(&stack, 0) || strcmp(stack.layers[0].name, "Background") != 0) {
+        fprintf(stderr, "background reset should be a no-op when already default\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
     }
-    if (!layer_stack_rename(&stack, 0, "Background") || !layer_stack_rename(&stack, 1, "Top")) {
+    if (layer_stack_can_reset_name(&stack, 0)) {
+        fprintf(stderr, "background reset should be a no-op once restored\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || !layer_stack_rename(&stack, 1, "Top")) {
         fprintf(stderr, "layer reset name restore failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);

@@ -141,7 +141,8 @@ static void layer_duplicate_name_base(char *dest, size_t dest_size, const char *
 }
 
 static void layer_default_name(char *dest, size_t dest_size, const LayerStack *stack, int skip_index) {
-    layer_name_copy_unique(dest, dest_size, stack, skip_index, NULL, "Layer");
+    const char *base = (skip_index == 0) ? "Background" : "Layer";
+    layer_name_copy_unique(dest, dest_size, stack, skip_index, NULL, base);
 }
 
 int layer_stack_init(LayerStack *stack, int width, int height, uint32_t background_color) {
