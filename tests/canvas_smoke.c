@@ -1241,6 +1241,67 @@ static int test_layer_history_low_level_undo_redo_rolls_back_failed_apply(void) 
     return 1;
 }
 
+static int test_layer_history_step_undo_redo_rolls_back_failed_apply(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 4, 4, 0xFFFFFFFF)) {
+        fprintf(stderr, "history step rollback init failed\n");
+        return 0;
+    }
+
+    LayerHistory history = {0};
+    layer_history_record(&history, &stack);
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF010203);
+    layer_history_record(&history, &stack);
+
+    history.undo[history.undo_count - 1].width++;
+    if (layer_history_step_undo(&history, &stack)) {
+        fprintf(stderr, "history step undo should fail when stored snapshot cannot apply\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (history.undo_count != 2 || history.redo_count != 0) {
+        fprintf(stderr, "history step undo should keep history counts unchanged after apply failure\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("history_step_failed_undo_keeps_canvas", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF010203)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (!layer_snapshot_capture(&history.redo[history.redo_count++], &stack)) {
+        fprintf(stderr, "history step redo rollback capture failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    history.redo[history.redo_count - 1].width++;
+    if (layer_history_step_redo(&history, &stack)) {
+        fprintf(stderr, "history step redo should fail when stored snapshot cannot apply\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (history.undo_count != 2 || history.redo_count != 1) {
+        fprintf(stderr, "history step redo should keep history counts unchanged after apply failure\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("history_step_failed_redo_keeps_canvas", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF010203)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_reset(&history);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layers_basic(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 16, 16, 0xFFFFFFFF)) {
@@ -2253,6 +2314,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_low_level_undo_redo_rolls_back_failed_apply()) {
+        return 1;
+    }
+    if (!test_layer_history_step_undo_redo_rolls_back_failed_apply()) {
         return 1;
     }
 
