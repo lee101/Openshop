@@ -1,6 +1,7 @@
 #include "app.h"
 #include "brush_shortcuts.h"
 #include "canvas.h"
+#include "canvas_shortcuts.h"
 #include "direct_layer_shortcuts.h"
 #include "file_shortcuts.h"
 #include "history_shortcuts.h"
@@ -834,6 +835,7 @@ static int handle_view_and_canvas_shortcut(
     int *needs_composite
 ) {
     BrushShortcutAction brush_action;
+    CanvasShortcutAction canvas_action;
     PaintShortcutAction paint_action;
     ViewShortcutKey view_key = VIEW_SHORTCUT_KEY_NONE;
     ViewShortcutResult view_result;
@@ -890,8 +892,8 @@ static int handle_view_and_canvas_shortcut(
     }
 
     paint_action = paint_shortcut_action((int)key);
-
     brush_action = brush_shortcut_action((int)key);
+    canvas_action = canvas_shortcut_action((int)key);
 
     if (paint_action == PAINT_SHORTCUT_TOOL_BRUSH) {
         *brush_color_rgb = COLOR_BRUSH & 0x00FFFFFF;
@@ -963,30 +965,30 @@ static int handle_view_and_canvas_shortcut(
         *brush_color_rgb = COLOR_PURPLE & 0x00FFFFFF;
         *brush_color = compose_brush_color(*brush_color_rgb, *brush_opacity);
         *tool = TOOL_BRUSH;
-    } else if (key == SDLK_c) {
+    } else if (canvas_action == CANVAS_SHORTCUT_CLEAR) {
         if (active_layer_editable(layers)) {
             push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
         }
         if (layer_stack_clear_layer(layers, layers->active_layer, active_layer_clear_color(layers)) && needs_composite) {
             *needs_composite = 1;
         }
-    } else if (key == SDLK_h) {
+    } else if (canvas_action == CANVAS_SHORTCUT_FLIP_HORIZONTAL) {
         if (apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_flip_horizontal) && needs_composite) {
             *needs_composite = 1;
         }
-    } else if (key == SDLK_v) {
+    } else if (canvas_action == CANVAS_SHORTCUT_FLIP_VERTICAL) {
         if (apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_flip_vertical) && needs_composite) {
             *needs_composite = 1;
         }
-    } else if (key == SDLK_j) {
+    } else if (canvas_action == CANVAS_SHORTCUT_ROTATE_180) {
         if (apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_rotate_180) && needs_composite) {
             *needs_composite = 1;
         }
-    } else if (key == SDLK_x) {
+    } else if (canvas_action == CANVAS_SHORTCUT_INVERT_RGB) {
         if (apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_invert_rgb) && needs_composite) {
             *needs_composite = 1;
         }
-    } else if (key == SDLK_f) {
+    } else if (canvas_action == CANVAS_SHORTCUT_FILL) {
         SDL_GetMouseState(&mx, &my);
         if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
             active = layer_stack_active(layers);
@@ -999,7 +1001,7 @@ static int handle_view_and_canvas_shortcut(
                 *needs_composite = 1;
             }
         }
-    } else if (key == SDLK_i) {
+    } else if (canvas_action == CANVAS_SHORTCUT_EYEDROPPER) {
         SDL_GetMouseState(&mx, &my);
         if (mx >= 0 && my >= 0 && mx < CANVAS_WIDTH && my < CANVAS_HEIGHT) {
             sample = (preview_active && preview_canvas && preview_canvas->pixels) ? preview_canvas : composite;

@@ -1,4 +1,5 @@
 #include "../src/brush_shortcuts.h"
+#include "../src/canvas_shortcuts.h"
 #include "../src/direct_layer_shortcuts.h"
 #include "../src/file_shortcuts.h"
 #include "../src/history_shortcuts.h"
@@ -64,6 +65,15 @@ static int expect_paint_action(const char *label, int key, PaintShortcutAction w
 
 static int expect_brush_action(const char *label, int key, BrushShortcutAction want) {
     BrushShortcutAction got = brush_shortcut_action(key);
+    if (got != want) {
+        fprintf(stderr, "%s mismatch: got %d want %d\n", label, got, want);
+        return 0;
+    }
+    return 1;
+}
+
+static int expect_canvas_action(const char *label, int key, CanvasShortcutAction want) {
+    CanvasShortcutAction got = canvas_shortcut_action(key);
     if (got != want) {
         fprintf(stderr, "%s mismatch: got %d want %d\n", label, got, want);
         return 0;
@@ -153,6 +163,14 @@ int main(void) {
     ok = ok && expect_brush_action("opacity_up_equals", '=', BRUSH_SHORTCUT_OPACITY_UP);
     ok = ok && expect_brush_action("opacity_up_plus", '+', BRUSH_SHORTCUT_OPACITY_UP);
     ok = ok && expect_brush_action("brush_other_key", '/', BRUSH_SHORTCUT_NONE);
+    ok = ok && expect_canvas_action("canvas_clear", 'c', CANVAS_SHORTCUT_CLEAR);
+    ok = ok && expect_canvas_action("canvas_flip_h", 'h', CANVAS_SHORTCUT_FLIP_HORIZONTAL);
+    ok = ok && expect_canvas_action("canvas_flip_v", 'v', CANVAS_SHORTCUT_FLIP_VERTICAL);
+    ok = ok && expect_canvas_action("canvas_rotate_180", 'j', CANVAS_SHORTCUT_ROTATE_180);
+    ok = ok && expect_canvas_action("canvas_invert_rgb", 'x', CANVAS_SHORTCUT_INVERT_RGB);
+    ok = ok && expect_canvas_action("canvas_fill", 'f', CANVAS_SHORTCUT_FILL);
+    ok = ok && expect_canvas_action("canvas_eyedropper", 'i', CANVAS_SHORTCUT_EYEDROPPER);
+    ok = ok && expect_canvas_action("canvas_other_key", 'k', CANVAS_SHORTCUT_NONE);
     ok = ok && expect_view_result("pageup", VIEW_SHORTCUT_KEY_PAGEUP, 0, VIEW_SHORTCUT_CYCLE, 1, 0, 0);
     ok = ok && expect_view_result("pagedown", VIEW_SHORTCUT_KEY_PAGEDOWN, 1, VIEW_SHORTCUT_CYCLE, -1, 0, 0);
     ok = ok && expect_view_result("up", VIEW_SHORTCUT_KEY_UP, 0, VIEW_SHORTCUT_TRANSLATE, 0, 0, -1);
