@@ -1084,6 +1084,18 @@ int app_run(const char *input_path) {
                     break;
                 }
 
+                if (ctrl && alt && shift && key >= SDLK_1 && key <= SDLK_8) {
+                    int target = (int)(key - SDLK_1);
+                    if (target < layers.layer_count) {
+                        push_snapshot(&layers, undo_stack, &undo_count, redo_stack, &redo_count);
+                        if (!layer_stack_toggle_lock(&layers, target)) {
+                            fprintf(stderr, "Could not toggle layer lock\n");
+                        }
+                        update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                    }
+                    break;
+                }
+
                 if (ctrl && alt && key >= SDLK_1 && key <= SDLK_8) {
                     int target = (int)(key - SDLK_1);
                     const Layer *target_layer = layer_stack_get(&layers, target);

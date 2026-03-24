@@ -66,6 +66,18 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_toggle_lock(&stack, 1) || !stack.layers[1].locked || stack.active_layer != 0) {
+        fprintf(stderr, "direct lock target bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_lock(&stack, 1) || stack.layers[1].locked || stack.active_layer != 0) {
+        fprintf(stderr, "direct lock target toggle-off failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_toggle_solo(&stack, 1)) {
         fprintf(stderr, "solo hidden layer failed\n");
         canvas_free(&composite);
