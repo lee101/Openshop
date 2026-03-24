@@ -895,6 +895,24 @@ int main(void) {
         130,
         preview_sentinel
     );
+    shaping = 15;
+    shape_start_x = 19;
+    shape_start_y = 20;
+    ok = ok && expect_begin_shape_preview(
+        "begin_shape_preview_null_source_and_destination",
+        140,
+        150,
+        &shaping,
+        &shape_start_x,
+        &shape_start_y,
+        NULL,
+        NULL,
+        4,
+        1,
+        140,
+        150,
+        NULL
+    );
     ok = ok && expect_cancel_shape_preview("cancel_shape_preview_both", &shaping, &preview_active, 0, 0);
     shaping = 7;
     preview_active = 9;
