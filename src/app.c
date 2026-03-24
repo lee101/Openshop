@@ -422,15 +422,9 @@ static int try_commit_shape(LayerStack *layers,
                             Snapshot *redo_stack, int *redo_count,
                             Tool tool, int shape_start_x, int shape_start_y,
                             int end_x, int end_y, int brush_radius, uint32_t brush_color) {
-    Layer *active = layer_stack_active(layers);
-
-    if (!active || active->locked || !active->canvas.pixels) {
-        return 0;
-    }
-
-    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, MAX_HISTORY);
-    draw_shape(&active->canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
-    return 1;
+    return active_layer_try_commit_shape(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                         tool, shape_start_x, shape_start_y, end_x, end_y,
+                                         brush_radius, brush_color, MAX_HISTORY);
 }
 
 static int try_begin_brush_stroke(LayerStack *layers,
@@ -438,19 +432,9 @@ static int try_begin_brush_stroke(LayerStack *layers,
                                   Snapshot *redo_stack, int *redo_count,
                                   Tool tool, int x, int y, int brush_radius,
                                   uint32_t brush_color, BrushShape brush_shape) {
-    Layer *active = layer_stack_active(layers);
-
-    if (!active || active->locked || !active->canvas.pixels) {
-        return 0;
-    }
-
-    snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, MAX_HISTORY);
-    if (tool == TOOL_ERASER) {
-        erase_stamp(&active->canvas, x, y, brush_radius, active_layer_clear_color(layers, COLOR_BG), brush_shape);
-    } else {
-        stamp_brush(&active->canvas, x, y, brush_radius, brush_color, brush_shape);
-    }
-    return 1;
+    return active_layer_try_begin_brush_stroke(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                               tool, x, y, brush_radius, brush_color, brush_shape,
+                                               COLOR_BG, MAX_HISTORY);
 }
 
 typedef struct {

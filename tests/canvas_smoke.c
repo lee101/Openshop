@@ -650,6 +650,41 @@ static int test_active_layer_ops_helpers(void) {
     }
 
     canvas_clear(&stack.layers[0].canvas, 0x00000000);
+    if (!active_layer_try_begin_brush_stroke(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                             TOOL_BRUSH, 2, 2, 1, 0xFF556677, BRUSH_SHAPE_SQUARE,
+                                             0xFFFFFFFF, 4) ||
+        !expect_pixel_eq("active_stroke_brush", canvas_get_pixel(&stack.layers[0].canvas, 2, 2), 0xFF556677)) {
+        fprintf(stderr, "active_layer_try_begin_brush_stroke brush failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 2, 2, 0xFFFFFFFF);
+    if (!active_layer_try_begin_brush_stroke(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                             TOOL_ERASER, 2, 2, 1, 0xFF000000, BRUSH_SHAPE_ROUND,
+                                             0xFF123456, 4) ||
+        !expect_pixel_eq("active_stroke_eraser", canvas_get_pixel(&stack.layers[0].canvas, 2, 2), 0xFF123456)) {
+        fprintf(stderr, "active_layer_try_begin_brush_stroke eraser failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    canvas_clear(&stack.layers[0].canvas, 0x00000000);
+    if (!active_layer_try_commit_shape(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                       TOOL_FILLED_RECT, 1, 1, 2, 2, 1, 0xFF998877, 4) ||
+        !expect_pixel_eq("active_commit_shape", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFF998877)) {
+        fprintf(stderr, "active_layer_try_commit_shape failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    canvas_clear(&stack.layers[0].canvas, 0x00000000);
     canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFF010101);
     if (!active_layer_try_flood_fill(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
                                      1, 1, 0xFFABC123, 4) ||
@@ -709,6 +744,11 @@ static int test_active_layer_ops_helpers(void) {
 
     stack.layers[1].locked = 1;
     if (active_layer_try_flip_horizontal(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+        active_layer_try_begin_brush_stroke(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                            TOOL_BRUSH, 0, 0, 1, 0xFFFFFFFF, BRUSH_SHAPE_ROUND,
+                                            0xFFFFFFFF, 4) ||
+        active_layer_try_commit_shape(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                      TOOL_LINE, 0, 0, 1, 1, 1, 0xFFFFFFFF, 4) ||
         active_layer_try_invert_rgb(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
         active_layer_try_flood_fill(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0, 0, 0xFFFFFFFF, 4) ||
         active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 1, 0, 0xFFFFFFFF, 4)) {
@@ -721,6 +761,11 @@ static int test_active_layer_ops_helpers(void) {
     stack.layers[1].locked = 0;
     canvas_free(&stack.layers[1].canvas);
     if (active_layer_try_flip_vertical(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
+        active_layer_try_begin_brush_stroke(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                            TOOL_BRUSH, 0, 0, 1, 0xFFFFFFFF, BRUSH_SHAPE_ROUND,
+                                            0xFFFFFFFF, 4) ||
+        active_layer_try_commit_shape(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                      TOOL_LINE, 0, 0, 1, 1, 1, 0xFFFFFFFF, 4) ||
         active_layer_try_rotate_180(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
         active_layer_try_flood_fill(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0, 0, 0xFFFFFFFF, 4) ||
         active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, &redo_count, -1, 0, 0xFFFFFFFF, 4)) {

@@ -1,6 +1,7 @@
 #ifndef ACTIVE_LAYER_OPS_H
 #define ACTIVE_LAYER_OPS_H
 
+#include "brush_state.h"
 #include "snapshot_history.h"
 
 int active_layer_try_clear(LayerStack *layers,
@@ -35,6 +36,18 @@ int active_layer_try_flood_fill(LayerStack *layers,
                                 Snapshot *undo_stack, int *undo_count,
                                 Snapshot *redo_stack, int *redo_count,
                                 int x, int y, uint32_t brush_color, int max_history);
+int active_layer_try_commit_shape(LayerStack *layers,
+                                  Snapshot *undo_stack, int *undo_count,
+                                  Snapshot *redo_stack, int *redo_count,
+                                  Tool tool, int shape_start_x, int shape_start_y,
+                                  int end_x, int end_y, int brush_radius,
+                                  uint32_t brush_color, int max_history);
+int active_layer_try_begin_brush_stroke(LayerStack *layers,
+                                        Snapshot *undo_stack, int *undo_count,
+                                        Snapshot *redo_stack, int *redo_count,
+                                        Tool tool, int x, int y, int brush_radius,
+                                        uint32_t brush_color, BrushShape brush_shape,
+                                        uint32_t background_color, int max_history);
 int active_layer_apply_translation(LayerStack *layers,
                                    Snapshot *undo_stack, int *undo_count,
                                    Snapshot *redo_stack, int *redo_count,
