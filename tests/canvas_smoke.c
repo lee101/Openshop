@@ -814,6 +814,23 @@ static int test_layer_creation_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    {
+        int width_before = stack.width;
+        int undo_before = undo_count;
+        int redo_before = redo_count;
+        int layers_before = stack.layer_count;
+
+        stack.width = 0;
+        if (layer_creation_try_add(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0x00000000, 4) ||
+            undo_count != undo_before || redo_count != redo_before || stack.layer_count != layers_before) {
+            fprintf(stderr, "layer_creation_try_add should not mutate history on add failure\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        stack.width = width_before;
+    }
     if (layer_creation_try_add(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0x00000000, 0) ||
         stack.layer_count != 2) {
         fprintf(stderr, "layer_creation_try_add max history guard failed\n");
