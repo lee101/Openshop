@@ -220,6 +220,23 @@ int layer_stack_visible_count(const LayerStack *stack) {
     return count;
 }
 
+int layer_stack_rename(LayerStack *stack, int index, const char *name) {
+    char next_name[LAYER_NAME_MAX];
+
+    if (!stack || index < 0 || index >= stack->layer_count || !name || !name[0]) {
+        return 0;
+    }
+
+    strncpy(next_name, name, LAYER_NAME_MAX - 1);
+    next_name[LAYER_NAME_MAX - 1] = '\0';
+    if (strcmp(stack->layers[index].name, next_name) == 0) {
+        return 0;
+    }
+
+    memcpy(stack->layers[index].name, next_name, sizeof(next_name));
+    return 1;
+}
+
 int layer_stack_toggle_lock(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;

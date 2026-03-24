@@ -78,6 +78,24 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_rename(&stack, 1, "Sketch") || strcmp(stack.layers[1].name, "Sketch") != 0) {
+        fprintf(stderr, "layer rename failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_rename(&stack, 1, "Sketch") || layer_stack_rename(&stack, 1, "") || layer_stack_rename(&stack, 9, "Ghost")) {
+        fprintf(stderr, "layer rename no-op or invalid cases failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 1, "Top")) {
+        fprintf(stderr, "layer rename restore failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_toggle_solo(&stack, 1)) {
         fprintf(stderr, "solo hidden layer failed\n");
         canvas_free(&composite);

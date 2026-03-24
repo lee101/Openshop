@@ -39,6 +39,7 @@ int layer_stack_show(LayerStack *stack, int index);
 int layer_stack_hide_and_advance(LayerStack *stack, int index);
 int layer_stack_visible_count(const LayerStack *stack);
 void layer_stack_composite(const LayerStack *stack, Canvas *dest, uint32_t background_color);
+int layer_stack_rename(LayerStack *stack, int index, const char *name);
 int layer_stack_clear_layer(LayerStack *stack, int index, uint32_t color);
 int layer_stack_set_opacity(LayerStack *stack, int index, int opacity_percent);
 int layer_stack_can_delete(const LayerStack *stack, int index);
