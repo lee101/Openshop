@@ -3234,6 +3234,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_select_top_hidden_unlocked(&stack) != -1 || stack.active_layer != 3) {
+        fprintf(stderr, "select top hidden unlocked no-op failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (stack.solo_index != 0) {
         fprintf(stderr, "hidden unlocked selection should preserve solo state\n");
         canvas_free(&composite);
@@ -4056,6 +4062,12 @@ static int test_layers_basic(void) {
     }
     if (layer_stack_select_top_hidden(&stack) != 2 || stack.active_layer != 2) {
         fprintf(stderr, "select top hidden failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_top_hidden(&stack) != -1 || stack.active_layer != 2) {
+        fprintf(stderr, "select top hidden no-op failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
