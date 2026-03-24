@@ -188,13 +188,13 @@ static int handle_canvas_mutation_shortcut(
         }
         changed = layer_stack_clear_layer(layers, layers->active_layer, app_active_layer_clear_color(layers->active_layer));
     } else if (canvas_action == CANVAS_SHORTCUT_FLIP_HORIZONTAL) {
-        changed = apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_flip_horizontal);
+        changed = app_apply_canvas_transform(layers, undo_stack, undo_count, MAX_HISTORY, redo_stack, redo_count, canvas_flip_horizontal);
     } else if (canvas_action == CANVAS_SHORTCUT_FLIP_VERTICAL) {
-        changed = apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_flip_vertical);
+        changed = app_apply_canvas_transform(layers, undo_stack, undo_count, MAX_HISTORY, redo_stack, redo_count, canvas_flip_vertical);
     } else if (canvas_action == CANVAS_SHORTCUT_ROTATE_180) {
-        changed = apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_rotate_180);
+        changed = app_apply_canvas_transform(layers, undo_stack, undo_count, MAX_HISTORY, redo_stack, redo_count, canvas_rotate_180);
     } else if (canvas_action == CANVAS_SHORTCUT_INVERT_RGB) {
-        changed = apply_canvas_transform(layers, undo_stack, undo_count, redo_stack, redo_count, canvas_invert_rgb);
+        changed = app_apply_canvas_transform(layers, undo_stack, undo_count, MAX_HISTORY, redo_stack, redo_count, canvas_invert_rgb);
     } else {
         return 0;
     }
@@ -1083,10 +1083,11 @@ static int handle_view_and_canvas_shortcut(
     }
 
     if (view_result.action == VIEW_SHORTCUT_TRANSLATE) {
-        if (apply_canvas_translation(
+        if (app_apply_canvas_translation(
                 layers,
                 undo_stack,
                 undo_count,
+                MAX_HISTORY,
                 redo_stack,
                 redo_count,
                 view_result.dx,
@@ -1141,29 +1142,6 @@ static int handle_view_and_canvas_shortcut(
     }
 
     return 1;
-}
-
-static int apply_canvas_transform(
-    LayerStack *layers,
-    Snapshot *undo_stack,
-    int *undo_count,
-    Snapshot *redo_stack,
-    int *redo_count,
-    void (*transform)(Canvas *)
-) {
-    return app_apply_canvas_transform(layers, undo_stack, undo_count, MAX_HISTORY, redo_stack, redo_count, transform);
-}
-
-static int apply_canvas_translation(
-    LayerStack *layers,
-    Snapshot *undo_stack,
-    int *undo_count,
-    Snapshot *redo_stack,
-    int *redo_count,
-    int dx,
-    int dy
-) {
-    return app_apply_canvas_translation(layers, undo_stack, undo_count, MAX_HISTORY, redo_stack, redo_count, dx, dy);
 }
 
 static void erase_stamp(Canvas *c, int cx, int cy, int radius, uint32_t clear_color, BrushShape shape) {
