@@ -67,6 +67,19 @@ typedef struct {
     int *brush_opacity;
 } TitleState;
 
+typedef struct {
+    const TitleState *title_state;
+    LayerStack *layers;
+    Snapshot *undo_stack;
+    int *undo_count;
+    Snapshot *redo_stack;
+    int *redo_count;
+    int *needs_composite;
+    int preview_active;
+    const Canvas *preview_canvas;
+    const Canvas *composite;
+} ActionState;
+
 typedef int (*LayerIndexedActionFn)(LayerStack *layers, int index);
 
 static void snapshot_free(Snapshot *s) {
@@ -1188,16 +1201,12 @@ static int handle_selector_hotkey(SDL_Keycode key,
 
 static int handle_reveal_hotkey(SDL_Keycode key,
                                 int ctrl, int alt, int shift,
-                                SDL_Window *window,
-                                LayerStack *layers,
-                                Snapshot *undo_stack, int *undo_count,
-                                Snapshot *redo_stack, int *redo_count,
-                                Tool tool, BrushShape brush_shape,
-                                int brush_radius, uint32_t brush_color,
-                                int brush_opacity, int *needs_composite) {
+                                const ActionState *action_state) {
     size_t i;
 
-    if (!window || !layers || !undo_stack || !undo_count || !redo_stack || !redo_count || !needs_composite) {
+    if (!action_state || !action_state->title_state || !action_state->title_state->window ||
+        !action_state->layers || !action_state->undo_stack || !action_state->undo_count ||
+        !action_state->redo_stack || !action_state->redo_count || !action_state->needs_composite) {
         return 0;
     }
 
@@ -1208,9 +1217,13 @@ static int handle_reveal_hotkey(SDL_Keycode key,
             hotkey->ctrl == ctrl &&
             hotkey->alt == alt &&
             hotkey->shift == shift) {
-            run_directional_layer_action(window, layers, undo_stack, undo_count, redo_stack, redo_count,
-                                         tool, brush_shape, brush_radius, brush_color, brush_opacity,
-                                         needs_composite, hotkey->action, hotkey->direction);
+            run_directional_layer_action(action_state->title_state->window, action_state->layers,
+                                         action_state->undo_stack, action_state->undo_count,
+                                         action_state->redo_stack, action_state->redo_count,
+                                         *action_state->title_state->tool, *action_state->title_state->brush_shape,
+                                         *action_state->title_state->brush_radius, *action_state->title_state->brush_color,
+                                         *action_state->title_state->brush_opacity,
+                                         action_state->needs_composite, hotkey->action, hotkey->direction);
             return 1;
         }
     }
@@ -1220,33 +1233,33 @@ static int handle_reveal_hotkey(SDL_Keycode key,
 
 static int handle_layer_opacity_hotkey(SDL_Keycode key,
                                        int ctrl, int alt, int shift,
-                                       SDL_Window *window,
-                                       LayerStack *layers,
-                                       Snapshot *undo_stack, int *undo_count,
-                                       Snapshot *redo_stack, int *redo_count,
-                                       Tool tool, BrushShape brush_shape,
-                                       int brush_radius, uint32_t brush_color,
-                                       int brush_opacity, int *needs_composite) {
+                                       const ActionState *action_state) {
     int changed = 0;
 
-    if (!ctrl || alt || shift || !window || !layers || !undo_stack || !undo_count ||
-        !redo_stack || !redo_count || !needs_composite) {
+    if (!ctrl || alt || shift || !action_state || !action_state->title_state || !action_state->layers ||
+        !action_state->undo_stack || !action_state->undo_count || !action_state->redo_stack ||
+        !action_state->redo_count || !action_state->needs_composite) {
         return 0;
     }
 
     if (key == SDLK_0) {
-        changed = try_adjust_active_layer_opacity(layers, undo_stack, undo_count, redo_stack, redo_count, 100);
+        changed = try_adjust_active_layer_opacity(action_state->layers, action_state->undo_stack,
+                                                  action_state->undo_count, action_state->redo_stack,
+                                                  action_state->redo_count, 100);
     } else if (key == SDLK_MINUS || key == SDLK_KP_MINUS) {
-        changed = try_nudge_active_layer_opacity(layers, undo_stack, undo_count, redo_stack, redo_count, -10);
+        changed = try_nudge_active_layer_opacity(action_state->layers, action_state->undo_stack,
+                                                 action_state->undo_count, action_state->redo_stack,
+                                                 action_state->redo_count, -10);
     } else if (key == SDLK_EQUALS || key == SDLK_KP_PLUS) {
-        changed = try_nudge_active_layer_opacity(layers, undo_stack, undo_count, redo_stack, redo_count, 10);
+        changed = try_nudge_active_layer_opacity(action_state->layers, action_state->undo_stack,
+                                                 action_state->undo_count, action_state->redo_stack,
+                                                 action_state->redo_count, 10);
     } else {
         return 0;
     }
 
-    if (refresh_title_on_change(window, layers, tool, brush_shape, brush_radius, brush_color,
-                                brush_opacity, changed)) {
-        *needs_composite = 1;
+    if (refresh_title_state_on_change(action_state->title_state, changed)) {
+        *action_state->needs_composite = 1;
     }
 
     return 1;
@@ -1254,16 +1267,12 @@ static int handle_layer_opacity_hotkey(SDL_Keycode key,
 
 static int handle_indexed_layer_hotkey(SDL_Keycode key,
                                        int ctrl, int alt, int shift,
-                                       SDL_Window *window,
-                                       LayerStack *layers,
-                                       Snapshot *undo_stack, int *undo_count,
-                                       Snapshot *redo_stack, int *redo_count,
-                                       Tool tool, BrushShape brush_shape,
-                                       int brush_radius, uint32_t brush_color,
-                                       int brush_opacity, int *needs_composite) {
+                                       const ActionState *action_state) {
     size_t i;
 
-    if (!window || !layers || !undo_stack || !undo_count || !redo_stack || !redo_count || !needs_composite) {
+    if (!action_state || !action_state->title_state || !action_state->title_state->window ||
+        !action_state->layers || !action_state->undo_stack || !action_state->undo_count ||
+        !action_state->redo_stack || !action_state->redo_count || !action_state->needs_composite) {
         return 0;
     }
 
@@ -1274,9 +1283,13 @@ static int handle_indexed_layer_hotkey(SDL_Keycode key,
             hotkey->ctrl == ctrl &&
             hotkey->alt == alt &&
             hotkey->shift == shift) {
-            run_indexed_layer_action(window, layers, undo_stack, undo_count, redo_stack, redo_count,
-                                     tool, brush_shape, brush_radius, brush_color, brush_opacity,
-                                     needs_composite, hotkey->action, hotkey->error_action,
+            run_indexed_layer_action(action_state->title_state->window, action_state->layers,
+                                     action_state->undo_stack, action_state->undo_count,
+                                     action_state->redo_stack, action_state->redo_count,
+                                     *action_state->title_state->tool, *action_state->title_state->brush_shape,
+                                     *action_state->title_state->brush_radius, *action_state->title_state->brush_color,
+                                     *action_state->title_state->brush_opacity,
+                                     action_state->needs_composite, hotkey->action, hotkey->error_action,
                                      hotkey->mark_composite);
             return 1;
         }
@@ -1287,16 +1300,12 @@ static int handle_indexed_layer_hotkey(SDL_Keycode key,
 
 static int handle_indexed_layer_silent_hotkey(SDL_Keycode key,
                                               int ctrl, int alt, int shift,
-                                              SDL_Window *window,
-                                              LayerStack *layers,
-                                              Snapshot *undo_stack, int *undo_count,
-                                              Snapshot *redo_stack, int *redo_count,
-                                              Tool tool, BrushShape brush_shape,
-                                              int brush_radius, uint32_t brush_color,
-                                              int brush_opacity, int *needs_composite) {
+                                              const ActionState *action_state) {
     size_t i;
 
-    if (!window || !layers || !undo_stack || !undo_count || !redo_stack || !redo_count || !needs_composite) {
+    if (!action_state || !action_state->title_state || !action_state->title_state->window ||
+        !action_state->layers || !action_state->undo_stack || !action_state->undo_count ||
+        !action_state->redo_stack || !action_state->redo_count || !action_state->needs_composite) {
         return 0;
     }
 
@@ -1307,9 +1316,13 @@ static int handle_indexed_layer_silent_hotkey(SDL_Keycode key,
             hotkey->ctrl == ctrl &&
             hotkey->alt == alt &&
             hotkey->shift == shift) {
-            run_indexed_layer_action_silent(window, layers, undo_stack, undo_count, redo_stack, redo_count,
-                                            tool, brush_shape, brush_radius, brush_color, brush_opacity,
-                                            needs_composite, hotkey->action, hotkey->mark_composite);
+            run_indexed_layer_action_silent(action_state->title_state->window, action_state->layers,
+                                            action_state->undo_stack, action_state->undo_count,
+                                            action_state->redo_stack, action_state->redo_count,
+                                            *action_state->title_state->tool, *action_state->title_state->brush_shape,
+                                            *action_state->title_state->brush_radius, *action_state->title_state->brush_color,
+                                            *action_state->title_state->brush_opacity,
+                                            action_state->needs_composite, hotkey->action, hotkey->mark_composite);
             return 1;
         }
     }
@@ -1343,29 +1356,28 @@ static int handle_layer_navigation_hotkey(SDL_Keycode key,
 
 static int handle_file_hotkey(SDL_Keycode key,
                               int ctrl, int alt, int shift,
-                              int preview_active,
-                              const Canvas *preview_canvas,
-                              const Canvas *composite,
-                              LayerStack *layers,
-                              Snapshot *undo_stack, int *undo_count,
-                              Snapshot *redo_stack, int *redo_count,
-                              int *needs_composite) {
+                              const ActionState *action_state) {
     const Canvas *save_canvas;
 
-    if (!ctrl || alt || shift || !layers || !undo_stack || !undo_count || !redo_stack || !redo_count ||
-        !composite || !needs_composite) {
+    if (!ctrl || alt || shift || !action_state || !action_state->layers || !action_state->undo_stack ||
+        !action_state->undo_count || !action_state->redo_stack || !action_state->redo_count ||
+        !action_state->composite || !action_state->needs_composite) {
         return 0;
     }
 
     if (key == SDLK_s) {
-        save_canvas = (preview_active && preview_canvas && preview_canvas->pixels) ? preview_canvas : composite;
+        save_canvas = current_display_canvas(action_state->preview_active,
+                                             action_state->preview_canvas,
+                                             action_state->composite);
         try_save_canvas_to_output(save_canvas);
         return 1;
     }
 
     if (key == SDLK_o) {
-        if (try_load_active_layer_bmp(layers, undo_stack, undo_count, redo_stack, redo_count)) {
-            *needs_composite = 1;
+        if (try_load_active_layer_bmp(action_state->layers, action_state->undo_stack,
+                                      action_state->undo_count, action_state->redo_stack,
+                                      action_state->redo_count)) {
+            *action_state->needs_composite = 1;
         }
         return 1;
     }
@@ -1620,15 +1632,14 @@ static int handle_mouse_motion(LayerStack *layers,
 
 static int handle_translation_hotkey(SDL_Keycode key,
                                      int ctrl, int alt, int shift,
-                                     LayerStack *layers,
-                                     Snapshot *undo_stack, int *undo_count,
-                                     Snapshot *redo_stack, int *redo_count,
-                                     int *needs_composite) {
+                                     const ActionState *action_state) {
     int step;
     int dx = 0;
     int dy = 0;
 
-    if (ctrl || alt || !layers || !undo_stack || !undo_count || !redo_stack || !redo_count || !needs_composite) {
+    if (ctrl || alt || !action_state || !action_state->layers || !action_state->undo_stack ||
+        !action_state->undo_count || !action_state->redo_stack || !action_state->redo_count ||
+        !action_state->needs_composite) {
         return 0;
     }
 
@@ -1638,8 +1649,9 @@ static int handle_translation_hotkey(SDL_Keycode key,
 
     step = shift ? 10 : 1;
     if (key_translation_delta(key, step, &dx, &dy) &&
-        apply_canvas_translation(layers, undo_stack, undo_count, redo_stack, redo_count, dx, dy)) {
-        *needs_composite = 1;
+        apply_canvas_translation(action_state->layers, action_state->undo_stack, action_state->undo_count,
+                                 action_state->redo_stack, action_state->redo_count, dx, dy)) {
+        *action_state->needs_composite = 1;
     }
 
     return 1;
@@ -1647,31 +1659,29 @@ static int handle_translation_hotkey(SDL_Keycode key,
 
 static int handle_history_hotkey(SDL_Keycode key,
                                  int ctrl, int alt, int shift,
-                                 SDL_Window *window,
-                                 LayerStack *layers,
-                                 Snapshot *undo_stack, int *undo_count,
-                                 Snapshot *redo_stack, int *redo_count,
-                                 Tool tool, BrushShape brush_shape,
-                                 int brush_radius, uint32_t brush_color,
-                                 int brush_opacity, int *needs_composite) {
+                                 const ActionState *action_state) {
     int changed = 0;
 
-    if (!ctrl || alt || shift || !window || !layers || !undo_stack || !undo_count ||
-        !redo_stack || !redo_count || !needs_composite) {
+    if (!ctrl || alt || shift || !action_state || !action_state->title_state || !action_state->layers ||
+        !action_state->undo_stack || !action_state->undo_count || !action_state->redo_stack ||
+        !action_state->redo_count || !action_state->needs_composite) {
         return 0;
     }
 
     if (key == SDLK_z) {
-        changed = try_restore_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
+        changed = try_restore_snapshot(action_state->layers, action_state->undo_stack,
+                                       action_state->undo_count, action_state->redo_stack,
+                                       action_state->redo_count);
     } else if (key == SDLK_y) {
-        changed = try_restore_snapshot(layers, redo_stack, redo_count, undo_stack, undo_count);
+        changed = try_restore_snapshot(action_state->layers, action_state->redo_stack,
+                                       action_state->redo_count, action_state->undo_stack,
+                                       action_state->undo_count);
     } else {
         return 0;
     }
 
-    if (refresh_title_on_change(window, layers, tool, brush_shape, brush_radius, brush_color,
-                                brush_opacity, changed)) {
-        *needs_composite = 1;
+    if (refresh_title_state_on_change(action_state->title_state, changed)) {
+        *action_state->needs_composite = 1;
     }
 
     return 1;
@@ -2070,6 +2080,8 @@ int app_run(const char *input_path) {
     uint32_t *preview_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
     Canvas preview_canvas = {CANVAS_WIDTH, CANVAS_HEIGHT, preview_pixels};
     TitleState title_state = {window, &layers, &tool, &brush_shape, &brush_radius, &brush_color, &brush_opacity};
+    ActionState action_state = {&title_state, &layers, undo_stack, &undo_count, redo_stack, &redo_count,
+                                &needs_composite, 0, &preview_canvas, &composite};
     memset(undo_stack, 0, sizeof(undo_stack));
     memset(redo_stack, 0, sizeof(redo_stack));
     update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
@@ -2114,6 +2126,7 @@ int app_run(const char *input_path) {
                 int ctrl = state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL];
                 int shift = state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT];
                 int alt = state[SDL_SCANCODE_LALT] || state[SDL_SCANCODE_RALT];
+                action_state.preview_active = preview_active;
 
                 if (shaping && should_cancel_shape_on_key(key, ctrl)) {
                     cancel_shape_preview(&shaping, &preview_active);
@@ -2135,37 +2148,23 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (handle_indexed_layer_hotkey(key, ctrl, alt, shift, window, &layers,
-                                                undo_stack, &undo_count, redo_stack, &redo_count,
-                                                tool, brush_shape, brush_radius, brush_color,
-                                                brush_opacity, &needs_composite)) {
+                if (handle_indexed_layer_hotkey(key, ctrl, alt, shift, &action_state)) {
                     break;
                 }
 
-                if (handle_layer_opacity_hotkey(key, ctrl, alt, shift, window, &layers,
-                                                undo_stack, &undo_count, redo_stack, &redo_count,
-                                                tool, brush_shape, brush_radius, brush_color,
-                                                brush_opacity, &needs_composite)) {
+                if (handle_layer_opacity_hotkey(key, ctrl, alt, shift, &action_state)) {
                     break;
                 }
 
-                if (handle_file_hotkey(key, ctrl, alt, shift, preview_active, &preview_canvas, &composite,
-                                       &layers, undo_stack, &undo_count, redo_stack, &redo_count,
-                                       &needs_composite)) {
+                if (handle_file_hotkey(key, ctrl, alt, shift, &action_state)) {
                     break;
                 }
 
-                if (handle_history_hotkey(key, ctrl, alt, shift, window, &layers,
-                                          undo_stack, &undo_count, redo_stack, &redo_count,
-                                          tool, brush_shape, brush_radius, brush_color,
-                                          brush_opacity, &needs_composite)) {
+                if (handle_history_hotkey(key, ctrl, alt, shift, &action_state)) {
                     break;
                 }
 
-                if (handle_indexed_layer_silent_hotkey(key, ctrl, alt, shift, window, &layers,
-                                                       undo_stack, &undo_count, redo_stack, &redo_count,
-                                                       tool, brush_shape, brush_radius, brush_color,
-                                                       brush_opacity, &needs_composite)) {
+                if (handle_indexed_layer_silent_hotkey(key, ctrl, alt, shift, &action_state)) {
                     break;
                 }
 
@@ -2173,10 +2172,7 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (handle_reveal_hotkey(key, ctrl, alt, shift, window, &layers,
-                                         undo_stack, &undo_count, redo_stack, &redo_count,
-                                         tool, brush_shape, brush_radius, brush_color,
-                                         brush_opacity, &needs_composite)) {
+                if (handle_reveal_hotkey(key, ctrl, alt, shift, &action_state)) {
                     break;
                 }
 
@@ -2184,9 +2180,7 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (handle_translation_hotkey(key, ctrl, alt, shift, &layers,
-                                              undo_stack, &undo_count, redo_stack, &redo_count,
-                                              &needs_composite)) {
+                if (handle_translation_hotkey(key, ctrl, alt, shift, &action_state)) {
                     break;
                 }
 
