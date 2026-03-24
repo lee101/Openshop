@@ -253,18 +253,6 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
     SDL_SetWindowTitle(window, title);
 }
 
-static void refresh_app_title(
-    SDL_Window *window,
-    const LayerStack *layers,
-    Tool tool,
-    BrushShape brush_shape,
-    int brush_radius,
-    uint32_t brush_color,
-    int brush_opacity
-) {
-    update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
-}
-
 static int refresh_after_shortcut(
     int handled,
     SDL_Window *window,
@@ -279,7 +267,7 @@ static int refresh_after_shortcut(
         return 0;
     }
 
-    refresh_app_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+    update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
     return 1;
 }
 
@@ -1418,7 +1406,7 @@ static void handle_mouse_button_down(
 
         sample = (*preview_active && preview_canvas_mut->pixels) ? preview_canvas_mut : composite;
         app_apply_sampled_brush_color(canvas_get_pixel(sample, button.x, button.y), tool, brush_color, brush_color_rgb, brush_opacity);
-        refresh_app_title(window, layers, *tool, brush_shape, brush_radius, *brush_color, *brush_opacity);
+        update_window_title(window, layers, *tool, brush_shape, brush_radius, *brush_color, *brush_opacity);
     }
 }
 
@@ -1739,7 +1727,7 @@ static void handle_key_down(
         return;
     }
 
-    refresh_app_title(window, layers, *tool, *brush_shape, *brush_radius, *brush_color, *brush_opacity);
+    update_window_title(window, layers, *tool, *brush_shape, *brush_radius, *brush_color, *brush_opacity);
 }
 
 static void draw_checkerboard_background(SDL_Renderer *renderer) {
@@ -2156,7 +2144,7 @@ int app_run(const char *input_path) {
     }
 
     initialize_app_runtime(&app.runtime);
-    refresh_app_title(app.window, &app.layers, app.runtime.tool, app.runtime.brush_shape, app.runtime.brush_radius, app.runtime.brush_color, app.runtime.brush_opacity);
+    update_window_title(app.window, &app.layers, app.runtime.tool, app.runtime.brush_shape, app.runtime.brush_radius, app.runtime.brush_color, app.runtime.brush_opacity);
     run_app_loop(&app);
     shutdown_app(&app);
     return 0;
