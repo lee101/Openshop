@@ -1592,6 +1592,26 @@ static int expect_brush_mask(const char *label, BrushShape shape, int x, int y, 
     return 1;
 }
 
+typedef struct {
+    const char *label;
+    BrushShape shape;
+    int x;
+    int y;
+    int radius;
+    int want;
+} BrushMaskCase;
+
+static int run_brush_mask_case(const BrushMaskCase *test_case) {
+    return expect_brush_mask(
+        test_case->label,
+        test_case->shape,
+        test_case->x,
+        test_case->y,
+        test_case->radius,
+        test_case->want
+    );
+}
+
 static int expect_sampled_brush_color(
     const char *label,
     unsigned int sampled_color,
@@ -3726,19 +3746,28 @@ int main(void) {
             ok = ok && run_handle_shape_preview_key_case(&preview_key_cases[i]);
         }
     }
-    ok = ok && expect_brush_mask("brush_mask_round_inside", BRUSH_SHAPE_ROUND, 1, 1, 2, 1);
-    ok = ok && expect_brush_mask("brush_mask_round_edge", BRUSH_SHAPE_ROUND, 2, 0, 2, 1);
-    ok = ok && expect_brush_mask("brush_mask_round_outside", BRUSH_SHAPE_ROUND, 2, 1, 2, 0);
-    ok = ok && expect_brush_mask("brush_mask_round_negative_symmetry", BRUSH_SHAPE_ROUND, -1, -1, 2, 1);
-    ok = ok && expect_brush_mask("brush_mask_round_zero_radius", BRUSH_SHAPE_ROUND, 0, 0, 0, 1);
-    ok = ok && expect_brush_mask("brush_mask_square_corner", BRUSH_SHAPE_SQUARE, 2, 2, 2, 1);
-    ok = ok && expect_brush_mask("brush_mask_square_zero_radius", BRUSH_SHAPE_SQUARE, 0, 0, 0, 1);
-    ok = ok && expect_brush_mask("brush_mask_square_negative_symmetry", BRUSH_SHAPE_SQUARE, -2, -2, 2, 1);
-    ok = ok && expect_brush_mask("brush_mask_diamond_edge", BRUSH_SHAPE_DIAMOND, 2, 0, 2, 1);
-    ok = ok && expect_brush_mask("brush_mask_diamond_outside", BRUSH_SHAPE_DIAMOND, 2, 1, 2, 0);
-    ok = ok && expect_brush_mask("brush_mask_diamond_zero_radius", BRUSH_SHAPE_DIAMOND, 0, 0, 0, 1);
-    ok = ok && expect_brush_mask("brush_mask_diamond_negative_symmetry", BRUSH_SHAPE_DIAMOND, -1, -1, 2, 1);
-    ok = ok && expect_brush_mask("brush_mask_default", (BrushShape)999, 0, 0, 2, 0);
+    {
+        const BrushMaskCase brush_mask_cases[] = {
+            {"brush_mask_round_inside", BRUSH_SHAPE_ROUND, 1, 1, 2, 1},
+            {"brush_mask_round_edge", BRUSH_SHAPE_ROUND, 2, 0, 2, 1},
+            {"brush_mask_round_outside", BRUSH_SHAPE_ROUND, 2, 1, 2, 0},
+            {"brush_mask_round_negative_symmetry", BRUSH_SHAPE_ROUND, -1, -1, 2, 1},
+            {"brush_mask_round_zero_radius", BRUSH_SHAPE_ROUND, 0, 0, 0, 1},
+            {"brush_mask_square_corner", BRUSH_SHAPE_SQUARE, 2, 2, 2, 1},
+            {"brush_mask_square_zero_radius", BRUSH_SHAPE_SQUARE, 0, 0, 0, 1},
+            {"brush_mask_square_negative_symmetry", BRUSH_SHAPE_SQUARE, -2, -2, 2, 1},
+            {"brush_mask_diamond_edge", BRUSH_SHAPE_DIAMOND, 2, 0, 2, 1},
+            {"brush_mask_diamond_outside", BRUSH_SHAPE_DIAMOND, 2, 1, 2, 0},
+            {"brush_mask_diamond_zero_radius", BRUSH_SHAPE_DIAMOND, 0, 0, 0, 1},
+            {"brush_mask_diamond_negative_symmetry", BRUSH_SHAPE_DIAMOND, -1, -1, 2, 1},
+            {"brush_mask_default", (BrushShape)999, 0, 0, 2, 0},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(brush_mask_cases) / sizeof(brush_mask_cases[0]); i++) {
+            ok = ok && run_brush_mask_case(&brush_mask_cases[i]);
+        }
+    }
     {
         const SampledBrushColorCase sampled_cases[] = {
             {
