@@ -2154,6 +2154,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_isolate(&stack, 1)) {
+        fprintf(stderr, "redundant isolate should no-op\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_show_all(&stack)) {
         fprintf(stderr, "restore layers after isolate failed\n");
         canvas_free(&composite);
