@@ -1282,6 +1282,20 @@ static int test_active_layer_ops_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    {
+        int undo_before = undo_count;
+        int redo_before = redo_count;
+        if (active_layer_try_flood_fill(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                        1, 1, 0xFFABC123, 4) ||
+            !expect_pixel_eq("active_fill_same_color", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFFABC123) ||
+            undo_count != undo_before || redo_count != redo_before) {
+            fprintf(stderr, "active_layer_try_flood_fill same-color no-op failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
     canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFF010101);
     if (active_layer_try_flood_fill(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
                                     1, 1, 0xFFABC123, 0) ||

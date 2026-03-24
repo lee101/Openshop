@@ -125,6 +125,9 @@ int active_layer_try_flood_fill(LayerStack *layers,
     if (x < 0 || y < 0 || x >= active->canvas.width || y >= active->canvas.height) {
         return 0;
     }
+    if (canvas_get_pixel(&active->canvas, x, y) == brush_color) {
+        return 0;
+    }
 
     snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
     return canvas_flood_fill(&active->canvas, x, y, brush_color);
