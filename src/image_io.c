@@ -3,9 +3,12 @@
 #include <SDL2/SDL.h>
 #include <string.h>
 
-int canvas_load_bmp(Canvas *c, const char *path, uint32_t background_color) {
+int canvas_load_bmp_with_result(Canvas *c, const char *path, uint32_t background_color, int *changed) {
     int would_change = 0;
 
+    if (changed) {
+        *changed = 0;
+    }
     if (!path || !c) {
         return 0;
     }
@@ -37,7 +40,7 @@ int canvas_load_bmp(Canvas *c, const char *path, uint32_t background_color) {
 
     if (!would_change) {
         SDL_FreeSurface(converted);
-        return 0;
+        return 1;
     }
 
     canvas_clear(c, background_color);
@@ -48,7 +51,19 @@ int canvas_load_bmp(Canvas *c, const char *path, uint32_t background_color) {
     }
 
     SDL_FreeSurface(converted);
+    if (changed) {
+        *changed = 1;
+    }
     return 1;
+}
+
+int canvas_load_bmp(Canvas *c, const char *path, uint32_t background_color) {
+    int changed = 0;
+
+    if (!canvas_load_bmp_with_result(c, path, background_color, &changed)) {
+        return 0;
+    }
+    return changed;
 }
 
 int canvas_save_bmp(const Canvas *c, const char *path) {

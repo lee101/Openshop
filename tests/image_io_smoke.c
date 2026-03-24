@@ -70,6 +70,19 @@ int main(void) {
     ok = ok && expect_pixel_eq("loaded_11", canvas_get_pixel(&dst, 1, 1), 0xFFAABBCC);
     ok = ok && expect_pixel_eq("cleared_extra_col", canvas_get_pixel(&dst, 3, 0), 0xFFFFFFFF);
     ok = ok && expect_pixel_eq("cleared_extra_row", canvas_get_pixel(&dst, 0, 2), 0xFFFFFFFF);
+    {
+        int changed = 1;
+        if (!canvas_load_bmp_with_result(&dst, "test-artifacts/image-io-roundtrip.bmp", 0xFFFFFFFF, &changed)) {
+            fprintf(stderr, "canvas_load_bmp_with_result no-op reload should succeed\n");
+            ok = 0;
+            goto cleanup;
+        }
+        if (changed) {
+            fprintf(stderr, "canvas_load_bmp_with_result no-op reload should report unchanged\n");
+            ok = 0;
+            goto cleanup;
+        }
+    }
     if (canvas_load_bmp(&dst, "test-artifacts/image-io-roundtrip.bmp", 0xFFFFFFFF)) {
         fprintf(stderr, "canvas_load_bmp no-op reload should return false\n");
         ok = 0;

@@ -219,6 +219,8 @@ static void try_save_canvas_to_output(const Canvas *save_canvas) {
 
 typedef struct {
     uint32_t clear_color;
+    int load_succeeded;
+    int load_changed;
 } LoadActiveLayerBmpContext;
 
 static int load_active_layer_bmp_action(LayerStack *layers, void *ctx) {
@@ -232,7 +234,9 @@ static int load_active_layer_bmp_action(LayerStack *layers, void *ctx) {
     if (!active) {
         return 0;
     }
-    return canvas_load_bmp(&active->canvas, "input.bmp", load_ctx->clear_color);
+    load_ctx->load_succeeded = canvas_load_bmp_with_result(&active->canvas, "input.bmp",
+                                                           load_ctx->clear_color, &load_ctx->load_changed);
+    return load_ctx->load_changed;
 }
 
 static int try_load_active_layer_bmp(LayerStack *layers,
@@ -246,9 +250,13 @@ static int try_load_active_layer_bmp(LayerStack *layers,
     }
 
     ctx.clear_color = active_layer_clear_color(layers, COLOR_BG);
+    ctx.load_succeeded = 0;
+    ctx.load_changed = 0;
     if (!layer_action_history_apply_custom(layers, undo_stack, undo_count, redo_stack, redo_count,
                                            MAX_HISTORY, load_active_layer_bmp_action, &ctx)) {
-        fprintf(stderr, "%s\n", status_text_action_error(STATUS_LOAD_INPUT_BMP));
+        if (!ctx.load_succeeded) {
+            fprintf(stderr, "%s\n", status_text_action_error(STATUS_LOAD_INPUT_BMP));
+        }
         return 0;
     }
     return 1;
@@ -1464,7 +1472,8 @@ int app_run(const char *input_path) {
 
     if (input_path && input_path[0]) {
         Layer *active = layer_stack_active(&layers);
-        if (active && !canvas_load_bmp(&active->canvas, input_path, COLOR_BG)) {
+        int load_changed = 0;
+        if (active && !canvas_load_bmp_with_result(&active->canvas, input_path, COLOR_BG, &load_changed)) {
             format_status_text_file_load(input_path, status_message, sizeof(status_message));
             fprintf(stderr, "%s\n", status_message);
         }
