@@ -405,6 +405,30 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_add(&stack, NULL, 0x00000000) != 2 || layer_stack_add(&stack, NULL, 0x00000000) != 3) {
+        fprintf(stderr, "setup auto-name reset compaction failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 2)) {
+        fprintf(stderr, "auto-name compaction delete failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_can_reset_name(&stack, 2) || !layer_stack_reset_name(&stack, 2) || strcmp(stack.layers[2].name, "Layer") != 0) {
+        fprintf(stderr, "auto-name compaction reset failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 2)) {
+        fprintf(stderr, "auto-name compaction cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_insert(&stack, 1, "Inserted Below", 0x00000000) != 1) {
         fprintf(stderr, "layer insert below failed\n");
         canvas_free(&composite);
@@ -425,6 +449,30 @@ static int test_layers_basic(void) {
     }
     if (!layer_stack_delete(&stack, 1) || stack.layer_count != 2) {
         fprintf(stderr, "layer insert below cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_insert(&stack, 1, "Custom Middle", 0x00000000) != 1 || layer_stack_insert(&stack, 2, "Custom Upper", 0x00000000) != 2) {
+        fprintf(stderr, "custom insert setup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 1) || !layer_stack_can_reset_all_names(&stack) || !layer_stack_reset_all_names(&stack)) {
+        fprintf(stderr, "custom insert reset-all failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || strcmp(stack.layers[1].name, "Layer") != 0) {
+        fprintf(stderr, "custom insert reset-all labels failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 1) || stack.layer_count != 2 || !layer_stack_rename(&stack, 1, "Top")) {
+        fprintf(stderr, "custom insert reset-all cleanup failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
