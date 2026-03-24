@@ -76,6 +76,15 @@ typedef struct {
     Canvas preview_canvas;
 } AppRuntime;
 
+typedef struct {
+    SDL_Window *window;
+    SDL_Renderer *renderer;
+    SDL_Texture *texture;
+    LayerStack layers;
+    Canvas composite;
+    AppRuntime runtime;
+} App;
+
 static int handle_history_navigation_shortcut(
     SDL_Keycode key,
     int ctrl,
@@ -1971,27 +1980,23 @@ static void destroy_app_graphics(
     }
 }
 
-static void shutdown_app(
-    AppRuntime *runtime,
-    Canvas *composite,
-    LayerStack *layers,
-    SDL_Texture *texture,
-    SDL_Renderer *renderer,
-    SDL_Window *window
-) {
-    if (runtime) {
-        free(runtime->shape_base_pixels);
-        free(runtime->preview_pixels);
-        snapshot_stack_clear(runtime->undo_stack, &runtime->undo_count);
-        snapshot_stack_clear(runtime->redo_stack, &runtime->redo_count);
+static void shutdown_app(App *app) {
+    if (!app) {
+        SDL_Quit();
+        return;
     }
-    if (composite) {
-        canvas_free(composite);
+
+    free(app->runtime.shape_base_pixels);
+    free(app->runtime.preview_pixels);
+    snapshot_stack_clear(app->runtime.undo_stack, &app->runtime.undo_count);
+    snapshot_stack_clear(app->runtime.redo_stack, &app->runtime.redo_count);
+    if (app->composite.pixels) {
+        canvas_free(&app->composite);
     }
-    if (layers) {
-        layer_stack_free(layers);
+    if (app->layers.layers) {
+        layer_stack_free(&app->layers);
     }
-    destroy_app_graphics(texture, renderer, window);
+    destroy_app_graphics(app->texture, app->renderer, app->window);
     SDL_Quit();
 }
 
@@ -2124,36 +2129,19 @@ static void initialize_app_runtime(AppRuntime *runtime) {
     runtime->preview_canvas.pixels = runtime->preview_pixels;
 }
 
-static int initialize_app(
-    SDL_Window **window_out,
-    SDL_Renderer **renderer_out,
-    SDL_Texture **texture_out,
-    LayerStack *layers_out,
-    Canvas *composite_out,
-    const char *input_path
-) {
-    if (!initialize_app_graphics(window_out, renderer_out, texture_out)) {
+static int initialize_app(App *app, const char *input_path) {
+    if (!app) {
         return 0;
     }
 
-    if (!initialize_app_document(layers_out, composite_out, input_path)) {
-        shutdown_app(
-            NULL,
-            NULL,
-            NULL,
-            *texture_out,
-            *renderer_out,
-            *window_out
-        );
-        if (window_out) {
-            *window_out = NULL;
-        }
-        if (renderer_out) {
-            *renderer_out = NULL;
-        }
-        if (texture_out) {
-            *texture_out = NULL;
-        }
+    *app = (App){0};
+
+    if (!initialize_app_graphics(&app->window, &app->renderer, &app->texture)) {
+        return 0;
+    }
+
+    if (!initialize_app_document(&app->layers, &app->composite, input_path)) {
+        shutdown_app(app);
         return 0;
     }
 
@@ -2161,119 +2149,114 @@ static int initialize_app(
 }
 
 int app_run(const char *input_path) {
-    SDL_Window *window = NULL;
-    SDL_Renderer *renderer = NULL;
-    SDL_Texture *texture = NULL;
-    LayerStack layers = {0};
-    Canvas composite = {0};
-    AppRuntime runtime = {0};
+    App app = {0};
 
-    if (!initialize_app(&window, &renderer, &texture, &layers, &composite, input_path)) {
+    if (!initialize_app(&app, input_path)) {
         return 1;
     }
 
-    initialize_app_runtime(&runtime);
-    refresh_app_title(window, &layers, runtime.tool, runtime.brush_shape, runtime.brush_radius, runtime.brush_color, runtime.brush_opacity);
+    initialize_app_runtime(&app.runtime);
+    refresh_app_title(app.window, &app.layers, app.runtime.tool, app.runtime.brush_shape, app.runtime.brush_radius, app.runtime.brush_color, app.runtime.brush_opacity);
 
-    while (runtime.running) {
+    while (app.runtime.running) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             switch (e.type) {
             case SDL_QUIT:
-                runtime.running = 0;
+                app.runtime.running = 0;
                 break;
             case SDL_MOUSEBUTTONDOWN:
                 handle_mouse_button_down(
                     e.button,
-                    &layers,
-                    &composite,
-                    &runtime.preview_canvas,
-                    &runtime.drawing,
-                    &runtime.last_x,
-                    &runtime.last_y,
-                    &runtime.tool,
-                    runtime.brush_shape,
-                    runtime.brush_radius,
-                    &runtime.brush_color,
-                    &runtime.brush_color_rgb,
-                    &runtime.brush_opacity,
-                    runtime.undo_stack,
-                    &runtime.undo_count,
-                    runtime.redo_stack,
-                    &runtime.redo_count,
-                    &runtime.shaping,
-                    &runtime.shape_start_x,
-                    &runtime.shape_start_y,
-                    runtime.shape_base_pixels,
-                    &runtime.preview_active,
-                    &runtime.preview_canvas,
-                    &runtime.needs_composite,
-                    window
+                    &app.layers,
+                    &app.composite,
+                    &app.runtime.preview_canvas,
+                    &app.runtime.drawing,
+                    &app.runtime.last_x,
+                    &app.runtime.last_y,
+                    &app.runtime.tool,
+                    app.runtime.brush_shape,
+                    app.runtime.brush_radius,
+                    &app.runtime.brush_color,
+                    &app.runtime.brush_color_rgb,
+                    &app.runtime.brush_opacity,
+                    app.runtime.undo_stack,
+                    &app.runtime.undo_count,
+                    app.runtime.redo_stack,
+                    &app.runtime.redo_count,
+                    &app.runtime.shaping,
+                    &app.runtime.shape_start_x,
+                    &app.runtime.shape_start_y,
+                    app.runtime.shape_base_pixels,
+                    &app.runtime.preview_active,
+                    &app.runtime.preview_canvas,
+                    &app.runtime.needs_composite,
+                    app.window
                 );
                 break;
             case SDL_MOUSEBUTTONUP:
                 handle_mouse_button_up(
                     e.button,
-                    &layers,
-                    &runtime.drawing,
-                    &runtime.shaping,
-                    &runtime.preview_active,
-                    runtime.shape_start_x,
-                    runtime.shape_start_y,
-                    runtime.tool,
-                    runtime.brush_radius,
-                    runtime.brush_color,
-                    runtime.undo_stack,
-                    &runtime.undo_count,
-                    runtime.redo_stack,
-                    &runtime.redo_count,
-                    &runtime.needs_composite
+                    &app.layers,
+                    &app.runtime.drawing,
+                    &app.runtime.shaping,
+                    &app.runtime.preview_active,
+                    app.runtime.shape_start_x,
+                    app.runtime.shape_start_y,
+                    app.runtime.tool,
+                    app.runtime.brush_radius,
+                    app.runtime.brush_color,
+                    app.runtime.undo_stack,
+                    &app.runtime.undo_count,
+                    app.runtime.redo_stack,
+                    &app.runtime.redo_count,
+                    &app.runtime.needs_composite
                 );
                 break;
             case SDL_MOUSEMOTION:
                 handle_canvas_motion(
                     e.motion.x,
                     e.motion.y,
-                    &runtime.drawing,
-                    &runtime.last_x,
-                    &runtime.last_y,
-                    &runtime.shaping,
-                    runtime.shape_start_x,
-                    runtime.shape_start_y,
-                    &layers,
-                    runtime.tool,
-                    runtime.brush_shape,
-                    runtime.brush_radius,
-                    runtime.brush_color,
-                    runtime.shape_base_pixels,
-                    runtime.preview_pixels,
-                    &runtime.preview_canvas,
-                    &runtime.preview_active,
-                    &runtime.needs_composite
+                    &app.runtime.drawing,
+                    &app.runtime.last_x,
+                    &app.runtime.last_y,
+                    &app.runtime.shaping,
+                    app.runtime.shape_start_x,
+                    app.runtime.shape_start_y,
+                    &app.layers,
+                    app.runtime.tool,
+                    app.runtime.brush_shape,
+                    app.runtime.brush_radius,
+                    app.runtime.brush_color,
+                    app.runtime.shape_base_pixels,
+                    app.runtime.preview_pixels,
+                    &app.runtime.preview_canvas,
+                    &app.runtime.preview_active,
+                    &app.runtime.needs_composite
                 );
                 break;
             case SDL_KEYDOWN:
                 handle_key_down(
                     e.key.keysym.sym,
-                    &layers,
-                    &composite,
-                    &runtime.preview_canvas,
-                    runtime.preview_active,
-                    runtime.undo_stack,
-                    &runtime.undo_count,
-                    runtime.redo_stack,
-                    &runtime.redo_count,
-                    &runtime.tool,
-                    &runtime.brush_shape,
-                    &runtime.brush_radius,
-                    &runtime.brush_color,
-                    &runtime.brush_color_rgb,
-                    &runtime.brush_opacity,
-                    &runtime.shaping,
-                    &runtime.preview_active,
-                    &runtime.running,
-                    &runtime.needs_composite,
-                    window
+                    &app.layers,
+                    &app.composite,
+                    &app.runtime.preview_canvas,
+                    app.runtime.preview_active,
+                    app.runtime.undo_stack,
+                    &app.runtime.undo_count,
+                    app.runtime.redo_stack,
+                    &app.runtime.redo_count,
+                    &app.runtime.tool,
+                    &app.runtime.brush_shape,
+                    &app.runtime.brush_radius,
+                    &app.runtime.brush_color,
+                    &app.runtime.brush_color_rgb,
+                    &app.runtime.brush_opacity,
+                    &app.runtime.shaping,
+                    &app.runtime.preview_active,
+                    &app.runtime.running,
+                    &app.runtime.needs_composite,
+                    app.window
                 );
                 break;
             default:
@@ -2282,24 +2265,17 @@ int app_run(const char *input_path) {
         }
 
         render_app_frame(
-            renderer,
-            texture,
-            &layers,
-            &composite,
-            &runtime.preview_canvas,
-            runtime.preview_active,
-            &runtime.needs_composite
+            app.renderer,
+            app.texture,
+            &app.layers,
+            &app.composite,
+            &app.runtime.preview_canvas,
+            app.runtime.preview_active,
+            &app.runtime.needs_composite
         );
         SDL_Delay(16);
     }
 
-    shutdown_app(
-        &runtime,
-        &composite,
-        &layers,
-        texture,
-        renderer,
-        window
-    );
+    shutdown_app(&app);
     return 0;
 }
