@@ -537,6 +537,25 @@ static int try_select_layer_index(LayerStack *layers, int target) {
     return 1;
 }
 
+static int try_nudge_active_layer_opacity(LayerStack *layers,
+                                          Snapshot *undo_stack, int *undo_count,
+                                          Snapshot *redo_stack, int *redo_count,
+                                          int delta_percent) {
+    Layer *active;
+
+    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count) {
+        return 0;
+    }
+
+    active = layer_stack_active(layers);
+    if (!active) {
+        return 0;
+    }
+
+    return try_adjust_active_layer_opacity(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                           active->opacity_percent + delta_percent);
+}
+
 static int try_restore_snapshot(LayerStack *layers,
                                 Snapshot *source_stack, int *source_count,
                                 Snapshot *target_stack, int *target_count) {
@@ -1096,6 +1115,40 @@ static int handle_reveal_hotkey(SDL_Keycode key,
     }
 
     return 0;
+}
+
+static int handle_layer_opacity_hotkey(SDL_Keycode key,
+                                       int ctrl, int alt, int shift,
+                                       SDL_Window *window,
+                                       LayerStack *layers,
+                                       Snapshot *undo_stack, int *undo_count,
+                                       Snapshot *redo_stack, int *redo_count,
+                                       Tool tool, BrushShape brush_shape,
+                                       int brush_radius, uint32_t brush_color,
+                                       int brush_opacity, int *needs_composite) {
+    int changed = 0;
+
+    if (!ctrl || alt || shift || !window || !layers || !undo_stack || !undo_count ||
+        !redo_stack || !redo_count || !needs_composite) {
+        return 0;
+    }
+
+    if (key == SDLK_0) {
+        changed = try_adjust_active_layer_opacity(layers, undo_stack, undo_count, redo_stack, redo_count, 100);
+    } else if (key == SDLK_MINUS || key == SDLK_KP_MINUS) {
+        changed = try_nudge_active_layer_opacity(layers, undo_stack, undo_count, redo_stack, redo_count, -10);
+    } else if (key == SDLK_EQUALS || key == SDLK_KP_PLUS) {
+        changed = try_nudge_active_layer_opacity(layers, undo_stack, undo_count, redo_stack, redo_count, 10);
+    } else {
+        return 0;
+    }
+
+    if (refresh_title_on_change(window, layers, tool, brush_shape, brush_radius, brush_color,
+                                brush_opacity, changed)) {
+        *needs_composite = 1;
+    }
+
+    return 1;
 }
 
 static int handle_right_click_sample(SDL_Window *window,
@@ -1749,29 +1802,10 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (ctrl && (key == SDLK_MINUS || key == SDLK_KP_MINUS)) {
-                    Layer *active = layer_stack_active(&layers);
-                    if (refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
-                                                brush_opacity,
-                                                active && try_adjust_active_layer_opacity(&layers, undo_stack,
-                                                                                          &undo_count, redo_stack,
-                                                                                          &redo_count,
-                                                                                          active->opacity_percent - 10))) {
-                        needs_composite = 1;
-                    }
-                    break;
-                }
-
-                if (ctrl && (key == SDLK_EQUALS || key == SDLK_KP_PLUS)) {
-                    Layer *active = layer_stack_active(&layers);
-                    if (refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
-                                                brush_opacity,
-                                                active && try_adjust_active_layer_opacity(&layers, undo_stack,
-                                                                                          &undo_count, redo_stack,
-                                                                                          &redo_count,
-                                                                                          active->opacity_percent + 10))) {
-                        needs_composite = 1;
-                    }
+                if (handle_layer_opacity_hotkey(key, ctrl, alt, shift, window, &layers,
+                                                undo_stack, &undo_count, redo_stack, &redo_count,
+                                                tool, brush_shape, brush_radius, brush_color,
+                                                brush_opacity, &needs_composite)) {
                     break;
                 }
 
@@ -1867,16 +1901,6 @@ int app_run(const char *input_path) {
                 if (ctrl && key >= SDLK_1 && key <= SDLK_8) {
                     refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
                                             brush_opacity, try_select_layer_index(&layers, (int)(key - SDLK_1)));
-                    break;
-                }
-
-                if (ctrl && key == SDLK_0) {
-                    if (refresh_title_on_change(window, &layers, tool, brush_shape, brush_radius, brush_color,
-                                                brush_opacity,
-                                                try_adjust_active_layer_opacity(&layers, undo_stack, &undo_count,
-                                                                                redo_stack, &redo_count, 100))) {
-                        needs_composite = 1;
-                    }
                     break;
                 }
 
