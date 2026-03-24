@@ -794,7 +794,8 @@ static int test_layer_history_commit_change_helper(void) {
         return 0;
     }
     if (noop_snapshot.pixels || noop_snapshot.width != 0 || noop_snapshot.height != 0 ||
-        noop_snapshot.layer_count != 0 || noop_snapshot.solo_index != -1) {
+        noop_snapshot.layer_count != 0 || noop_snapshot.solo_index != -1 ||
+        noop_snapshot.visibility[0] != 0 || noop_snapshot.names[0][0] != '\0') {
         fprintf(stderr, "history commit helper should reset noop snapshot ownership\n");
         layer_history_reset(&history);
         layer_stack_free(&stack);
@@ -854,7 +855,8 @@ static int test_layer_history_commit_change_helper(void) {
         return 0;
     }
     if (failed_snapshot.pixels || failed_snapshot.width != 0 || failed_snapshot.height != 0 ||
-        failed_snapshot.layer_count != 0 || failed_snapshot.solo_index != -1) {
+        failed_snapshot.layer_count != 0 || failed_snapshot.solo_index != -1 ||
+        failed_snapshot.visibility[0] != 0 || failed_snapshot.names[0][0] != '\0') {
         fprintf(stderr, "history commit helper should reset failed snapshot ownership\n");
         layer_history_reset(&history);
         layer_stack_free(&stack);

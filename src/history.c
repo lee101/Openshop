@@ -277,11 +277,11 @@ int layer_history_record_snapshot(LayerHistory *history, LayerSnapshot *snapshot
         return 0;
     }
     if (!history) {
-        layer_snapshot_free(snapshot);
+        layer_snapshot_reset(snapshot);
         return 0;
     }
     if (history->undo_count > 0 && layer_snapshot_equals(&history->undo[history->undo_count - 1], snapshot)) {
-        layer_snapshot_free(snapshot);
+        layer_snapshot_reset(snapshot);
         return 0;
     }
     history_push_existing(history->undo, &history->undo_count, snapshot);
@@ -295,11 +295,11 @@ int layer_history_commit_change(LayerHistory *history, LayerSnapshot *snapshot, 
         return 0;
     }
     if (!operation_succeeded || !layers || layer_snapshot_matches_stack(snapshot, layers)) {
-        layer_snapshot_free(snapshot);
+        layer_snapshot_reset(snapshot);
         return 0;
     }
     if (!history) {
-        layer_snapshot_free(snapshot);
+        layer_snapshot_reset(snapshot);
         return 0;
     }
     if (!layer_history_record_snapshot(history, snapshot)) {
