@@ -478,6 +478,74 @@ static int handle_key_down_layer_shortcuts(
     return 0;
 }
 
+static int handle_key_down_file_and_view_shortcuts(
+    SDL_Keycode key,
+    int ctrl,
+    int shift,
+    LayerStack *layers,
+    Canvas *composite,
+    Canvas *preview_canvas,
+    int preview_active,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    Tool *tool,
+    BrushShape *brush_shape,
+    int *brush_radius,
+    uint32_t *brush_color,
+    uint32_t *brush_color_rgb,
+    int *brush_opacity,
+    int *needs_composite,
+    SDL_Window *window
+) {
+    if (handle_file_shortcut(
+            key,
+            ctrl,
+            layers,
+            composite,
+            preview_canvas,
+            preview_active,
+            undo_stack,
+            undo_count,
+            redo_stack,
+            redo_count,
+            needs_composite)) {
+        return 1;
+    }
+
+    if (refresh_after_shortcut(
+            handle_view_and_canvas_shortcut(
+                key,
+                shift,
+                layers,
+                composite,
+                preview_canvas,
+                preview_active,
+                undo_stack,
+                undo_count,
+                redo_stack,
+                redo_count,
+                tool,
+                brush_shape,
+                brush_radius,
+                brush_color,
+                brush_color_rgb,
+                brush_opacity,
+                needs_composite),
+            window,
+            layers,
+            *tool,
+            *brush_shape,
+            *brush_radius,
+            *brush_color,
+            *brush_opacity)) {
+        return 1;
+    }
+
+    return 0;
+}
+
 static AppShapeCancelKey app_shape_cancel_key_from_sdl(SDL_Keycode key) {
     switch (key) {
     case SDLK_ESCAPE: return APP_SHAPE_CANCEL_KEY_ESCAPE;
@@ -1566,9 +1634,10 @@ static void handle_key_down(
         return;
     }
 
-    if (handle_file_shortcut(
+    if (handle_key_down_file_and_view_shortcuts(
             key,
             ctrl,
+            shift,
             layers,
             composite,
             preview_canvas,
@@ -1577,36 +1646,14 @@ static void handle_key_down(
             undo_count,
             redo_stack,
             redo_count,
-            needs_composite)) {
-        return;
-    }
-
-    if (refresh_after_shortcut(
-            handle_view_and_canvas_shortcut(
-                key,
-                shift,
-                layers,
-                composite,
-                preview_canvas,
-                preview_active,
-                undo_stack,
-                undo_count,
-                redo_stack,
-                redo_count,
-                tool,
-                brush_shape,
-                brush_radius,
-                brush_color,
-                brush_color_rgb,
-                brush_opacity,
-                needs_composite),
-            window,
-            layers,
-            *tool,
-            *brush_shape,
-            *brush_radius,
-            *brush_color,
-            *brush_opacity)) {
+            tool,
+            brush_shape,
+            brush_radius,
+            brush_color,
+            brush_color_rgb,
+            brush_opacity,
+            needs_composite,
+            window)) {
         return;
     }
 
