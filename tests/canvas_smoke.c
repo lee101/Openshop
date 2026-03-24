@@ -758,20 +758,25 @@ static int test_layer_selection_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (!layer_selection_try_select_index(&stack, 1) || stack.active_layer != 1) {
+    if (!layer_selection_try_select_index(&stack, 0) || stack.active_layer != 0) {
         fprintf(stderr, "layer_selection_try_select_index basic select failed\n");
         layer_stack_free(&stack);
         return 0;
     }
     if (layer_selection_try_select_index(&stack, -1) ||
         layer_selection_try_select_index(&stack, stack.layer_count) ||
-        stack.active_layer != 1) {
+        stack.active_layer != 0) {
         fprintf(stderr, "layer_selection_try_select_index bounds guard failed\n");
         layer_stack_free(&stack);
         return 0;
     }
     if (!layer_selection_try_select_index(&stack, 1) || stack.active_layer != 1) {
-        fprintf(stderr, "layer_selection_try_select_index same index failed\n");
+        fprintf(stderr, "layer_selection_try_select_index second select failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_selection_try_select_index(&stack, 1) || stack.active_layer != 1) {
+        fprintf(stderr, "layer_selection_try_select_index same index should be unchanged\n");
         layer_stack_free(&stack);
         return 0;
     }
