@@ -1,4 +1,5 @@
 #include "app.h"
+#include "app_title.h"
 #include "brush_shortcuts.h"
 #include "canvas.h"
 #include "canvas_shortcuts.h"
@@ -309,23 +310,21 @@ static void prepare_app_title(
     const char *layer_name = active && active->name[0] ? active->name : "Layer";
     int visible_layers = layer_stack_visible_count(layers);
 
-    snprintf(
+    app_title_format(
         title,
         title_size,
-        "Openshop - %s (%s) | size %d | brush %d%% | layer %d/%d %s [%s%s %d%%]%s | visible %d/%d | #%08X",
         tool_label(tool),
         brush_shape_label(brush_shape),
         radius,
         opacity_percent,
-        layers->active_layer + 1,
+        layers->active_layer,
         layers->layer_count,
         layer_name,
-        active && active->visible ? "visible" : "hidden",
-        active && active->locked ? ", locked" : "",
+        active && active->visible,
+        active && active->locked,
         active ? active->opacity_percent : 100,
-        (layers->solo_index == layers->active_layer) ? " [solo]" : "",
+        layers->solo_index == layers->active_layer,
         visible_layers,
-        layers->layer_count,
         color
     );
 }

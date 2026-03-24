@@ -1,3 +1,4 @@
+#include "../src/app_title.h"
 #include "../src/brush_shortcuts.h"
 #include "../src/canvas_shortcuts.h"
 #include "../src/direct_layer_shortcuts.h"
@@ -8,6 +9,7 @@
 #include "../src/paint_shortcuts.h"
 #include "../src/view_shortcuts.h"
 #include <stdio.h>
+#include <string.h>
 
 static int expect_shortcut(const char *label, int ctrl, int alt, int shift, LayerNameResetShortcut want) {
     LayerNameResetShortcut got = layer_name_reset_shortcut_from_modifiers(ctrl, alt, shift);
@@ -113,6 +115,50 @@ static int expect_view_result(
     return 1;
 }
 
+static int expect_title(
+    const char *label,
+    const char *tool_label,
+    const char *shape_label,
+    int radius,
+    int opacity_percent,
+    int active_layer_index,
+    int layer_count,
+    const char *layer_name,
+    int active_visible,
+    int active_locked,
+    int active_opacity_percent,
+    int active_is_solo,
+    int visible_layer_count,
+    unsigned int color,
+    const char *want
+) {
+    char title[256];
+
+    app_title_format(
+        title,
+        sizeof(title),
+        tool_label,
+        shape_label,
+        radius,
+        opacity_percent,
+        active_layer_index,
+        layer_count,
+        layer_name,
+        active_visible,
+        active_locked,
+        active_opacity_percent,
+        active_is_solo,
+        visible_layer_count,
+        color
+    );
+
+    if (strcmp(title, want) != 0) {
+        fprintf(stderr, "%s mismatch:\n got  %s\n want %s\n", label, title, want);
+        return 0;
+    }
+    return 1;
+}
+
 int main(void) {
     int ok = 1;
 
@@ -178,6 +224,40 @@ int main(void) {
     ok = ok && expect_view_result("left", VIEW_SHORTCUT_KEY_LEFT, 0, VIEW_SHORTCUT_TRANSLATE, 0, -1, 0);
     ok = ok && expect_view_result("right_shift", VIEW_SHORTCUT_KEY_RIGHT, 1, VIEW_SHORTCUT_TRANSLATE, 0, 10, 0);
     ok = ok && expect_view_result("view_none", VIEW_SHORTCUT_KEY_NONE, 0, VIEW_SHORTCUT_NONE, 0, 0, 0);
+    ok = ok && expect_title(
+        "title_visible_locked_solo",
+        "Brush",
+        "Round",
+        6,
+        100,
+        0,
+        3,
+        "Ink",
+        1,
+        1,
+        75,
+        1,
+        2,
+        0xFF1B1F24u,
+        "Openshop - Brush (Round) | size 6 | brush 100% | layer 1/3 Ink [visible, locked 75%] [solo] | visible 2/3 | #FF1B1F24"
+    );
+    ok = ok && expect_title(
+        "title_hidden_default_name",
+        "Line",
+        "Square",
+        12,
+        40,
+        2,
+        4,
+        "",
+        0,
+        0,
+        100,
+        0,
+        1,
+        0x80123456u,
+        "Openshop - Line (Square) | size 12 | brush 40% | layer 3/4 Layer [hidden 100%] | visible 1/4 | #80123456"
+    );
 
     if (!ok) {
         return 1;
