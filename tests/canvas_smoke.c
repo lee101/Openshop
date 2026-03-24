@@ -1264,6 +1264,21 @@ static int test_active_layer_ops_helpers(void) {
             return 0;
         }
     }
+    {
+        int undo_before = undo_count;
+        int redo_before = redo_count;
+        canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 0, 0xFF010203);
+        if (active_layer_try_commit_shape(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                          TOOL_ELLIPSE, 1, 1, 1, 3, 1, 0xFF998877, 4) ||
+            !expect_pixel_eq("active_commit_shape_degenerate_ellipse", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF010203) ||
+            undo_count != undo_before || redo_count != redo_before) {
+            fprintf(stderr, "active_layer_try_commit_shape degenerate ellipse no-op failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
     if (active_layer_try_adjust_opacity(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 10, 0) ||
         stack.layers[0].opacity_percent != 100) {
         fprintf(stderr, "active_layer_try_adjust_opacity history guard failed\n");

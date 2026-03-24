@@ -155,6 +155,10 @@ int active_layer_try_commit_shape(LayerStack *layers,
     if (!is_shape_tool) {
         return 0;
     }
+    if ((tool == TOOL_ELLIPSE || tool == TOOL_FILLED_ELLIPSE) &&
+        (shape_start_x == end_x || shape_start_y == end_y)) {
+        return 0;
+    }
     if (brush_radius <= 0 &&
         (tool == TOOL_LINE || tool == TOOL_RECT || tool == TOOL_ELLIPSE)) {
         return 0;
