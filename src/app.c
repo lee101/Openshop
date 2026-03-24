@@ -1044,13 +1044,13 @@ static int handle_file_hotkey(SDL_Keycode key,
     return 0;
 }
 
-static int handle_left_click_down(const MouseState *mouse_state, int x, int y) {
+static void handle_left_click_down(const MouseState *mouse_state, int x, int y) {
     if (!mouse_state || !mouse_state->layers || !mouse_state->undo_stack || !mouse_state->undo_count ||
         !mouse_state->redo_stack || !mouse_state->redo_count || !mouse_state->tool ||
         !mouse_state->brush_radius || !mouse_state->brush_color || !mouse_state->brush_shape ||
         !mouse_state->drawing || !mouse_state->needs_composite || !mouse_state->shaping ||
         !mouse_state->shape_start_x || !mouse_state->shape_start_y || !mouse_state->composite) {
-        return 0;
+        return;
     }
 
     if (*mouse_state->tool == TOOL_BRUSH || *mouse_state->tool == TOOL_ERASER) {
@@ -1063,39 +1063,37 @@ static int handle_left_click_down(const MouseState *mouse_state, int x, int y) {
             *mouse_state->drawing = 1;
             *mouse_state->needs_composite = 1;
         }
-        return 1;
+        return;
     }
 
     shape_preview_begin_if_editable(mouse_state->layers, x, y, mouse_state->composite,
                                     mouse_state->shape_base_pixels, mouse_state->shaping,
                                     mouse_state->shape_start_x, mouse_state->shape_start_y);
-
-    return 1;
 }
 
-static int handle_right_click_down(const MouseState *mouse_state, int x, int y) {
+static void handle_right_click_down(const MouseState *mouse_state, int x, int y) {
     if (!mouse_state || !mouse_state->window || !mouse_state->layers || !mouse_state->shaping ||
         !mouse_state->preview_active || !mouse_state->composite || !mouse_state->brush_color_rgb ||
         !mouse_state->brush_color || !mouse_state->brush_opacity || !mouse_state->brush_radius ||
         !mouse_state->brush_shape || !mouse_state->tool || !mouse_state->preview_canvas) {
-        return 0;
+        return;
     }
 
     if (*mouse_state->shaping) {
         shape_preview_cancel(mouse_state->shaping, mouse_state->preview_active);
-        return 1;
+        return;
     }
 
-    return handle_right_click_sample(mouse_state->window, mouse_state->layers,
-                                     current_display_canvas(*mouse_state->preview_active,
-                                                            mouse_state->preview_canvas,
-                                                            mouse_state->composite),
-                                     x, y, mouse_state->brush_color_rgb, mouse_state->brush_color,
-                                     mouse_state->brush_opacity, *mouse_state->brush_radius,
-                                     *mouse_state->brush_shape, mouse_state->tool);
+    (void)handle_right_click_sample(mouse_state->window, mouse_state->layers,
+                                    current_display_canvas(*mouse_state->preview_active,
+                                                           mouse_state->preview_canvas,
+                                                           mouse_state->composite),
+                                    x, y, mouse_state->brush_color_rgb, mouse_state->brush_color,
+                                    mouse_state->brush_opacity, *mouse_state->brush_radius,
+                                    *mouse_state->brush_shape, mouse_state->tool);
 }
 
-static int handle_mouse_button_down(const MouseState *mouse_state, Uint8 button, int x, int y) {
+static void handle_mouse_button_down(const MouseState *mouse_state, Uint8 button, int x, int y) {
     if (button == SDL_BUTTON_LEFT) {
         if (mouse_state->last_x) {
             *mouse_state->last_x = x;
@@ -1103,55 +1101,52 @@ static int handle_mouse_button_down(const MouseState *mouse_state, Uint8 button,
         if (mouse_state->last_y) {
             *mouse_state->last_y = y;
         }
-        return handle_left_click_down(mouse_state, x, y);
+        handle_left_click_down(mouse_state, x, y);
+        return;
     }
 
     if (button == SDL_BUTTON_RIGHT) {
-        return handle_right_click_down(mouse_state, x, y);
+        handle_right_click_down(mouse_state, x, y);
     }
-
-    return 0;
 }
 
-static int handle_mouse_button_up(const MouseState *mouse_state, Uint8 button, int x, int y) {
+static void handle_mouse_button_up(const MouseState *mouse_state, Uint8 button, int x, int y) {
     if (button == SDL_BUTTON_LEFT) {
         if (!mouse_state || !mouse_state->layers || !mouse_state->undo_stack || !mouse_state->undo_count ||
             !mouse_state->redo_stack || !mouse_state->redo_count || !mouse_state->tool ||
             !mouse_state->brush_radius || !mouse_state->brush_color || !mouse_state->drawing ||
             !mouse_state->needs_composite || !mouse_state->shaping || !mouse_state->shape_start_x ||
             !mouse_state->shape_start_y || !mouse_state->preview_active) {
-            return 0;
+            return;
         }
-        return handle_left_click_up(mouse_state->layers, mouse_state->undo_stack, mouse_state->undo_count,
-                                    mouse_state->redo_stack, mouse_state->redo_count,
-                                    *mouse_state->tool, x, y, *mouse_state->brush_radius, *mouse_state->brush_color,
-                                    mouse_state->drawing, mouse_state->needs_composite,
-                                    mouse_state->shaping, *mouse_state->shape_start_x, *mouse_state->shape_start_y,
-                                    mouse_state->preview_active);
+        handle_left_click_up(mouse_state->layers, mouse_state->undo_stack, mouse_state->undo_count,
+                             mouse_state->redo_stack, mouse_state->redo_count,
+                             *mouse_state->tool, x, y, *mouse_state->brush_radius, *mouse_state->brush_color,
+                             mouse_state->drawing, mouse_state->needs_composite,
+                             mouse_state->shaping, *mouse_state->shape_start_x, *mouse_state->shape_start_y,
+                             mouse_state->preview_active);
     }
-
-    return 0;
 }
 
-static int handle_shape_preview_motion(Tool tool,
-                                       int shape_start_x, int shape_start_y,
-                                       int x, int y,
-                                       int brush_radius, uint32_t brush_color,
-                                       uint32_t *shape_base_pixels,
-                                       Canvas *preview_canvas,
-                                       uint32_t *preview_pixels,
-                                       int *preview_active) {
+static void handle_shape_preview_motion(Tool tool,
+                                        int shape_start_x, int shape_start_y,
+                                        int x, int y,
+                                        int brush_radius, uint32_t brush_color,
+                                        uint32_t *shape_base_pixels,
+                                        Canvas *preview_canvas,
+                                        uint32_t *preview_pixels,
+                                        int *preview_active) {
     const Uint8 *state;
     int shift;
     int end_x = x;
     int end_y = y;
 
     if (!shape_base_pixels || !preview_canvas || !preview_canvas->pixels || !preview_pixels || !preview_active) {
-        return 0;
+        return;
     }
 
     if (x < 0 || y < 0 || x >= CANVAS_WIDTH || y >= CANVAS_HEIGHT) {
-        return 0;
+        return;
     }
 
     state = SDL_GetKeyboardState(NULL);
@@ -1161,7 +1156,6 @@ static int handle_shape_preview_motion(Tool tool,
            (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
     draw_shape(preview_canvas, tool, shape_start_x, shape_start_y, end_x, end_y, brush_radius, brush_color);
     *preview_active = 1;
-    return 1;
 }
 
 static int handle_left_click_up(LayerStack *layers,
@@ -1199,49 +1193,47 @@ static int handle_left_click_up(LayerStack *layers,
     return 1;
 }
 
-static int handle_drawing_motion(LayerStack *layers,
-                                 Tool tool, int x, int y,
-                                 int brush_radius, uint32_t brush_color,
-                                 BrushShape brush_shape,
-                                 int *last_x, int *last_y,
-                                 int *needs_composite) {
+static void handle_drawing_motion(LayerStack *layers,
+                                  Tool tool, int x, int y,
+                                  int brush_radius, uint32_t brush_color,
+                                  BrushShape brush_shape,
+                                  int *last_x, int *last_y,
+                                  int *needs_composite) {
     ActiveLayerActionResult result = ACTIVE_LAYER_ACTION_FAILED;
 
     if (!layers || !last_x || !last_y || !needs_composite) {
-        return 0;
+        return;
     }
     result = active_layer_continue_brush_stroke_with_result(layers, tool, x, y, brush_radius, brush_color,
                                                             brush_shape, last_x, last_y, COLOR_BG);
     if (result != ACTIVE_LAYER_ACTION_CHANGED) {
-        return 0;
+        return;
     }
     *needs_composite = 1;
-    return 1;
 }
 
-static int handle_mouse_motion(const MouseState *mouse_state, int x, int y) {
+static void handle_mouse_motion(const MouseState *mouse_state, int x, int y) {
     if (!mouse_state || !mouse_state->tool || !mouse_state->brush_radius || !mouse_state->brush_color ||
         !mouse_state->brush_shape || !mouse_state->drawing || !mouse_state->last_x || !mouse_state->last_y ||
         !mouse_state->shaping || !mouse_state->shape_start_x || !mouse_state->shape_start_y ||
         !mouse_state->preview_canvas || !mouse_state->preview_pixels || !mouse_state->preview_active ||
         !mouse_state->needs_composite) {
-        return 0;
+        return;
     }
 
     if (*mouse_state->drawing) {
-        return handle_drawing_motion(mouse_state->layers, *mouse_state->tool, x, y,
-                                     *mouse_state->brush_radius, *mouse_state->brush_color, *mouse_state->brush_shape,
-                                     mouse_state->last_x, mouse_state->last_y, mouse_state->needs_composite);
+        handle_drawing_motion(mouse_state->layers, *mouse_state->tool, x, y,
+                              *mouse_state->brush_radius, *mouse_state->brush_color, *mouse_state->brush_shape,
+                              mouse_state->last_x, mouse_state->last_y, mouse_state->needs_composite);
+        return;
     }
 
     if (*mouse_state->shaping) {
-        return handle_shape_preview_motion(*mouse_state->tool, *mouse_state->shape_start_x, *mouse_state->shape_start_y, x, y,
-                                           *mouse_state->brush_radius, *mouse_state->brush_color,
-                                           mouse_state->shape_base_pixels, mouse_state->preview_canvas,
-                                           mouse_state->preview_pixels, mouse_state->preview_active);
+        handle_shape_preview_motion(*mouse_state->tool, *mouse_state->shape_start_x, *mouse_state->shape_start_y, x, y,
+                                    *mouse_state->brush_radius, *mouse_state->brush_color,
+                                    mouse_state->shape_base_pixels, mouse_state->preview_canvas,
+                                    mouse_state->preview_pixels, mouse_state->preview_active);
     }
-
-    return 0;
 }
 
 static int handle_translation_hotkey(SDL_Keycode key,
