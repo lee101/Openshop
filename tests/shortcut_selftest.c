@@ -1,6 +1,8 @@
 #include "../src/direct_layer_shortcuts.h"
+#include "../src/file_shortcuts.h"
 #include "../src/history_shortcuts.h"
 #include "../src/layer_name_shortcuts.h"
+#include "../src/merge_shortcuts.h"
 #include <stdio.h>
 
 static int expect_shortcut(const char *label, int ctrl, int alt, int shift, LayerNameResetShortcut want) {
@@ -30,6 +32,24 @@ static int expect_history_action(const char *label, int ctrl, int key, HistorySh
     return 1;
 }
 
+static int expect_file_action(const char *label, int ctrl, int key, FileShortcutAction want) {
+    FileShortcutAction got = file_shortcut_action(ctrl, key);
+    if (got != want) {
+        fprintf(stderr, "%s mismatch: got %d want %d\n", label, got, want);
+        return 0;
+    }
+    return 1;
+}
+
+static int expect_merge_action(const char *label, int ctrl, int key, MergeShortcutAction want) {
+    MergeShortcutAction got = merge_shortcut_action(ctrl, key);
+    if (got != want) {
+        fprintf(stderr, "%s mismatch: got %d want %d\n", label, got, want);
+        return 0;
+    }
+    return 1;
+}
+
 int main(void) {
     int ok = 1;
 
@@ -50,6 +70,14 @@ int main(void) {
     ok = ok && expect_history_action("redo", 1, 'y', HISTORY_SHORTCUT_REDO);
     ok = ok && expect_history_action("missing_ctrl_history", 0, 'z', HISTORY_SHORTCUT_NONE);
     ok = ok && expect_history_action("other_key_history", 1, 'x', HISTORY_SHORTCUT_NONE);
+    ok = ok && expect_file_action("save", 1, 's', FILE_SHORTCUT_SAVE);
+    ok = ok && expect_file_action("load", 1, 'o', FILE_SHORTCUT_LOAD);
+    ok = ok && expect_file_action("missing_ctrl_file", 0, 's', FILE_SHORTCUT_NONE);
+    ok = ok && expect_file_action("other_key_file", 1, 'p', FILE_SHORTCUT_NONE);
+    ok = ok && expect_merge_action("merge_down", 1, 'm', MERGE_SHORTCUT_DOWN);
+    ok = ok && expect_merge_action("merge_up", 1, 'u', MERGE_SHORTCUT_UP);
+    ok = ok && expect_merge_action("missing_ctrl_merge", 0, 'm', MERGE_SHORTCUT_NONE);
+    ok = ok && expect_merge_action("other_key_merge", 1, 'q', MERGE_SHORTCUT_NONE);
 
     if (!ok) {
         return 1;

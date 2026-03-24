@@ -1,11 +1,13 @@
 #include "app.h"
 #include "canvas.h"
 #include "direct_layer_shortcuts.h"
+#include "file_shortcuts.h"
 #include "history_shortcuts.h"
 #include "history_state.h"
 #include "image_io.h"
 #include "layer_name_shortcuts.h"
 #include "layers.h"
+#include "merge_shortcuts.h"
 
 #include <SDL2/SDL.h>
 #include <stdio.h>
@@ -726,6 +728,7 @@ static int handle_file_shortcut(
     int *redo_count,
     int *needs_composite
 ) {
+    FileShortcutAction action;
     Layer *active = NULL;
     const Canvas *save_canvas = NULL;
 
@@ -733,7 +736,9 @@ static int handle_file_shortcut(
         return 0;
     }
 
-    if (key == SDLK_s) {
+    action = file_shortcut_action(ctrl, (int)key);
+
+    if (action == FILE_SHORTCUT_SAVE) {
         save_canvas = (preview_active && preview_canvas && preview_canvas->pixels) ? preview_canvas : composite;
         if (!canvas_save_bmp(save_canvas, "output.bmp")) {
             fprintf(stderr, "Failed to save output.bmp\n");
@@ -741,7 +746,7 @@ static int handle_file_shortcut(
         return 1;
     }
 
-    if (key == SDLK_o) {
+    if (action == FILE_SHORTCUT_LOAD) {
         active = layer_stack_active(layers);
         if (!active || active->locked) {
             fprintf(stderr, "Active layer is locked\n");
@@ -769,11 +774,15 @@ static int handle_merge_shortcut(
     int *redo_count,
     int *needs_composite
 ) {
+    MergeShortcutAction action;
+
     if (!ctrl || !layers) {
         return 0;
     }
 
-    if (key == SDLK_m) {
+    action = merge_shortcut_action(ctrl, (int)key);
+
+    if (action == MERGE_SHORTCUT_DOWN) {
         if (!layer_stack_can_merge_down(layers, layers->active_layer)) {
             fprintf(stderr, "No lower layer to merge into, or one of the layers is locked\n");
         } else {
@@ -786,7 +795,7 @@ static int handle_merge_shortcut(
         return 1;
     }
 
-    if (key == SDLK_u) {
+    if (action == MERGE_SHORTCUT_UP) {
         if (!layer_stack_can_merge_up(layers, layers->active_layer)) {
             fprintf(stderr, "No upper layer to merge into, or one of the layers is locked\n");
         } else {
