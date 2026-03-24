@@ -258,6 +258,24 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_select_visible_rank(&stack, 0) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "select first visible layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_visible_rank(&stack, 1) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "select second visible layer should skip hidden layers\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_visible_rank(&stack, 2) != -1) {
+        fprintf(stderr, "visible rank selection should fail beyond visible range\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_delete(&stack, 3) || !layer_stack_delete(&stack, 2)) {
         fprintf(stderr, "visible cycling cleanup failed\n");
         canvas_free(&composite);

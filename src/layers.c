@@ -246,6 +246,24 @@ int layer_stack_select_bottom_visible(LayerStack *stack) {
     return layer_stack_select_edge(stack, 0, 1);
 }
 
+int layer_stack_select_visible_rank(LayerStack *stack, int rank) {
+    if (!stack || rank < 0) {
+        return -1;
+    }
+    int visible_rank = 0;
+    for (int idx = 0; idx < stack->layer_count; idx++) {
+        if (!stack->layers[idx].visible) {
+            continue;
+        }
+        if (visible_rank == rank) {
+            stack->active_layer = idx;
+            return idx;
+        }
+        visible_rank++;
+    }
+    return -1;
+}
+
 int layer_stack_toggle_solo(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;

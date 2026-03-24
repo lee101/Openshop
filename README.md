@@ -56,6 +56,7 @@ make test-sdl
 - `Ctrl+Shift+N`: add a new transparent layer
 - `Ctrl+1` ... `Ctrl+8`: select layer 1-8 directly
 - `Ctrl+Shift+1` ... `Ctrl+Shift+8`: move the active layer to slot 1-8
+- `Alt+1` ... `Alt+8`: select the 1st-8th visible layer
 - `Ctrl+D`: duplicate active layer
 - `Delete` / `Backspace`: delete active layer
 - `Ctrl+]` / `Ctrl+[`: move active layer up/down
