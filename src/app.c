@@ -1950,6 +1950,31 @@ static void present_canvas_texture(SDL_Renderer *renderer, SDL_Texture *texture)
     SDL_RenderPresent(renderer);
 }
 
+static void update_canvas_texture(
+    SDL_Texture *texture,
+    const Canvas *composite,
+    const Canvas *preview_canvas,
+    int preview_active
+) {
+    const uint32_t *pixels = NULL;
+
+    if (!texture || !composite) {
+        return;
+    }
+
+    if (preview_active && preview_canvas && preview_canvas->pixels) {
+        pixels = preview_canvas->pixels;
+    } else {
+        pixels = composite->pixels;
+    }
+
+    if (!pixels) {
+        return;
+    }
+
+    SDL_UpdateTexture(texture, NULL, pixels, CANVAS_WIDTH * 4);
+}
+
 static void render_app_frame(
     SDL_Renderer *renderer,
     SDL_Texture *texture,
@@ -1968,11 +1993,7 @@ static void render_app_frame(
         *needs_composite = 0;
     }
 
-    if (preview_active && preview_canvas->pixels) {
-        SDL_UpdateTexture(texture, NULL, preview_canvas->pixels, CANVAS_WIDTH * 4);
-    } else {
-        SDL_UpdateTexture(texture, NULL, composite->pixels, CANVAS_WIDTH * 4);
-    }
+    update_canvas_texture(texture, composite, preview_canvas, preview_active);
     SDL_SetRenderDrawColor(renderer, 30, 30, 34, 255);
     SDL_RenderClear(renderer);
     draw_checkerboard_background(renderer);
