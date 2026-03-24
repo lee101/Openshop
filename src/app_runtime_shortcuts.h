@@ -2,10 +2,12 @@
 #define APP_RUNTIME_SHORTCUTS_H
 
 #include "app_brush.h"
+#include "brush_shortcuts.h"
 #include "canvas_shortcuts.h"
 #include "history_shortcuts.h"
 #include "history_state.h"
 #include "layers.h"
+#include "paint_shortcuts.h"
 #include "view_shortcuts.h"
 #include <stdint.h>
 
@@ -30,6 +32,17 @@ int app_handle_canvas_mutation_shortcut(
     Snapshot *redo_stack,
     int *redo_count,
     int *needs_composite
+);
+
+int app_handle_brush_and_paint_shortcut(
+    PaintShortcutAction paint_action,
+    BrushShortcutAction brush_action,
+    Tool *tool,
+    BrushShape *brush_shape,
+    int *brush_radius,
+    uint32_t *brush_color,
+    uint32_t *brush_color_rgb,
+    int *brush_opacity
 );
 
 int app_handle_canvas_sample_shortcut_at(

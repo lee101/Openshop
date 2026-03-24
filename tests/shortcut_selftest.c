@@ -1545,6 +1545,109 @@ static int run_canvas_mutation_shortcut_case(const CanvasMutationShortcutCase *t
     );
 }
 
+static int expect_brush_and_paint_shortcut_runtime(
+    const char *label,
+    PaintShortcutAction paint_action,
+    BrushShortcutAction brush_action,
+    Tool initial_tool,
+    BrushShape initial_brush_shape,
+    int initial_brush_radius,
+    uint32_t initial_brush_color,
+    uint32_t initial_brush_color_rgb,
+    int initial_brush_opacity,
+    int want_handled,
+    Tool want_tool,
+    BrushShape want_brush_shape,
+    int want_brush_radius,
+    uint32_t want_brush_color,
+    uint32_t want_brush_color_rgb,
+    int want_brush_opacity
+) {
+    Tool tool = initial_tool;
+    BrushShape brush_shape = initial_brush_shape;
+    int brush_radius = initial_brush_radius;
+    uint32_t brush_color = initial_brush_color;
+    uint32_t brush_color_rgb = initial_brush_color_rgb;
+    int brush_opacity = initial_brush_opacity;
+    int handled = app_handle_brush_and_paint_shortcut(
+        paint_action,
+        brush_action,
+        &tool,
+        &brush_shape,
+        &brush_radius,
+        &brush_color,
+        &brush_color_rgb,
+        &brush_opacity
+    );
+
+    if (handled != want_handled) {
+        fprintf(stderr, "%s handled mismatch: got %d want %d\n", label, handled, want_handled);
+        return 0;
+    }
+    if (tool != want_tool || brush_shape != want_brush_shape || brush_radius != want_brush_radius ||
+        brush_color != want_brush_color || brush_color_rgb != want_brush_color_rgb || brush_opacity != want_brush_opacity) {
+        fprintf(
+            stderr,
+            "%s state mismatch: got {%d,%d,%d,0x%08X,0x%08X,%d} want {%d,%d,%d,0x%08X,0x%08X,%d}\n",
+            label,
+            tool,
+            brush_shape,
+            brush_radius,
+            brush_color,
+            brush_color_rgb,
+            brush_opacity,
+            want_tool,
+            want_brush_shape,
+            want_brush_radius,
+            want_brush_color,
+            want_brush_color_rgb,
+            want_brush_opacity
+        );
+        return 0;
+    }
+    return 1;
+}
+
+typedef struct {
+    const char *label;
+    PaintShortcutAction paint_action;
+    BrushShortcutAction brush_action;
+    Tool initial_tool;
+    BrushShape initial_brush_shape;
+    int initial_brush_radius;
+    uint32_t initial_brush_color;
+    uint32_t initial_brush_color_rgb;
+    int initial_brush_opacity;
+    int want_handled;
+    Tool want_tool;
+    BrushShape want_brush_shape;
+    int want_brush_radius;
+    uint32_t want_brush_color;
+    uint32_t want_brush_color_rgb;
+    int want_brush_opacity;
+} BrushAndPaintShortcutRuntimeCase;
+
+static int run_brush_and_paint_shortcut_runtime_case(const BrushAndPaintShortcutRuntimeCase *test_case) {
+    return expect_brush_and_paint_shortcut_runtime(
+        test_case->label,
+        test_case->paint_action,
+        test_case->brush_action,
+        test_case->initial_tool,
+        test_case->initial_brush_shape,
+        test_case->initial_brush_radius,
+        test_case->initial_brush_color,
+        test_case->initial_brush_color_rgb,
+        test_case->initial_brush_opacity,
+        test_case->want_handled,
+        test_case->want_tool,
+        test_case->want_brush_shape,
+        test_case->want_brush_radius,
+        test_case->want_brush_color,
+        test_case->want_brush_color_rgb,
+        test_case->want_brush_opacity
+    );
+}
+
 static int expect_canvas_sample_shortcut(
     const char *label,
     CanvasShortcutAction action,
@@ -4397,6 +4500,103 @@ int main(void) {
         }
     }
     {
+        const BrushAndPaintShortcutRuntimeCase brush_and_paint_cases[] = {
+            {
+                "runtime_shortcut_tool_brush",
+                PAINT_SHORTCUT_TOOL_BRUSH, BRUSH_SHORTCUT_NONE,
+                TOOL_LINE, BRUSH_SHAPE_ROUND, 5,
+                0xAA123456u, 0x00123456u, 75,
+                1,
+                TOOL_BRUSH, BRUSH_SHAPE_ROUND, 5,
+                app_compose_brush_color(0x001B1F24u, 75), 0x001B1F24u, 75,
+            },
+            {
+                "runtime_shortcut_tool_eraser",
+                PAINT_SHORTCUT_TOOL_ERASER, BRUSH_SHORTCUT_NONE,
+                TOOL_BRUSH, BRUSH_SHAPE_SQUARE, 4,
+                0x80112233u, 0x00112233u, 40,
+                1,
+                TOOL_ERASER, BRUSH_SHAPE_SQUARE, 4,
+                app_compose_brush_color(0x00FFFFFFu, 40), 0x00FFFFFFu, 40,
+            },
+            {
+                "runtime_shortcut_radius_clamps_down",
+                PAINT_SHORTCUT_NONE, BRUSH_SHORTCUT_RADIUS_DOWN,
+                TOOL_BRUSH, BRUSH_SHAPE_ROUND, 1,
+                0xAA123456u, 0x00123456u, 60,
+                1,
+                TOOL_BRUSH, BRUSH_SHAPE_ROUND, 1,
+                0xAA123456u, 0x00123456u, 60,
+            },
+            {
+                "runtime_shortcut_shape_next",
+                PAINT_SHORTCUT_NONE, BRUSH_SHORTCUT_SHAPE_NEXT,
+                TOOL_BRUSH, BRUSH_SHAPE_ROUND, 6,
+                0xAA123456u, 0x00123456u, 60,
+                1,
+                TOOL_BRUSH, BRUSH_SHAPE_SQUARE, 6,
+                0xAA123456u, 0x00123456u, 60,
+            },
+            {
+                "runtime_shortcut_opacity_up_clamps",
+                PAINT_SHORTCUT_NONE, BRUSH_SHORTCUT_OPACITY_UP,
+                TOOL_BRUSH, BRUSH_SHAPE_ROUND, 6,
+                app_compose_brush_color(0x00123456u, 98), 0x00123456u, 98,
+                1,
+                TOOL_BRUSH, BRUSH_SHAPE_ROUND, 6,
+                app_compose_brush_color(0x00123456u, 100), 0x00123456u, 100,
+            },
+            {
+                "runtime_shortcut_color_purple_sets_brush",
+                PAINT_SHORTCUT_COLOR_PURPLE, BRUSH_SHORTCUT_NONE,
+                TOOL_ERASER, BRUSH_SHAPE_DIAMOND, 3,
+                0xFF000000u, 0x00000000u, 55,
+                1,
+                TOOL_BRUSH, BRUSH_SHAPE_DIAMOND, 3,
+                app_compose_brush_color(0x008E24AAu, 55), 0x008E24AAu, 55,
+            },
+            {
+                "runtime_shortcut_none_noop",
+                PAINT_SHORTCUT_NONE, BRUSH_SHORTCUT_NONE,
+                TOOL_RECT, BRUSH_SHAPE_DIAMOND, 7,
+                0xAA123456u, 0x00123456u, 65,
+                0,
+                TOOL_RECT, BRUSH_SHAPE_DIAMOND, 7,
+                0xAA123456u, 0x00123456u, 65,
+            },
+        };
+        Tool tool = TOOL_BRUSH;
+        BrushShape brush_shape = BRUSH_SHAPE_ROUND;
+        int brush_radius = 2;
+        uint32_t brush_color = 0xAA123456u;
+        uint32_t brush_color_rgb = 0x00123456u;
+        int brush_opacity = 50;
+        size_t i;
+
+        for (i = 0; i < sizeof(brush_and_paint_cases) / sizeof(brush_and_paint_cases[0]); i++) {
+            ok = ok && run_brush_and_paint_shortcut_runtime_case(&brush_and_paint_cases[i]);
+        }
+
+        if (app_handle_brush_and_paint_shortcut(
+                PAINT_SHORTCUT_TOOL_BRUSH,
+                BRUSH_SHORTCUT_NONE,
+                NULL,
+                &brush_shape,
+                &brush_radius,
+                &brush_color,
+                &brush_color_rgb,
+                &brush_opacity
+            ) != 0) {
+            fprintf(stderr, "runtime_shortcut_null_tool should reject null tool pointer\n");
+            ok = 0;
+        }
+        if (tool != TOOL_BRUSH || brush_shape != BRUSH_SHAPE_ROUND || brush_radius != 2 ||
+            brush_color != 0xAA123456u || brush_color_rgb != 0x00123456u || brush_opacity != 50) {
+            fprintf(stderr, "runtime_shortcut_null_tool mutated state unexpectedly\n");
+            ok = 0;
+        }
+    }
+    {
         const CanvasMutationShortcutCase canvas_mutation_cases[] = {
             {
                 "canvas_mutation_clear_editable",
@@ -4443,6 +4643,105 @@ int main(void) {
 
         for (i = 0; i < sizeof(canvas_mutation_cases) / sizeof(canvas_mutation_cases[0]); i++) {
             ok = ok && run_canvas_mutation_shortcut_case(&canvas_mutation_cases[i]);
+        }
+    }
+    {
+        const BrushAndPaintShortcutRuntimeCase brush_and_paint_shortcut_cases[] = {
+            {
+                "brush_and_paint_tool_brush",
+                PAINT_SHORTCUT_TOOL_BRUSH,
+                BRUSH_SHORTCUT_NONE,
+                TOOL_RECT,
+                BRUSH_SHAPE_DIAMOND,
+                8,
+                0xAA556677u,
+                0x00556677u,
+                40,
+                1,
+                TOOL_BRUSH,
+                BRUSH_SHAPE_DIAMOND,
+                8,
+                0x661B1F24u,
+                0x001B1F24u,
+                40,
+            },
+            {
+                "brush_and_paint_radius_down_floor",
+                PAINT_SHORTCUT_NONE,
+                BRUSH_SHORTCUT_RADIUS_DOWN,
+                TOOL_BRUSH,
+                BRUSH_SHAPE_ROUND,
+                1,
+                0xFF112233u,
+                0x00112233u,
+                75,
+                1,
+                TOOL_BRUSH,
+                BRUSH_SHAPE_ROUND,
+                1,
+                0xFF112233u,
+                0x00112233u,
+                75,
+            },
+            {
+                "brush_and_paint_opacity_up_clamp",
+                PAINT_SHORTCUT_NONE,
+                BRUSH_SHORTCUT_OPACITY_UP,
+                TOOL_BRUSH,
+                BRUSH_SHAPE_SQUARE,
+                4,
+                0xF2112233u,
+                0x00112233u,
+                98,
+                1,
+                TOOL_BRUSH,
+                BRUSH_SHAPE_SQUARE,
+                4,
+                0xFF112233u,
+                0x00112233u,
+                100,
+            },
+            {
+                "brush_and_paint_color_purple",
+                PAINT_SHORTCUT_COLOR_PURPLE,
+                BRUSH_SHORTCUT_NONE,
+                TOOL_ERASER,
+                BRUSH_SHAPE_ROUND,
+                5,
+                0xAA112233u,
+                0x00112233u,
+                60,
+                1,
+                TOOL_BRUSH,
+                BRUSH_SHAPE_ROUND,
+                5,
+                0x998E24AAu,
+                0x008E24AAu,
+                60,
+            },
+            {
+                "brush_and_paint_none_noop",
+                PAINT_SHORTCUT_NONE,
+                BRUSH_SHORTCUT_NONE,
+                TOOL_LINE,
+                BRUSH_SHAPE_DIAMOND,
+                7,
+                0x80123456u,
+                0x00123456u,
+                50,
+                0,
+                TOOL_LINE,
+                BRUSH_SHAPE_DIAMOND,
+                7,
+                0x80123456u,
+                0x00123456u,
+                50,
+            },
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(brush_and_paint_shortcut_cases) / sizeof(brush_and_paint_shortcut_cases[0]); i++) {
+            ok = ok && run_brush_and_paint_shortcut_runtime_case(&brush_and_paint_shortcut_cases[i]);
         }
     }
     {
