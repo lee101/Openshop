@@ -48,14 +48,25 @@ make test-sdl
 - `Arrow Keys`: nudge the active layer by 1 pixel
 - `Shift` + `Arrow Keys`: nudge the active layer by 10 pixels
 - `PageUp / PageDown`: cycle active layer
+- `Shift` + `PageUp / PageDown`: cycle active visible layer only
+- `Home / End`: jump to the top/bottom layer
+- `Shift` + `Home / End`: jump to the top/bottom visible layer
 - `Ctrl+,`: insert a new transparent layer below the active layer
 - `Ctrl+N`: insert a new transparent layer above the active layer
 - `Ctrl+Shift+N`: add a new transparent layer
 - `Ctrl+1` ... `Ctrl+8`: select layer 1-8 directly
+- `Ctrl+Shift+1` ... `Ctrl+Shift+8`: move the active layer to slot 1-8
+- `Alt+1` ... `Alt+8`: select the 1st-8th visible layer
+- `Alt+Shift+1` ... `Alt+Shift+8`: move the active layer to the 1st-8th visible slot
 - `Ctrl+D`: duplicate active layer
 - `Delete` / `Backspace`: delete active layer
 - `Ctrl+]` / `Ctrl+[`: move active layer up/down
-- `Ctrl+- / Ctrl+=`: active layer opacity down/up
+- `Ctrl+Home / Ctrl+End`: move active layer to the top/bottom
+- `Ctrl+Shift+Home / Ctrl+Shift+End`: move the active visible layer to the top/bottom visible slot
+- `Ctrl+- / Ctrl+=`: active layer opacity down/up by 10%
+- `Ctrl+Shift+- / Ctrl+Shift+=`: active layer opacity down/up by 1%
+- `Ctrl+Shift+0`: set active layer opacity to 0%
+- `Ctrl+9`: set active layer opacity to 50%
 - `Ctrl+0`: reset active layer opacity to 100%
 - `Ctrl+A`: show all layers and clear solo mode
 - `Ctrl+Shift+R`: reveal the active layer without changing other visibility states
@@ -76,6 +87,9 @@ make test-sdl
 ## Notes
 - Canvas size is 800x600; window is 1024x768.
 - Layer stack starts with a white background layer; new layers are transparent.
+- Maximum of 16 layers are supported; direct digit shortcuts still target slots or visible ranks 1-8.
+- The window title shows both the absolute active layer slot and its visible rank; hidden active layers display as `hidden N/M visible`.
+- Visible-only shortcuts print a status message when the active layer is hidden or there is no other visible layer/slot to target.
 - Locked layers stay visible in the stack but reject paint, fill, clear, transform, load, merge, flatten, stamp, and delete operations.
 - Solo preview still renders the active layer even if that layer's normal visibility is off.
 - Transparent regions render over a checkerboard preview in the editor.

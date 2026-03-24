@@ -4,7 +4,7 @@
 #include "canvas.h"
 #include <stdint.h>
 
-#define MAX_LAYERS 8
+#define MAX_LAYERS 16
 #define LAYER_NAME_MAX 32
 
 typedef struct {
@@ -31,6 +31,13 @@ const Layer *layer_stack_get(const LayerStack *stack, int index);
 int layer_stack_add(LayerStack *stack, const char *name, uint32_t clear_color);
 int layer_stack_insert(LayerStack *stack, int index, const char *name, uint32_t clear_color);
 int layer_stack_cycle(LayerStack *stack, int direction);
+int layer_stack_cycle_visible(LayerStack *stack, int direction);
+int layer_stack_select_top(LayerStack *stack);
+int layer_stack_select_bottom(LayerStack *stack);
+int layer_stack_select_top_visible(LayerStack *stack);
+int layer_stack_select_bottom_visible(LayerStack *stack);
+int layer_stack_select_visible_rank(LayerStack *stack, int rank);
+int layer_stack_visible_rank(const LayerStack *stack, int index);
 int layer_stack_toggle_visibility(LayerStack *stack, int index);
 int layer_stack_toggle_lock(LayerStack *stack, int index);
 int layer_stack_show_all(LayerStack *stack);
@@ -40,9 +47,12 @@ int layer_stack_visible_count(const LayerStack *stack);
 void layer_stack_composite(const LayerStack *stack, Canvas *dest, uint32_t background_color);
 int layer_stack_clear_layer(LayerStack *stack, int index, uint32_t color);
 int layer_stack_set_opacity(LayerStack *stack, int index, int opacity_percent);
+int layer_stack_adjust_opacity(LayerStack *stack, int index, int delta_percent);
 int layer_stack_delete(LayerStack *stack, int index);
 int layer_stack_duplicate(LayerStack *stack, int index, const char *name);
 int layer_stack_move(LayerStack *stack, int index, int direction);
+int layer_stack_move_to(LayerStack *stack, int index, int target_index);
+int layer_stack_move_to_visible_rank(LayerStack *stack, int index, int rank);
 int layer_stack_merge_down(LayerStack *stack, int index);
 int layer_stack_merge_up(LayerStack *stack, int index);
 int layer_stack_flatten(LayerStack *stack, uint32_t background_color);

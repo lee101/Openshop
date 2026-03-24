@@ -179,6 +179,187 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_cycle_visible(&stack, 1) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "visible cycling should wrap to only visible layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_cycle_visible(&stack, -1) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "visible cycling should stay on only visible layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_top(&stack) != 1 || stack.active_layer != 1) {
+        fprintf(stderr, "select top layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_bottom(&stack) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "select bottom layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_top_visible(&stack) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "select top visible layer should skip hidden top layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_bottom_visible(&stack) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "select bottom visible layer should stay on only visible layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_show(&stack, 1)) {
+        fprintf(stderr, "restore top layer after visible cycling failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_add(&stack, "Third Visible", 0x00000000) != 2 || layer_stack_add(&stack, "Fourth Visible", 0x00000000) != 3) {
+        fprintf(stderr, "setup visible cycling skip test failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_visibility(&stack, 1) || !layer_stack_toggle_visibility(&stack, 2)) {
+        fprintf(stderr, "hide intermediate layers for visible cycling failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.active_layer = 1;
+    if (layer_stack_cycle_visible(&stack, 1) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "visible cycling forward should skip hidden layers\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_cycle_visible(&stack, -1) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "visible cycling backward should wrap across hidden layers\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_top_visible(&stack) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "select top visible layer should choose highest visible layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_bottom_visible(&stack) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "select bottom visible layer should choose lowest visible layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_visible_rank(&stack, 0) != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "select first visible layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_visible_rank(&stack, 1) != 3 || stack.active_layer != 3) {
+        fprintf(stderr, "select second visible layer should skip hidden layers\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_select_visible_rank(&stack, 2) != -1) {
+        fprintf(stderr, "visible rank selection should fail beyond visible range\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_visible_rank(&stack, 0) != 0) {
+        fprintf(stderr, "visible rank for background failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_visible_rank(&stack, 1) != -1) {
+        fprintf(stderr, "hidden layer should not have a visible rank\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_visible_rank(&stack, 3) != 1) {
+        fprintf(stderr, "visible rank should count only visible layers\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_move_to_visible_rank(&stack, 3, 0) || stack.active_layer != 0) {
+        fprintf(stderr, "move to first visible rank failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Fourth Visible") != 0 || layer_stack_visible_rank(&stack, 0) != 0 || layer_stack_visible_rank(&stack, 1) != 1) {
+        fprintf(stderr, "move to first visible rank bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_move_to_visible_rank(&stack, 0, 1) || stack.active_layer != 1) {
+        fprintf(stderr, "move to second visible rank failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[1].name, "Fourth Visible") != 0 || layer_stack_visible_rank(&stack, 1) != 1) {
+        fprintf(stderr, "move to second visible rank bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_move_to_visible_rank(&stack, 2, 0)) {
+        fprintf(stderr, "hidden layer should not move by visible rank\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_move_to_visible_rank(&stack, 1, 2)) {
+        fprintf(stderr, "moving beyond the visible rank range should fail\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_move_to_visible_rank(&stack, 1, 0) || strcmp(stack.layers[0].name, "Fourth Visible") != 0) {
+        fprintf(stderr, "move visible layer to bottom visible slot failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_move_to_visible_rank(&stack, 0, 1) || strcmp(stack.layers[1].name, "Fourth Visible") != 0) {
+        fprintf(stderr, "move visible layer to top visible slot failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_move_to(&stack, 1, 3) || strcmp(stack.layers[3].name, "Fourth Visible") != 0) {
+        fprintf(stderr, "restore absolute layer order after visible-rank move tests failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 3) || !layer_stack_delete(&stack, 2)) {
+        fprintf(stderr, "visible cycling cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_show(&stack, 1)) {
+        fprintf(stderr, "restore top layer after visible cycling cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_insert(&stack, 1, "Inserted", 0x00000000) != 1) {
         fprintf(stderr, "layer insert failed\n");
         canvas_free(&composite);
@@ -362,6 +543,48 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_adjust_opacity(&stack, 1, -1) || stack.layers[1].opacity_percent != 49) {
+        fprintf(stderr, "fine opacity decrease failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_adjust_opacity(&stack, 1, 2) || stack.layers[1].opacity_percent != 51) {
+        fprintf(stderr, "fine opacity increase failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_adjust_opacity(&stack, 1, 1000) || stack.layers[1].opacity_percent != 100) {
+        fprintf(stderr, "opacity clamp to max failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_adjust_opacity(&stack, 1, 1)) {
+        fprintf(stderr, "opacity adjustment should no-op at max\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_adjust_opacity(&stack, 1, -1000) || stack.layers[1].opacity_percent != 0) {
+        fprintf(stderr, "opacity clamp to min failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_adjust_opacity(&stack, 1, -1)) {
+        fprintf(stderr, "opacity adjustment should no-op at min\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_set_opacity(&stack, 1, 50)) {
+        fprintf(stderr, "restore opacity after fine adjustments failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_merge_down(&stack, 1)) {
         fprintf(stderr, "merge down failed\n");
         canvas_free(&composite);
@@ -454,6 +677,36 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_duplicate(&stack, 0, NULL) != 1) {
+        fprintf(stderr, "auto-named duplicate layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[1].name, "Upper Merge Copy") != 0) {
+        fprintf(stderr, "first auto duplicate name failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_duplicate(&stack, 0, NULL) != 1) {
+        fprintf(stderr, "second auto-named duplicate layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[1].name, "Upper Merge Copy 2") != 0) {
+        fprintf(stderr, "second auto duplicate name should be unique\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 1) || !layer_stack_delete(&stack, 1)) {
+        fprintf(stderr, "cleanup auto-named duplicates failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_move(&stack, 1, -1) || stack.active_layer != 0) {
         fprintf(stderr, "move layer down failed\n");
         canvas_free(&composite);
@@ -486,6 +739,72 @@ static int test_layers_basic(void) {
     }
     if (layer_stack_move(&stack, 1, 1)) {
         fprintf(stderr, "should not move top layer beyond bounds\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_add(&stack, "Move Middle", 0x00000000) != 2 || layer_stack_add(&stack, "Move Top", 0x00000000) != 3) {
+        fprintf(stderr, "setup move-to layers failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_move_to(&stack, 1, 3) || stack.active_layer != 3) {
+        fprintf(stderr, "move layer to top failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != 3) {
+        fprintf(stderr, "solo index did not move to top with layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[3].name, "Background Copy") != 0) {
+        fprintf(stderr, "move-to-top order failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_move_to(&stack, 3, 0) || stack.active_layer != 0) {
+        fprintf(stderr, "move layer to bottom failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != 0) {
+        fprintf(stderr, "solo index did not move to bottom with layer\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background Copy") != 0) {
+        fprintf(stderr, "move-to-bottom order failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_move_to(&stack, 0, 0)) {
+        fprintf(stderr, "move-to should fail when already at target\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_move_to(&stack, 0, 1) || stack.active_layer != 1) {
+        fprintf(stderr, "move layer back to original slot failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != 1 || strcmp(stack.layers[1].name, "Background Copy") != 0) {
+        fprintf(stderr, "move-to restore bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 3) || !layer_stack_delete(&stack, 2)) {
+        fprintf(stderr, "move-to cleanup failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -608,35 +927,25 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
-    if (layer_stack_stamp_visible_new(&stack, "Overflow", 0xFFFFFFFF) != 3) {
-        fprintf(stderr, "second stamp visible new layer failed\n");
-        canvas_free(&composite);
-        layer_stack_free(&stack);
-        return 0;
-    }
-    if (layer_stack_stamp_visible_new(&stack, "Overflow", 0xFFFFFFFF) != 4) {
-        fprintf(stderr, "third stamp visible new layer failed\n");
-        canvas_free(&composite);
-        layer_stack_free(&stack);
-        return 0;
-    }
-    if (layer_stack_stamp_visible_new(&stack, "Overflow", 0xFFFFFFFF) != 5) {
-        fprintf(stderr, "fourth stamp visible new layer failed\n");
-        canvas_free(&composite);
-        layer_stack_free(&stack);
-        return 0;
-    }
-    if (layer_stack_stamp_visible_new(&stack, "Overflow", 0xFFFFFFFF) != 6) {
-        fprintf(stderr, "fifth stamp visible new layer failed\n");
-        canvas_free(&composite);
-        layer_stack_free(&stack);
-        return 0;
-    }
-    if (layer_stack_stamp_visible_new(&stack, "Overflow", 0xFFFFFFFF) != 7) {
-        fprintf(stderr, "sixth stamp visible new layer failed\n");
-        canvas_free(&composite);
-        layer_stack_free(&stack);
-        return 0;
+    for (int expected_idx = 3; expected_idx < MAX_LAYERS; expected_idx++) {
+        if (layer_stack_stamp_visible_new(&stack, "Overflow", 0xFFFFFFFF) != expected_idx) {
+            fprintf(stderr, "stamp visible new layer %d failed\n", expected_idx);
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        if (expected_idx == 3 && strcmp(stack.layers[expected_idx].name, "Overflow") != 0) {
+            fprintf(stderr, "first overflow stamp name failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        if (expected_idx == 4 && strcmp(stack.layers[expected_idx].name, "Overflow 2") != 0) {
+            fprintf(stderr, "second overflow stamp name should be unique\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
     }
     if (layer_stack_stamp_visible_new(&stack, "Overflow", 0xFFFFFFFF) != -1) {
         fprintf(stderr, "stamp visible new should respect max layers\n");

@@ -60,6 +60,48 @@ static int ensure_layer_canvas(Layer *layer, int width, int height) {
     return canvas_init(&layer->canvas, width, height);
 }
 
+static int layer_name_exists(const LayerStack *stack, int exclude_index, const char *name) {
+    if (!stack || !name || !name[0]) {
+        return 0;
+    }
+    for (int i = 0; i < stack->layer_count; i++) {
+        if (i == exclude_index) {
+            continue;
+        }
+        if (strncmp(stack->layers[i].name, name, LAYER_NAME_MAX) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void assign_unique_layer_name(const LayerStack *stack, int index, const char *preferred, const char *fallback_prefix, char *dest) {
+    if (!dest) {
+        return;
+    }
+
+    const char *base = (preferred && preferred[0]) ? preferred : fallback_prefix;
+    if (!base || !base[0]) {
+        base = "Layer";
+    }
+
+    if (!layer_name_exists(stack, index, base)) {
+        strncpy(dest, base, LAYER_NAME_MAX - 1);
+        dest[LAYER_NAME_MAX - 1] = '\0';
+        return;
+    }
+
+    for (int suffix = 2; suffix < 1000; suffix++) {
+        snprintf(dest, LAYER_NAME_MAX, "%s %d", base, suffix);
+        if (!layer_name_exists(stack, index, dest)) {
+            return;
+        }
+    }
+
+    strncpy(dest, base, LAYER_NAME_MAX - 1);
+    dest[LAYER_NAME_MAX - 1] = '\0';
+}
+
 int layer_stack_init(LayerStack *stack, int width, int height, uint32_t background_color) {
     if (!stack || width <= 0 || height <= 0) {
         return 0;
@@ -159,12 +201,9 @@ int layer_stack_insert(LayerStack *stack, int index, const char *name, uint32_t 
     layer->visible = 1;
     layer->locked = 0;
     layer->opacity_percent = 100;
-    if (name && name[0]) {
-        strncpy(layer->name, name, LAYER_NAME_MAX - 1);
-        layer->name[LAYER_NAME_MAX - 1] = '\0';
-    } else {
-        snprintf(layer->name, LAYER_NAME_MAX, "Layer %d", index + 1);
-    }
+    char fallback_name[LAYER_NAME_MAX];
+    snprintf(fallback_name, sizeof(fallback_name), "Layer %d", index + 1);
+    assign_unique_layer_name(stack, index, name, fallback_name, layer->name);
 
     stack->layer_count++;
     stack->active_layer = index;
@@ -186,6 +225,99 @@ int layer_stack_cycle(LayerStack *stack, int direction) {
     }
     stack->active_layer = idx;
     return idx;
+}
+
+int layer_stack_cycle_visible(LayerStack *stack, int direction) {
+    if (!stack || stack->layer_count <= 0) {
+        return -1;
+    }
+
+    if (layer_stack_visible_count(stack) <= 0) {
+        return -1;
+    }
+
+    for (int offset = 1; offset <= stack->layer_count; offset++) {
+        int idx = stack->active_layer + (direction * offset);
+        while (idx < 0) {
+            idx += stack->layer_count;
+        }
+        idx %= stack->layer_count;
+        if (stack->layers[idx].visible) {
+            stack->active_layer = idx;
+            return idx;
+        }
+    }
+
+    return -1;
+}
+
+static int layer_stack_select_edge(LayerStack *stack, int top, int visible_only) {
+    if (!stack || stack->layer_count <= 0) {
+        return -1;
+    }
+
+    int start = top ? (stack->layer_count - 1) : 0;
+    int end = top ? -1 : stack->layer_count;
+    int step = top ? -1 : 1;
+    for (int idx = start; idx != end; idx += step) {
+        if (visible_only && !stack->layers[idx].visible) {
+            continue;
+        }
+        stack->active_layer = idx;
+        return idx;
+    }
+    return -1;
+}
+
+int layer_stack_select_top(LayerStack *stack) {
+    return layer_stack_select_edge(stack, 1, 0);
+}
+
+int layer_stack_select_bottom(LayerStack *stack) {
+    return layer_stack_select_edge(stack, 0, 0);
+}
+
+int layer_stack_select_top_visible(LayerStack *stack) {
+    return layer_stack_select_edge(stack, 1, 1);
+}
+
+int layer_stack_select_bottom_visible(LayerStack *stack) {
+    return layer_stack_select_edge(stack, 0, 1);
+}
+
+int layer_stack_select_visible_rank(LayerStack *stack, int rank) {
+    if (!stack || rank < 0) {
+        return -1;
+    }
+    int visible_rank = 0;
+    for (int idx = 0; idx < stack->layer_count; idx++) {
+        if (!stack->layers[idx].visible) {
+            continue;
+        }
+        if (visible_rank == rank) {
+            stack->active_layer = idx;
+            return idx;
+        }
+        visible_rank++;
+    }
+    return -1;
+}
+
+int layer_stack_visible_rank(const LayerStack *stack, int index) {
+    if (!stack || index < 0 || index >= stack->layer_count || !stack->layers[index].visible) {
+        return -1;
+    }
+    int visible_rank = 0;
+    for (int idx = 0; idx < stack->layer_count; idx++) {
+        if (!stack->layers[idx].visible) {
+            continue;
+        }
+        if (idx == index) {
+            return visible_rank;
+        }
+        visible_rank++;
+    }
+    return -1;
 }
 
 int layer_stack_toggle_solo(LayerStack *stack, int index) {
@@ -301,6 +433,24 @@ int layer_stack_set_opacity(LayerStack *stack, int index, int opacity_percent) {
     return 1;
 }
 
+int layer_stack_adjust_opacity(LayerStack *stack, int index, int delta_percent) {
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    int current = stack->layers[index].opacity_percent;
+    int target = current + delta_percent;
+    if (target < 0) {
+        target = 0;
+    } else if (target > 100) {
+        target = 100;
+    }
+    if (target == current) {
+        return 0;
+    }
+    stack->layers[index].opacity_percent = target;
+    return 1;
+}
+
 int layer_stack_delete(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count || stack->layer_count == 1) {
         return 0;
@@ -370,12 +520,9 @@ int layer_stack_duplicate(LayerStack *stack, int index, const char *name) {
     size_t total = (size_t)stack->width * (size_t)stack->height;
     memcpy(dup->canvas.pixels, source->canvas.pixels, total * sizeof(uint32_t));
 
-    if (name && name[0]) {
-        strncpy(dup->name, name, LAYER_NAME_MAX - 1);
-        dup->name[LAYER_NAME_MAX - 1] = '\0';
-    } else {
-        snprintf(dup->name, LAYER_NAME_MAX, "%s Copy", source->name[0] ? source->name : "Layer");
-    }
+    char base_name[LAYER_NAME_MAX];
+    snprintf(base_name, sizeof(base_name), "%s Copy", source->name[0] ? source->name : "Layer");
+    assign_unique_layer_name(stack, insert_at, name, base_name, dup->name);
 
     stack->layer_count++;
     stack->active_layer = insert_at;
@@ -405,6 +552,73 @@ int layer_stack_move(LayerStack *stack, int index, int direction) {
         stack->solo_index = index;
     }
     return 1;
+}
+
+int layer_stack_move_to(LayerStack *stack, int index, int target_index) {
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    if (target_index < 0) {
+        target_index = 0;
+    } else if (target_index >= stack->layer_count) {
+        target_index = stack->layer_count - 1;
+    }
+    if (index == target_index) {
+        return 0;
+    }
+
+    Layer moved = stack->layers[index];
+    if (index < target_index) {
+        for (int i = index; i < target_index; i++) {
+            stack->layers[i] = stack->layers[i + 1];
+        }
+    } else {
+        for (int i = index; i > target_index; i--) {
+            stack->layers[i] = stack->layers[i - 1];
+        }
+    }
+    stack->layers[target_index] = moved;
+    stack->active_layer = target_index;
+
+    if (stack->solo_index == index) {
+        stack->solo_index = target_index;
+    } else if (index < target_index && stack->solo_index > index && stack->solo_index <= target_index) {
+        stack->solo_index--;
+    } else if (index > target_index && stack->solo_index >= target_index && stack->solo_index < index) {
+        stack->solo_index++;
+    }
+
+    return 1;
+}
+
+int layer_stack_move_to_visible_rank(LayerStack *stack, int index, int rank) {
+    if (!stack || index < 0 || index >= stack->layer_count || rank < 0 || !stack->layers[index].visible) {
+        return 0;
+    }
+
+    int visible_count = layer_stack_visible_count(stack);
+    int current_rank = layer_stack_visible_rank(stack, index);
+    if (visible_count <= 0 || current_rank < 0 || rank >= visible_count) {
+        return 0;
+    }
+    if (rank == current_rank) {
+        return 0;
+    }
+
+    int other_visible[MAX_LAYERS];
+    int other_count = 0;
+    for (int i = 0; i < stack->layer_count; i++) {
+        if (i == index || !stack->layers[i].visible) {
+            continue;
+        }
+        other_visible[other_count++] = i;
+    }
+    if (other_count <= 0) {
+        return 0;
+    }
+
+    int target_index = (rank == visible_count - 1) ? other_visible[other_count - 1] : other_visible[rank];
+    return layer_stack_move_to(stack, index, target_index);
 }
 
 int layer_stack_merge_down(LayerStack *stack, int index) {
