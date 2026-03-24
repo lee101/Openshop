@@ -344,6 +344,14 @@ static int test_layer_creation_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_creation_try_add(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0x00000000, 0) ||
+        stack.layer_count != 2) {
+        fprintf(stderr, "layer_creation_try_add max history guard failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (canvas_get_pixel(&stack.layers[1].canvas, 0, 0) != 0x00000000) {
         fprintf(stderr, "layer_creation_try_add clear color failed\n");
         snapshot_stack_clear(undo_stack, &undo_count);
@@ -743,6 +751,15 @@ static int test_active_layer_ops_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFF556677);
+    if (active_layer_try_clear(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 0xFFFFFFFF, 0) ||
+        !expect_pixel_eq("active_clear_history_guard", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFF556677)) {
+        fprintf(stderr, "active_layer_try_clear history guard failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     canvas_set_pixel_raw(&stack.layers[0].canvas, 0, 0, 0xFF000001);
     if (!active_layer_try_flip_horizontal(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 4) ||
@@ -842,6 +859,16 @@ static int test_active_layer_ops_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    canvas_clear(&stack.layers[0].canvas, 0x00000000);
+    if (active_layer_try_commit_shape(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                      TOOL_FILLED_RECT, 1, 1, 2, 2, 1, 0xFF998877, 0) ||
+        !expect_pixel_eq("active_commit_shape_history_guard", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0x00000000)) {
+        fprintf(stderr, "active_layer_try_commit_shape history guard failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     {
         int last_x = 0;
@@ -916,6 +943,16 @@ static int test_active_layer_ops_helpers(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFF010101);
+    if (active_layer_try_flood_fill(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                    1, 1, 0xFFABC123, 0) ||
+        !expect_pixel_eq("active_fill_history_guard", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFF010101)) {
+        fprintf(stderr, "active_layer_try_flood_fill history guard failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (active_layer_try_flood_fill(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
                                     -1, 1, 0xFFFFFFFF, 4)) {
         fprintf(stderr, "active_layer_try_flood_fill bounds guard failed\n");
@@ -938,6 +975,16 @@ static int test_active_layer_ops_helpers(void) {
     if (active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
                                        0, 0, 0xFFFFFFFF, 4)) {
         fprintf(stderr, "active_layer_apply_translation no-op failed\n");
+        snapshot_stack_clear(undo_stack, &undo_count);
+        snapshot_stack_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    canvas_set_pixel_raw(&stack.layers[0].canvas, 1, 1, 0xFF102030);
+    if (active_layer_apply_translation(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                       1, 0, 0xFFFFFFFF, 0) ||
+        !expect_pixel_eq("active_translate_history_guard", canvas_get_pixel(&stack.layers[0].canvas, 1, 1), 0xFF102030)) {
+        fprintf(stderr, "active_layer_apply_translation history guard failed\n");
         snapshot_stack_clear(undo_stack, &undo_count);
         snapshot_stack_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);

@@ -11,7 +11,7 @@ static int active_layer_apply_transform(LayerStack *layers,
                                         void (*transform)(Canvas *)) {
     Layer *active;
 
-    if (!layers || !transform) {
+    if (!layers || !transform || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
         return 0;
     }
     active = layer_stack_active(layers);
@@ -27,6 +27,9 @@ int active_layer_try_clear(LayerStack *layers,
                            Snapshot *undo_stack, int *undo_count,
                            Snapshot *redo_stack, int *redo_count,
                            uint32_t background_color, int max_history) {
+    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
+        return 0;
+    }
     if (active_layer_editable(layers)) {
         snapshot_push(layers, undo_stack, undo_count, redo_stack, redo_count, max_history);
     }
@@ -71,7 +74,8 @@ int active_layer_try_adjust_opacity(LayerStack *layers,
                                     int target_opacity, int max_history) {
     Layer *active = layer_stack_active(layers);
 
-    if (!active || active->opacity_percent == target_opacity) {
+    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0 ||
+        !active || active->opacity_percent == target_opacity) {
         return 0;
     }
 
@@ -85,7 +89,7 @@ int active_layer_try_nudge_opacity(LayerStack *layers,
                                    int delta_percent, int max_history) {
     Layer *active;
 
-    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count) {
+    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
         return 0;
     }
 
@@ -104,7 +108,7 @@ int active_layer_try_flood_fill(LayerStack *layers,
                                 int x, int y, uint32_t brush_color, int max_history) {
     Layer *active;
 
-    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count) {
+    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
         return 0;
     }
 
@@ -128,7 +132,7 @@ int active_layer_try_commit_shape(LayerStack *layers,
                                   uint32_t brush_color, int max_history) {
     Layer *active;
 
-    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count) {
+    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
         return 0;
     }
 
@@ -150,7 +154,7 @@ int active_layer_try_begin_brush_stroke(LayerStack *layers,
                                         uint32_t background_color, int max_history) {
     Layer *active;
 
-    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count) {
+    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
         return 0;
     }
 
@@ -205,7 +209,8 @@ int active_layer_apply_translation(LayerStack *layers,
                                    uint32_t background_color, int max_history) {
     Layer *active;
 
-    if (!layers || (dx == 0 && dy == 0)) {
+    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0 ||
+        (dx == 0 && dy == 0)) {
         return 0;
     }
     active = layer_stack_active(layers);

@@ -6,7 +6,7 @@ int layer_creation_try_add(LayerStack *layers,
                            Snapshot *undo_stack, int *undo_count,
                            Snapshot *redo_stack, int *redo_count,
                            uint32_t clear_color, int max_history) {
-    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count) {
+    if (!layers || !undo_stack || !undo_count || !redo_stack || !redo_count || max_history <= 0) {
         return 0;
     }
 
