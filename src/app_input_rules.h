@@ -76,7 +76,14 @@ typedef enum {
     APP_LAYER_NAV_CYCLE_DOWN
 } AppLayerNavigationAction;
 
+typedef enum {
+    APP_FILE_HOTKEY_NONE = 0,
+    APP_FILE_HOTKEY_SAVE,
+    APP_FILE_HOTKEY_LOAD_ACTIVE_LAYER
+} AppFileHotkeyAction;
+
 AppOpacityHotkeyAction app_opacity_hotkey_action(int key);
 AppLayerNavigationAction app_layer_navigation_action(int key, int ctrl, int alt, int shift, int *arg);
+AppFileHotkeyAction app_file_hotkey_action(int key, int ctrl, int alt, int shift);
 
 #endif

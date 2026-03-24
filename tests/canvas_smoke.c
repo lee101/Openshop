@@ -112,6 +112,17 @@ static int test_app_input_rules(void) {
             fprintf(stderr, "layer navigation non-hotkey mapping failed\n");
             return 0;
         }
+        if (app_file_hotkey_action(APP_KEY_s, 1, 0, 0) != APP_FILE_HOTKEY_SAVE ||
+            app_file_hotkey_action(APP_KEY_o, 1, 0, 0) != APP_FILE_HOTKEY_LOAD_ACTIVE_LAYER) {
+            fprintf(stderr, "file hotkey mapping failed\n");
+            return 0;
+        }
+        if (app_file_hotkey_action(APP_KEY_s, 0, 0, 0) != APP_FILE_HOTKEY_NONE ||
+            app_file_hotkey_action(APP_KEY_o, 1, 1, 0) != APP_FILE_HOTKEY_NONE ||
+            app_file_hotkey_action(APP_KEY_b, 1, 0, 0) != APP_FILE_HOTKEY_NONE) {
+            fprintf(stderr, "file non-hotkey mapping failed\n");
+            return 0;
+        }
     }
 
     return 1;

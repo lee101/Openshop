@@ -1044,6 +1044,7 @@ static int handle_layer_navigation_hotkey(SDL_Keycode key,
 static int handle_file_hotkey(SDL_Keycode key,
                               int ctrl, int alt, int shift,
                               const ActionState *action_state) {
+    AppFileHotkeyAction file_action;
     const Canvas *save_canvas;
 
     if (!ctrl || alt || shift || !action_state || !action_state->layers || !action_state->undo_stack ||
@@ -1052,7 +1053,8 @@ static int handle_file_hotkey(SDL_Keycode key,
         return 0;
     }
 
-    if (key == SDLK_s) {
+    file_action = app_file_hotkey_action((int)key, ctrl, alt, shift);
+    if (file_action == APP_FILE_HOTKEY_SAVE) {
         save_canvas = current_display_canvas(action_state->preview_active,
                                              action_state->preview_canvas,
                                              action_state->composite);
@@ -1060,7 +1062,7 @@ static int handle_file_hotkey(SDL_Keycode key,
         return 1;
     }
 
-    if (key == SDLK_o) {
+    if (file_action == APP_FILE_HOTKEY_LOAD_ACTIVE_LAYER) {
         if (try_load_active_layer_bmp(action_state->layers, action_state->undo_stack,
                                       action_state->undo_count, action_state->redo_stack,
                                       action_state->redo_count)) {

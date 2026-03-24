@@ -113,3 +113,16 @@ AppLayerNavigationAction app_layer_navigation_action(int key, int ctrl, int alt,
     }
     return APP_LAYER_NAV_NONE;
 }
+
+AppFileHotkeyAction app_file_hotkey_action(int key, int ctrl, int alt, int shift) {
+    if (!ctrl || alt || shift) {
+        return APP_FILE_HOTKEY_NONE;
+    }
+    if (key == APP_KEY_s) {
+        return APP_FILE_HOTKEY_SAVE;
+    }
+    if (key == APP_KEY_o) {
+        return APP_FILE_HOTKEY_LOAD_ACTIVE_LAYER;
+    }
+    return APP_FILE_HOTKEY_NONE;
+}
