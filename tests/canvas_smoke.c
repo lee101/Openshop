@@ -242,6 +242,38 @@ static int test_layer_action_history_helpers(void) {
 
     snapshot_stack_clear(undo_stack, &undo_count);
     snapshot_stack_clear(redo_stack, &redo_count);
+    stack.active_layer = 1;
+    if (!layer_action_history_apply_custom(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                           1, test_layer_action_history_custom_flip, &custom_flip)) {
+        fprintf(stderr, "custom rollover setup failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.active_layer = 1;
+    if (!layer_action_history_apply_custom(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                           1, test_layer_action_history_custom_flip, &custom_flip)) {
+        fprintf(stderr, "custom rollover second change failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (undo_count != 1 || redo_count != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "custom rollover bookkeeping failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!snapshot_restore(&stack, undo_stack, &undo_count, redo_stack, &redo_count, 1)) {
+        fprintf(stderr, "custom rollover restore failed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.active_layer != 1 || undo_count != 0 || redo_count != 1) {
+        fprintf(stderr, "custom rollover should keep only the newest prior state\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
     layer_stack_free(&stack);
     return 1;
 }
