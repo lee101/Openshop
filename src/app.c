@@ -453,6 +453,27 @@ static int try_add_layer(LayerStack *layers,
     return 1;
 }
 
+static int handle_add_layer_hotkey(SDL_Keycode key,
+                                   int ctrl, int alt, int shift,
+                                   SDL_Window *window,
+                                   LayerStack *layers,
+                                   Snapshot *undo_stack, int *undo_count,
+                                   Snapshot *redo_stack, int *redo_count,
+                                   Tool tool, BrushShape brush_shape,
+                                   int brush_radius, uint32_t brush_color,
+                                   int brush_opacity, int *needs_composite) {
+    if (!(ctrl && shift) || alt || key != SDLK_n ||
+        !window || !layers || !undo_stack || !undo_count || !redo_stack || !redo_count || !needs_composite) {
+        return 0;
+    }
+
+    if (try_add_layer(layers, undo_stack, undo_count, redo_stack, redo_count)) {
+        *needs_composite = 1;
+    }
+    update_window_title(window, layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+    return 1;
+}
+
 typedef int (*LayerDirectionalActionFn)(LayerStack *layers, int arg);
 
 static void run_indexed_layer_action(SDL_Window *window, LayerStack *layers,
@@ -1877,11 +1898,10 @@ int app_run(const char *input_path) {
                     break;
                 }
 
-                if (ctrl && shift && key == SDLK_n) {
-                    if (try_add_layer(&layers, undo_stack, &undo_count, redo_stack, &redo_count)) {
-                        needs_composite = 1;
-                    }
-                    update_window_title(window, &layers, tool, brush_shape, brush_radius, brush_color, brush_opacity);
+                if (handle_add_layer_hotkey(key, ctrl, alt, shift, window, &layers,
+                                            undo_stack, &undo_count, redo_stack, &redo_count,
+                                            tool, brush_shape, brush_radius, brush_color,
+                                            brush_opacity, &needs_composite)) {
                     break;
                 }
 
