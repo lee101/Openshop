@@ -98,3 +98,48 @@ AppCanvasClickResult app_handle_right_canvas_press(
         return APP_CANVAS_CLICK_NOOP;
     }
 }
+
+AppCanvasClickResult app_handle_left_canvas_release(
+    int *drawing,
+    LayerStack *layers,
+    int *shaping,
+    int *preview_active,
+    int shape_start_x,
+    int shape_start_y,
+    int x,
+    int y,
+    int shift,
+    Tool tool,
+    int brush_radius,
+    uint32_t brush_color,
+    Snapshot *undo_stack,
+    int *undo_count,
+    int undo_capacity,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+) {
+    if (drawing) {
+        *drawing = 0;
+    }
+
+    return app_finalize_shape_preview(
+        layers,
+        shaping,
+        preview_active,
+        shape_start_x,
+        shape_start_y,
+        x,
+        y,
+        shift,
+        tool,
+        brush_radius,
+        brush_color,
+        undo_stack,
+        undo_count,
+        undo_capacity,
+        redo_stack,
+        redo_count,
+        needs_composite
+    ) ? APP_CANVAS_CLICK_SHAPE_FINALIZED : APP_CANVAS_CLICK_NOOP;
+}

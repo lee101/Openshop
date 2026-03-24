@@ -1182,46 +1182,6 @@ static void handle_canvas_motion(
     }
 }
 
-static void finalize_shape_preview(
-    SDL_MouseButtonEvent button,
-    LayerStack *layers,
-    int *shaping,
-    int *preview_active,
-    int shape_start_x,
-    int shape_start_y,
-    Tool tool,
-    int brush_radius,
-    uint32_t brush_color,
-    Snapshot *undo_stack,
-    int *undo_count,
-    Snapshot *redo_stack,
-    int *redo_count,
-    int *needs_composite
-) {
-    int shift = 0;
-
-    sdl_shortcut_modifiers(NULL, NULL, &shift);
-    app_finalize_shape_preview(
-        layers,
-        shaping,
-        preview_active,
-        shape_start_x,
-        shape_start_y,
-        button.x,
-        button.y,
-        shift,
-        tool,
-        brush_radius,
-        brush_color,
-        undo_stack,
-        undo_count,
-        MAX_HISTORY,
-        redo_stack,
-        redo_count,
-        needs_composite
-    );
-}
-
 static void handle_mouse_button_down(
     SDL_MouseButtonEvent button,
     LayerStack *layers,
@@ -1317,23 +1277,29 @@ static void handle_mouse_button_up(
     int *redo_count,
     int *needs_composite
 ) {
+    int shift = 0;
+
     if (!layers || !drawing || !shaping || !preview_active || button.button != SDL_BUTTON_LEFT) {
         return;
     }
 
-    *drawing = 0;
-    finalize_shape_preview(
-        button,
+    sdl_shortcut_modifiers(NULL, NULL, &shift);
+    app_handle_left_canvas_release(
+        drawing,
         layers,
         shaping,
         preview_active,
         shape_start_x,
         shape_start_y,
+        button.x,
+        button.y,
+        shift,
         tool,
         brush_radius,
         brush_color,
         undo_stack,
         undo_count,
+        MAX_HISTORY,
         redo_stack,
         redo_count,
         needs_composite
