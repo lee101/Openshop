@@ -38,7 +38,10 @@ int app_translation_hotkey_delta(int key, int ctrl, int alt, int shift, int *dx,
     return app_key_translation_delta(key, step, dx, dy);
 }
 
-int app_should_cancel_shape_on_key(int key, int ctrl) {
+int app_should_cancel_shape_on_key(int key, int ctrl, int alt) {
+    if (alt) {
+        return 0;
+    }
     if (key == APP_KEY_ESCAPE || key == APP_KEY_LSHIFT || key == APP_KEY_RSHIFT) {
         return 0;
     }

@@ -69,28 +69,30 @@ static int test_app_input_rules(void) {
         return 0;
     }
 
-    if (app_should_cancel_shape_on_key(APP_KEY_ESCAPE, 0) ||
-        app_should_cancel_shape_on_key(APP_KEY_LSHIFT, 0) ||
-        app_should_cancel_shape_on_key(APP_KEY_RSHIFT, 0)) {
+    if (app_should_cancel_shape_on_key(APP_KEY_ESCAPE, 0, 0) ||
+        app_should_cancel_shape_on_key(APP_KEY_LSHIFT, 0, 0) ||
+        app_should_cancel_shape_on_key(APP_KEY_RSHIFT, 0, 0)) {
         fprintf(stderr, "shape cancel should ignore escape and shift keys\n");
         return 0;
     }
-    if (!app_should_cancel_shape_on_key(APP_KEY_UP, 0) ||
-        !app_should_cancel_shape_on_key(APP_KEY_b, 0) ||
-        !app_should_cancel_shape_on_key(APP_KEY_4, 0)) {
+    if (!app_should_cancel_shape_on_key(APP_KEY_UP, 0, 0) ||
+        !app_should_cancel_shape_on_key(APP_KEY_b, 0, 0) ||
+        !app_should_cancel_shape_on_key(APP_KEY_4, 0, 0)) {
         fprintf(stderr, "shape cancel plain hotkeys failed\n");
         return 0;
     }
-    if (!app_should_cancel_shape_on_key(APP_KEY_s, 1) ||
-        !app_should_cancel_shape_on_key(APP_KEY_8, 1) ||
-        !app_should_cancel_shape_on_key(APP_KEY_SLASH, 1)) {
+    if (!app_should_cancel_shape_on_key(APP_KEY_s, 1, 0) ||
+        !app_should_cancel_shape_on_key(APP_KEY_8, 1, 0) ||
+        !app_should_cancel_shape_on_key(APP_KEY_SLASH, 1, 0)) {
         fprintf(stderr, "shape cancel ctrl hotkeys failed\n");
         return 0;
     }
-    if (app_should_cancel_shape_on_key(APP_KEY_s, 0) ||
-        app_should_cancel_shape_on_key(APP_KEY_TAB, 0) ||
-        app_should_cancel_shape_on_key(APP_KEY_TAB, 1)) {
-        fprintf(stderr, "shape cancel non-hotkeys should fail cleanly\n");
+    if (app_should_cancel_shape_on_key(APP_KEY_s, 0, 0) ||
+        app_should_cancel_shape_on_key(APP_KEY_TAB, 0, 0) ||
+        app_should_cancel_shape_on_key(APP_KEY_TAB, 1, 0) ||
+        app_should_cancel_shape_on_key(APP_KEY_b, 0, 1) ||
+        app_should_cancel_shape_on_key(APP_KEY_f, 0, 1)) {
+        fprintf(stderr, "shape cancel non-hotkeys or alt-modified keys should fail cleanly\n");
         return 0;
     }
     if (app_opacity_hotkey_action(APP_KEY_0, 0, 0) != APP_OPACITY_HOTKEY_SET_MAX ||

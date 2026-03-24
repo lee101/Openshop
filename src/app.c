@@ -1424,7 +1424,7 @@ int app_run(const char *input_path) {
 
                 keyboard_modifier_state(state, &ctrl, &shift, &alt);
 
-                if (shaping && app_should_cancel_shape_on_key(key, ctrl)) {
+                if (shaping && app_should_cancel_shape_on_key(key, ctrl, alt)) {
                     shape_preview_cancel(&shaping, &preview_active);
                 }
 
