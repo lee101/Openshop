@@ -668,6 +668,71 @@ static int test_layer_history_record_snapshot_null_history_resets(void) {
     return 1;
 }
 
+static int test_layer_history_record_snapshot_current_state_clears_redo(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 3, 3, 0xFFFFFFFF)) {
+        fprintf(stderr, "history current snapshot redo init failed\n");
+        return 0;
+    }
+
+    LayerHistory history = {0};
+    layer_history_record(&history, &stack);
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF010203);
+    layer_history_record(&history, &stack);
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF040506);
+
+    if (!layer_history_step_undo(&history, &stack) || history.redo_count != 1) {
+        fprintf(stderr, "history duplicate redo undo setup failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    LayerSnapshot snapshot = {0};
+    if (!layer_snapshot_capture(&snapshot, &stack)) {
+        fprintf(stderr, "history current snapshot redo capture failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    if (!layer_history_record_snapshot(&history, &snapshot)) {
+        fprintf(stderr, "history current snapshot should record against older undo top\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (snapshot.pixels || snapshot.width != 0 || snapshot.height != 0 || snapshot.layer_count != 0 ||
+        snapshot.solo_index != -1 || snapshot.visibility[0] != 0 || snapshot.names[0][0] != '\0') {
+        fprintf(stderr, "history current snapshot should disown caller snapshot after record\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (history.undo_count != 2 || history.redo_count != 0) {
+        fprintf(stderr, "history current snapshot should clear redo after record\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_history_step_undo(&history, &stack) ||
+        !expect_pixel_eq("history_current_snapshot_first_undo", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF010203)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_history_step_undo(&history, &stack) ||
+        !expect_pixel_eq("history_current_snapshot_second_undo", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFFFFFFFF)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_reset(&history);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layer_history_discarded_snapshot_keeps_redo(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 3, 3, 0xFFFFFFFF)) {
@@ -2050,6 +2115,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_record_snapshot_null_history_resets()) {
+        return 1;
+    }
+    if (!test_layer_history_record_snapshot_current_state_clears_redo()) {
         return 1;
     }
     if (!test_layer_history_discarded_snapshot_keeps_redo()) {
