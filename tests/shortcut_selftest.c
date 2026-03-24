@@ -885,6 +885,22 @@ static int expect_canvas_click_title_refresh(
 
 typedef struct {
     const char *label;
+    AppCanvasClickResult result;
+    int want;
+} CanvasClickTitleRefreshCase;
+
+static int run_canvas_click_title_refresh_case(
+    const CanvasClickTitleRefreshCase *test_case
+) {
+    return expect_canvas_click_title_refresh(
+        test_case->label,
+        test_case->result,
+        test_case->want
+    );
+}
+
+typedef struct {
+    const char *label;
     int width;
     int height;
     uint32_t initial_fill;
@@ -1595,6 +1611,45 @@ static int expect_sampled_brush_color_noop(
         return 0;
     }
     return 1;
+}
+
+typedef struct {
+    const char *label;
+    unsigned int sampled_color;
+    int use_tool;
+    int use_brush_color;
+    int use_brush_color_rgb;
+    int use_brush_opacity;
+    Tool initial_tool;
+    unsigned int initial_brush_color;
+    unsigned int initial_brush_color_rgb;
+    int initial_brush_opacity;
+    Tool want_tool;
+    unsigned int want_brush_color;
+    unsigned int want_brush_color_rgb;
+    int want_brush_opacity;
+} SampledBrushColorNoopCase;
+
+static int run_sampled_brush_color_noop_case(
+    const SampledBrushColorNoopCase *test_case
+) {
+    Tool tool = test_case->initial_tool;
+    unsigned int brush_color = test_case->initial_brush_color;
+    unsigned int brush_color_rgb = test_case->initial_brush_color_rgb;
+    int brush_opacity = test_case->initial_brush_opacity;
+
+    return expect_sampled_brush_color_noop(
+        test_case->label,
+        test_case->sampled_color,
+        test_case->use_tool ? &tool : NULL,
+        test_case->use_brush_color ? &brush_color : NULL,
+        test_case->use_brush_color_rgb ? &brush_color_rgb : NULL,
+        test_case->use_brush_opacity ? &brush_opacity : NULL,
+        test_case->want_tool,
+        test_case->want_brush_color,
+        test_case->want_brush_color_rgb,
+        test_case->want_brush_opacity
+    );
 }
 
 static int expect_sampled_brush_color_from_canvas(
@@ -3137,10 +3192,6 @@ int main(void) {
     int preview_active = 1;
     int shape_start_x = -1;
     int shape_start_y = -1;
-    Tool sampled_tool = TOOL_ERASER;
-    unsigned int sampled_brush_color = 0xAA112233u;
-    unsigned int sampled_brush_color_rgb = 0x00112233u;
-    int sampled_brush_opacity = 42;
     uint32_t preview_source[4] = {0x11111111u, 0x22222222u, 0x33333333u, 0x44444444u};
     uint32_t preview_copy[4] = {0u, 0u, 0u, 0u};
     uint32_t preview_sentinel[4] = {0xAAAAAAAAu, 0xBBBBBBBBu, 0xCCCCCCCCu, 0xDDDDDDDDu};
@@ -3376,21 +3427,17 @@ int main(void) {
                 &preview_active
             );
         }
-        ok = ok && expect_canvas_click_title_refresh(
-            "canvas_click_title_refresh_noop",
-            APP_CANVAS_CLICK_NOOP,
-            0
-        );
-        ok = ok && expect_canvas_click_title_refresh(
-            "canvas_click_title_refresh_preview_canceled",
-            APP_CANVAS_CLICK_PREVIEW_CANCELED,
-            0
-        );
-        ok = ok && expect_canvas_click_title_refresh(
-            "canvas_click_title_refresh_color_sampled",
-            APP_CANVAS_CLICK_COLOR_SAMPLED,
-            1
-        );
+        {
+            const CanvasClickTitleRefreshCase title_refresh_cases[] = {
+                {"canvas_click_title_refresh_noop", APP_CANVAS_CLICK_NOOP, 0},
+                {"canvas_click_title_refresh_preview_canceled", APP_CANVAS_CLICK_PREVIEW_CANCELED, 0},
+                {"canvas_click_title_refresh_color_sampled", APP_CANVAS_CLICK_COLOR_SAMPLED, 1},
+            };
+
+            for (i = 0; i < sizeof(title_refresh_cases) / sizeof(title_refresh_cases[0]); i++) {
+                ok = ok && run_canvas_click_title_refresh_case(&title_refresh_cases[i]);
+            }
+        }
     }
     {
         const HandleLeftCanvasReleaseCase release_cases[] = {
@@ -3711,8 +3758,29 @@ int main(void) {
             );
         }
     }
-    ok = ok && expect_sampled_brush_color_noop("sampled_brush_color_null_tool", 0xFF778899u, NULL, &sampled_brush_color, &sampled_brush_color_rgb, &sampled_brush_opacity, TOOL_BRUSH, 0xAA112233u, 0x00112233u, 42);
-    ok = ok && expect_sampled_brush_color_noop("sampled_brush_color_null_color", 0xFF778899u, &sampled_tool, NULL, &sampled_brush_color_rgb, &sampled_brush_opacity, TOOL_ERASER, 0, 0x00112233u, 42);
+    {
+        const SampledBrushColorNoopCase sampled_noop_cases[] = {
+            {
+                "sampled_brush_color_null_tool",
+                0xFF778899u,
+                0, 1, 1, 1,
+                TOOL_BRUSH, 0xAA112233u, 0x00112233u, 42,
+                TOOL_BRUSH, 0xAA112233u, 0x00112233u, 42,
+            },
+            {
+                "sampled_brush_color_null_color",
+                0xFF778899u,
+                1, 0, 1, 1,
+                TOOL_ERASER, 0u, 0x00112233u, 42,
+                TOOL_ERASER, 0u, 0x00112233u, 42,
+            },
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(sampled_noop_cases) / sizeof(sampled_noop_cases[0]); i++) {
+            ok = ok && run_sampled_brush_color_noop_case(&sampled_noop_cases[i]);
+        }
+    }
     ok = ok && expect_brush_color("brush_color_low_clamp", 0x00123456u, 0, 0x03123456u);
     ok = ok && expect_brush_color("brush_color_mid_round", 0x00ABCDEFu, 50, 0x80ABCDEFu);
     ok = ok && expect_brush_color("brush_color_high_clamp", 0x00FEDCBAu, 150, 0xFFFEDCBAu);
