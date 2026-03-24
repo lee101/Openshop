@@ -2300,6 +2300,30 @@ static void handle_app_event(App *app, const SDL_Event *event) {
     }
 }
 
+static void run_app_loop(App *app) {
+    if (!app) {
+        return;
+    }
+
+    while (app->runtime.running) {
+        SDL_Event e;
+        while (SDL_PollEvent(&e)) {
+            handle_app_event(app, &e);
+        }
+
+        render_app_frame(
+            app->renderer,
+            app->texture,
+            &app->layers,
+            &app->composite,
+            &app->runtime.preview_canvas,
+            app->runtime.preview_active,
+            &app->runtime.needs_composite
+        );
+        SDL_Delay(16);
+    }
+}
+
 int app_run(const char *input_path) {
     App app = {0};
 
@@ -2309,25 +2333,7 @@ int app_run(const char *input_path) {
 
     initialize_app_runtime(&app.runtime);
     refresh_app_title(app.window, &app.layers, app.runtime.tool, app.runtime.brush_shape, app.runtime.brush_radius, app.runtime.brush_color, app.runtime.brush_opacity);
-
-    while (app.runtime.running) {
-        SDL_Event e;
-        while (SDL_PollEvent(&e)) {
-            handle_app_event(&app, &e);
-        }
-
-        render_app_frame(
-            app.renderer,
-            app.texture,
-            &app.layers,
-            &app.composite,
-            &app.runtime.preview_canvas,
-            app.runtime.preview_active,
-            &app.runtime.needs_composite
-        );
-        SDL_Delay(16);
-    }
-
+    run_app_loop(&app);
     shutdown_app(&app);
     return 0;
 }
