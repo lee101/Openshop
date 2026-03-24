@@ -2192,6 +2192,114 @@ static int initialize_app(App *app, const char *input_path) {
     return 1;
 }
 
+static void handle_app_event(App *app, const SDL_Event *event) {
+    if (!app || !event) {
+        return;
+    }
+
+    switch (event->type) {
+    case SDL_QUIT:
+        app->runtime.running = 0;
+        break;
+    case SDL_MOUSEBUTTONDOWN:
+        handle_mouse_button_down(
+            event->button,
+            &app->layers,
+            &app->composite,
+            &app->runtime.preview_canvas,
+            &app->runtime.drawing,
+            &app->runtime.last_x,
+            &app->runtime.last_y,
+            &app->runtime.tool,
+            app->runtime.brush_shape,
+            app->runtime.brush_radius,
+            &app->runtime.brush_color,
+            &app->runtime.brush_color_rgb,
+            &app->runtime.brush_opacity,
+            app->runtime.undo_stack,
+            &app->runtime.undo_count,
+            app->runtime.redo_stack,
+            &app->runtime.redo_count,
+            &app->runtime.shaping,
+            &app->runtime.shape_start_x,
+            &app->runtime.shape_start_y,
+            app->runtime.shape_base_pixels,
+            &app->runtime.preview_active,
+            &app->runtime.preview_canvas,
+            &app->runtime.needs_composite,
+            app->window
+        );
+        break;
+    case SDL_MOUSEBUTTONUP:
+        handle_mouse_button_up(
+            event->button,
+            &app->layers,
+            &app->runtime.drawing,
+            &app->runtime.shaping,
+            &app->runtime.preview_active,
+            app->runtime.shape_start_x,
+            app->runtime.shape_start_y,
+            app->runtime.tool,
+            app->runtime.brush_radius,
+            app->runtime.brush_color,
+            app->runtime.undo_stack,
+            &app->runtime.undo_count,
+            app->runtime.redo_stack,
+            &app->runtime.redo_count,
+            &app->runtime.needs_composite
+        );
+        break;
+    case SDL_MOUSEMOTION:
+        handle_canvas_motion(
+            event->motion.x,
+            event->motion.y,
+            &app->runtime.drawing,
+            &app->runtime.last_x,
+            &app->runtime.last_y,
+            &app->runtime.shaping,
+            app->runtime.shape_start_x,
+            app->runtime.shape_start_y,
+            &app->layers,
+            app->runtime.tool,
+            app->runtime.brush_shape,
+            app->runtime.brush_radius,
+            app->runtime.brush_color,
+            app->runtime.shape_base_pixels,
+            app->runtime.preview_pixels,
+            &app->runtime.preview_canvas,
+            &app->runtime.preview_active,
+            &app->runtime.needs_composite
+        );
+        break;
+    case SDL_KEYDOWN:
+        handle_key_down(
+            event->key.keysym.sym,
+            &app->layers,
+            &app->composite,
+            &app->runtime.preview_canvas,
+            app->runtime.preview_active,
+            app->runtime.undo_stack,
+            &app->runtime.undo_count,
+            app->runtime.redo_stack,
+            &app->runtime.redo_count,
+            &app->runtime.tool,
+            &app->runtime.brush_shape,
+            &app->runtime.brush_radius,
+            &app->runtime.brush_color,
+            &app->runtime.brush_color_rgb,
+            &app->runtime.brush_opacity,
+            &app->runtime.shaping,
+            &app->runtime.preview_active,
+            &app->runtime.running,
+            &app->runtime.needs_composite,
+            app->window
+        );
+        break;
+    default:
+        break;
+    }
+}
+
 int app_run(const char *input_path) {
     App app = {0};
 
@@ -2205,107 +2313,7 @@ int app_run(const char *input_path) {
     while (app.runtime.running) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
-            switch (e.type) {
-            case SDL_QUIT:
-                app.runtime.running = 0;
-                break;
-            case SDL_MOUSEBUTTONDOWN:
-                handle_mouse_button_down(
-                    e.button,
-                    &app.layers,
-                    &app.composite,
-                    &app.runtime.preview_canvas,
-                    &app.runtime.drawing,
-                    &app.runtime.last_x,
-                    &app.runtime.last_y,
-                    &app.runtime.tool,
-                    app.runtime.brush_shape,
-                    app.runtime.brush_radius,
-                    &app.runtime.brush_color,
-                    &app.runtime.brush_color_rgb,
-                    &app.runtime.brush_opacity,
-                    app.runtime.undo_stack,
-                    &app.runtime.undo_count,
-                    app.runtime.redo_stack,
-                    &app.runtime.redo_count,
-                    &app.runtime.shaping,
-                    &app.runtime.shape_start_x,
-                    &app.runtime.shape_start_y,
-                    app.runtime.shape_base_pixels,
-                    &app.runtime.preview_active,
-                    &app.runtime.preview_canvas,
-                    &app.runtime.needs_composite,
-                    app.window
-                );
-                break;
-            case SDL_MOUSEBUTTONUP:
-                handle_mouse_button_up(
-                    e.button,
-                    &app.layers,
-                    &app.runtime.drawing,
-                    &app.runtime.shaping,
-                    &app.runtime.preview_active,
-                    app.runtime.shape_start_x,
-                    app.runtime.shape_start_y,
-                    app.runtime.tool,
-                    app.runtime.brush_radius,
-                    app.runtime.brush_color,
-                    app.runtime.undo_stack,
-                    &app.runtime.undo_count,
-                    app.runtime.redo_stack,
-                    &app.runtime.redo_count,
-                    &app.runtime.needs_composite
-                );
-                break;
-            case SDL_MOUSEMOTION:
-                handle_canvas_motion(
-                    e.motion.x,
-                    e.motion.y,
-                    &app.runtime.drawing,
-                    &app.runtime.last_x,
-                    &app.runtime.last_y,
-                    &app.runtime.shaping,
-                    app.runtime.shape_start_x,
-                    app.runtime.shape_start_y,
-                    &app.layers,
-                    app.runtime.tool,
-                    app.runtime.brush_shape,
-                    app.runtime.brush_radius,
-                    app.runtime.brush_color,
-                    app.runtime.shape_base_pixels,
-                    app.runtime.preview_pixels,
-                    &app.runtime.preview_canvas,
-                    &app.runtime.preview_active,
-                    &app.runtime.needs_composite
-                );
-                break;
-            case SDL_KEYDOWN:
-                handle_key_down(
-                    e.key.keysym.sym,
-                    &app.layers,
-                    &app.composite,
-                    &app.runtime.preview_canvas,
-                    app.runtime.preview_active,
-                    app.runtime.undo_stack,
-                    &app.runtime.undo_count,
-                    app.runtime.redo_stack,
-                    &app.runtime.redo_count,
-                    &app.runtime.tool,
-                    &app.runtime.brush_shape,
-                    &app.runtime.brush_radius,
-                    &app.runtime.brush_color,
-                    &app.runtime.brush_color_rgb,
-                    &app.runtime.brush_opacity,
-                    &app.runtime.shaping,
-                    &app.runtime.preview_active,
-                    &app.runtime.running,
-                    &app.runtime.needs_composite,
-                    app.window
-                );
-                break;
-            default:
-                break;
-            }
+            handle_app_event(&app, &e);
         }
 
         render_app_frame(
