@@ -243,6 +243,7 @@ static int try_load_active_layer_bmp(LayerStack *layers,
                                      Snapshot *undo_stack, int *undo_count,
                                      Snapshot *redo_stack, int *redo_count) {
     Layer *active = layer_stack_active(layers);
+    LayerActionHistoryResult result;
     LoadActiveLayerBmpContext ctx;
     if (!active || active->locked) {
         fprintf(stderr, "%s\n", status_text_action_error(STATUS_ACTIVE_LAYER_LOCKED));
@@ -252,14 +253,15 @@ static int try_load_active_layer_bmp(LayerStack *layers,
     ctx.clear_color = active_layer_clear_color(layers, COLOR_BG);
     ctx.load_succeeded = 0;
     ctx.load_changed = 0;
-    if (!layer_action_history_apply_custom(layers, undo_stack, undo_count, redo_stack, redo_count,
-                                           MAX_HISTORY, load_active_layer_bmp_action, &ctx)) {
+    result = layer_action_history_apply_custom_with_result(layers, undo_stack, undo_count, redo_stack, redo_count,
+                                                           MAX_HISTORY, load_active_layer_bmp_action, &ctx);
+    if (result == LAYER_ACTION_HISTORY_FAILED) {
         if (!ctx.load_succeeded) {
             fprintf(stderr, "%s\n", status_text_action_error(STATUS_LOAD_INPUT_BMP));
         }
         return 0;
     }
-    return 1;
+    return result == LAYER_ACTION_HISTORY_CHANGED;
 }
 
 static int try_flood_fill_active_layer(LayerStack *layers,

@@ -466,6 +466,15 @@ static int test_layer_action_history_helpers(void) {
     }
 
     custom_flip = 1;
+    if (layer_action_history_apply_custom_with_result(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
+                                                      4, test_layer_action_history_custom_flip, &custom_flip) != LAYER_ACTION_HISTORY_CHANGED) {
+        fprintf(stderr, "custom change result should be changed\n");
+        layer_stack_free(&stack);
+        return 0;
+    }
+    snapshot_stack_clear(undo_stack, &undo_count);
+    snapshot_stack_clear(redo_stack, &redo_count);
+    stack.active_layer = 1;
     if (!layer_action_history_apply_custom(&stack, undo_stack, &undo_count, redo_stack, &redo_count,
                                            4, test_layer_action_history_custom_flip, &custom_flip)) {
         fprintf(stderr, "custom change should push history\n");
