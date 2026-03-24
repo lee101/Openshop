@@ -702,6 +702,52 @@ int main(void) {
         snapshot_free(&temp_undo[0]);
     }
 
+    {
+        Snapshot temp_stack[2] = {0};
+        Snapshot owned = {0};
+        uint32_t *owned_pixels = NULL;
+        int temp_count = 0;
+
+        if (!snapshot_from_layers(&owned, &stack)) {
+            fprintf(stderr, "owned snapshot init failed\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+        owned_pixels = owned.pixels;
+        snapshot_push_existing(temp_stack, &temp_count, 2, &owned);
+        if (!expect_int(temp_count, 1, "push_existing_count") ||
+            temp_stack[0].pixels != owned_pixels ||
+            temp_stack[0].width != owned.width ||
+            temp_stack[0].height != owned.height ||
+            temp_stack[0].layer_count != owned.layer_count ||
+            temp_stack[0].active_layer != owned.active_layer ||
+            temp_stack[0].solo_index != owned.solo_index ||
+            strcmp(temp_stack[0].names[0], owned.names[0]) != 0) {
+            fprintf(stderr, "push_existing ownership transfer failed\n");
+            snapshot_stack_clear(temp_stack, &temp_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+
+        snapshot_stack_clear(temp_stack, &temp_count);
+        if (!expect_int(temp_count, 0, "stack_clear_count") ||
+            temp_stack[0].pixels != NULL ||
+            temp_stack[0].width != 0 ||
+            temp_stack[0].height != 0 ||
+            temp_stack[0].layer_count != 0 ||
+            temp_stack[0].active_layer != 0) {
+            fprintf(stderr, "stack_clear should free and zero snapshots\n");
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+    }
+
     snapshot_stack_clear(undo_stack, &undo_count);
     snapshot_stack_clear(redo_stack, &redo_count);
     layer_stack_free(&stack);
