@@ -540,6 +540,7 @@ static int test_shape_preview_state_helpers(void) {
 static int test_brush_render_helpers(void) {
     Canvas canvas = {0};
     Canvas blank = {0};
+    Canvas guard = {0};
 
     if (!canvas_init(&canvas, 7, 7)) {
         fprintf(stderr, "brush render canvas init failed\n");
@@ -552,6 +553,21 @@ static int test_brush_render_helpers(void) {
     }
     canvas_clear(&canvas, 0x00000000);
     canvas_clear(&blank, 0x00000000);
+    guard.width = 1;
+    guard.height = 1;
+    guard.pixels = (uint32_t[]){0xAABBCCDDu};
+
+    stamp_brush(NULL, 0, 0, 1, 0xFFFFFFFF, BRUSH_SHAPE_ROUND);
+    erase_stamp(NULL, 0, 0, 1, 0x00000000, BRUSH_SHAPE_ROUND);
+    draw_brush_line(NULL, 0, 0, 1, 1, 1, 0xFFFFFFFF, BRUSH_SHAPE_ROUND);
+    erase_line(NULL, 0, 0, 1, 1, 1, 0x00000000, BRUSH_SHAPE_ROUND);
+    stamp_brush(&guard, 0, 0, 0, 0xFFFFFFFF, BRUSH_SHAPE_ROUND);
+    erase_stamp(&guard, 0, 0, 0, 0x00000000, BRUSH_SHAPE_ROUND);
+    if (!expect_pixel_eq("brush_render_guard_pixel", guard.pixels[0], 0xAABBCCDDu)) {
+        canvas_free(&canvas);
+        canvas_free(&blank);
+        return 0;
+    }
 
     stamp_brush(&canvas, 3, 3, 1, 0xFF112233, BRUSH_SHAPE_DIAMOND);
     if (!expect_pixel_eq("stamp_center", canvas_get_pixel(&canvas, 3, 3), 0xFF112233) ||
@@ -613,6 +629,7 @@ static int test_brush_render_helpers(void) {
 static int test_shape_draw_helpers(void) {
     Canvas canvas = {0};
     Canvas blank = {0};
+    Canvas guard = {1, 1, (uint32_t[]){0x12345678u}};
 
     if (!canvas_init(&canvas, 9, 9)) {
         fprintf(stderr, "shape draw canvas init failed\n");
@@ -625,6 +642,14 @@ static int test_shape_draw_helpers(void) {
     }
     canvas_clear(&canvas, 0x00000000);
     canvas_clear(&blank, 0x00000000);
+
+    draw_shape(NULL, TOOL_LINE, 0, 0, 1, 1, 1, 0xFFFFFFFF);
+    draw_shape(&guard, (Tool)999, 0, 0, 0, 0, 1, 0xFFFFFFFF);
+    if (!expect_pixel_eq("shape_draw_default_guard", guard.pixels[0], 0x12345678u)) {
+        canvas_free(&canvas);
+        canvas_free(&blank);
+        return 0;
+    }
 
     draw_shape(&canvas, TOOL_FILLED_RECT, 2, 2, 5, 5, 1, 0xFF778899);
     if (!expect_pixel_eq("shape_filled_rect_center", canvas_get_pixel(&canvas, 3, 3), 0xFF778899)) {
