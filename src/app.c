@@ -2121,18 +2121,19 @@ static void initialize_app_runtime(
     preview_canvas->pixels = preview_pixels;
 }
 
-int app_run(const char *input_path) {
-    SDL_Window *window = NULL;
-    SDL_Renderer *renderer = NULL;
-    SDL_Texture *texture = NULL;
-
-    if (!initialize_app_graphics(&window, &renderer, &texture)) {
-        return 1;
+static int initialize_app(
+    SDL_Window **window_out,
+    SDL_Renderer **renderer_out,
+    SDL_Texture **texture_out,
+    LayerStack *layers_out,
+    Canvas *composite_out,
+    const char *input_path
+) {
+    if (!initialize_app_graphics(window_out, renderer_out, texture_out)) {
+        return 0;
     }
 
-    LayerStack layers = {0};
-    Canvas composite = {0};
-    if (!initialize_app_document(&layers, &composite, input_path)) {
+    if (!initialize_app_document(layers_out, composite_out, input_path)) {
         shutdown_app(
             NULL,
             NULL,
@@ -2142,10 +2143,33 @@ int app_run(const char *input_path) {
             NULL,
             NULL,
             NULL,
-            texture,
-            renderer,
-            window
+            *texture_out,
+            *renderer_out,
+            *window_out
         );
+        if (window_out) {
+            *window_out = NULL;
+        }
+        if (renderer_out) {
+            *renderer_out = NULL;
+        }
+        if (texture_out) {
+            *texture_out = NULL;
+        }
+        return 0;
+    }
+
+    return 1;
+}
+
+int app_run(const char *input_path) {
+    SDL_Window *window = NULL;
+    SDL_Renderer *renderer = NULL;
+    SDL_Texture *texture = NULL;
+    LayerStack layers = {0};
+    Canvas composite = {0};
+
+    if (!initialize_app(&window, &renderer, &texture, &layers, &composite, input_path)) {
         return 1;
     }
 
