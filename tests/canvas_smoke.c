@@ -3978,6 +3978,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_select_top_visible(&stack) != -1 || stack.active_layer != 3) {
+        fprintf(stderr, "select top visible no-op failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     stack.layers[0].visible = 0;
     stack.layers[3].visible = 0;
     stack.active_layer = 2;
@@ -4067,6 +4073,7 @@ static int test_layers_basic(void) {
     stack.layers[1].visible = 0;
     stack.layers[2].visible = 0;
     stack.layers[3].visible = 1;
+    stack.active_layer = 3;
     if (!layer_stack_toggle_solo(&stack, 3)) {
         fprintf(stderr, "toggle solo for visible edge selection failed\n");
         canvas_free(&composite);
