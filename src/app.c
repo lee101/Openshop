@@ -798,56 +798,30 @@ static int handle_active_layer_state_shortcut(
     int *redo_count,
     int *needs_composite
 ) {
-    const Layer *active = NULL;
+    int runtime_key = 0;
 
-    if (!layers || !ctrl) {
-        return 0;
+    if (key == SDLK_l) {
+        runtime_key = 'l';
+    } else if (key == SDLK_v) {
+        runtime_key = 'v';
+    } else if (key == SDLK_h) {
+        runtime_key = 'h';
+    } else if (key == SDLK_SLASH) {
+        runtime_key = '/';
     }
 
-    if (shift && key == SDLK_l) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-        if (!layer_stack_toggle_lock(layers, layers->active_layer)) {
-            fprintf(stderr, "Could not toggle layer lock\n");
-        }
-        return 1;
-    }
-
-    active = layer_stack_get(layers, layers->active_layer);
-    if (shift && key == SDLK_v) {
-        if (active && (!active->visible || layer_stack_visible_count(layers) > 1)) {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            if (!layer_stack_toggle_visibility(layers, layers->active_layer)) {
-                fprintf(stderr, "Cannot hide the final visible layer\n");
-            } else if (needs_composite) {
-                *needs_composite = 1;
-            }
-        }
-        return 1;
-    }
-
-    if (shift && key == SDLK_h) {
-        if (active && active->visible && layer_stack_visible_count(layers) > 1) {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            if (!layer_stack_hide_and_advance(layers, layers->active_layer)) {
-                fprintf(stderr, "Cannot hide the final visible layer\n");
-            } else if (needs_composite) {
-                *needs_composite = 1;
-            }
-        }
-        return 1;
-    }
-
-    if (key == SDLK_SLASH) {
-        push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-        if (!layer_stack_toggle_solo(layers, layers->active_layer)) {
-            fprintf(stderr, "Could not toggle solo mode\n");
-        } else if (needs_composite) {
-            *needs_composite = 1;
-        }
-        return 1;
-    }
-
-    return 0;
+    return app_handle_active_layer_state_shortcut(
+        runtime_key,
+        ctrl,
+        shift,
+        layers,
+        undo_stack,
+        undo_count,
+        MAX_HISTORY,
+        redo_stack,
+        redo_count,
+        needs_composite
+    );
 }
 
 static int handle_active_layer_structure_shortcut(

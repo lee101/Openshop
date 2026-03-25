@@ -291,6 +291,70 @@ int app_handle_layer_visibility_shortcut(
     return 0;
 }
 
+int app_handle_active_layer_state_shortcut(
+    int key,
+    int ctrl,
+    int shift,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    int undo_capacity,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+) {
+    const Layer *active = NULL;
+
+    if (!layers || !ctrl) {
+        return 0;
+    }
+
+    if (shift && key == 'l') {
+        snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
+        if (!layer_stack_toggle_lock(layers, layers->active_layer)) {
+            fprintf(stderr, "Could not toggle layer lock\n");
+        }
+        return 1;
+    }
+
+    active = layer_stack_get(layers, layers->active_layer);
+    if (shift && key == 'v') {
+        if (active && (!active->visible || layer_stack_visible_count(layers) > 1)) {
+            snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
+            if (!layer_stack_toggle_visibility(layers, layers->active_layer)) {
+                fprintf(stderr, "Cannot hide the final visible layer\n");
+            } else if (needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (shift && key == 'h') {
+        if (active && active->visible && layer_stack_visible_count(layers) > 1) {
+            snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
+            if (!layer_stack_hide_and_advance(layers, layers->active_layer)) {
+                fprintf(stderr, "Cannot hide the final visible layer\n");
+            } else if (needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (key == '/') {
+        snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
+        if (!layer_stack_toggle_solo(layers, layers->active_layer)) {
+            fprintf(stderr, "Could not toggle solo mode\n");
+        } else if (needs_composite) {
+            *needs_composite = 1;
+        }
+        return 1;
+    }
+
+    return 0;
+}
+
 int app_handle_active_layer_opacity_step(
     LayerStack *layers,
     int delta,

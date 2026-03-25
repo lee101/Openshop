@@ -70,6 +70,19 @@ int app_handle_layer_visibility_shortcut(
     int *needs_composite
 );
 
+int app_handle_active_layer_state_shortcut(
+    int key,
+    int ctrl,
+    int shift,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    int undo_capacity,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+);
+
 int app_handle_active_layer_opacity_step(
     LayerStack *layers,
     int delta,
