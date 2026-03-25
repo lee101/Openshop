@@ -540,6 +540,34 @@ int app_handle_active_layer_delete_shortcut(
     return 1;
 }
 
+int app_handle_active_layer_add_shortcut(
+    int key,
+    int ctrl,
+    int shift,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    int undo_capacity,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+) {
+    if (!layers || !ctrl || !shift || key != 'n') {
+        return 0;
+    }
+    if (!layer_stack_can_insert(layers)) {
+        fprintf(stderr, "Max layers reached (%d)\n", MAX_LAYERS);
+        return 1;
+    }
+
+    snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
+    layer_stack_add(layers, NULL, 0x00000000);
+    if (needs_composite) {
+        *needs_composite = 1;
+    }
+    return 1;
+}
+
 int app_handle_canvas_sample_shortcut_at(
     CanvasShortcutAction canvas_action,
     LayerStack *layers,

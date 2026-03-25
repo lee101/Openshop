@@ -915,16 +915,18 @@ static int handle_active_layer_mutation_shortcut(
         return 0;
     }
 
-    if (ctrl && shift && key == SDLK_n) {
-        if (!layer_stack_can_insert(layers)) {
-            fprintf(stderr, "Max layers reached (%d)\n", MAX_LAYERS);
-        } else {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            layer_stack_add(layers, NULL, 0x00000000);
-            if (needs_composite) {
-                *needs_composite = 1;
-            }
-        }
+    if (app_handle_active_layer_add_shortcut(
+            key == SDLK_n ? 'n' : 0,
+            ctrl,
+            shift,
+            layers,
+            undo_stack,
+            undo_count,
+            MAX_HISTORY,
+            redo_stack,
+            redo_count,
+            needs_composite
+        )) {
         return 1;
     }
 

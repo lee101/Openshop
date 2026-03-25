@@ -142,6 +142,19 @@ int app_handle_active_layer_delete_shortcut(
     int *needs_composite
 );
 
+int app_handle_active_layer_add_shortcut(
+    int key,
+    int ctrl,
+    int shift,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    int undo_capacity,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+);
+
 int app_handle_canvas_sample_shortcut_at(
     CanvasShortcutAction canvas_action,
     LayerStack *layers,
