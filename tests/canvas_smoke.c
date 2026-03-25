@@ -1998,6 +1998,11 @@ static int test_layer_history_commit_change_resets_snapshot_on_compare_capture_f
         layer_stack_free(&stack);
         return 0;
     }
+    if (!expect_pixel_eq("history_commit_failed_compare_capture_preserves_redo", history.redo[0].pixels[0], 0xFF040506)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!expect_pixel_eq("history_commit_failed_compare_capture_keeps_canvas", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF010203)) {
         layer_history_reset(&history);
         layer_stack_free(&stack);
@@ -2283,6 +2288,11 @@ static int test_layer_history_low_level_undo_redo_preserve_state_on_capture_fail
         layer_stack_free(&stack);
         return 0;
     }
+    if (!expect_pixel_eq("history_low_level_failed_capture_undo_preserves_undo", undo_stack[0].pixels[0], 0xFFFFFFFF)) {
+        layer_history_clear(undo_stack, &undo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!expect_pixel_eq("history_low_level_failed_capture_undo_keeps_canvas", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF010203)) {
         layer_history_clear(undo_stack, &undo_count);
         layer_stack_free(&stack);
@@ -2308,6 +2318,13 @@ static int test_layer_history_low_level_undo_redo_preserve_state_on_capture_fail
     layer_snapshot_set_alloc_for_tests(NULL);
     if (undo_count != 1 || redo_count != 1) {
         fprintf(stderr, "history low-level redo should keep counts unchanged after current-state capture failure\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("history_low_level_failed_capture_redo_preserves_undo", undo_stack[0].pixels[0], 0xFFFFFFFF) ||
+        !expect_pixel_eq("history_low_level_failed_capture_redo_preserves_redo", redo_stack[0].pixels[0], 0xFF010203)) {
         layer_history_clear(undo_stack, &undo_count);
         layer_history_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
@@ -2358,6 +2375,12 @@ static int test_layer_history_step_undo_redo_preserve_state_on_capture_failure(v
         layer_stack_free(&stack);
         return 0;
     }
+    if (!expect_pixel_eq("history_step_failed_capture_undo_preserves_oldest", history.undo[0].pixels[0], 0xFFFFFFFF) ||
+        !expect_pixel_eq("history_step_failed_capture_undo_preserves_top", history.undo[history.undo_count - 1].pixels[0], 0xFF010203)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!expect_pixel_eq("history_step_failed_capture_undo_keeps_canvas", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF010203)) {
         layer_history_reset(&history);
         layer_stack_free(&stack);
@@ -2382,6 +2405,13 @@ static int test_layer_history_step_undo_redo_preserve_state_on_capture_failure(v
     layer_snapshot_set_alloc_for_tests(NULL);
     if (history.undo_count != 2 || history.redo_count != 1) {
         fprintf(stderr, "history step redo should keep counts unchanged after current-state capture failure\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("history_step_failed_capture_redo_preserves_oldest", history.undo[0].pixels[0], 0xFFFFFFFF) ||
+        !expect_pixel_eq("history_step_failed_capture_redo_preserves_top", history.undo[history.undo_count - 1].pixels[0], 0xFF010203) ||
+        !expect_pixel_eq("history_step_failed_capture_redo_preserves_redo", history.redo[0].pixels[0], 0xFF010203)) {
         layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
@@ -2944,6 +2974,11 @@ static int test_layer_history_push_record_preserve_state_on_capture_failure(void
         layer_stack_free(&stack);
         return 0;
     }
+    if (!expect_pixel_eq("history_push_failed_capture_preserves_redo", redo_stack[0].pixels[0], 0xFFFFFFFF)) {
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!expect_pixel_eq("history_push_failed_capture_keeps_canvas", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF010203)) {
         layer_history_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
@@ -2963,6 +2998,12 @@ static int test_layer_history_push_record_preserve_state_on_capture_failure(void
     layer_snapshot_set_alloc_for_tests(NULL);
 
     if (!expect_wrapper_history_counts("history_record_failed_capture_preserves_counts", &history, 0, 1)) {
+        layer_history_reset(&history);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("history_record_failed_capture_preserves_redo", history.redo[0].pixels[0], 0xFF010203)) {
         layer_history_reset(&history);
         layer_history_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
