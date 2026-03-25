@@ -93,7 +93,7 @@ make test-sdl
 - Layer stack starts with a white background layer; new layers are transparent.
 - Maximum of 16 layers are supported; `1`-`8` target slots or visible ranks 1-8, while `F1`-`F8` target 9-16.
 - The window title shows both the absolute active layer slot and its visible rank; hidden active layers display as `hidden N/M visible`.
-- Failed edits, unchanged edits, failed internal snapshot capture/compare steps, and failed undo/redo step applications all preserve the existing undo/redo stacks and their retained snapshots, and roll back discarded temporary step snapshots to an empty state.
+- Failed edits, unchanged edits, failed internal snapshot capture/compare steps, and failed undo/redo step applications all preserve the existing undo/redo stacks and their retained snapshots, restoring any destination entry evicted during the attempted step and rolling back discarded temporary step snapshots to an empty state.
 - Undo/redo retains up to 20 layer-aware history states; once full, the oldest retained history state is evicted as new ones are recorded, and new edits clear the redo stack.
 - Repeating no-op history records are ignored without consuming redo or evicting the oldest retained state, and failed or unchanged edits preserve redo instead of consuming history.
 - Visibility shortcuts such as `Ctrl+A` and `Ctrl+Shift+R` only create undo states when they actually change visibility or solo state.
