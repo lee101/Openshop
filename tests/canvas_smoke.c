@@ -112,6 +112,26 @@ static int snapshot_has_cleared_scalar_state(const LayerSnapshot *snapshot) {
            snapshot->solo_index == -1;
 }
 
+static int seed_history_snapshots_with_pixel_series(
+    LayerStack *stack,
+    LayerSnapshot *snapshots,
+    int *count,
+    uint32_t base_color,
+    const char *label
+) {
+    if (!stack || !snapshots || !count || !label) {
+        return 0;
+    }
+    for (int i = 0; i < HISTORY_CAPACITY; i++) {
+        canvas_set_pixel(&stack->layers[0].canvas, 0, 0, base_color | (uint32_t)i);
+        if (!layer_snapshot_capture(&snapshots[(*count)++], stack)) {
+            fprintf(stderr, "%s failed at %d\n", label, i);
+            return 0;
+        }
+    }
+    return 1;
+}
+
 #ifdef OPENSHOP_TESTING
 static void *always_fail_snapshot_alloc(size_t size) {
     (void)size;
@@ -2360,14 +2380,10 @@ static int test_layer_history_low_level_undo_redo_evict_destination_at_capacity(
     int undo_count = 0;
     int redo_count = 0;
 
-    for (int i = 0; i < HISTORY_CAPACITY; i++) {
-        canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF100000u | (uint32_t)i);
-        if (!layer_snapshot_capture(&redo_stack[redo_count++], &stack)) {
-            fprintf(stderr, "history low-level redo capacity seed failed at %d\n", i);
-            layer_history_clear(redo_stack, &redo_count);
-            layer_stack_free(&stack);
-            return 0;
-        }
+    if (!seed_history_snapshots_with_pixel_series(&stack, redo_stack, &redo_count, 0xFF100000u, "history low-level redo capacity seed")) {
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
     }
 
     canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFFFFFFFF);
@@ -2404,14 +2420,10 @@ static int test_layer_history_low_level_undo_redo_evict_destination_at_capacity(
 
     layer_history_clear(redo_stack, &redo_count);
 
-    for (int i = 0; i < HISTORY_CAPACITY; i++) {
-        canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF200000u | (uint32_t)i);
-        if (!layer_snapshot_capture(&undo_stack[undo_count++], &stack)) {
-            fprintf(stderr, "history low-level undo capacity refill failed at %d\n", i);
-            layer_history_clear(undo_stack, &undo_count);
-            layer_stack_free(&stack);
-            return 0;
-        }
+    if (!seed_history_snapshots_with_pixel_series(&stack, undo_stack, &undo_count, 0xFF200000u, "history low-level undo capacity refill")) {
+        layer_history_clear(undo_stack, &undo_count);
+        layer_stack_free(&stack);
+        return 0;
     }
 
     canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF112233);
@@ -2464,14 +2476,10 @@ static int test_layer_history_low_level_undo_redo_duplicate_keeps_capacity_state
     int undo_count = 0;
     int redo_count = 0;
 
-    for (int i = 0; i < HISTORY_CAPACITY; i++) {
-        canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF900000u | (uint32_t)i);
-        if (!layer_snapshot_capture(&redo_stack[redo_count++], &stack)) {
-            fprintf(stderr, "history low-level duplicate redo seed failed at %d\n", i);
-            layer_history_clear(redo_stack, &redo_count);
-            layer_stack_free(&stack);
-            return 0;
-        }
+    if (!seed_history_snapshots_with_pixel_series(&stack, redo_stack, &redo_count, 0xFF900000u, "history low-level duplicate redo seed")) {
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
     }
 
     canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF556677);
@@ -2508,14 +2516,10 @@ static int test_layer_history_low_level_undo_redo_duplicate_keeps_capacity_state
 
     layer_history_clear(redo_stack, &redo_count);
 
-    for (int i = 0; i < HISTORY_CAPACITY; i++) {
-        canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFFA00000u | (uint32_t)i);
-        if (!layer_snapshot_capture(&undo_stack[undo_count++], &stack)) {
-            fprintf(stderr, "history low-level duplicate undo refill failed at %d\n", i);
-            layer_history_clear(undo_stack, &undo_count);
-            layer_stack_free(&stack);
-            return 0;
-        }
+    if (!seed_history_snapshots_with_pixel_series(&stack, undo_stack, &undo_count, 0xFFA00000u, "history low-level duplicate undo refill")) {
+        layer_history_clear(undo_stack, &undo_count);
+        layer_stack_free(&stack);
+        return 0;
     }
 
     canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF99AABB);
@@ -2565,14 +2569,10 @@ static int test_layer_history_step_undo_redo_evict_destination_at_capacity(void)
 
     LayerHistory history = {0};
 
-    for (int i = 0; i < HISTORY_CAPACITY; i++) {
-        canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF300000u | (uint32_t)i);
-        if (!layer_snapshot_capture(&history.redo[history.redo_count++], &stack)) {
-            fprintf(stderr, "history step redo capacity seed failed at %d\n", i);
-            layer_history_reset(&history);
-            layer_stack_free(&stack);
-            return 0;
-        }
+    if (!seed_history_snapshots_with_pixel_series(&stack, history.redo, &history.redo_count, 0xFF300000u, "history step redo capacity seed")) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
     }
 
     canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFFFFFFFF);
@@ -2606,14 +2606,10 @@ static int test_layer_history_step_undo_redo_evict_destination_at_capacity(void)
 
     layer_history_clear(history.redo, &history.redo_count);
 
-    for (int i = 0; i < HISTORY_CAPACITY; i++) {
-        canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF400000u | (uint32_t)i);
-        if (!layer_snapshot_capture(&history.undo[history.undo_count++], &stack)) {
-            fprintf(stderr, "history step undo capacity refill failed at %d\n", i);
-            layer_history_reset(&history);
-            layer_stack_free(&stack);
-            return 0;
-        }
+    if (!seed_history_snapshots_with_pixel_series(&stack, history.undo, &history.undo_count, 0xFF400000u, "history step undo capacity refill")) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
     }
 
     canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF112233);
@@ -2659,14 +2655,10 @@ static int test_layer_history_step_undo_redo_duplicate_keeps_capacity_state(void
 
     LayerHistory history = {0};
 
-    for (int i = 0; i < HISTORY_CAPACITY; i++) {
-        canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF700000u | (uint32_t)i);
-        if (!layer_snapshot_capture(&history.redo[history.redo_count++], &stack)) {
-            fprintf(stderr, "history step duplicate redo seed failed at %d\n", i);
-            layer_history_reset(&history);
-            layer_stack_free(&stack);
-            return 0;
-        }
+    if (!seed_history_snapshots_with_pixel_series(&stack, history.redo, &history.redo_count, 0xFF700000u, "history step duplicate redo seed")) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
     }
 
     canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF556677);
@@ -2700,14 +2692,10 @@ static int test_layer_history_step_undo_redo_duplicate_keeps_capacity_state(void
 
     layer_history_clear(history.redo, &history.redo_count);
 
-    for (int i = 0; i < HISTORY_CAPACITY; i++) {
-        canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF800000u | (uint32_t)i);
-        if (!layer_snapshot_capture(&history.undo[history.undo_count++], &stack)) {
-            fprintf(stderr, "history step duplicate undo refill failed at %d\n", i);
-            layer_history_reset(&history);
-            layer_stack_free(&stack);
-            return 0;
-        }
+    if (!seed_history_snapshots_with_pixel_series(&stack, history.undo, &history.undo_count, 0xFF800000u, "history step duplicate undo refill")) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
     }
 
     canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFF99AABB);
