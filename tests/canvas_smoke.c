@@ -2159,6 +2159,13 @@ static int test_layer_history_low_level_undo_redo_rolls_back_failed_apply(void) 
         layer_stack_free(&stack);
         return 0;
     }
+    if (undo_stack[0].width != stack.width + 1 || undo_stack[0].pixels == NULL) {
+        fprintf(stderr, "history low-level undo should preserve the failed source snapshot after rollback\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     if (!layer_snapshot_capture(&redo_stack[redo_count++], &stack)) {
         fprintf(stderr, "history low-level rollback redo capture failed\n");
@@ -2177,6 +2184,15 @@ static int test_layer_history_low_level_undo_redo_rolls_back_failed_apply(void) 
     }
     if (undo_count != 1 || redo_count != 1) {
         fprintf(stderr, "history low-level redo should roll back stack mutations after apply failure\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("history_low_level_failed_apply_preserves_undo", undo_stack[0].pixels[0], 0xFFFFFFFF) ||
+        (redo_stack[0].width != stack.width + 1) ||
+        redo_stack[0].pixels == NULL) {
+        fprintf(stderr, "history low-level redo should preserve both retained snapshots after rollback\n");
         layer_history_clear(undo_stack, &undo_count);
         layer_history_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
@@ -2214,6 +2230,14 @@ static int test_layer_history_step_undo_redo_rolls_back_failed_apply(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!expect_pixel_eq("history_step_failed_undo_preserves_oldest", history.undo[0].pixels[0], 0xFFFFFFFF) ||
+        history.undo[history.undo_count - 1].width != stack.width + 1 ||
+        history.undo[history.undo_count - 1].pixels == NULL) {
+        fprintf(stderr, "history step undo should preserve retained undo snapshots after apply failure\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!expect_pixel_eq("history_step_failed_undo_keeps_canvas", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF010203)) {
         layer_history_reset(&history);
         layer_stack_free(&stack);
@@ -2235,6 +2259,16 @@ static int test_layer_history_step_undo_redo_rolls_back_failed_apply(void) {
     }
     if (history.undo_count != 2 || history.redo_count != 1) {
         fprintf(stderr, "history step redo should keep history counts unchanged after apply failure\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("history_step_failed_redo_preserves_oldest", history.undo[0].pixels[0], 0xFFFFFFFF) ||
+        history.undo[history.undo_count - 1].width != stack.width + 1 ||
+        history.undo[history.undo_count - 1].pixels == NULL ||
+        history.redo[0].width != stack.width + 1 ||
+        history.redo[0].pixels == NULL) {
+        fprintf(stderr, "history step redo should preserve retained snapshots after apply failure\n");
         layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
