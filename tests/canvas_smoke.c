@@ -1822,6 +1822,78 @@ static int test_layer_history_commit_change_null_snapshot_is_noop(void) {
     return 1;
 }
 
+static int test_layer_history_commit_change_noop_keeps_capacity_state(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 2, 2, 0xFFFFFFFF)) {
+        fprintf(stderr, "history commit capacity noop init failed\n");
+        return 0;
+    }
+
+    LayerHistory history = {0};
+    for (int i = 0; i < HISTORY_CAPACITY; i++) {
+        layer_history_record(&history, &stack);
+        canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFFC00000u | (uint32_t)i);
+    }
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFFC00000u | (uint32_t)(HISTORY_CAPACITY - 2));
+
+    if (!layer_snapshot_capture(&history.redo[history.redo_count++], &stack)) {
+        fprintf(stderr, "history commit capacity noop redo seed failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    LayerSnapshot snapshot = {0};
+    if (!layer_snapshot_capture(&snapshot, &stack)) {
+        fprintf(stderr, "history commit capacity noop capture failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_history_commit_change(&history, &snapshot, &stack, 1)) {
+        fprintf(stderr, "history commit capacity noop should skip unchanged state\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!snapshot_is_reset(&snapshot)) {
+        fprintf(stderr, "history commit capacity noop should reset discarded snapshot\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (history.undo_count != HISTORY_CAPACITY || history.redo_count != 1) {
+        fprintf(stderr, "history commit capacity noop should preserve undo/redo counts\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    while (history.undo_count > 1) {
+        if (!layer_history_step_undo(&history, &stack)) {
+            fprintf(stderr, "history commit capacity noop multi-undo failed\n");
+            layer_history_reset(&history);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    if (!layer_history_step_undo(&history, &stack)) {
+        fprintf(stderr, "history commit capacity noop oldest-retained undo failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("history_commit_capacity_noop_oldest_retained", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFFFFFFFF)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_reset(&history);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layer_history_commit_change_resets_snapshot_on_compare_capture_failure(void) {
 #ifndef OPENSHOP_TESTING
     fprintf(stderr, "history commit capture failure test requires OPENSHOP_TESTING\n");
@@ -4175,6 +4247,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_commit_change_null_snapshot_is_noop()) {
+        return 1;
+    }
+    if (!test_layer_history_commit_change_noop_keeps_capacity_state()) {
         return 1;
     }
     if (!test_layer_history_commit_change_resets_snapshot_on_compare_capture_failure()) {
