@@ -2969,6 +2969,60 @@ static int test_layer_history_push_evicts_oldest_at_capacity(void) {
     return 1;
 }
 
+static int test_layer_history_record_duplicate_keeps_capacity_state(void) {
+    LayerStack stack;
+    if (!layer_stack_init(&stack, 2, 2, 0xFFFFFFFF)) {
+        fprintf(stderr, "history record duplicate capacity init failed\n");
+        return 0;
+    }
+
+    LayerHistory history = {0};
+    for (int i = 0; i < HISTORY_CAPACITY; i++) {
+        layer_history_record(&history, &stack);
+        canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFFB00000u | (uint32_t)i);
+    }
+    canvas_set_pixel(&stack.layers[0].canvas, 0, 0, 0xFFB00000u | (uint32_t)(HISTORY_CAPACITY - 2));
+
+    if (!layer_snapshot_capture(&history.redo[history.redo_count++], &stack)) {
+        fprintf(stderr, "history record duplicate capacity redo seed failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_record(&history, &stack);
+    if (history.undo_count != HISTORY_CAPACITY || history.redo_count != 1) {
+        fprintf(stderr, "history record duplicate capacity should preserve undo/redo counts\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    while (history.undo_count > 1) {
+        if (!layer_history_step_undo(&history, &stack)) {
+            fprintf(stderr, "history record duplicate capacity multi-undo failed\n");
+            layer_history_reset(&history);
+            layer_stack_free(&stack);
+            return 0;
+        }
+    }
+    if (!layer_history_step_undo(&history, &stack)) {
+        fprintf(stderr, "history record duplicate capacity oldest-retained undo failed\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq("history_record_duplicate_capacity_oldest_retained", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFFFFFFFF)) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+
+    layer_history_reset(&history);
+    layer_stack_free(&stack);
+    return 1;
+}
+
 static int test_layer_history_push_duplicate_keeps_capacity_state(void) {
     LayerStack stack;
     if (!layer_stack_init(&stack, 2, 2, 0xFFFFFFFF)) {
@@ -4166,6 +4220,9 @@ int main(void) {
         return 1;
     }
     if (!test_layer_history_push_evicts_oldest_at_capacity()) {
+        return 1;
+    }
+    if (!test_layer_history_record_duplicate_keeps_capacity_state()) {
         return 1;
     }
     if (!test_layer_history_push_duplicate_keeps_capacity_state()) {
