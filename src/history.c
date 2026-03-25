@@ -6,6 +6,7 @@
 static int layer_snapshot_equals(const LayerSnapshot *a, const LayerSnapshot *b);
 static int layer_snapshot_compare_current(const LayerSnapshot *snapshot, const LayerStack *stack, int *equal_out);
 static void layer_snapshot_disown(LayerSnapshot *snapshot);
+static void history_restore_evicted_snapshot(LayerSnapshot *stack, int *count, LayerSnapshot *snapshot);
 
 typedef enum {
     HISTORY_CAPTURE_ERROR = -1,
@@ -58,6 +59,16 @@ static void history_push_existing(LayerSnapshot *stack, int *count, LayerSnapsho
     stack[(*count)++] = *snapshot;
 }
 
+static void history_restore_evicted_snapshot(LayerSnapshot *stack, int *count, LayerSnapshot *snapshot) {
+    if (!stack || !count || !snapshot) {
+        return;
+    }
+    memmove(&stack[1], &stack[0], sizeof(LayerSnapshot) * (size_t)(*count));
+    stack[0] = *snapshot;
+    (*count)++;
+    layer_snapshot_disown(snapshot);
+}
+
 static HistoryCaptureResult history_capture_and_push(
     const LayerStack *layers,
     LayerSnapshot *stack,
@@ -91,7 +102,10 @@ static int history_step_apply(
     LayerSnapshot *to_stack,
     int *to_count
 ) {
+    LayerSnapshot current_snapshot = {0};
     HistoryCaptureResult pushed_current = HISTORY_CAPTURE_DUPLICATE;
+    LayerSnapshot evicted_snapshot = {0};
+    int evicted_snapshot_valid = 0;
     LayerSnapshot snapshot = {0};
     int ok = 0;
 
@@ -99,9 +113,23 @@ static int history_step_apply(
         return 0;
     }
 
-    pushed_current = history_capture_and_push(layers, to_stack, to_count, NULL, NULL);
-    if (pushed_current == HISTORY_CAPTURE_ERROR) {
+    if (!layer_snapshot_capture(&current_snapshot, layers)) {
         return 0;
+    }
+    if (*to_count > 0 && layer_snapshot_equals(&to_stack[*to_count - 1], &current_snapshot)) {
+        layer_snapshot_reset(&current_snapshot);
+        pushed_current = HISTORY_CAPTURE_DUPLICATE;
+    } else {
+        if (*to_count == HISTORY_CAPACITY) {
+            evicted_snapshot = to_stack[0];
+            layer_snapshot_disown(&to_stack[0]);
+            evicted_snapshot_valid = 1;
+            memmove(&to_stack[0], &to_stack[1], sizeof(LayerSnapshot) * (size_t)(HISTORY_CAPACITY - 1));
+            *to_count = HISTORY_CAPACITY - 1;
+        }
+        to_stack[(*to_count)++] = current_snapshot;
+        layer_snapshot_disown(&current_snapshot);
+        pushed_current = HISTORY_CAPTURE_PUSHED;
     }
     snapshot = from_stack[--(*from_count)];
     layer_snapshot_disown(&from_stack[*from_count]);
@@ -110,11 +138,17 @@ static int history_step_apply(
         from_stack[(*from_count)++] = snapshot;
         if (pushed_current == HISTORY_CAPTURE_PUSHED) {
             layer_snapshot_reset(&to_stack[--(*to_count)]);
+            if (evicted_snapshot_valid) {
+                history_restore_evicted_snapshot(to_stack, to_count, &evicted_snapshot);
+            }
         }
         return 0;
     }
 
     layer_snapshot_free(&snapshot);
+    if (evicted_snapshot_valid) {
+        layer_snapshot_free(&evicted_snapshot);
+    }
     return 1;
 }
 
