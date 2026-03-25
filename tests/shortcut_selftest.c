@@ -2644,6 +2644,171 @@ static int run_active_layer_add_shortcut_runtime_case(const ActiveLayerAddShortc
     );
 }
 
+static int expect_active_layer_composite_shortcut_runtime(
+    const char *label,
+    int key,
+    int ctrl,
+    int shift,
+    int layer_count,
+    int active_layer,
+    int solo_index,
+    int active_locked,
+    int second_locked,
+    int active_visible,
+    int second_visible,
+    int active_opacity,
+    int second_opacity,
+    int want_handled,
+    int want_needs_composite,
+    int want_undo_count,
+    int want_layer_count,
+    int want_active_layer,
+    int want_solo_index,
+    int want_pixel_layer,
+    uint32_t want_pixel
+) {
+    LayerStack stack = {0};
+    Snapshot undo_stack[2] = {0};
+    Snapshot redo_stack[2] = {0};
+    int undo_count = 0;
+    int redo_count = 0;
+    int needs_composite = 0;
+    int handled = 0;
+    int init_ok = 1;
+    int ok = 1;
+    int i = 0;
+
+    stack.width = 2;
+    stack.height = 2;
+    stack.layer_count = layer_count;
+    stack.active_layer = active_layer;
+    stack.solo_index = solo_index;
+
+    for (i = 0; i < layer_count; i++) {
+        uint32_t fill = 0xFF101010u + (uint32_t)i * 0x000F0F0Fu;
+
+        if (!canvas_init(&stack.layers[i].canvas, 2, 2)) {
+            init_ok = 0;
+            break;
+        }
+        canvas_clear(&stack.layers[i].canvas, fill);
+        stack.layers[i].visible = 1;
+        stack.layers[i].locked = 0;
+        stack.layers[i].opacity_percent = 100;
+    }
+    if (!init_ok) {
+        fprintf(stderr, "%s setup failed: could not initialize layer canvases\n", label);
+        for (i = 0; i < layer_count; i++) {
+            canvas_free(&stack.layers[i].canvas);
+        }
+        return 0;
+    }
+
+    if (layer_count > 0) {
+        stack.layers[0].visible = active_visible;
+        stack.layers[0].locked = active_locked;
+        stack.layers[0].opacity_percent = active_opacity;
+    }
+    if (layer_count > 1) {
+        stack.layers[1].visible = second_visible;
+        stack.layers[1].locked = second_locked;
+        stack.layers[1].opacity_percent = second_opacity;
+    }
+
+    handled = app_handle_active_layer_composite_shortcut(
+        key,
+        ctrl,
+        shift,
+        &stack,
+        undo_stack,
+        &undo_count,
+        2,
+        redo_stack,
+        &redo_count,
+        &needs_composite
+    );
+
+    if (handled != want_handled) {
+        fprintf(stderr, "%s handled mismatch: got %d want %d\n", label, handled, want_handled);
+        ok = 0;
+    }
+    if (ok && needs_composite != want_needs_composite) {
+        fprintf(stderr, "%s needs_composite mismatch: got %d want %d\n", label, needs_composite, want_needs_composite);
+        ok = 0;
+    }
+    if (ok && (undo_count != want_undo_count || redo_count != 0)) {
+        fprintf(stderr, "%s history count mismatch: undo %d/%d redo %d/0\n", label, undo_count, want_undo_count, redo_count);
+        ok = 0;
+    }
+    if (ok && (stack.layer_count != want_layer_count || stack.active_layer != want_active_layer || stack.solo_index != want_solo_index)) {
+        fprintf(stderr, "%s stack mismatch: got layers %d active %d solo %d want layers %d active %d solo %d\n",
+            label, stack.layer_count, stack.active_layer, stack.solo_index, want_layer_count, want_active_layer, want_solo_index);
+        ok = 0;
+    }
+    if (ok && want_pixel_layer >= 0 && want_pixel_layer < stack.layer_count) {
+        uint32_t got_pixel = stack.layers[want_pixel_layer].canvas.pixels[0];
+        if (got_pixel != want_pixel) {
+            fprintf(stderr, "%s pixel mismatch: got 0x%08X want 0x%08X\n", label, got_pixel, want_pixel);
+            ok = 0;
+        }
+    }
+
+    for (i = 0; i < stack.layer_count; i++) {
+        canvas_free(&stack.layers[i].canvas);
+    }
+    return ok;
+}
+
+typedef struct {
+    const char *label;
+    int key;
+    int ctrl;
+    int shift;
+    int layer_count;
+    int active_layer;
+    int solo_index;
+    int active_locked;
+    int second_locked;
+    int active_visible;
+    int second_visible;
+    int active_opacity;
+    int second_opacity;
+    int want_handled;
+    int want_needs_composite;
+    int want_undo_count;
+    int want_layer_count;
+    int want_active_layer;
+    int want_solo_index;
+    int want_pixel_layer;
+    uint32_t want_pixel;
+} ActiveLayerCompositeShortcutRuntimeCase;
+
+static int run_active_layer_composite_shortcut_runtime_case(const ActiveLayerCompositeShortcutRuntimeCase *test_case) {
+    return expect_active_layer_composite_shortcut_runtime(
+        test_case->label,
+        test_case->key,
+        test_case->ctrl,
+        test_case->shift,
+        test_case->layer_count,
+        test_case->active_layer,
+        test_case->solo_index,
+        test_case->active_locked,
+        test_case->second_locked,
+        test_case->active_visible,
+        test_case->second_visible,
+        test_case->active_opacity,
+        test_case->second_opacity,
+        test_case->want_handled,
+        test_case->want_needs_composite,
+        test_case->want_undo_count,
+        test_case->want_layer_count,
+        test_case->want_active_layer,
+        test_case->want_solo_index,
+        test_case->want_pixel_layer,
+        test_case->want_pixel
+    );
+}
+
 static int expect_canvas_sample_shortcut(
     const char *label,
     CanvasShortcutAction action,
@@ -5763,6 +5928,29 @@ int main(void) {
 
         if (app_handle_active_layer_add_shortcut('n', 1, 1, NULL, NULL, NULL, 0, NULL, NULL, NULL) != 0) {
             fprintf(stderr, "active_layer_add_null_layers should reject null layer stack\n");
+            ok = 0;
+        }
+    }
+    {
+        const ActiveLayerCompositeShortcutRuntimeCase active_layer_composite_cases[] = {
+            {"active_layer_composite_flatten_success", 'm', 1, 1, 2, 1, -1, 0, 0, 1, 1, 100, 100, 1, 1, 1, 1, 0, -1, 0, 0xFF1F1F1Fu},
+            {"active_layer_composite_flatten_locked_noop", 'm', 1, 1, 2, 1, -1, 0, 1, 1, 1, 100, 100, 1, 0, 0, 2, 1, -1, 0, 0xFF101010u},
+            {"active_layer_composite_stamp_into_success", 'e', 1, 1, 2, 0, -1, 0, 0, 1, 1, 100, 100, 1, 1, 1, 2, 0, -1, 0, 0xFF1F1F1Fu},
+            {"active_layer_composite_stamp_into_no_change", 'e', 1, 1, 1, 0, -1, 0, 0, 1, 0, 100, 100, 1, 0, 0, 1, 0, -1, 0, 0xFF101010u},
+            {"active_layer_composite_stamp_into_locked_noop", 'e', 1, 1, 2, 0, -1, 1, 0, 1, 1, 100, 100, 1, 0, 0, 2, 0, -1, 0, 0xFF101010u},
+            {"active_layer_composite_stamp_new_success", 'g', 1, 1, 2, 0, -1, 0, 0, 1, 1, 100, 100, 1, 1, 1, 3, 2, -1, 2, 0xFF1F1F1Fu},
+            {"active_layer_composite_stamp_new_max_layers_noop", 'g', 1, 1, MAX_LAYERS, 0, -1, 0, 0, 1, 1, 100, 100, 1, 0, 0, MAX_LAYERS, 0, -1, 0, 0xFF101010u},
+            {"active_layer_composite_missing_shift", 'm', 1, 0, 2, 1, -1, 0, 0, 1, 1, 100, 100, 0, 0, 0, 2, 1, -1, 0, 0xFF101010u},
+            {"active_layer_composite_other_key", 'x', 1, 1, 2, 1, -1, 0, 0, 1, 1, 100, 100, 0, 0, 0, 2, 1, -1, 0, 0xFF101010u},
+        };
+        size_t i;
+
+        for (i = 0; i < sizeof(active_layer_composite_cases) / sizeof(active_layer_composite_cases[0]); i++) {
+            ok = ok && run_active_layer_composite_shortcut_runtime_case(&active_layer_composite_cases[i]);
+        }
+
+        if (app_handle_active_layer_composite_shortcut('m', 1, 1, NULL, NULL, NULL, 0, NULL, NULL, NULL) != 0) {
+            fprintf(stderr, "active_layer_composite_null_layers should reject null layer stack\n");
             ok = 0;
         }
     }

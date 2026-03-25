@@ -14,6 +14,7 @@ static const uint32_t COLOR_GREEN = 0xFF43A047;
 static const uint32_t COLOR_BLUE = 0xFF1E88E5;
 static const uint32_t COLOR_YELLOW = 0xFFFDD835;
 static const uint32_t COLOR_PURPLE = 0xFF8E24AA;
+static const uint32_t COLOR_BG = 0xFFFFFFFF;
 
 int app_handle_history_navigation_shortcut(
     int key,
@@ -566,6 +567,63 @@ int app_handle_active_layer_add_shortcut(
         *needs_composite = 1;
     }
     return 1;
+}
+
+int app_handle_active_layer_composite_shortcut(
+    int key,
+    int ctrl,
+    int shift,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    int undo_capacity,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+) {
+    if (!layers || !ctrl || !shift) {
+        return 0;
+    }
+
+    if (key == 'm') {
+        if (!layer_stack_can_flatten(layers)) {
+            fprintf(stderr, "Flatten failed (check for locked layers)\n");
+        } else {
+            snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
+            layer_stack_flatten(layers, COLOR_BG);
+            if (needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (key == 'e') {
+        if (layer_stack_stamp_visible_would_change(layers, layers->active_layer, COLOR_BG)) {
+            snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
+            if (!layer_stack_stamp_visible_into(layers, layers->active_layer, COLOR_BG)) {
+                fprintf(stderr, "Stamp visible failed (active layer may be locked)\n");
+            } else if (needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    if (key == 'g') {
+        if (!layer_stack_can_insert(layers)) {
+            fprintf(stderr, "Could not stamp visible image into a new layer\n");
+        } else {
+            snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
+            layer_stack_stamp_visible_new(layers, "Visible Stamp", COLOR_BG);
+            if (needs_composite) {
+                *needs_composite = 1;
+            }
+        }
+        return 1;
+    }
+
+    return 0;
 }
 
 int app_handle_canvas_sample_shortcut_at(

@@ -962,41 +962,21 @@ static int handle_active_layer_mutation_shortcut(
         return 1;
     }
 
-    if (ctrl && shift && key == SDLK_m) {
-        if (!layer_stack_can_flatten(layers)) {
-            fprintf(stderr, "Flatten failed (check for locked layers)\n");
-        } else {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            layer_stack_flatten(layers, COLOR_BG);
-            if (needs_composite) {
-                *needs_composite = 1;
-            }
-        }
-        return 1;
-    }
-
-    if (ctrl && shift && key == SDLK_e) {
-        if (layer_stack_stamp_visible_would_change(layers, layers->active_layer, COLOR_BG)) {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            if (!layer_stack_stamp_visible_into(layers, layers->active_layer, COLOR_BG)) {
-                fprintf(stderr, "Stamp visible failed (active layer may be locked)\n");
-            } else if (needs_composite) {
-                *needs_composite = 1;
-            }
-        }
-        return 1;
-    }
-
-    if (ctrl && shift && key == SDLK_g) {
-        if (!layer_stack_can_insert(layers)) {
-            fprintf(stderr, "Could not stamp visible image into a new layer\n");
-        } else {
-            push_snapshot(layers, undo_stack, undo_count, redo_stack, redo_count);
-            layer_stack_stamp_visible_new(layers, "Visible Stamp", COLOR_BG);
-            if (needs_composite) {
-                *needs_composite = 1;
-            }
-        }
+    if (app_handle_active_layer_composite_shortcut(
+            key == SDLK_m ? 'm' :
+            key == SDLK_e ? 'e' :
+            key == SDLK_g ? 'g' :
+            0,
+            ctrl,
+            shift,
+            layers,
+            undo_stack,
+            undo_count,
+            MAX_HISTORY,
+            redo_stack,
+            redo_count,
+            needs_composite
+        )) {
         return 1;
     }
 
