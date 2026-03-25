@@ -95,7 +95,7 @@ make test-sdl
 - The window title shows both the absolute active layer slot and its visible rank; hidden active layers display as `hidden N/M visible`.
 - Failed edits, unchanged edits, failed internal snapshot capture/compare steps, and failed undo/redo step applications all preserve the existing undo/redo stacks.
 - Undo/redo retains up to 20 layer-aware history states; once full, the oldest retained history state is evicted as new ones are recorded, and new edits clear the redo stack.
-- Repeating no-op history records are ignored, and failed or unchanged edits preserve redo instead of consuming history.
+- Repeating no-op history records are ignored without consuming redo or evicting the oldest retained state, and failed or unchanged edits preserve redo instead of consuming history.
 - Visibility shortcuts such as `Ctrl+A` and `Ctrl+Shift+R` only create undo states when they actually change visibility or solo state.
 - Brush, eraser, shape, fill, clear, transform, opacity, merge, stamp, and layer-management actions skip dead undo entries when the resulting layer stack is unchanged.
 - Direct layer-slot shortcuts print a status message when the requested absolute or visible slot does not exist.
