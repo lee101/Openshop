@@ -2166,6 +2166,13 @@ static int test_layer_history_low_level_undo_redo_rolls_back_failed_apply(void) 
         layer_stack_free(&stack);
         return 0;
     }
+    if (!snapshot_is_reset(&redo_stack[0]) || !snapshot_has_scrubbed_metadata(&redo_stack[0])) {
+        fprintf(stderr, "history low-level undo should fully reset discarded rollback snapshots\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     if (!layer_snapshot_capture(&redo_stack[redo_count++], &stack)) {
         fprintf(stderr, "history low-level rollback redo capture failed\n");
@@ -2193,6 +2200,13 @@ static int test_layer_history_low_level_undo_redo_rolls_back_failed_apply(void) 
         (redo_stack[0].width != stack.width + 1) ||
         redo_stack[0].pixels == NULL) {
         fprintf(stderr, "history low-level redo should preserve both retained snapshots after rollback\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!snapshot_is_reset(&undo_stack[undo_count]) || !snapshot_has_scrubbed_metadata(&undo_stack[undo_count])) {
+        fprintf(stderr, "history low-level redo should fully reset discarded rollback snapshots\n");
         layer_history_clear(undo_stack, &undo_count);
         layer_history_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
@@ -2238,6 +2252,12 @@ static int test_layer_history_step_undo_redo_rolls_back_failed_apply(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!snapshot_is_reset(&history.redo[history.redo_count]) || !snapshot_has_scrubbed_metadata(&history.redo[history.redo_count])) {
+        fprintf(stderr, "history step undo should fully reset discarded rollback snapshots\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!expect_pixel_eq("history_step_failed_undo_keeps_canvas", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF010203)) {
         layer_history_reset(&history);
         layer_stack_free(&stack);
@@ -2269,6 +2289,12 @@ static int test_layer_history_step_undo_redo_rolls_back_failed_apply(void) {
         history.redo[0].width != stack.width + 1 ||
         history.redo[0].pixels == NULL) {
         fprintf(stderr, "history step redo should preserve retained snapshots after apply failure\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!snapshot_is_reset(&history.undo[history.undo_count]) || !snapshot_has_scrubbed_metadata(&history.undo[history.undo_count])) {
+        fprintf(stderr, "history step redo should fully reset discarded rollback snapshots\n");
         layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;

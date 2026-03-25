@@ -109,7 +109,7 @@ static int history_step_apply(
     if (!ok) {
         from_stack[(*from_count)++] = snapshot;
         if (pushed_current == HISTORY_CAPTURE_PUSHED) {
-            layer_snapshot_free(&to_stack[--(*to_count)]);
+            layer_snapshot_reset(&to_stack[--(*to_count)]);
         }
         return 0;
     }
