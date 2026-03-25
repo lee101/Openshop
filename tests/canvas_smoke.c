@@ -132,6 +132,47 @@ static int seed_history_snapshots_with_pixel_series(
     return 1;
 }
 
+static int step_wrapper_undo_to_oldest_retained(LayerHistory *history, LayerStack *stack, const char *label_prefix) {
+    if (!history || !stack || !label_prefix) {
+        return 0;
+    }
+    while (history->undo_count > 1) {
+        if (!layer_history_step_undo(history, stack)) {
+            fprintf(stderr, "%s multi-undo failed\n", label_prefix);
+            return 0;
+        }
+    }
+    if (!layer_history_step_undo(history, stack)) {
+        fprintf(stderr, "%s oldest-retained undo failed\n", label_prefix);
+        return 0;
+    }
+    return 1;
+}
+
+static int step_low_level_undo_to_oldest_retained(
+    LayerStack *stack,
+    LayerSnapshot *undo_stack,
+    int *undo_count,
+    LayerSnapshot *redo_stack,
+    int *redo_count,
+    const char *label_prefix
+) {
+    if (!stack || !undo_stack || !undo_count || !redo_stack || !redo_count || !label_prefix) {
+        return 0;
+    }
+    while (*undo_count > 1) {
+        if (!layer_history_undo(stack, undo_stack, undo_count, redo_stack, redo_count)) {
+            fprintf(stderr, "%s multi-undo failed\n", label_prefix);
+            return 0;
+        }
+    }
+    if (!layer_history_undo(stack, undo_stack, undo_count, redo_stack, redo_count)) {
+        fprintf(stderr, "%s oldest-retained undo failed\n", label_prefix);
+        return 0;
+    }
+    return 1;
+}
+
 #ifdef OPENSHOP_TESTING
 static void *always_fail_snapshot_alloc(size_t size) {
     (void)size;
@@ -1284,16 +1325,7 @@ static int test_layer_history_record_snapshot_evicts_oldest_at_capacity(void) {
         return 0;
     }
 
-    while (history.undo_count > 1) {
-        if (!layer_history_step_undo(&history, &stack)) {
-            fprintf(stderr, "history capacity snapshot multi-undo failed\n");
-            layer_history_reset(&history);
-            layer_stack_free(&stack);
-            return 0;
-        }
-    }
-    if (!layer_history_step_undo(&history, &stack)) {
-        fprintf(stderr, "history capacity snapshot oldest-retained undo failed\n");
+    if (!step_wrapper_undo_to_oldest_retained(&history, &stack, "history capacity snapshot")) {
         layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
@@ -1375,16 +1407,7 @@ static int test_layer_history_record_snapshot_duplicate_keeps_capacity_state(voi
         return 0;
     }
 
-    while (history.undo_count > 1) {
-        if (!layer_history_step_undo(&history, &stack)) {
-            fprintf(stderr, "history capacity duplicate snapshot multi-undo failed\n");
-            layer_history_reset(&history);
-            layer_stack_free(&stack);
-            return 0;
-        }
-    }
-    if (!layer_history_step_undo(&history, &stack)) {
-        fprintf(stderr, "history capacity duplicate snapshot oldest-retained undo failed\n");
+    if (!step_wrapper_undo_to_oldest_retained(&history, &stack, "history capacity duplicate snapshot")) {
         layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
@@ -1889,16 +1912,7 @@ static int test_layer_history_commit_change_noop_keeps_capacity_state(void) {
         return 0;
     }
 
-    while (history.undo_count > 1) {
-        if (!layer_history_step_undo(&history, &stack)) {
-            fprintf(stderr, "history commit capacity noop multi-undo failed\n");
-            layer_history_reset(&history);
-            layer_stack_free(&stack);
-            return 0;
-        }
-    }
-    if (!layer_history_step_undo(&history, &stack)) {
-        fprintf(stderr, "history commit capacity noop oldest-retained undo failed\n");
+    if (!step_wrapper_undo_to_oldest_retained(&history, &stack, "history commit capacity noop")) {
         layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
@@ -2993,17 +3007,7 @@ static int test_layer_history_push_evicts_oldest_at_capacity(void) {
         return 0;
     }
 
-    while (undo_count > 1) {
-        if (!layer_history_undo(&stack, undo_stack, &undo_count, redo_stack, &redo_count)) {
-            fprintf(stderr, "history push capacity multi-undo failed\n");
-            layer_history_clear(undo_stack, &undo_count);
-            layer_history_clear(redo_stack, &redo_count);
-            layer_stack_free(&stack);
-            return 0;
-        }
-    }
-    if (!layer_history_undo(&stack, undo_stack, &undo_count, redo_stack, &redo_count)) {
-        fprintf(stderr, "history push capacity oldest-retained undo failed\n");
+    if (!step_low_level_undo_to_oldest_retained(&stack, undo_stack, &undo_count, redo_stack, &redo_count, "history push capacity")) {
         layer_history_clear(undo_stack, &undo_count);
         layer_history_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
@@ -3058,16 +3062,7 @@ static int test_layer_history_record_duplicate_keeps_capacity_state(void) {
         return 0;
     }
 
-    while (history.undo_count > 1) {
-        if (!layer_history_step_undo(&history, &stack)) {
-            fprintf(stderr, "history record duplicate capacity multi-undo failed\n");
-            layer_history_reset(&history);
-            layer_stack_free(&stack);
-            return 0;
-        }
-    }
-    if (!layer_history_step_undo(&history, &stack)) {
-        fprintf(stderr, "history record duplicate capacity oldest-retained undo failed\n");
+    if (!step_wrapper_undo_to_oldest_retained(&history, &stack, "history record duplicate capacity")) {
         layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
@@ -3117,17 +3112,7 @@ static int test_layer_history_push_duplicate_keeps_capacity_state(void) {
         return 0;
     }
 
-    while (undo_count > 1) {
-        if (!layer_history_undo(&stack, undo_stack, &undo_count, redo_stack, &redo_count)) {
-            fprintf(stderr, "history push duplicate capacity multi-undo failed\n");
-            layer_history_clear(undo_stack, &undo_count);
-            layer_history_clear(redo_stack, &redo_count);
-            layer_stack_free(&stack);
-            return 0;
-        }
-    }
-    if (!layer_history_undo(&stack, undo_stack, &undo_count, redo_stack, &redo_count)) {
-        fprintf(stderr, "history push duplicate capacity oldest-retained undo failed\n");
+    if (!step_low_level_undo_to_oldest_retained(&stack, undo_stack, &undo_count, redo_stack, &redo_count, "history push duplicate capacity")) {
         layer_history_clear(undo_stack, &undo_count);
         layer_history_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
