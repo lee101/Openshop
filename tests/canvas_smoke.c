@@ -1406,6 +1406,14 @@ static int test_layer_history_record_snapshot_duplicate_keeps_capacity_state(voi
         layer_stack_free(&stack);
         return 0;
     }
+    if (!expect_pixel_eq(
+            "history_capacity_duplicate_snapshot_redo_retained",
+            history.redo[0].pixels[0],
+            0xFF500000u | (uint32_t)(HISTORY_CAPACITY - 2))) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     if (!step_wrapper_undo_to_oldest_retained(&history, &stack, "history capacity duplicate snapshot")) {
         layer_history_reset(&history);
@@ -1907,6 +1915,14 @@ static int test_layer_history_commit_change_noop_keeps_capacity_state(void) {
     }
     if (history.undo_count != HISTORY_CAPACITY || history.redo_count != 1) {
         fprintf(stderr, "history commit capacity noop should preserve undo/redo counts\n");
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq(
+            "history_commit_capacity_noop_redo_retained",
+            history.redo[0].pixels[0],
+            0xFFC00000u | (uint32_t)(HISTORY_CAPACITY - 2))) {
         layer_history_reset(&history);
         layer_stack_free(&stack);
         return 0;
@@ -3061,6 +3077,14 @@ static int test_layer_history_record_duplicate_keeps_capacity_state(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!expect_pixel_eq(
+            "history_record_duplicate_capacity_redo_retained",
+            history.redo[0].pixels[0],
+            0xFFB00000u | (uint32_t)(HISTORY_CAPACITY - 2))) {
+        layer_history_reset(&history);
+        layer_stack_free(&stack);
+        return 0;
+    }
 
     if (!step_wrapper_undo_to_oldest_retained(&history, &stack, "history record duplicate capacity")) {
         layer_history_reset(&history);
@@ -3106,6 +3130,15 @@ static int test_layer_history_push_duplicate_keeps_capacity_state(void) {
     layer_history_push(&stack, undo_stack, &undo_count, redo_stack, &redo_count);
     if (undo_count != HISTORY_CAPACITY || redo_count != 1) {
         fprintf(stderr, "history push duplicate capacity should preserve undo/redo counts\n");
+        layer_history_clear(undo_stack, &undo_count);
+        layer_history_clear(redo_stack, &redo_count);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!expect_pixel_eq(
+            "history_push_duplicate_capacity_redo_retained",
+            redo_stack[0].pixels[0],
+            0xFF600000u | (uint32_t)(HISTORY_CAPACITY - 2))) {
         layer_history_clear(undo_stack, &undo_count);
         layer_history_clear(redo_stack, &redo_count);
         layer_stack_free(&stack);
