@@ -63,6 +63,7 @@ int layer_history_redo(LayerStack *layers, LayerSnapshot *undo_stack, int *undo_
 void layer_history_reset(LayerHistory *history);
 // Records the current stack into history when both `history` and `layers` are valid; otherwise this is a no-op.
 // Failed current-state capture leaves undo/redo counts unchanged.
+// Duplicate current-state records leave undo/redo counts unchanged, even when undo history is already full.
 void layer_history_record(LayerHistory *history, const LayerStack *layers);
 // On success this transfers snapshot ownership into history and disowns the caller snapshot.
 // When undo history is full, the oldest retained snapshot is evicted before the new one is stored.
