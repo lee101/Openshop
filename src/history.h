@@ -56,9 +56,9 @@ void layer_history_push(const LayerStack *layers, LayerSnapshot *stack, int *cou
 // On success these move the current stack state to the opposite history stack and apply the pending snapshot.
 // If the destination history stack is full, its oldest retained snapshot is evicted before the current state is pushed.
 // Duplicate current-state pushes leave the destination stack unchanged.
-// On failure they leave both history stacks and their retained snapshots unchanged,
-// restoring any destination snapshot evicted for the attempted push and fully resetting any
-// temporary pushed snapshot discarded during rollback.
+// On failure, including current-state capture failures on full destination stacks, they leave both history stacks
+// and their retained snapshots unchanged, restoring any destination snapshot evicted for the attempted push and
+// fully resetting any temporary pushed snapshot discarded during rollback.
 int layer_history_undo(LayerStack *layers, LayerSnapshot *undo_stack, int *undo_count, LayerSnapshot *redo_stack, int *redo_count);
 int layer_history_redo(LayerStack *layers, LayerSnapshot *undo_stack, int *undo_count, LayerSnapshot *redo_stack, int *redo_count);
 // Preferred API for app integration: keep undo/redo state inside LayerHistory.
@@ -78,8 +78,8 @@ int layer_history_record_snapshot(LayerHistory *history, LayerSnapshot *snapshot
 // Otherwise the caller snapshot is either transferred into history or reset in place.
 int layer_history_commit_change(LayerHistory *history, LayerSnapshot *snapshot, const LayerStack *layers, int operation_succeeded);
 // Wrapper versions of undo/redo that preserve history state and retained snapshots if the current stack cannot be captured
-// or if the stored snapshot cannot be applied, restoring any destination snapshot evicted for the attempted push and
-// fully resetting any temporary pushed snapshot discarded during rollback.
+// or if the stored snapshot cannot be applied, including when the destination stack is already full. They restore any
+// destination snapshot evicted for the attempted push and fully reset any temporary pushed snapshot discarded during rollback.
 // Full destination history stacks evict their oldest retained snapshot,
 // while duplicate current-state pushes leave the destination stack unchanged.
 int layer_history_step_undo(LayerHistory *history, LayerStack *layers);
