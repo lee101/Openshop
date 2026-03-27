@@ -53,8 +53,284 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    stack.active_layer = 0;
+    if (!layer_stack_toggle_visibility(&stack, 1) || !stack.layers[1].visible || stack.active_layer != 0) {
+        fprintf(stderr, "direct visibility restore bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_visibility(&stack, 1) || stack.layers[1].visible || stack.active_layer != 0) {
+        fprintf(stderr, "direct visibility hide bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_lock(&stack, 1) || !stack.layers[1].locked || stack.active_layer != 0) {
+        fprintf(stderr, "direct lock target bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_lock(&stack, 1) || stack.layers[1].locked || stack.active_layer != 0) {
+        fprintf(stderr, "direct lock target toggle-off failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 1, "Sketch") || strcmp(stack.layers[1].name, "Sketch") != 0) {
+        fprintf(stderr, "layer rename failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_rename(&stack, 1, "Sketch") || layer_stack_rename(&stack, 1, "") || layer_stack_rename(&stack, 9, "Ghost")) {
+        fprintf(stderr, "layer rename no-op or invalid cases failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 1, "Top")) {
+        fprintf(stderr, "layer rename restore failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_reset_name(&stack, 1) || strcmp(stack.layers[1].name, "Layer") != 0) {
+        fprintf(stderr, "layer reset name failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_reset_name(&stack, 0) || strcmp(stack.layers[0].name, "Background") != 0) {
+        fprintf(stderr, "background reset should be a no-op when already default\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_can_reset_name(&stack, 0)) {
+        fprintf(stderr, "background reset should be a no-op once restored\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || !layer_stack_rename(&stack, 1, "Top")) {
+        fprintf(stderr, "layer reset name restore failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_can_reset_all_names(&stack)) {
+        fprintf(stderr, "reset all names should detect non-default labels\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_reset_all_names(&stack)) {
+        fprintf(stderr, "reset all names failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || strcmp(stack.layers[1].name, "Layer") != 0) {
+        fprintf(stderr, "reset all names labels failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_can_reset_all_names(&stack) || layer_stack_reset_all_names(&stack)) {
+        fprintf(stderr, "reset all names should be a no-op after defaults are restored\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_add(&stack, "Mask", 0x00000000) != 2 || !layer_stack_can_reset_all_names(&stack) ||
+        !layer_stack_reset_all_names(&stack)) {
+        fprintf(stderr, "reset all names with extra layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || strcmp(stack.layers[1].name, "Layer") != 0 ||
+        strcmp(stack.layers[2].name, "Layer 2") != 0) {
+        fprintf(stderr, "reset all names extra-layer labels failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_can_reset_all_names(&stack) || layer_stack_reset_all_names(&stack) || !layer_stack_delete(&stack, 2) ||
+        !layer_stack_rename(&stack, 1, "Top")) {
+        fprintf(stderr, "reset all names cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_add(&stack, "Mask", 0x00000000) || !layer_stack_toggle_lock(&stack, 1) ||
+        !layer_stack_can_reset_unlocked_names(&stack) || !layer_stack_reset_unlocked_names(&stack)) {
+        fprintf(stderr, "reset unlocked names setup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || strcmp(stack.layers[1].name, "Top") != 0 ||
+        strcmp(stack.layers[2].name, "Layer") != 0) {
+        fprintf(stderr, "reset unlocked names labels failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_can_reset_unlocked_names(&stack) || layer_stack_reset_unlocked_names(&stack) ||
+        !layer_stack_toggle_lock(&stack, 1) || !layer_stack_delete(&stack, 2) || strcmp(stack.layers[1].name, "Top") != 0) {
+        fprintf(stderr, "reset unlocked names cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_add(&stack, "Mask", 0x00000000) ||
+        (stack.layers[1].visible && !layer_stack_toggle_visibility(&stack, 1)) ||
+        !layer_stack_can_reset_visible_names(&stack) || !layer_stack_reset_visible_names(&stack)) {
+        fprintf(stderr, "reset visible names setup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || strcmp(stack.layers[1].name, "Top") != 0 ||
+        strcmp(stack.layers[2].name, "Mask") == 0 || layer_stack_can_reset_name(&stack, 2) || stack.layers[1].visible) {
+        fprintf(stderr, "reset visible names labels failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_can_reset_visible_names(&stack) || layer_stack_reset_visible_names(&stack) ||
+        !layer_stack_delete(&stack, 2) || strcmp(stack.layers[1].name, "Top") != 0 || stack.layers[1].visible) {
+        fprintf(stderr, "reset visible names cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 0, "Backdrop") || !layer_stack_add(&stack, "Mask", 0x00000000) ||
+        !layer_stack_toggle_lock(&stack, 1) || !layer_stack_can_reset_non_background_unlocked_names(&stack) ||
+        !layer_stack_reset_non_background_unlocked_names(&stack)) {
+        fprintf(stderr, "reset non-background unlocked names setup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Backdrop") != 0 || strcmp(stack.layers[1].name, "Top") != 0 ||
+        strcmp(stack.layers[2].name, "Layer") != 0) {
+        fprintf(stderr, "reset non-background unlocked names labels failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_can_reset_non_background_unlocked_names(&stack) || layer_stack_reset_non_background_unlocked_names(&stack) ||
+        !layer_stack_toggle_lock(&stack, 1) || !layer_stack_delete(&stack, 2) || !layer_stack_rename(&stack, 0, "Background")) {
+        fprintf(stderr, "reset non-background unlocked names cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 0, "Backdrop Lock") || !layer_stack_toggle_lock(&stack, 0) ||
+        !layer_stack_toggle_lock(&stack, 1) || !layer_stack_can_reset_locked_names(&stack) || !layer_stack_reset_locked_names(&stack)) {
+        fprintf(stderr, "reset locked names setup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || strcmp(stack.layers[1].name, "Layer") != 0) {
+        fprintf(stderr, "reset locked names labels failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_can_reset_locked_names(&stack) || layer_stack_reset_locked_names(&stack) ||
+        !layer_stack_toggle_lock(&stack, 0) || !layer_stack_toggle_lock(&stack, 1) || strcmp(stack.layers[1].name, "Layer") != 0) {
+        fprintf(stderr, "reset locked names cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 0, "Backdrop Locked") || !layer_stack_rename(&stack, 1, "Top Locked") ||
+        !layer_stack_add(&stack, "Mask Locked", 0x00000000) || !layer_stack_toggle_lock(&stack, 1) || !layer_stack_toggle_lock(&stack, 2) ||
+        !layer_stack_can_reset_non_background_locked_names(&stack) || !layer_stack_reset_non_background_locked_names(&stack)) {
+        fprintf(stderr, "reset non-background locked names setup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Backdrop Locked") != 0 || strcmp(stack.layers[1].name, "Layer") != 0 ||
+        strcmp(stack.layers[2].name, "Layer 2") != 0 || !stack.layers[1].locked || !stack.layers[2].locked) {
+        fprintf(stderr, "reset non-background locked names labels failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_can_reset_non_background_locked_names(&stack) || layer_stack_reset_non_background_locked_names(&stack) ||
+        !layer_stack_toggle_lock(&stack, 2) || !layer_stack_toggle_lock(&stack, 1) || !layer_stack_delete(&stack, 2) ||
+        !layer_stack_rename(&stack, 0, "Background") || strcmp(stack.layers[1].name, "Layer") != 0) {
+        fprintf(stderr, "reset non-background locked names cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_show(&stack, 1) || !layer_stack_rename(&stack, 0, "Backdrop Visible") || !layer_stack_rename(&stack, 1, "Top Visible") ||
+        !layer_stack_add(&stack, "Mask", 0x00000000) || !layer_stack_toggle_visibility(&stack, 2) ||
+        !layer_stack_can_reset_non_background_visible_names(&stack) || !layer_stack_reset_non_background_visible_names(&stack)) {
+        fprintf(stderr, "reset non-background visible names setup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Backdrop Visible") != 0 || strcmp(stack.layers[1].name, "Layer") != 0 ||
+        strcmp(stack.layers[2].name, "Mask") != 0 || stack.layers[2].visible) {
+        fprintf(stderr, "reset non-background visible names labels failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_can_reset_non_background_visible_names(&stack) || layer_stack_reset_non_background_visible_names(&stack) ||
+        !layer_stack_delete(&stack, 2) || !layer_stack_rename(&stack, 0, "Background") || strcmp(stack.layers[1].name, "Layer") != 0 ||
+        !layer_stack_toggle_visibility(&stack, 1)) {
+        fprintf(stderr, "reset non-background visible names cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_toggle_solo(&stack, 1)) {
         fprintf(stderr, "solo hidden layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    stack.active_layer = 0;
+    if (!layer_stack_toggle_solo(&stack, 0) || stack.solo_index != 0 || stack.active_layer != 0) {
+        fprintf(stderr, "direct solo target bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_solo(&stack, 0) || stack.solo_index != -1) {
+        fprintf(stderr, "direct solo target toggle-off failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 0, "Backdrop Solo") || !layer_stack_rename(&stack, 1, "Top Solo") ||
+        !layer_stack_toggle_solo(&stack, 1) || !layer_stack_can_reset_visible_names(&stack) || !layer_stack_reset_visible_names(&stack)) {
+        fprintf(stderr, "reset visible names with solo setup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || strcmp(stack.layers[1].name, "Top Solo") != 0 ||
+        stack.solo_index != 1 || !stack.layers[0].visible || stack.layers[1].visible) {
+        fprintf(stderr, "reset visible names with solo labels failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_can_reset_visible_names(&stack) || !layer_stack_toggle_solo(&stack, 1) || !layer_stack_rename(&stack, 1, "Top")) {
+        fprintf(stderr, "reset visible names solo cleanup failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -67,6 +343,31 @@ static int test_layers_basic(void) {
     }
     if (stack.solo_index != -1 || !stack.layers[0].visible || !stack.layers[1].visible) {
         fprintf(stderr, "show all bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 0, "Backdrop Show") || !layer_stack_rename(&stack, 1, "Top Show") ||
+        !layer_stack_can_reset_visible_names(&stack) || !layer_stack_reset_visible_names(&stack)) {
+        fprintf(stderr, "reset visible names after show-all setup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || strcmp(stack.layers[1].name, "Layer") != 0) {
+        fprintf(stderr, "reset visible names after show-all labels failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 1, "Top")) {
+        fprintf(stderr, "reset visible names after show-all cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_show_all(&stack)) {
+        fprintf(stderr, "show all should return no-op once everything is visible\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -86,6 +387,25 @@ static int test_layers_basic(void) {
     }
     if (!layer_stack_show(&stack, 1) || !stack.layers[1].visible) {
         fprintf(stderr, "show active layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 1, "Top Reveal") || !layer_stack_can_reset_visible_names(&stack) || !layer_stack_reset_visible_names(&stack) ||
+        strcmp(stack.layers[1].name, "Layer") != 0) {
+        fprintf(stderr, "reset visible names after reveal failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 1, "Top")) {
+        fprintf(stderr, "reset visible names after reveal cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_show(&stack, 1)) {
+        fprintf(stderr, "show active layer should return no-op when already visible\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -160,6 +480,23 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    {
+        LayerStack single = {0};
+        if (!layer_stack_init(&single, 4, 4, 0xFFFFFFFF)) {
+            fprintf(stderr, "single-layer cycle init failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        if (layer_stack_cycle(&single, 1) != -1 || layer_stack_cycle(&single, 0) != -1 || single.active_layer != 0) {
+            fprintf(stderr, "single-layer cycle should be unchanged\n");
+            layer_stack_free(&single);
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        layer_stack_free(&single);
+    }
     if (layer_stack_add(&stack, "Third", 0x00000000) != 2 || layer_stack_add(&stack, "Fourth", 0x00000000) != 3) {
         fprintf(stderr, "setup extended layer cycling failed\n");
         canvas_free(&composite);
@@ -233,6 +570,48 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_add(&stack, NULL, 0x00000000) != 2 || layer_stack_add(&stack, NULL, 0x00000000) != 3) {
+        fprintf(stderr, "auto-named layer add failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[2].name, "Layer") != 0 || strcmp(stack.layers[3].name, "Layer 2") != 0) {
+        fprintf(stderr, "auto-named layer add uniqueness failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 3) || !layer_stack_delete(&stack, 2)) {
+        fprintf(stderr, "auto-named layer add cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_add(&stack, NULL, 0x00000000) != 2 || layer_stack_add(&stack, NULL, 0x00000000) != 3) {
+        fprintf(stderr, "setup auto-name reset compaction failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 2)) {
+        fprintf(stderr, "auto-name compaction delete failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_can_reset_name(&stack, 2) || !layer_stack_reset_name(&stack, 2) || strcmp(stack.layers[2].name, "Layer") != 0) {
+        fprintf(stderr, "auto-name compaction reset failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 2)) {
+        fprintf(stderr, "auto-name compaction cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (layer_stack_insert(&stack, 1, "Inserted Below", 0x00000000) != 1) {
         fprintf(stderr, "layer insert below failed\n");
         canvas_free(&composite);
@@ -253,6 +632,30 @@ static int test_layers_basic(void) {
     }
     if (!layer_stack_delete(&stack, 1) || stack.layer_count != 2) {
         fprintf(stderr, "layer insert below cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_insert(&stack, 1, "Custom Middle", 0x00000000) != 1 || layer_stack_insert(&stack, 2, "Custom Upper", 0x00000000) != 2) {
+        fprintf(stderr, "custom insert setup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 1) || !layer_stack_can_reset_all_names(&stack) || !layer_stack_reset_all_names(&stack)) {
+        fprintf(stderr, "custom insert reset-all failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || strcmp(stack.layers[1].name, "Layer") != 0) {
+        fprintf(stderr, "custom insert reset-all labels failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 1) || stack.layer_count != 2 || !layer_stack_rename(&stack, 1, "Top")) {
+        fprintf(stderr, "custom insert reset-all cleanup failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -350,6 +753,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_set_opacity(&stack, 1, 50)) {
+        fprintf(stderr, "set opacity should report no-op when unchanged\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_set_opacity(&stack, 1, 100) || stack.layers[1].opacity_percent != 100) {
         fprintf(stderr, "reset opacity failed\n");
         canvas_free(&composite);
@@ -370,6 +779,12 @@ static int test_layers_basic(void) {
     }
     if (stack.layer_count != 1 || stack.active_layer != 0) {
         fprintf(stderr, "merge down bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || layer_stack_can_reset_name(&stack, 0)) {
+        fprintf(stderr, "merge down should preserve background name\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -403,6 +818,31 @@ static int test_layers_basic(void) {
     }
     if (stack.layer_count != 1 || stack.active_layer != 0) {
         fprintf(stderr, "merge up bookkeeping failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Upper Merge") != 0 || !layer_stack_can_reset_name(&stack, 0) ||
+        !layer_stack_reset_name(&stack, 0) || strcmp(stack.layers[0].name, "Background") != 0) {
+        fprintf(stderr, "merge up name reset failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 0, "Upper Merge")) {
+        fprintf(stderr, "merge up name restore failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_duplicate(&stack, 0, NULL) != 1 || strcmp(stack.layers[1].name, "Upper Merge Copy") != 0) {
+        fprintf(stderr, "duplicate merge-created name failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 1)) {
+        fprintf(stderr, "duplicate merge-created name cleanup failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -472,6 +912,18 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_can_reset_name(&stack, 0) || !layer_stack_reset_name(&stack, 0) || strcmp(stack.layers[0].name, "Background") != 0) {
+        fprintf(stderr, "moved layer reset name failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 0, "Background Copy")) {
+        fprintf(stderr, "moved layer rename restore failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_move(&stack, 0, 1) || stack.active_layer != 1) {
         fprintf(stderr, "move layer up failed\n");
         canvas_free(&composite);
@@ -490,6 +942,70 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_add(&stack, "Move A", 0x00000000) != 2 || layer_stack_add(&stack, "Move B", 0x00000000) != 3) {
+        fprintf(stderr, "setup move-to-edge layers failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_move_to_edge(&stack, 1, 1) || stack.active_layer != 3) {
+        fprintf(stderr, "move layer to top failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Upper Merge") != 0 || strcmp(stack.layers[1].name, "Move A") != 0 ||
+        strcmp(stack.layers[2].name, "Move B") != 0 || strcmp(stack.layers[3].name, "Background Copy") != 0) {
+        fprintf(stderr, "move-to-top order failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_can_reset_all_names(&stack) || !layer_stack_reset_all_names(&stack)) {
+        fprintf(stderr, "move-to-top reset-all failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Background") != 0 || strcmp(stack.layers[1].name, "Layer") != 0 ||
+        strcmp(stack.layers[2].name, "Layer 2") != 0 || strcmp(stack.layers[3].name, "Layer 3") != 0) {
+        fprintf(stderr, "move-to-top reset-all labels failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 0, "Upper Merge") || !layer_stack_rename(&stack, 1, "Move A") ||
+        !layer_stack_rename(&stack, 2, "Move B") || !layer_stack_rename(&stack, 3, "Background Copy")) {
+        fprintf(stderr, "move-to-top reset-all restore failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (stack.solo_index != 3 || !layer_stack_move_to_edge(&stack, 2, -1) || stack.active_layer != 0 || stack.solo_index != 3) {
+        fprintf(stderr, "move layer to bottom bookkeeping failed (active=%d solo=%d)\n", stack.active_layer, stack.solo_index);
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[0].name, "Move B") != 0 || strcmp(stack.layers[1].name, "Upper Merge") != 0 ||
+        strcmp(stack.layers[2].name, "Move A") != 0 || strcmp(stack.layers[3].name, "Background Copy") != 0) {
+        fprintf(stderr, "move-to-bottom order failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_move_to_edge(&stack, 0, -1) || layer_stack_move_to_edge(&stack, 3, 1)) {
+        fprintf(stderr, "move-to-edge should reject no-op bounds\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_solo(&stack, 3) || !layer_stack_delete(&stack, 2) || !layer_stack_delete(&stack, 0)) {
+        fprintf(stderr, "cleanup move-to-edge layers failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     canvas_set_pixel(&stack.layers[1].canvas, 0, 0, 0xFFFF00FF);
     if (!expect_pixel_eq("duplicate_independent", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF0040BF)) {
         canvas_free(&composite);
@@ -498,6 +1014,48 @@ static int test_layers_basic(void) {
     }
     if (!layer_stack_toggle_lock(&stack, 1) || stack.layers[1].locked) {
         fprintf(stderr, "unlock duplicated layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_duplicate(&stack, 1, NULL) != 2 || strcmp(stack.layers[2].name, "Background Copy 2") != 0) {
+        fprintf(stderr, "duplicate auto-name uniqueness failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 2)) {
+        fprintf(stderr, "duplicate auto-name cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_duplicate(&stack, 1, NULL) != 2 || strcmp(stack.layers[2].name, "Background Copy 2") != 0) {
+        fprintf(stderr, "duplicate auto-name suffix reuse failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 2)) {
+        fprintf(stderr, "duplicate auto-name suffix reuse cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_can_reset_name(&stack, 1) || !layer_stack_reset_name(&stack, 1) || strcmp(stack.layers[1].name, "Layer") != 0) {
+        fprintf(stderr, "duplicate source name reset failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_duplicate(&stack, 1, NULL) != 2 || strcmp(stack.layers[2].name, "Layer Copy") != 0) {
+        fprintf(stderr, "duplicate auto-name should follow reset source label\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 2) || !layer_stack_rename(&stack, 1, "Background Copy")) {
+        fprintf(stderr, "duplicate source name reset cleanup failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -541,6 +1099,12 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_can_flatten(&stack)) {
+        fprintf(stderr, "can_flatten should succeed when all layers are unlocked\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!layer_stack_flatten(&stack, 0xFFFFFFFF)) {
         fprintf(stderr, "flatten failed\n");
         canvas_free(&composite);
@@ -553,7 +1117,19 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (strcmp(stack.layers[0].name, "Upper Merge") != 0 || !layer_stack_can_reset_name(&stack, 0)) {
+        fprintf(stderr, "flatten should preserve current base layer name\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!expect_pixel_eq("flatten_pixel", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF0040BF)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_can_delete(&stack, 0)) {
+        fprintf(stderr, "can_delete should reject the final layer\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -579,8 +1155,54 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (layer_stack_stamp_visible_would_change(&stack, 1, 0xFFFFFFFF)) {
+        fprintf(stderr, "stamp visible would-change should report no-op after stamping identical pixels\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (strcmp(stack.layers[1].name, "Stamp Target") != 0 || !layer_stack_can_reset_name(&stack, 1) ||
+        !layer_stack_reset_name(&stack, 1) || strcmp(stack.layers[1].name, "Layer") != 0) {
+        fprintf(stderr, "stamp visible target name reset failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 1, "Stamp Target")) {
+        fprintf(stderr, "stamp visible target name restore failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!expect_pixel_eq("stamp_visible_pixel", canvas_get_pixel(&stack.layers[1].canvas, 0, 0), 0xFF0D6740) ||
         !expect_pixel_eq("stamp_preserve_source", canvas_get_pixel(&stack.layers[0].canvas, 0, 0), 0xFF123456)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_stamp_visible_into(&stack, 1, 0xFFFFFFFF) ||
+        !expect_pixel_eq("stamp_visible_noop_pixel", canvas_get_pixel(&stack.layers[1].canvas, 0, 0), 0xFF0D6740)) {
+        fprintf(stderr, "stamp visible identical no-op failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_can_duplicate(&stack, 1) || !layer_stack_can_merge_down(&stack, 1) || !layer_stack_can_merge_up(&stack, 0) ||
+        !layer_stack_can_flatten(&stack)) {
+        fprintf(stderr, "layer capability checks should allow duplicate, merge, and flatten here\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_lock(&stack, 1) || layer_stack_can_delete(&stack, 1) || layer_stack_can_merge_down(&stack, 1) ||
+        layer_stack_can_merge_up(&stack, 0) || layer_stack_can_flatten(&stack)) {
+        fprintf(stderr, "layer capability checks should reject locked operations\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_toggle_lock(&stack, 1)) {
+        fprintf(stderr, "unlock stamp target failed\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -603,7 +1225,37 @@ static int test_layers_basic(void) {
         layer_stack_free(&stack);
         return 0;
     }
+    if (!layer_stack_can_reset_name(&stack, 2) || !layer_stack_reset_name(&stack, 2) || strcmp(stack.layers[2].name, "Layer") != 0) {
+        fprintf(stderr, "stamp visible new layer reset failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_rename(&stack, 2, "Visible Stamp")) {
+        fprintf(stderr, "stamp visible new layer restore failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_duplicate(&stack, 2, NULL) != 3 || strcmp(stack.layers[3].name, "Visible Stamp Copy") != 0) {
+        fprintf(stderr, "duplicate stamp-created name failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_delete(&stack, 3)) {
+        fprintf(stderr, "duplicate stamp-created name cleanup failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
     if (!expect_pixel_eq("stamp_visible_new_pixel", canvas_get_pixel(&stack.layers[2].canvas, 0, 0), 0xFF0D6740)) {
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (!layer_stack_can_insert(&stack)) {
+        fprintf(stderr, "can_insert should allow additions before max layers\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;
@@ -634,6 +1286,12 @@ static int test_layers_basic(void) {
     }
     if (layer_stack_stamp_visible_new(&stack, "Overflow", 0xFFFFFFFF) != 7) {
         fprintf(stderr, "sixth stamp visible new layer failed\n");
+        canvas_free(&composite);
+        layer_stack_free(&stack);
+        return 0;
+    }
+    if (layer_stack_can_insert(&stack)) {
+        fprintf(stderr, "can_insert should reject additions at max layers\n");
         canvas_free(&composite);
         layer_stack_free(&stack);
         return 0;

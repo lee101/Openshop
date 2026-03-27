@@ -60,6 +60,176 @@ static int ensure_layer_canvas(Layer *layer, int width, int height) {
     return canvas_init(&layer->canvas, width, height);
 }
 
+static int layer_name_exists(const LayerStack *stack, const char *name, int skip_index) {
+    if (!stack || !name || !name[0]) {
+        return 0;
+    }
+    for (int i = 0; i < stack->layer_count; i++) {
+        if (i == skip_index) {
+            continue;
+        }
+        if (strcmp(stack->layers[i].name, name) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void layer_name_copy_unique(char *dest, size_t dest_size, const LayerStack *stack, int skip_index, const char *preferred, const char *fallback_prefix) {
+    char candidate[LAYER_NAME_MAX];
+    const char *base = (preferred && preferred[0]) ? preferred : fallback_prefix;
+
+    if (!dest || dest_size == 0) {
+        return;
+    }
+
+    snprintf(candidate, sizeof(candidate), "%s", base && base[0] ? base : "Layer");
+    if (!layer_name_exists(stack, candidate, skip_index)) {
+        snprintf(dest, dest_size, "%s", candidate);
+        return;
+    }
+
+    for (int suffix = 2;; suffix++) {
+        snprintf(candidate, sizeof(candidate), "%s %d", base && base[0] ? base : "Layer", suffix);
+        if (!layer_name_exists(stack, candidate, skip_index)) {
+            snprintf(dest, dest_size, "%s", candidate);
+            return;
+        }
+    }
+}
+
+static void layer_duplicate_name_base(char *dest, size_t dest_size, const char *source_name) {
+    const char *suffix = NULL;
+    size_t base_len = 0;
+
+    if (!dest || dest_size == 0) {
+        return;
+    }
+    if (!source_name || !source_name[0]) {
+        snprintf(dest, dest_size, "Layer Copy");
+        return;
+    }
+
+    suffix = strstr(source_name, " Copy");
+    if (suffix && suffix[5] == '\0') {
+        snprintf(dest, dest_size, "%s", source_name);
+        return;
+    }
+    if (suffix && suffix[5] == ' ') {
+        const char *digits = suffix + 6;
+        if (*digits) {
+            int all_digits = 1;
+            for (const char *p = digits; *p; p++) {
+                if (*p < '0' || *p > '9') {
+                    all_digits = 0;
+                    break;
+                }
+            }
+            if (all_digits) {
+                base_len = (size_t)(suffix - source_name + 5);
+                if (base_len >= dest_size) {
+                    base_len = dest_size - 1;
+                }
+                memcpy(dest, source_name, base_len);
+                dest[base_len] = '\0';
+                return;
+            }
+        }
+    }
+
+    snprintf(dest, dest_size, "%s Copy", source_name);
+}
+
+static void layer_default_name(char *dest, size_t dest_size, const LayerStack *stack, int skip_index) {
+    const char *base = (skip_index == 0) ? "Background" : "Layer";
+    layer_name_copy_unique(dest, dest_size, stack, skip_index, NULL, base);
+}
+
+static int layer_index_matches_reset_scope(const LayerStack *stack, int index, int require_visible, int require_unlocked, int require_locked, int skip_background) {
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    if (skip_background && index == 0) {
+        return 0;
+    }
+    if (require_visible && !stack->layers[index].visible) {
+        return 0;
+    }
+    if (require_unlocked && stack->layers[index].locked) {
+        return 0;
+    }
+    if (require_locked && !stack->layers[index].locked) {
+        return 0;
+    }
+    return 1;
+}
+
+static int layer_stack_can_reset_names_in_scope(const LayerStack *stack, int require_visible, int require_unlocked, int require_locked, int skip_background) {
+    char next_name[LAYER_NAME_MAX];
+
+    if (!stack) {
+        return 0;
+    }
+
+    for (int i = 0; i < stack->layer_count; i++) {
+        if (!layer_index_matches_reset_scope(stack, i, require_visible, require_unlocked, require_locked, skip_background)) {
+            continue;
+        }
+        layer_default_name(next_name, sizeof(next_name), stack, i);
+        if (strcmp(stack->layers[i].name, next_name) != 0) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+static int layer_stack_reset_names_in_scope(LayerStack *stack, int require_visible, int require_unlocked, int require_locked, int skip_background) {
+    char next_name[LAYER_NAME_MAX];
+    int changed = 0;
+
+    if (!stack) {
+        return 0;
+    }
+
+    for (int i = 0; i < stack->layer_count; i++) {
+        if (!layer_index_matches_reset_scope(stack, i, require_visible, require_unlocked, require_locked, skip_background)) {
+            continue;
+        }
+        layer_default_name(next_name, sizeof(next_name), stack, i);
+        if (strcmp(stack->layers[i].name, next_name) == 0) {
+            continue;
+        }
+        memcpy(stack->layers[i].name, next_name, sizeof(next_name));
+        changed = 1;
+    }
+
+    return changed;
+}
+
+static int layer_name_differs_from_default(const LayerStack *stack, int index) {
+    char next_name[LAYER_NAME_MAX];
+
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+
+    layer_default_name(next_name, sizeof(next_name), stack, index);
+    return strcmp(stack->layers[index].name, next_name) != 0;
+}
+
+static int layer_reset_name_to_default(LayerStack *stack, int index) {
+    char next_name[LAYER_NAME_MAX];
+
+    if (!layer_name_differs_from_default(stack, index)) {
+        return 0;
+    }
+
+    layer_default_name(next_name, sizeof(next_name), stack, index);
+    memcpy(stack->layers[index].name, next_name, sizeof(next_name));
+    return 1;
+}
+
 int layer_stack_init(LayerStack *stack, int width, int height, uint32_t background_color) {
     if (!stack || width <= 0 || height <= 0) {
         return 0;
@@ -130,8 +300,12 @@ int layer_stack_add(LayerStack *stack, const char *name, uint32_t clear_color) {
     return layer_stack_insert(stack, stack->layer_count, name, clear_color);
 }
 
+int layer_stack_can_insert(const LayerStack *stack) {
+    return stack && stack->layer_count < MAX_LAYERS;
+}
+
 int layer_stack_insert(LayerStack *stack, int index, const char *name, uint32_t clear_color) {
-    if (!stack || stack->layer_count >= MAX_LAYERS) {
+    if (!layer_stack_can_insert(stack)) {
         return -1;
     }
     if (index < 0) {
@@ -160,10 +334,9 @@ int layer_stack_insert(LayerStack *stack, int index, const char *name, uint32_t 
     layer->locked = 0;
     layer->opacity_percent = 100;
     if (name && name[0]) {
-        strncpy(layer->name, name, LAYER_NAME_MAX - 1);
-        layer->name[LAYER_NAME_MAX - 1] = '\0';
+        layer_name_copy_unique(layer->name, sizeof(layer->name), stack, index, name, "Layer");
     } else {
-        snprintf(layer->name, LAYER_NAME_MAX, "Layer %d", index + 1);
+        layer_default_name(layer->name, sizeof(layer->name), stack, index);
     }
 
     stack->layer_count++;
@@ -175,7 +348,10 @@ int layer_stack_insert(LayerStack *stack, int index, const char *name, uint32_t 
 }
 
 int layer_stack_cycle(LayerStack *stack, int direction) {
-    if (!stack || stack->layer_count <= 0) {
+    if (!stack || stack->layer_count <= 0 || direction == 0) {
+        return -1;
+    }
+    if (stack->layer_count == 1) {
         return -1;
     }
     int idx = stack->active_layer + direction;
@@ -213,6 +389,87 @@ int layer_stack_visible_count(const LayerStack *stack) {
     return count;
 }
 
+int layer_stack_rename(LayerStack *stack, int index, const char *name) {
+    char next_name[LAYER_NAME_MAX];
+
+    if (!stack || index < 0 || index >= stack->layer_count || !name || !name[0]) {
+        return 0;
+    }
+
+    strncpy(next_name, name, LAYER_NAME_MAX - 1);
+    next_name[LAYER_NAME_MAX - 1] = '\0';
+    if (strcmp(stack->layers[index].name, next_name) == 0) {
+        return 0;
+    }
+
+    memcpy(stack->layers[index].name, next_name, sizeof(next_name));
+    return 1;
+}
+
+int layer_stack_can_reset_name(const LayerStack *stack, int index) {
+    return layer_name_differs_from_default(stack, index);
+}
+
+int layer_stack_reset_name(LayerStack *stack, int index) {
+    return layer_reset_name_to_default(stack, index);
+}
+
+int layer_stack_can_reset_all_names(const LayerStack *stack) {
+    return layer_stack_can_reset_names_in_scope(stack, 0, 0, 0, 0);
+}
+
+int layer_stack_reset_all_names(LayerStack *stack) {
+    return layer_stack_reset_names_in_scope(stack, 0, 0, 0, 0);
+}
+
+int layer_stack_can_reset_unlocked_names(const LayerStack *stack) {
+    return layer_stack_can_reset_names_in_scope(stack, 0, 1, 0, 0);
+}
+
+int layer_stack_reset_unlocked_names(LayerStack *stack) {
+    return layer_stack_reset_names_in_scope(stack, 0, 1, 0, 0);
+}
+
+int layer_stack_can_reset_visible_names(const LayerStack *stack) {
+    return layer_stack_can_reset_names_in_scope(stack, 1, 0, 0, 0);
+}
+
+int layer_stack_reset_visible_names(LayerStack *stack) {
+    return layer_stack_reset_names_in_scope(stack, 1, 0, 0, 0);
+}
+
+int layer_stack_can_reset_non_background_unlocked_names(const LayerStack *stack) {
+    return layer_stack_can_reset_names_in_scope(stack, 0, 1, 0, 1);
+}
+
+int layer_stack_reset_non_background_unlocked_names(LayerStack *stack) {
+    return layer_stack_reset_names_in_scope(stack, 0, 1, 0, 1);
+}
+
+int layer_stack_can_reset_locked_names(const LayerStack *stack) {
+    return layer_stack_can_reset_names_in_scope(stack, 0, 0, 1, 0);
+}
+
+int layer_stack_reset_locked_names(LayerStack *stack) {
+    return layer_stack_reset_names_in_scope(stack, 0, 0, 1, 0);
+}
+
+int layer_stack_can_reset_non_background_visible_names(const LayerStack *stack) {
+    return layer_stack_can_reset_names_in_scope(stack, 1, 0, 0, 1);
+}
+
+int layer_stack_reset_non_background_visible_names(LayerStack *stack) {
+    return layer_stack_reset_names_in_scope(stack, 1, 0, 0, 1);
+}
+
+int layer_stack_can_reset_non_background_locked_names(const LayerStack *stack) {
+    return layer_stack_can_reset_names_in_scope(stack, 0, 0, 1, 1);
+}
+
+int layer_stack_reset_non_background_locked_names(LayerStack *stack) {
+    return layer_stack_reset_names_in_scope(stack, 0, 0, 1, 1);
+}
+
 int layer_stack_toggle_lock(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
@@ -225,6 +482,9 @@ int layer_stack_show_all(LayerStack *stack) {
     if (!stack) {
         return 0;
     }
+    if (stack->solo_index == -1 && layer_stack_visible_count(stack) == stack->layer_count) {
+        return 0;
+    }
     for (int i = 0; i < stack->layer_count; i++) {
         stack->layers[i].visible = 1;
     }
@@ -234,6 +494,9 @@ int layer_stack_show_all(LayerStack *stack) {
 
 int layer_stack_show(LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    if (stack->layers[index].visible) {
         return 0;
     }
     stack->layers[index].visible = 1;
@@ -297,15 +560,22 @@ int layer_stack_set_opacity(LayerStack *stack, int index, int opacity_percent) {
     } else if (opacity_percent > 100) {
         opacity_percent = 100;
     }
+    if (stack->layers[index].opacity_percent == opacity_percent) {
+        return 0;
+    }
     stack->layers[index].opacity_percent = opacity_percent;
     return 1;
 }
 
-int layer_stack_delete(LayerStack *stack, int index) {
+int layer_stack_can_delete(const LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count || stack->layer_count == 1) {
         return 0;
     }
-    if (stack->layers[index].locked) {
+    return !stack->layers[index].locked;
+}
+
+int layer_stack_delete(LayerStack *stack, int index) {
+    if (!layer_stack_can_delete(stack, index)) {
         return 0;
     }
 
@@ -336,15 +606,18 @@ int layer_stack_delete(LayerStack *stack, int index) {
     return 1;
 }
 
-int layer_stack_duplicate(LayerStack *stack, int index, const char *name) {
-    if (!stack || index < 0 || index >= stack->layer_count || stack->layer_count >= MAX_LAYERS) {
-        return -1;
+int layer_stack_can_duplicate(const LayerStack *stack, int index) {
+    if (!layer_stack_can_insert(stack) || index < 0 || index >= stack->layer_count) {
+        return 0;
     }
+    return stack->layers[index].canvas.pixels != NULL;
+}
 
-    Layer *source = &stack->layers[index];
-    if (!source->canvas.pixels) {
+int layer_stack_duplicate(LayerStack *stack, int index, const char *name) {
+    if (!layer_stack_can_duplicate(stack, index)) {
         return -1;
     }
+    Layer *source = &stack->layers[index];
 
     int insert_at = index + 1;
     for (int i = stack->layer_count; i > insert_at; i--) {
@@ -371,10 +644,11 @@ int layer_stack_duplicate(LayerStack *stack, int index, const char *name) {
     memcpy(dup->canvas.pixels, source->canvas.pixels, total * sizeof(uint32_t));
 
     if (name && name[0]) {
-        strncpy(dup->name, name, LAYER_NAME_MAX - 1);
-        dup->name[LAYER_NAME_MAX - 1] = '\0';
+        layer_name_copy_unique(dup->name, sizeof(dup->name), stack, insert_at, name, "Layer");
     } else {
-        snprintf(dup->name, LAYER_NAME_MAX, "%s Copy", source->name[0] ? source->name : "Layer");
+        char fallback[LAYER_NAME_MAX];
+        layer_duplicate_name_base(fallback, sizeof(fallback), source->name[0] ? source->name : "Layer");
+        layer_name_copy_unique(dup->name, sizeof(dup->name), stack, insert_at, fallback, "Layer Copy");
     }
 
     stack->layer_count++;
@@ -407,16 +681,52 @@ int layer_stack_move(LayerStack *stack, int index, int direction) {
     return 1;
 }
 
-int layer_stack_merge_down(LayerStack *stack, int index) {
+int layer_stack_move_to_edge(LayerStack *stack, int index, int direction) {
+    if (!stack || index < 0 || index >= stack->layer_count || direction == 0) {
+        return 0;
+    }
+
+    int target = direction < 0 ? 0 : stack->layer_count - 1;
+    if (index == target) {
+        return 0;
+    }
+
+    Layer moved = stack->layers[index];
+    if (direction < 0) {
+        memmove(&stack->layers[1], &stack->layers[0], (size_t)index * sizeof(Layer));
+    } else {
+        memmove(&stack->layers[index], &stack->layers[index + 1], (size_t)(stack->layer_count - index - 1) * sizeof(Layer));
+    }
+    stack->layers[target] = moved;
+    stack->active_layer = target;
+
+    if (stack->solo_index == index) {
+        stack->solo_index = target;
+    } else if (direction < 0 && stack->solo_index >= 0 && stack->solo_index < index) {
+        stack->solo_index++;
+    } else if (direction > 0 && stack->solo_index > index) {
+        stack->solo_index--;
+    }
+
+    return 1;
+}
+
+int layer_stack_can_merge_down(const LayerStack *stack, int index) {
     if (!stack || index <= 0 || index >= stack->layer_count) {
         return 0;
     }
 
-    Layer *lower = &stack->layers[index - 1];
-    Layer *upper = &stack->layers[index];
-    if (lower->locked || upper->locked || !lower->canvas.pixels || !upper->canvas.pixels) {
+    const Layer *lower = &stack->layers[index - 1];
+    const Layer *upper = &stack->layers[index];
+    return !lower->locked && !upper->locked && lower->canvas.pixels && upper->canvas.pixels;
+}
+
+int layer_stack_merge_down(LayerStack *stack, int index) {
+    if (!layer_stack_can_merge_down(stack, index)) {
         return 0;
     }
+    Layer *lower = &stack->layers[index - 1];
+    Layer *upper = &stack->layers[index];
 
     size_t total = (size_t)stack->width * (size_t)stack->height;
     for (size_t i = 0; i < total; i++) {
@@ -456,16 +766,22 @@ int layer_stack_merge_down(LayerStack *stack, int index) {
     return 1;
 }
 
-int layer_stack_merge_up(LayerStack *stack, int index) {
+int layer_stack_can_merge_up(const LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count - 1) {
         return 0;
     }
 
-    Layer *lower = &stack->layers[index];
-    Layer *upper = &stack->layers[index + 1];
-    if (lower->locked || upper->locked || !lower->canvas.pixels || !upper->canvas.pixels) {
+    const Layer *lower = &stack->layers[index];
+    const Layer *upper = &stack->layers[index + 1];
+    return !lower->locked && !upper->locked && lower->canvas.pixels && upper->canvas.pixels;
+}
+
+int layer_stack_merge_up(LayerStack *stack, int index) {
+    if (!layer_stack_can_merge_up(stack, index)) {
         return 0;
     }
+    Layer *lower = &stack->layers[index];
+    Layer *upper = &stack->layers[index + 1];
 
     size_t total = (size_t)stack->width * (size_t)stack->height;
     for (size_t i = 0; i < total; i++) {
@@ -505,7 +821,7 @@ int layer_stack_merge_up(LayerStack *stack, int index) {
     return 1;
 }
 
-int layer_stack_flatten(LayerStack *stack, uint32_t background_color) {
+int layer_stack_can_flatten(const LayerStack *stack) {
     if (!stack || stack->layer_count <= 0) {
         return 0;
     }
@@ -513,6 +829,13 @@ int layer_stack_flatten(LayerStack *stack, uint32_t background_color) {
         if (stack->layers[i].locked) {
             return 0;
         }
+    }
+    return 1;
+}
+
+int layer_stack_flatten(LayerStack *stack, uint32_t background_color) {
+    if (!layer_stack_can_flatten(stack)) {
+        return 0;
     }
 
     Canvas composite = {0};
@@ -549,6 +872,35 @@ int layer_stack_flatten(LayerStack *stack, uint32_t background_color) {
     return 1;
 }
 
+int layer_stack_stamp_visible_would_change(const LayerStack *stack, int index, uint32_t background_color) {
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+
+    const Layer *target = &stack->layers[index];
+    if (target->locked) {
+        return 0;
+    }
+
+    Canvas composite = {0};
+    if (!canvas_init(&composite, stack->width, stack->height)) {
+        return 0;
+    }
+    layer_stack_composite(stack, &composite, background_color);
+
+    size_t total = (size_t)stack->width * (size_t)stack->height;
+    int would_change = !target->visible || target->opacity_percent != 100;
+    for (size_t i = 0; i < total && !would_change; i++) {
+        uint32_t current = target->canvas.pixels ? target->canvas.pixels[i] : 0;
+        if (current != composite.pixels[i]) {
+            would_change = 1;
+        }
+    }
+
+    canvas_free(&composite);
+    return would_change;
+}
+
 int layer_stack_stamp_visible_into(LayerStack *stack, int index, uint32_t background_color) {
     if (!stack || index < 0 || index >= stack->layer_count) {
         return 0;
@@ -561,11 +913,17 @@ int layer_stack_stamp_visible_into(LayerStack *stack, int index, uint32_t backgr
     layer_stack_composite(stack, &composite, background_color);
 
     Layer *target = &stack->layers[index];
-    if (target->locked || (!target->canvas.pixels && !ensure_layer_canvas(target, stack->width, stack->height))) {
+    size_t total = (size_t)stack->width * (size_t)stack->height;
+    if (target->locked || !layer_stack_stamp_visible_would_change(stack, index, background_color)) {
         canvas_free(&composite);
         return 0;
     }
-    memcpy(target->canvas.pixels, composite.pixels, (size_t)stack->width * (size_t)stack->height * sizeof(uint32_t));
+
+    if (!target->canvas.pixels && !ensure_layer_canvas(target, stack->width, stack->height)) {
+        canvas_free(&composite);
+        return 0;
+    }
+    memcpy(target->canvas.pixels, composite.pixels, total * sizeof(uint32_t));
     target->visible = 1;
     target->opacity_percent = 100;
     canvas_free(&composite);

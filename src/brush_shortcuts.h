@@ -1,0 +1,16 @@
+#ifndef BRUSH_SHORTCUTS_H
+#define BRUSH_SHORTCUTS_H
+
+typedef enum {
+    BRUSH_SHORTCUT_NONE = 0,
+    BRUSH_SHORTCUT_RADIUS_DOWN,
+    BRUSH_SHORTCUT_RADIUS_UP,
+    BRUSH_SHORTCUT_SHAPE_PREV,
+    BRUSH_SHORTCUT_SHAPE_NEXT,
+    BRUSH_SHORTCUT_OPACITY_DOWN,
+    BRUSH_SHORTCUT_OPACITY_UP
+} BrushShortcutAction;
+
+BrushShortcutAction brush_shortcut_action(int key);
+
+#endif

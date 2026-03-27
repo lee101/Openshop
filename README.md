@@ -52,11 +52,23 @@ make test-sdl
 - `Ctrl+N`: insert a new transparent layer above the active layer
 - `Ctrl+Shift+N`: add a new transparent layer
 - `Ctrl+1` ... `Ctrl+8`: select layer 1-8 directly
+- `Ctrl+Shift+1` ... `Ctrl+Shift+8`: solo layer 1-8 directly
+- `Ctrl+Alt+1` ... `Ctrl+Alt+8`: toggle visibility for layer 1-8 directly
+- `Ctrl+Alt+Shift+1` ... `Ctrl+Alt+Shift+8`: toggle lock for layer 1-8 directly
 - `Ctrl+D`: duplicate active layer
 - `Delete` / `Backspace`: delete active layer
 - `Ctrl+]` / `Ctrl+[`: move active layer up/down
+- `Ctrl+Shift+]` / `Ctrl+Shift+[` : send active layer to top/bottom
 - `Ctrl+- / Ctrl+=`: active layer opacity down/up
 - `Ctrl+0`: reset active layer opacity to 100%
+- `F2`: reset the active layer name to the next available default label
+- `Shift+F2`: reset non-background locked layer names to default labels
+- `Alt+Shift+F2`: reset non-background visible layer names to default labels
+- `Alt+F2`: reset locked layer names to default labels
+- `Ctrl+Alt+Shift+F2`: reset non-background unlocked layer names to default labels
+- `Ctrl+Alt+F2`: reset visible layer names to default labels
+- `Ctrl+Shift+F2`: reset unlocked layer names to default labels
+- `Ctrl+F2`: reset all layer names to default labels
 - `Ctrl+A`: show all layers and clear solo mode
 - `Ctrl+Shift+R`: reveal the active layer without changing other visibility states
 - `Ctrl+Shift+H`: hide the active layer and jump to the next visible layer
