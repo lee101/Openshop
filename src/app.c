@@ -34,16 +34,15 @@
 #define WINDOW_HEIGHT 768
 #define CANVAS_WIDTH 800
 #define CANVAS_HEIGHT 600
+#define CANVAS_ORIGIN_X 64
+#define CANVAS_ORIGIN_Y 52
+#define RIGHT_PANEL_X 882
+#define RIGHT_PANEL_WIDTH 126
+#define BOTTOM_PANEL_Y 666
 #define MAX_HISTORY 20
 
 static const uint32_t COLOR_BG = 0xFFFFFFFF;     // white
 static const uint32_t COLOR_BRUSH = 0xFF1B1F24;  // near-black
-static const uint32_t COLOR_ERASE = 0xFFFFFFFF;  // background fallback
-static const uint32_t COLOR_RED = 0xFFE53935;
-static const uint32_t COLOR_GREEN = 0xFF43A047;
-static const uint32_t COLOR_BLUE = 0xFF1E88E5;
-static const uint32_t COLOR_YELLOW = 0xFFFDD835;
-static const uint32_t COLOR_PURPLE = 0xFF8E24AA;
 static const int CHECKER_SIZE = 16;
 
 typedef struct {
@@ -80,6 +79,147 @@ typedef struct {
     AppRuntime runtime;
 } App;
 
+static void push_snapshot(const LayerStack *layers, Snapshot *undo_stack, int *undo_count, Snapshot *redo_stack, int *redo_count);
+static AppShapeCancelKey app_shape_cancel_key_from_sdl(SDL_Keycode key);
+static int handle_direct_layer_shortcut(
+    SDL_Keycode key,
+    int ctrl,
+    int alt,
+    int shift,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+);
+static int handle_layer_name_shortcut(
+    SDL_Keycode key,
+    int ctrl,
+    int alt,
+    int shift,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count
+);
+static int handle_active_layer_state_shortcut(
+    SDL_Keycode key,
+    int ctrl,
+    int shift,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+);
+static int handle_active_layer_structure_shortcut(
+    SDL_Keycode key,
+    int ctrl,
+    int shift,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+);
+static int handle_active_layer_mutation_shortcut(
+    SDL_Keycode key,
+    int ctrl,
+    int shift,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+);
+static int handle_file_shortcut(
+    SDL_Keycode key,
+    int ctrl,
+    LayerStack *layers,
+    const Canvas *composite,
+    const Canvas *preview_canvas,
+    int preview_active,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+);
+static int handle_merge_shortcut(
+    SDL_Keycode key,
+    int ctrl,
+    LayerStack *layers,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    int *needs_composite
+);
+static int handle_view_and_canvas_shortcut(
+    SDL_Keycode key,
+    int shift,
+    LayerStack *layers,
+    const Canvas *composite,
+    const Canvas *preview_canvas,
+    int preview_active,
+    Snapshot *undo_stack,
+    int *undo_count,
+    Snapshot *redo_stack,
+    int *redo_count,
+    Tool *tool,
+    BrushShape *brush_shape,
+    int *brush_radius,
+    uint32_t *brush_color,
+    uint32_t *brush_color_rgb,
+    int *brush_opacity,
+    int *needs_composite
+);
+
+static void push_snapshot(const LayerStack *layers, Snapshot *undo_stack, int *undo_count, Snapshot *redo_stack, int *redo_count) {
+    snapshot_push(layers, undo_stack, undo_count, MAX_HISTORY, redo_stack, redo_count);
+}
+
+static int screen_to_canvas_point(int screen_x, int screen_y, int *canvas_x, int *canvas_y) {
+    if (!canvas_x || !canvas_y) {
+        return 0;
+    }
+    if (screen_x < CANVAS_ORIGIN_X || screen_y < CANVAS_ORIGIN_Y ||
+        screen_x >= CANVAS_ORIGIN_X + CANVAS_WIDTH || screen_y >= CANVAS_ORIGIN_Y + CANVAS_HEIGHT) {
+        return 0;
+    }
+
+    *canvas_x = screen_x - CANVAS_ORIGIN_X;
+    *canvas_y = screen_y - CANVAS_ORIGIN_Y;
+    return 1;
+}
+
+static void screen_to_canvas_point_clamped(int screen_x, int screen_y, int *canvas_x, int *canvas_y) {
+    int x = screen_x - CANVAS_ORIGIN_X;
+    int y = screen_y - CANVAS_ORIGIN_Y;
+
+    if (!canvas_x || !canvas_y) {
+        return;
+    }
+    if (x < 0) {
+        x = 0;
+    } else if (x >= CANVAS_WIDTH) {
+        x = CANVAS_WIDTH - 1;
+    }
+    if (y < 0) {
+        y = 0;
+    } else if (y >= CANVAS_HEIGHT) {
+        y = CANVAS_HEIGHT - 1;
+    }
+
+    *canvas_x = x;
+    *canvas_y = y;
+}
+
 static int handle_canvas_sample_shortcut(
     CanvasShortcutAction canvas_action,
     LayerStack *layers,
@@ -98,16 +238,22 @@ static int handle_canvas_sample_shortcut(
 ) {
     int mx = 0;
     int my = 0;
+    int canvas_x = 0;
+    int canvas_y = 0;
 
     SDL_GetMouseState(&mx, &my);
+    if (!screen_to_canvas_point(mx, my, &canvas_x, &canvas_y)) {
+        return 0;
+    }
+
     return app_handle_canvas_sample_shortcut_at(
         canvas_action,
         layers,
         composite,
         preview_canvas,
         preview_active,
-        mx,
-        my,
+        canvas_x,
+        canvas_y,
         CANVAS_WIDTH,
         CANVAS_HEIGHT,
         undo_stack,
@@ -1248,11 +1394,20 @@ static void handle_canvas_motion(
     int *needs_composite
 ) {
     int shift = 0;
+    int canvas_x = 0;
+    int canvas_y = 0;
+
+    if (!screen_to_canvas_point(x, y, &canvas_x, &canvas_y)) {
+        if (!drawing || !*drawing) {
+            return;
+        }
+        screen_to_canvas_point_clamped(x, y, &canvas_x, &canvas_y);
+    }
 
     sdl_shortcut_modifiers(NULL, NULL, &shift);
     app_handle_canvas_motion(
-        x,
-        y,
+        canvas_x,
+        canvas_y,
         drawing,
         last_x,
         last_y,
@@ -1278,7 +1433,6 @@ static void handle_mouse_button_down(
     SDL_MouseButtonEvent button,
     LayerStack *layers,
     const Canvas *composite,
-    const Canvas *preview_canvas,
     int *drawing,
     int *last_x,
     int *last_y,
@@ -1301,16 +1455,23 @@ static void handle_mouse_button_down(
     int *needs_composite,
     SDL_Window *window
 ) {
+    int canvas_x = 0;
+    int canvas_y = 0;
+
     if (!layers || !drawing || !last_x || !last_y || !tool || !brush_color || !brush_color_rgb || !brush_opacity ||
         !shaping || !shape_start_x || !shape_start_y || !preview_active || !preview_canvas_mut) {
+        return;
+    }
+
+    if (!screen_to_canvas_point(button.x, button.y, &canvas_x, &canvas_y)) {
         return;
     }
 
     if (button.button == SDL_BUTTON_LEFT) {
         app_handle_left_canvas_press(
             layers,
-            button.x,
-            button.y,
+            canvas_x,
+            canvas_y,
             last_x,
             last_y,
             *tool,
@@ -1340,8 +1501,8 @@ static void handle_mouse_button_down(
             composite,
             preview_canvas_mut,
             *preview_active,
-            button.x,
-            button.y,
+            canvas_x,
+            canvas_y,
             tool,
             brush_color,
             brush_color_rgb,
@@ -1378,9 +1539,18 @@ static void handle_mouse_button_up(
     int *needs_composite
 ) {
     int shift = 0;
+    int canvas_x = 0;
+    int canvas_y = 0;
 
     if (!layers || !drawing || !shaping || !preview_active || button.button != SDL_BUTTON_LEFT) {
         return;
+    }
+
+    if (!screen_to_canvas_point(button.x, button.y, &canvas_x, &canvas_y)) {
+        if (!*drawing && !*shaping) {
+            return;
+        }
+        screen_to_canvas_point_clamped(button.x, button.y, &canvas_x, &canvas_y);
     }
 
     sdl_shortcut_modifiers(NULL, NULL, &shift);
@@ -1391,8 +1561,8 @@ static void handle_mouse_button_up(
         preview_active,
         shape_start_x,
         shape_start_y,
-        button.x,
-        button.y,
+        canvas_x,
+        canvas_y,
         shift,
         tool,
         brush_radius,
@@ -1478,24 +1648,137 @@ static void handle_key_down(
     );
 }
 
+static void set_render_color(SDL_Renderer *renderer, uint32_t argb) {
+    SDL_SetRenderDrawColor(
+        renderer,
+        (Uint8)((argb >> 16) & 0xFF),
+        (Uint8)((argb >> 8) & 0xFF),
+        (Uint8)(argb & 0xFF),
+        (Uint8)((argb >> 24) & 0xFF)
+    );
+}
+
+static void fill_rect(SDL_Renderer *renderer, int x, int y, int w, int h, uint32_t argb) {
+    SDL_Rect rect = {x, y, w, h};
+    set_render_color(renderer, argb);
+    SDL_RenderFillRect(renderer, &rect);
+}
+
+static void stroke_rect(SDL_Renderer *renderer, int x, int y, int w, int h, uint32_t argb) {
+    SDL_Rect rect = {x, y, w, h};
+    set_render_color(renderer, argb);
+    SDL_RenderDrawRect(renderer, &rect);
+}
+
 static void draw_checkerboard_background(SDL_Renderer *renderer) {
     if (!renderer) {
         return;
     }
 
-    SDL_SetRenderDrawColor(renderer, 30, 30, 34, 255);
+    fill_rect(renderer, CANVAS_ORIGIN_X - 12, CANVAS_ORIGIN_Y - 12, CANVAS_WIDTH + 24, CANVAS_HEIGHT + 24, 0xFF111113);
     for (int y = 0; y < CANVAS_HEIGHT; y += CHECKER_SIZE) {
         for (int x = 0; x < CANVAS_WIDTH; x += CHECKER_SIZE) {
             int even = ((x / CHECKER_SIZE) + (y / CHECKER_SIZE)) % 2 == 0;
             if (even) {
-                SDL_SetRenderDrawColor(renderer, 232, 232, 236, 255);
+                set_render_color(renderer, 0xFFE8E8EC);
             } else {
-                SDL_SetRenderDrawColor(renderer, 206, 206, 212, 255);
+                set_render_color(renderer, 0xFFCECED4);
             }
-            SDL_Rect cell = {x, y, CHECKER_SIZE, CHECKER_SIZE};
+            SDL_Rect cell = {CANVAS_ORIGIN_X + x, CANVAS_ORIGIN_Y + y, CHECKER_SIZE, CHECKER_SIZE};
             SDL_RenderFillRect(renderer, &cell);
         }
     }
+}
+
+static void draw_toolbar_button(SDL_Renderer *renderer, int index, int active) {
+    int x = 14;
+    int y = CANVAS_ORIGIN_Y + 12 + index * 44;
+    uint32_t border = active ? 0xFF5DADE2 : 0xFF4A4A50;
+    uint32_t glyph = active ? 0xFFE7F3FF : 0xFFC9CDD3;
+
+    fill_rect(renderer, x, y, 36, 34, active ? 0xFF2D4D68 : 0xFF242428);
+    stroke_rect(renderer, x, y, 36, 34, border);
+
+    if (index == 0) {
+        SDL_Point points[3] = {{x + 12, y + 9}, {x + 25, y + 17}, {x + 13, y + 25}};
+        set_render_color(renderer, glyph);
+        SDL_RenderDrawLines(renderer, points, 3);
+    } else if (index == 1) {
+        fill_rect(renderer, x + 11, y + 9, 14, 14, glyph);
+        fill_rect(renderer, x + 21, y + 21, 5, 5, glyph);
+    } else if (index == 2) {
+        fill_rect(renderer, x + 10, y + 22, 18, 4, glyph);
+        fill_rect(renderer, x + 18, y + 8, 6, 16, glyph);
+    } else if (index == 3) {
+        stroke_rect(renderer, x + 9, y + 9, 19, 16, glyph);
+    } else if (index == 4) {
+        SDL_RenderDrawLine(renderer, x + 9, y + 25, x + 28, y + 9);
+    } else if (index == 5) {
+        stroke_rect(renderer, x + 9, y + 10, 19, 14, glyph);
+        SDL_RenderDrawLine(renderer, x + 9, y + 10, x + 28, y + 24);
+    } else {
+        fill_rect(renderer, x + 9, y + 9, 9, 9, 0xFFE53935);
+        fill_rect(renderer, x + 18, y + 9, 9, 9, 0xFF1E88E5);
+        fill_rect(renderer, x + 9, y + 18, 9, 9, 0xFFFDD835);
+        fill_rect(renderer, x + 18, y + 18, 9, 9, 0xFF43A047);
+    }
+}
+
+static void draw_photoshop_shell(SDL_Renderer *renderer) {
+    if (!renderer) {
+        return;
+    }
+
+    fill_rect(renderer, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0xFF1F1F23);
+
+    fill_rect(renderer, 0, 0, WINDOW_WIDTH, 24, 0xFF2B2B2F);
+    for (int i = 0; i < 7; i++) {
+        fill_rect(renderer, 18 + i * 58, 8, 34 + (i % 3) * 8, 5, 0xFFBFC3C9);
+    }
+
+    fill_rect(renderer, 0, 24, WINDOW_WIDTH, 28, 0xFF333338);
+    fill_rect(renderer, 78, 34, 108, 8, 0xFF56565D);
+    fill_rect(renderer, 206, 34, 64, 8, 0xFF56565D);
+    fill_rect(renderer, 292, 34, 88, 8, 0xFF56565D);
+    fill_rect(renderer, 404, 34, 52, 8, 0xFF56565D);
+
+    fill_rect(renderer, 0, 52, 64, WINDOW_HEIGHT - 52, 0xFF2A2A2F);
+    for (int i = 0; i < 8; i++) {
+        draw_toolbar_button(renderer, i, i == 1);
+    }
+    fill_rect(renderer, 15, 432, 16, 16, 0xFF1B1F24);
+    fill_rect(renderer, 31, 448, 16, 16, 0xFFFDD835);
+    stroke_rect(renderer, 14, 431, 18, 18, 0xFF0C0C0D);
+    stroke_rect(renderer, 30, 447, 18, 18, 0xFF0C0C0D);
+
+    fill_rect(renderer, RIGHT_PANEL_X, 52, RIGHT_PANEL_WIDTH, WINDOW_HEIGHT - 64, 0xFF2B2B30);
+    fill_rect(renderer, RIGHT_PANEL_X + 10, 68, RIGHT_PANEL_WIDTH - 20, 18, 0xFF3A3A40);
+    fill_rect(renderer, RIGHT_PANEL_X + 10, 96, 28, 28, 0xFFE53935);
+    fill_rect(renderer, RIGHT_PANEL_X + 41, 96, 28, 28, 0xFF43A047);
+    fill_rect(renderer, RIGHT_PANEL_X + 72, 96, 28, 28, 0xFF1E88E5);
+
+    fill_rect(renderer, RIGHT_PANEL_X + 10, 150, RIGHT_PANEL_WIDTH - 20, 18, 0xFF3A3A40);
+    for (int i = 0; i < 4; i++) {
+        int y = 182 + i * 42;
+        fill_rect(renderer, RIGHT_PANEL_X + 14, y, 32, 24, i == 1 ? 0xFF5DADE2 : 0xFF5B6573);
+        fill_rect(renderer, RIGHT_PANEL_X + 54, y + 5, 48, 6, i == 1 ? 0xFFE8EDF5 : 0xFF8B929C);
+        fill_rect(renderer, RIGHT_PANEL_X + 54, y + 17, 36, 5, 0xFF626A73);
+        stroke_rect(renderer, RIGHT_PANEL_X + 10, y - 5, RIGHT_PANEL_WIDTH - 20, 34, i == 1 ? 0xFF5DADE2 : 0xFF484850);
+    }
+
+    fill_rect(renderer, RIGHT_PANEL_X + 10, 392, RIGHT_PANEL_WIDTH - 20, 18, 0xFF3A3A40);
+    fill_rect(renderer, RIGHT_PANEL_X + 16, 428, 92, 6, 0xFF5DADE2);
+    fill_rect(renderer, RIGHT_PANEL_X + 16, 460, 68, 6, 0xFFFDD835);
+    fill_rect(renderer, RIGHT_PANEL_X + 16, 492, 82, 6, 0xFF8E24AA);
+
+    fill_rect(renderer, 64, BOTTOM_PANEL_Y, 800, 72, 0xFF252529);
+    fill_rect(renderer, 82, BOTTOM_PANEL_Y + 18, 170, 10, 0xFF7B7F87);
+    fill_rect(renderer, 292, BOTTOM_PANEL_Y + 18, 96, 10, 0xFF7B7F87);
+    fill_rect(renderer, 430, BOTTOM_PANEL_Y + 18, 148, 10, 0xFF7B7F87);
+    fill_rect(renderer, 82, BOTTOM_PANEL_Y + 45, 310, 8, 0xFF3F4147);
+
+    stroke_rect(renderer, CANVAS_ORIGIN_X - 1, CANVAS_ORIGIN_Y - 1, CANVAS_WIDTH + 2, CANVAS_HEIGHT + 2, 0xFF0B0B0D);
+    stroke_rect(renderer, CANVAS_ORIGIN_X - 12, CANVAS_ORIGIN_Y - 12, CANVAS_WIDTH + 24, CANVAS_HEIGHT + 24, 0xFF333338);
 }
 
 static void render_frame_background(SDL_Renderer *renderer) {
@@ -1503,8 +1786,7 @@ static void render_frame_background(SDL_Renderer *renderer) {
         return;
     }
 
-    SDL_SetRenderDrawColor(renderer, 30, 30, 34, 255);
-    SDL_RenderClear(renderer);
+    draw_photoshop_shell(renderer);
     draw_checkerboard_background(renderer);
 }
 
@@ -1514,7 +1796,7 @@ static void present_canvas_texture(SDL_Renderer *renderer, SDL_Texture *texture)
     }
 
     {
-        SDL_Rect dest = {0, 0, CANVAS_WIDTH, CANVAS_HEIGHT};
+        SDL_Rect dest = {CANVAS_ORIGIN_X, CANVAS_ORIGIN_Y, CANVAS_WIDTH, CANVAS_HEIGHT};
         SDL_RenderCopy(renderer, texture, NULL, &dest);
     }
     SDL_RenderPresent(renderer);
@@ -1762,7 +2044,6 @@ static void handle_app_event(App *app, const SDL_Event *event) {
             event->button,
             &app->layers,
             &app->composite,
-            &app->runtime.preview_canvas,
             &app->runtime.drawing,
             &app->runtime.last_x,
             &app->runtime.last_y,

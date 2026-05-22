@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -std=c11 -O2 -Wall -Wextra
-LDFLAGS =
+LDFLAGS = -lm
 
 SDL2_CONFIG := $(shell command -v sdl2-config 2>/dev/null)
 HAVE_SDL2 := $(if $(SDL2_CONFIG),1,0)
@@ -9,7 +9,7 @@ CFLAGS += $(shell sdl2-config --cflags)
 LDFLAGS += $(shell sdl2-config --libs)
 endif
 
-SRC = src/main.c src/app.c src/app_brush.c src/app_brush_mask.c src/app_canvas_click.c src/app_canvas_ops.c src/app_color.c src/app_layer_state.c src/app_preview.c src/app_runtime_shortcuts.c src/app_sampled_color.c src/app_shape.c src/app_shape_cancel.c src/canvas.c src/image_io.c src/layers.c src/layer_name_shortcuts.c src/direct_layer_shortcuts.c src/history_shortcuts.c src/history_state.c src/file_shortcuts.c src/merge_shortcuts.c src/paint_shortcuts.c src/brush_shortcuts.c src/view_shortcuts.c src/canvas_shortcuts.c
+SRC = src/main.c src/app.c src/app_brush.c src/app_brush_mask.c src/app_canvas_click.c src/app_canvas_ops.c src/app_color.c src/app_layer_state.c src/app_preview.c src/app_runtime_shortcuts.c src/app_sampled_color.c src/app_shape.c src/app_shape_cancel.c src/app_title.c src/canvas.c src/image_io.c src/layers.c src/layer_name_shortcuts.c src/direct_layer_shortcuts.c src/history_shortcuts.c src/history_state.c src/file_shortcuts.c src/merge_shortcuts.c src/paint_shortcuts.c src/brush_shortcuts.c src/view_shortcuts.c src/canvas_shortcuts.c
 OBJ = $(SRC:.c=.o)
 BIN = openshop
 

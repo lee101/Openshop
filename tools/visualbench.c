@@ -5,26 +5,138 @@
 #include "../src/layers.h"
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
-#define BENCH_WIDTH 800
-#define BENCH_HEIGHT 600
-#define BENCH_BG 0xFFFFFFFF
+#define SHOT_WIDTH 1024
+#define SHOT_HEIGHT 768
+#define DOC_X 64
+#define DOC_Y 52
+#define DOC_WIDTH 800
+#define DOC_HEIGHT 600
+#define RIGHT_PANEL_X 882
+#define BOTTOM_PANEL_Y 666
+#define DOC_BG 0xFFFFFFFF
 
-static int save_composite(const LayerStack *stack, const char *path) {
+static void rect(Canvas *canvas, int x0, int y0, int x1, int y1, uint32_t color) {
+    canvas_draw_rect_filled(canvas, x0, y0, x1, y1, color);
+}
+
+static void stroke(Canvas *canvas, int x0, int y0, int x1, int y1, uint32_t color) {
+    canvas_draw_rect_outline(canvas, x0, y0, x1, y1, 1, color);
+}
+
+static void blit_canvas(Canvas *dest, const Canvas *src, int dx, int dy) {
+    for (int y = 0; y < src->height; y++) {
+        for (int x = 0; x < src->width; x++) {
+            canvas_set_pixel_raw(dest, dx + x, dy + y, canvas_get_pixel(src, x, y));
+        }
+    }
+}
+
+static void draw_toolbar_button(Canvas *shot, int index, int active) {
+    int x = 14;
+    int y = DOC_Y + 12 + index * 44;
+    uint32_t border = active ? 0xFF5DADE2 : 0xFF4A4A50;
+    uint32_t glyph = active ? 0xFFE7F3FF : 0xFFC9CDD3;
+
+    rect(shot, x, y, x + 36, y + 34, active ? 0xFF2D4D68 : 0xFF242428);
+    stroke(shot, x, y, x + 36, y + 34, border);
+
+    if (index == 0) {
+        app_draw_shape(shot, TOOL_LINE, x + 12, y + 9, x + 25, y + 17, 1, glyph);
+        app_draw_shape(shot, TOOL_LINE, x + 25, y + 17, x + 13, y + 25, 1, glyph);
+    } else if (index == 1) {
+        rect(shot, x + 11, y + 9, x + 25, y + 23, glyph);
+        rect(shot, x + 21, y + 21, x + 26, y + 26, glyph);
+    } else if (index == 2) {
+        rect(shot, x + 10, y + 22, x + 28, y + 26, glyph);
+        rect(shot, x + 18, y + 8, x + 24, y + 24, glyph);
+    } else if (index == 3) {
+        stroke(shot, x + 9, y + 9, x + 28, y + 25, glyph);
+    } else if (index == 4) {
+        app_draw_shape(shot, TOOL_LINE, x + 9, y + 25, x + 28, y + 9, 1, glyph);
+    } else if (index == 5) {
+        stroke(shot, x + 9, y + 10, x + 28, y + 24, glyph);
+        app_draw_shape(shot, TOOL_LINE, x + 9, y + 10, x + 28, y + 24, 1, glyph);
+    } else {
+        rect(shot, x + 9, y + 9, x + 18, y + 18, 0xFFE53935);
+        rect(shot, x + 18, y + 9, x + 27, y + 18, 0xFF1E88E5);
+        rect(shot, x + 9, y + 18, x + 18, y + 27, 0xFFFDD835);
+        rect(shot, x + 18, y + 18, x + 27, y + 27, 0xFF43A047);
+    }
+}
+
+static void draw_shell(Canvas *shot) {
+    rect(shot, 0, 0, SHOT_WIDTH - 1, SHOT_HEIGHT - 1, 0xFF1F1F23);
+
+    rect(shot, 0, 0, SHOT_WIDTH - 1, 23, 0xFF2B2B2F);
+    for (int i = 0; i < 7; i++) {
+        rect(shot, 18 + i * 58, 8, 52 + i * 58 + (i % 3) * 8, 13, 0xFFBFC3C9);
+    }
+
+    rect(shot, 0, 24, SHOT_WIDTH - 1, 51, 0xFF333338);
+    rect(shot, 78, 34, 186, 42, 0xFF56565D);
+    rect(shot, 206, 34, 270, 42, 0xFF56565D);
+    rect(shot, 292, 34, 380, 42, 0xFF56565D);
+    rect(shot, 404, 34, 456, 42, 0xFF56565D);
+
+    rect(shot, 0, 52, 63, SHOT_HEIGHT - 1, 0xFF2A2A2F);
+    for (int i = 0; i < 8; i++) {
+        draw_toolbar_button(shot, i, i == 1);
+    }
+    rect(shot, 15, 432, 31, 448, 0xFF1B1F24);
+    rect(shot, 31, 448, 47, 464, 0xFFFDD835);
+    stroke(shot, 14, 431, 32, 449, 0xFF0C0C0D);
+    stroke(shot, 30, 447, 48, 465, 0xFF0C0C0D);
+
+    rect(shot, RIGHT_PANEL_X, 52, 1008, SHOT_HEIGHT - 13, 0xFF2B2B30);
+    rect(shot, RIGHT_PANEL_X + 10, 68, 988, 86, 0xFF3A3A40);
+    rect(shot, RIGHT_PANEL_X + 10, 96, RIGHT_PANEL_X + 38, 124, 0xFFE53935);
+    rect(shot, RIGHT_PANEL_X + 41, 96, RIGHT_PANEL_X + 69, 124, 0xFF43A047);
+    rect(shot, RIGHT_PANEL_X + 72, 96, RIGHT_PANEL_X + 100, 124, 0xFF1E88E5);
+
+    rect(shot, RIGHT_PANEL_X + 10, 150, 988, 168, 0xFF3A3A40);
+    for (int i = 0; i < 4; i++) {
+        int y = 182 + i * 42;
+        stroke(shot, RIGHT_PANEL_X + 10, y - 5, 988, y + 29, i == 1 ? 0xFF5DADE2 : 0xFF484850);
+        rect(shot, RIGHT_PANEL_X + 14, y, RIGHT_PANEL_X + 46, y + 24, i == 1 ? 0xFF5DADE2 : 0xFF5B6573);
+        rect(shot, RIGHT_PANEL_X + 54, y + 5, RIGHT_PANEL_X + 102, y + 11, i == 1 ? 0xFFE8EDF5 : 0xFF8B929C);
+        rect(shot, RIGHT_PANEL_X + 54, y + 17, RIGHT_PANEL_X + 90, y + 22, 0xFF626A73);
+    }
+
+    rect(shot, RIGHT_PANEL_X + 10, 392, 988, 410, 0xFF3A3A40);
+    rect(shot, RIGHT_PANEL_X + 16, 428, RIGHT_PANEL_X + 108, 434, 0xFF5DADE2);
+    rect(shot, RIGHT_PANEL_X + 16, 460, RIGHT_PANEL_X + 84, 466, 0xFFFDD835);
+    rect(shot, RIGHT_PANEL_X + 16, 492, RIGHT_PANEL_X + 98, 498, 0xFF8E24AA);
+
+    rect(shot, 64, BOTTOM_PANEL_Y, 864, 738, 0xFF252529);
+    rect(shot, 82, BOTTOM_PANEL_Y + 18, 252, BOTTOM_PANEL_Y + 28, 0xFF7B7F87);
+    rect(shot, 292, BOTTOM_PANEL_Y + 18, 388, BOTTOM_PANEL_Y + 28, 0xFF7B7F87);
+    rect(shot, 430, BOTTOM_PANEL_Y + 18, 578, BOTTOM_PANEL_Y + 28, 0xFF7B7F87);
+    rect(shot, 82, BOTTOM_PANEL_Y + 45, 392, BOTTOM_PANEL_Y + 53, 0xFF3F4147);
+
+    rect(shot, DOC_X - 12, DOC_Y - 12, DOC_X + DOC_WIDTH + 11, DOC_Y + DOC_HEIGHT + 11, 0xFF111113);
+    stroke(shot, DOC_X - 12, DOC_Y - 12, DOC_X + DOC_WIDTH + 11, DOC_Y + DOC_HEIGHT + 11, 0xFF333338);
+}
+
+static int save_shot_with_doc(const LayerStack *doc, const char *path) {
+    Canvas shot;
     Canvas composite;
     int ok = 0;
 
-    if (!canvas_init(&composite, BENCH_WIDTH, BENCH_HEIGHT)) {
-        fprintf(stderr, "visualbench: failed to allocate composite for %s\n", path);
+    if (!canvas_init(&shot, SHOT_WIDTH, SHOT_HEIGHT) || !canvas_init(&composite, DOC_WIDTH, DOC_HEIGHT)) {
+        canvas_free(&shot);
+        canvas_free(&composite);
         return 0;
     }
 
-    layer_stack_composite(stack, &composite, BENCH_BG);
-    ok = canvas_save_bmp(&composite, path);
-    canvas_free(&composite);
+    draw_shell(&shot);
+    layer_stack_composite(doc, &composite, DOC_BG);
+    blit_canvas(&shot, &composite, DOC_X, DOC_Y);
+    stroke(&shot, DOC_X - 1, DOC_Y - 1, DOC_X + DOC_WIDTH, DOC_Y + DOC_HEIGHT, 0xFF0B0B0D);
+    ok = canvas_save_bmp(&shot, path);
 
+    canvas_free(&composite);
+    canvas_free(&shot);
     if (!ok) {
         fprintf(stderr, "visualbench: failed to save %s\n", path);
     }
@@ -46,119 +158,89 @@ static void draw_sample_photo(Canvas *canvas) {
     draw_gradient(canvas);
     canvas_draw_ellipse_filled(canvas, 628, 132, 76, 76, 0xFFFFD36A);
     canvas_draw_ellipse_filled(canvas, 636, 124, 52, 52, 0xFFFFEAB0);
-    canvas_draw_rect_filled(canvas, 0, 398, BENCH_WIDTH - 1, BENCH_HEIGHT - 1, 0xFF174F49);
+    rect(canvas, 0, 398, DOC_WIDTH - 1, DOC_HEIGHT - 1, 0xFF174F49);
     canvas_draw_ellipse_filled(canvas, 260, 424, 260, 94, 0xFF256F61);
     canvas_draw_ellipse_filled(canvas, 596, 430, 316, 120, 0xFF143D45);
-    canvas_draw_rect_filled(canvas, 132, 268, 312, 452, 0xFFF5E7C8);
-    canvas_draw_rect_filled(canvas, 196, 356, 244, 452, 0xFF3A2D32);
+    rect(canvas, 132, 268, 312, 452, 0xFFF5E7C8);
+    rect(canvas, 196, 356, 244, 452, 0xFF3A2D32);
     app_draw_shape(canvas, TOOL_LINE, 102, 268, 222, 174, 5, 0xFFB34B3C);
     app_draw_shape(canvas, TOOL_LINE, 222, 174, 344, 268, 5, 0xFFB34B3C);
     app_draw_shape(canvas, TOOL_LINE, 102, 268, 344, 268, 5, 0xFFB34B3C);
-    canvas_draw_rect_filled(canvas, 150, 310, 188, 350, 0xFF94BBD0);
-    canvas_draw_rect_filled(canvas, 260, 310, 294, 350, 0xFF94BBD0);
-}
-
-static void draw_ui_overlay(LayerStack *stack, Canvas *overlay) {
-    canvas_draw_rect_filled(overlay, 0, 0, BENCH_WIDTH - 1, 42, 0xEE18181B);
-    canvas_draw_rect_filled(overlay, 0, 42, 58, BENCH_HEIGHT - 1, 0xDD1F1F24);
-    canvas_draw_rect_filled(overlay, BENCH_WIDTH - 184, 42, BENCH_WIDTH - 1, BENCH_HEIGHT - 1, 0xE6232329);
-
-    for (int i = 0; i < 7; i++) {
-        int y = 64 + i * 46;
-        uint32_t color = i == 0 ? 0xFFFFD36A : 0xFF3A3A42;
-        canvas_draw_rect_outline(overlay, 13, y, 45, y + 31, 2, color);
-    }
-
-    for (int i = 0; i < stack->layer_count; i++) {
-        int y = 74 + i * 58;
-        uint32_t border = i == stack->active_layer ? 0xFFFFD36A : 0xFF6B7280;
-        canvas_draw_rect_outline(overlay, 642, y, 776, y + 40, 2, border);
-        canvas_draw_rect_filled(overlay, 650, y + 10, 688, y + 30, stack->layers[i].visible ? 0xAA93C5FD : 0xAA555555);
-        if (stack->layers[i].locked) {
-            canvas_draw_rect_filled(overlay, 716, y + 12, 746, y + 28, 0xAAEF4444);
-        }
-    }
-
-    canvas_draw_rect_filled(overlay, 642, 412, 776, 418, 0xFFFFD36A);
-    canvas_draw_rect_filled(overlay, 642, 444, 736, 450, 0xFF93C5FD);
-    canvas_draw_rect_filled(overlay, 642, 476, 760, 482, 0xFFE879F9);
+    rect(canvas, 150, 310, 188, 350, 0xFF94BBD0);
+    rect(canvas, 260, 310, 294, 350, 0xFF94BBD0);
 }
 
 static int make_editor_overview(void) {
-    LayerStack stack;
+    LayerStack doc;
     int ok = 0;
 
-    if (!layer_stack_init(&stack, BENCH_WIDTH, BENCH_HEIGHT, BENCH_BG)) {
+    if (!layer_stack_init(&doc, DOC_WIDTH, DOC_HEIGHT, DOC_BG)) {
         return 0;
     }
 
-    draw_sample_photo(&stack.layers[0].canvas);
-    int retouch_index = layer_stack_add(&stack, "Retouch", 0x00000000);
-    int shape_index = layer_stack_add(&stack, "Vector shapes", 0x00000000);
-    int ui_index = layer_stack_add(&stack, "UI chrome", 0x00000000);
-    if (retouch_index < 0 || shape_index < 0 || ui_index < 0) {
+    draw_sample_photo(&doc.layers[0].canvas);
+    int retouch = layer_stack_add(&doc, "Retouch", 0x00000000);
+    int shape = layer_stack_add(&doc, "Vector shapes", 0x00000000);
+    if (retouch < 0 || shape < 0) {
         goto done;
     }
 
-    app_draw_brush_line(&stack.layers[retouch_index].canvas, 424, 228, 548, 280, 17, 0xCCFFD36A, BRUSH_SHAPE_ROUND);
-    app_draw_brush_line(&stack.layers[retouch_index].canvas, 440, 304, 592, 360, 12, 0xBB38BDF8, BRUSH_SHAPE_DIAMOND);
-    app_draw_shape(&stack.layers[shape_index].canvas, TOOL_RECT, 386, 118, 700, 392, 4, 0xCCFFFFFF);
-    app_draw_shape(&stack.layers[shape_index].canvas, TOOL_ELLIPSE, 468, 172, 624, 326, 4, 0xCCF472B6);
-    draw_ui_overlay(&stack, &stack.layers[ui_index].canvas);
-
-    ok = save_composite(&stack, "visualbench/editor-overview.bmp");
+    app_draw_brush_line(&doc.layers[retouch].canvas, 424, 228, 548, 280, 17, 0xCCFFD36A, BRUSH_SHAPE_ROUND);
+    app_draw_brush_line(&doc.layers[retouch].canvas, 440, 304, 592, 360, 12, 0xBB38BDF8, BRUSH_SHAPE_DIAMOND);
+    app_draw_shape(&doc.layers[shape].canvas, TOOL_RECT, 386, 118, 700, 392, 4, 0xCCFFFFFF);
+    app_draw_shape(&doc.layers[shape].canvas, TOOL_ELLIPSE, 468, 172, 624, 326, 4, 0xCCF472B6);
+    ok = save_shot_with_doc(&doc, "visualbench/editor-overview.bmp");
 
 done:
-    layer_stack_free(&stack);
+    layer_stack_free(&doc);
     return ok;
 }
 
 static int make_layer_states(void) {
-    LayerStack stack;
+    LayerStack doc;
     int ok = 0;
 
-    if (!layer_stack_init(&stack, BENCH_WIDTH, BENCH_HEIGHT, 0xFF101820)) {
+    if (!layer_stack_init(&doc, DOC_WIDTH, DOC_HEIGHT, 0xFF101820)) {
         return 0;
     }
-    canvas_draw_rect_filled(&stack.layers[0].canvas, 80, 82, 720, 516, 0xFF243B55);
+    rect(&doc.layers[0].canvas, 80, 82, 720, 516, 0xFF243B55);
 
-    int red = layer_stack_add(&stack, "Red paint", 0x00000000);
-    int blue = layer_stack_add(&stack, "Blue paint", 0x00000000);
-    int locked = layer_stack_add(&stack, "Locked guide", 0x00000000);
+    int red = layer_stack_add(&doc, "Red paint", 0x00000000);
+    int blue = layer_stack_add(&doc, "Blue paint", 0x00000000);
+    int locked = layer_stack_add(&doc, "Locked guide", 0x00000000);
     if (red < 0 || blue < 0 || locked < 0) {
         goto done;
     }
 
-    canvas_draw_ellipse_filled(&stack.layers[red].canvas, 316, 300, 164, 164, 0xDDEF4444);
-    canvas_draw_ellipse_filled(&stack.layers[blue].canvas, 480, 300, 164, 164, 0xDD38BDF8);
-    app_draw_shape(&stack.layers[locked].canvas, TOOL_LINE, 120, 110, 680, 490, 6, 0xEEFFFFFF);
-    app_draw_shape(&stack.layers[locked].canvas, TOOL_LINE, 680, 110, 120, 490, 6, 0xEEFFFFFF);
-    layer_stack_set_opacity(&stack, red, 78);
-    layer_stack_set_opacity(&stack, blue, 62);
-    layer_stack_toggle_lock(&stack, locked);
-    stack.active_layer = blue;
-
-    ok = save_composite(&stack, "visualbench/layer-states.bmp");
+    canvas_draw_ellipse_filled(&doc.layers[red].canvas, 316, 300, 164, 164, 0xDDEF4444);
+    canvas_draw_ellipse_filled(&doc.layers[blue].canvas, 480, 300, 164, 164, 0xDD38BDF8);
+    app_draw_shape(&doc.layers[locked].canvas, TOOL_LINE, 120, 110, 680, 490, 6, 0xEEFFFFFF);
+    app_draw_shape(&doc.layers[locked].canvas, TOOL_LINE, 680, 110, 120, 490, 6, 0xEEFFFFFF);
+    layer_stack_set_opacity(&doc, red, 78);
+    layer_stack_set_opacity(&doc, blue, 62);
+    layer_stack_toggle_lock(&doc, locked);
+    doc.active_layer = blue;
+    ok = save_shot_with_doc(&doc, "visualbench/layer-states.bmp");
 
 done:
-    layer_stack_free(&stack);
+    layer_stack_free(&doc);
     return ok;
 }
 
 static int make_tools_gallery(void) {
-    LayerStack stack;
+    LayerStack doc;
     int ok = 0;
 
-    if (!layer_stack_init(&stack, BENCH_WIDTH, BENCH_HEIGHT, 0xFFF8FAFC)) {
+    if (!layer_stack_init(&doc, DOC_WIDTH, DOC_HEIGHT, 0xFFF8FAFC)) {
         return 0;
     }
 
-    int layer = layer_stack_add(&stack, "Tools", 0x00000000);
+    int layer = layer_stack_add(&doc, "Tools", 0x00000000);
     if (layer < 0) {
         goto done;
     }
 
-    Canvas *canvas = &stack.layers[layer].canvas;
+    Canvas *canvas = &doc.layers[layer].canvas;
     app_draw_brush_line(canvas, 70, 112, 330, 180, 18, 0xFF111827, BRUSH_SHAPE_ROUND);
     app_draw_brush_line(canvas, 90, 244, 338, 244, 14, 0xFFE11D48, BRUSH_SHAPE_SQUARE);
     app_draw_brush_line(canvas, 94, 330, 336, 430, 16, 0xFF7C3AED, BRUSH_SHAPE_DIAMOND);
@@ -166,11 +248,10 @@ static int make_tools_gallery(void) {
     app_draw_shape(canvas, TOOL_RECT, 430, 220, 724, 330, 5, 0xFF059669);
     app_draw_shape(canvas, TOOL_FILLED_RECT, 448, 386, 596, 512, 1, 0xBBF59E0B);
     app_draw_shape(canvas, TOOL_ELLIPSE, 596, 366, 746, 526, 5, 0xFFDB2777);
-
-    ok = save_composite(&stack, "visualbench/tools-gallery.bmp");
+    ok = save_shot_with_doc(&doc, "visualbench/tools-gallery.bmp");
 
 done:
-    layer_stack_free(&stack);
+    layer_stack_free(&doc);
     return ok;
 }
 
