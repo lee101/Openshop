@@ -35,6 +35,11 @@ make visualbench
 
 This writes representative BMP captures for the editor overview, layer states, and tool gallery so visual changes can be inspected locally without committing generated images.
 
+Current visualbench also writes per-tool captures for brush, eraser, line, rectangle, ellipse, and fill.
+
+## Local Reference Libraries
+External UI references are cloned into gitignored `vendor/` directories. Clay is kept at `vendor/clay` for studying its single-header, renderer-agnostic C layout style; see `docs/clay-layout-notes.md`.
+
 ## Run
 ```bash
 ./openshop [optional_input.bmp]

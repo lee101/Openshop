@@ -5,6 +5,7 @@
 #include "app_canvas_ops.h"
 #include "app_color.h"
 #include "app_layer_state.h"
+#include "app_layout.h"
 #include "app_preview.h"
 #include "app_runtime_shortcuts.h"
 #include "app_sampled_color.h"
@@ -30,15 +31,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define WINDOW_WIDTH 1024
-#define WINDOW_HEIGHT 768
-#define CANVAS_WIDTH 800
-#define CANVAS_HEIGHT 600
-#define CANVAS_ORIGIN_X 64
-#define CANVAS_ORIGIN_Y 52
-#define RIGHT_PANEL_X 882
-#define RIGHT_PANEL_WIDTH 126
-#define BOTTOM_PANEL_Y 666
+#define WINDOW_WIDTH APP_LAYOUT_WINDOW_WIDTH
+#define WINDOW_HEIGHT APP_LAYOUT_WINDOW_HEIGHT
+#define CANVAS_WIDTH APP_LAYOUT_CANVAS_WIDTH
+#define CANVAS_HEIGHT APP_LAYOUT_CANVAS_HEIGHT
+#define CANVAS_ORIGIN_X APP_LAYOUT_CANVAS_X
+#define CANVAS_ORIGIN_Y APP_LAYOUT_CANVAS_Y
+#define RIGHT_PANEL_X APP_LAYOUT_RIGHT_PANEL_X
+#define RIGHT_PANEL_WIDTH APP_LAYOUT_RIGHT_PANEL_WIDTH
+#define BOTTOM_PANEL_Y APP_LAYOUT_BOTTOM_PANEL_Y
 #define MAX_HISTORY 20
 
 static const uint32_t COLOR_BG = 0xFFFFFFFF;     // white
@@ -185,39 +186,13 @@ static void push_snapshot(const LayerStack *layers, Snapshot *undo_stack, int *u
 }
 
 static int screen_to_canvas_point(int screen_x, int screen_y, int *canvas_x, int *canvas_y) {
-    if (!canvas_x || !canvas_y) {
-        return 0;
-    }
-    if (screen_x < CANVAS_ORIGIN_X || screen_y < CANVAS_ORIGIN_Y ||
-        screen_x >= CANVAS_ORIGIN_X + CANVAS_WIDTH || screen_y >= CANVAS_ORIGIN_Y + CANVAS_HEIGHT) {
-        return 0;
-    }
-
-    *canvas_x = screen_x - CANVAS_ORIGIN_X;
-    *canvas_y = screen_y - CANVAS_ORIGIN_Y;
-    return 1;
+    AppLayout layout = app_layout_default();
+    return app_layout_screen_to_canvas(&layout, screen_x, screen_y, canvas_x, canvas_y);
 }
 
 static void screen_to_canvas_point_clamped(int screen_x, int screen_y, int *canvas_x, int *canvas_y) {
-    int x = screen_x - CANVAS_ORIGIN_X;
-    int y = screen_y - CANVAS_ORIGIN_Y;
-
-    if (!canvas_x || !canvas_y) {
-        return;
-    }
-    if (x < 0) {
-        x = 0;
-    } else if (x >= CANVAS_WIDTH) {
-        x = CANVAS_WIDTH - 1;
-    }
-    if (y < 0) {
-        y = 0;
-    } else if (y >= CANVAS_HEIGHT) {
-        y = CANVAS_HEIGHT - 1;
-    }
-
-    *canvas_x = x;
-    *canvas_y = y;
+    AppLayout layout = app_layout_default();
+    app_layout_screen_to_canvas_clamped(&layout, screen_x, screen_y, canvas_x, canvas_y);
 }
 
 static int handle_canvas_sample_shortcut(
@@ -1691,8 +1666,10 @@ static void draw_checkerboard_background(SDL_Renderer *renderer) {
 }
 
 static void draw_toolbar_button(SDL_Renderer *renderer, int index, int active) {
-    int x = 14;
-    int y = CANVAS_ORIGIN_Y + 12 + index * 44;
+    AppLayout layout = app_layout_default();
+    AppRect button = app_layout_toolbar_button(&layout, index);
+    int x = button.x;
+    int y = button.y;
     uint32_t border = active ? 0xFF5DADE2 : 0xFF4A4A50;
     uint32_t glyph = active ? 0xFFE7F3FF : 0xFFC9CDD3;
 

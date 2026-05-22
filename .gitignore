@@ -7,6 +7,7 @@ image_io_smoke
 shortcut_selftest
 history_selftest
 api_selftest
+app_layout_selftest
 test-artifacts/
 visualbench/
 visualbench_runner
@@ -14,4 +15,5 @@ visualbench_runner
 node_modules/
 test-results/
 tmp/
+vendor/
 next-env.d.ts

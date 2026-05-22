@@ -9,7 +9,7 @@ CFLAGS += $(shell sdl2-config --cflags)
 LDFLAGS += $(shell sdl2-config --libs)
 endif
 
-SRC = src/main.c src/app.c src/app_brush.c src/app_brush_mask.c src/app_canvas_click.c src/app_canvas_ops.c src/app_color.c src/app_layer_state.c src/app_preview.c src/app_runtime_shortcuts.c src/app_sampled_color.c src/app_shape.c src/app_shape_cancel.c src/app_title.c src/canvas.c src/image_io.c src/layers.c src/layer_name_shortcuts.c src/direct_layer_shortcuts.c src/history_shortcuts.c src/history_state.c src/file_shortcuts.c src/merge_shortcuts.c src/paint_shortcuts.c src/brush_shortcuts.c src/view_shortcuts.c src/canvas_shortcuts.c src/openshop_api.c src/openshop_io_api.c
+SRC = src/main.c src/app.c src/app_brush.c src/app_brush_mask.c src/app_canvas_click.c src/app_canvas_ops.c src/app_color.c src/app_layer_state.c src/app_layout.c src/app_preview.c src/app_runtime_shortcuts.c src/app_sampled_color.c src/app_shape.c src/app_shape_cancel.c src/app_title.c src/canvas.c src/image_io.c src/layers.c src/layer_name_shortcuts.c src/direct_layer_shortcuts.c src/history_shortcuts.c src/history_state.c src/file_shortcuts.c src/merge_shortcuts.c src/paint_shortcuts.c src/brush_shortcuts.c src/view_shortcuts.c src/canvas_shortcuts.c src/openshop_api.c src/openshop_io_api.c
 OBJ = $(SRC:.c=.o)
 BIN = openshop
 
@@ -23,6 +23,8 @@ HISTORY_TEST_BIN = history_selftest
 HISTORY_TEST_SRC = tests/history_selftest.c src/app_canvas_ops.c src/app_layer_state.c src/canvas.c src/layers.c src/history_state.c
 API_TEST_BIN = api_selftest
 API_TEST_SRC = tests/api_selftest.c src/openshop_api.c src/app_shape.c src/canvas.c src/layers.c
+LAYOUT_TEST_BIN = app_layout_selftest
+LAYOUT_TEST_SRC = tests/app_layout_selftest.c src/app_layout.c
 SDL_TEST_BIN = image_io_smoke
 SDL_TEST_SRC = tests/image_io_smoke.c src/canvas.c src/image_io.c
 VISUALBENCH_BIN = visualbench_runner
@@ -46,12 +48,13 @@ $(BIN): check-sdl2 $(OBJ)
 
 src/app.o: check-sdl2
 
-test: $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN) $(API_TEST_BIN) test-js
+test: $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN) $(API_TEST_BIN) $(LAYOUT_TEST_BIN) test-js
 	./$(TEST_BIN)
 	./$(IMAGE_TEST_BIN)
 	./$(SHORTCUT_TEST_BIN)
 	./$(HISTORY_TEST_BIN)
 	./$(API_TEST_BIN)
+	./$(LAYOUT_TEST_BIN)
 
 test-js:
 	@if command -v node >/dev/null 2>&1; then node tests/js_api_selftest.mjs; else echo "node not found; skipping JS API selftest"; fi
@@ -78,6 +81,9 @@ $(HISTORY_TEST_BIN): $(HISTORY_TEST_SRC)
 $(API_TEST_BIN): $(API_TEST_SRC)
 	$(CC) -std=c11 -O2 -Wall -Wextra $(API_TEST_SRC) -o $(API_TEST_BIN) -lm
 
+$(LAYOUT_TEST_BIN): $(LAYOUT_TEST_SRC)
+	$(CC) -std=c11 -O2 -Wall -Wextra $(LAYOUT_TEST_SRC) -o $(LAYOUT_TEST_BIN) -lm
+
 $(SDL_TEST_BIN): check-sdl2 $(SDL_TEST_SRC)
 	$(CC) $(CFLAGS) $(SDL_TEST_SRC) -o $(SDL_TEST_BIN) $(LDFLAGS) -lm
 
@@ -85,6 +91,6 @@ $(VISUALBENCH_BIN): check-sdl2 $(VISUALBENCH_SRC)
 	$(CC) $(CFLAGS) $(VISUALBENCH_SRC) -o $(VISUALBENCH_BIN) $(LDFLAGS) -lm
 
 clean:
-	rm -f $(OBJ) $(BIN) $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN) $(API_TEST_BIN) $(SDL_TEST_BIN) $(VISUALBENCH_BIN)
+	rm -f $(OBJ) $(BIN) $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN) $(API_TEST_BIN) $(LAYOUT_TEST_BIN) $(SDL_TEST_BIN) $(VISUALBENCH_BIN)
 
 .PHONY: all clean test test-js test-sdl visualbench
