@@ -7,3 +7,10 @@ image_io_smoke
 shortcut_selftest
 history_selftest
 test-artifacts/
+visualbench/
+visualbench_runner
+.next/
+node_modules/
+test-results/
+tmp/
+next-env.d.ts

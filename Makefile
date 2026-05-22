@@ -23,6 +23,8 @@ HISTORY_TEST_BIN = history_selftest
 HISTORY_TEST_SRC = tests/history_selftest.c src/app_canvas_ops.c src/app_layer_state.c src/canvas.c src/layers.c src/history_state.c
 SDL_TEST_BIN = image_io_smoke
 SDL_TEST_SRC = tests/image_io_smoke.c src/canvas.c src/image_io.c
+VISUALBENCH_BIN = visualbench_runner
+VISUALBENCH_SRC = tools/visualbench.c src/app_brush.c src/app_brush_mask.c src/app_layer_state.c src/app_shape.c src/canvas.c src/history_state.c src/image_io.c src/layers.c
 
 all: $(BIN)
 
@@ -51,6 +53,10 @@ test: $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN)
 test-sdl: check-sdl2 $(SDL_TEST_BIN)
 	./$(SDL_TEST_BIN)
 
+visualbench: check-sdl2 $(VISUALBENCH_BIN)
+	mkdir -p visualbench
+	./$(VISUALBENCH_BIN)
+
 $(TEST_BIN): $(TEST_SRC)
 	$(CC) -std=c11 -O2 -Wall -Wextra $(TEST_SRC) -o $(TEST_BIN) -lm
 
@@ -66,7 +72,10 @@ $(HISTORY_TEST_BIN): $(HISTORY_TEST_SRC)
 $(SDL_TEST_BIN): check-sdl2 $(SDL_TEST_SRC)
 	$(CC) $(CFLAGS) $(SDL_TEST_SRC) -o $(SDL_TEST_BIN) $(LDFLAGS) -lm
 
-clean:
-	rm -f $(OBJ) $(BIN) $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN) $(SDL_TEST_BIN)
+$(VISUALBENCH_BIN): check-sdl2 $(VISUALBENCH_SRC)
+	$(CC) $(CFLAGS) $(VISUALBENCH_SRC) -o $(VISUALBENCH_BIN) $(LDFLAGS) -lm
 
-.PHONY: all clean test test-sdl
+clean:
+	rm -f $(OBJ) $(BIN) $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN) $(SDL_TEST_BIN) $(VISUALBENCH_BIN)
+
+.PHONY: all clean test test-sdl visualbench

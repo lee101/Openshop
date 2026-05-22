@@ -18,6 +18,15 @@ make test
 make test-sdl
 ```
 
+## Visual Bench
+Generate deterministic screenshots into the gitignored `visualbench/` directory:
+
+```bash
+make visualbench
+```
+
+This writes representative BMP captures for the editor overview, layer states, and tool gallery so visual changes can be inspected locally without committing generated images.
+
 ## Run
 ```bash
 ./openshop [optional_input.bmp]
