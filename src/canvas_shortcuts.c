@@ -13,6 +13,7 @@ CanvasShortcutAction canvas_shortcut_action(int key) {
     case 'x':
         return CANVAS_SHORTCUT_INVERT_RGB;
     case 'f':
+    case 'g':
         return CANVAS_SHORTCUT_FILL;
     case 'i':
         return CANVAS_SHORTCUT_EYEDROPPER;

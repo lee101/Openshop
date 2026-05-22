@@ -65,7 +65,7 @@ static void draw_toolbar_button(Canvas *shot, int index, int active) {
     }
 }
 
-static void draw_shell(Canvas *shot) {
+static void draw_shell(Canvas *shot, int active_tool_index) {
     rect(shot, 0, 0, SHOT_WIDTH - 1, SHOT_HEIGHT - 1, 0xFF1F1F23);
 
     rect(shot, 0, 0, SHOT_WIDTH - 1, 23, 0xFF2B2B2F);
@@ -81,7 +81,7 @@ static void draw_shell(Canvas *shot) {
 
     rect(shot, 0, 52, 63, SHOT_HEIGHT - 1, 0xFF2A2A2F);
     for (int i = 0; i < 8; i++) {
-        draw_toolbar_button(shot, i, i == 1);
+        draw_toolbar_button(shot, i, i == active_tool_index);
     }
     rect(shot, 15, 432, 31, 448, 0xFF1B1F24);
     rect(shot, 31, 448, 47, 464, 0xFFFDD835);
@@ -118,7 +118,7 @@ static void draw_shell(Canvas *shot) {
     stroke(shot, DOC_X - 12, DOC_Y - 12, DOC_X + DOC_WIDTH + 11, DOC_Y + DOC_HEIGHT + 11, 0xFF333338);
 }
 
-static int save_shot_with_doc(const LayerStack *doc, const char *path) {
+static int save_shot_with_doc(const LayerStack *doc, const char *path, int active_tool_index) {
     Canvas shot;
     Canvas composite;
     int ok = 0;
@@ -129,7 +129,7 @@ static int save_shot_with_doc(const LayerStack *doc, const char *path) {
         return 0;
     }
 
-    draw_shell(&shot);
+    draw_shell(&shot, active_tool_index);
     layer_stack_composite(doc, &composite, DOC_BG);
     blit_canvas(&shot, &composite, DOC_X, DOC_Y);
     stroke(&shot, DOC_X - 1, DOC_Y - 1, DOC_X + DOC_WIDTH, DOC_Y + DOC_HEIGHT, 0xFF0B0B0D);
@@ -189,7 +189,7 @@ static int make_editor_overview(void) {
     app_draw_brush_line(&doc.layers[retouch].canvas, 440, 304, 592, 360, 12, 0xBB38BDF8, BRUSH_SHAPE_DIAMOND);
     app_draw_shape(&doc.layers[shape].canvas, TOOL_RECT, 386, 118, 700, 392, 4, 0xCCFFFFFF);
     app_draw_shape(&doc.layers[shape].canvas, TOOL_ELLIPSE, 468, 172, 624, 326, 4, 0xCCF472B6);
-    ok = save_shot_with_doc(&doc, "visualbench/editor-overview.bmp");
+    ok = save_shot_with_doc(&doc, "visualbench/editor-overview.bmp", 1);
 
 done:
     layer_stack_free(&doc);
@@ -220,7 +220,7 @@ static int make_layer_states(void) {
     layer_stack_set_opacity(&doc, blue, 62);
     layer_stack_toggle_lock(&doc, locked);
     doc.active_layer = blue;
-    ok = save_shot_with_doc(&doc, "visualbench/layer-states.bmp");
+    ok = save_shot_with_doc(&doc, "visualbench/layer-states.bmp", 1);
 
 done:
     layer_stack_free(&doc);
@@ -248,10 +248,89 @@ static int make_tools_gallery(void) {
     app_draw_shape(canvas, TOOL_RECT, 430, 220, 724, 330, 5, 0xFF059669);
     app_draw_shape(canvas, TOOL_FILLED_RECT, 448, 386, 596, 512, 1, 0xBBF59E0B);
     app_draw_shape(canvas, TOOL_ELLIPSE, 596, 366, 746, 526, 5, 0xFFDB2777);
-    ok = save_shot_with_doc(&doc, "visualbench/tools-gallery.bmp");
+    ok = save_shot_with_doc(&doc, "visualbench/tools-gallery.bmp", 1);
 
 done:
     layer_stack_free(&doc);
+    return ok;
+}
+
+static void draw_tool_base(Canvas *canvas) {
+    draw_sample_photo(canvas);
+    rect(canvas, 32, 34, 250, 84, 0xAA0F172A);
+    rect(canvas, 52, 108, 180, 116, 0xCCF8FAFC);
+    rect(canvas, 52, 130, 226, 138, 0xCCCBD5E1);
+    rect(canvas, 52, 152, 146, 160, 0xCC94A3B8);
+}
+
+static int save_tool_screen(const char *path, int active_tool_index, void (*draw_tool)(Canvas *)) {
+    LayerStack doc;
+    int ok = 0;
+
+    if (!layer_stack_init(&doc, DOC_WIDTH, DOC_HEIGHT, DOC_BG)) {
+        return 0;
+    }
+    draw_tool_base(&doc.layers[0].canvas);
+
+    int layer = layer_stack_add(&doc, "Tool preview", 0x00000000);
+    if (layer < 0) {
+        goto done;
+    }
+    draw_tool(&doc.layers[layer].canvas);
+    ok = save_shot_with_doc(&doc, path, active_tool_index);
+
+done:
+    layer_stack_free(&doc);
+    return ok;
+}
+
+static void draw_brush_tool(Canvas *canvas) {
+    app_draw_brush_line(canvas, 312, 170, 620, 246, 24, 0xDDFDD835, BRUSH_SHAPE_ROUND);
+    app_draw_brush_line(canvas, 332, 286, 664, 338, 14, 0xDD38BDF8, BRUSH_SHAPE_DIAMOND);
+    canvas_draw_ellipse_filled(canvas, 686, 188, 18, 18, 0x99FDD835);
+}
+
+static void draw_eraser_tool(Canvas *canvas) {
+    app_draw_brush_line(canvas, 290, 164, 628, 238, 30, 0xDDDB2777, BRUSH_SHAPE_ROUND);
+    app_draw_brush_line(canvas, 364, 204, 532, 224, 34, DOC_BG, BRUSH_SHAPE_SQUARE);
+    app_draw_brush_line(canvas, 388, 326, 646, 382, 18, 0xDD1D4ED8, BRUSH_SHAPE_ROUND);
+    app_draw_brush_line(canvas, 452, 340, 552, 362, 22, DOC_BG, BRUSH_SHAPE_ROUND);
+}
+
+static void draw_line_tool(Canvas *canvas) {
+    app_draw_shape(canvas, TOOL_LINE, 286, 180, 664, 388, 7, 0xFFE11D48);
+    app_draw_shape(canvas, TOOL_LINE, 316, 396, 704, 172, 4, 0xFFF8FAFC);
+    app_draw_shape(canvas, TOOL_LINE, 352, 112, 352, 496, 2, 0x8838BDF8);
+}
+
+static void draw_rectangle_tool(Canvas *canvas) {
+    app_draw_shape(canvas, TOOL_RECT, 282, 150, 670, 414, 5, 0xFFF8FAFC);
+    app_draw_shape(canvas, TOOL_FILLED_RECT, 338, 214, 538, 360, 1, 0xBB2563EB);
+    app_draw_shape(canvas, TOOL_RECT, 396, 92, 740, 504, 2, 0x99FDD835);
+}
+
+static void draw_ellipse_tool(Canvas *canvas) {
+    app_draw_shape(canvas, TOOL_ELLIPSE, 296, 134, 658, 430, 6, 0xFFF8FAFC);
+    canvas_draw_ellipse_filled(canvas, 510, 292, 104, 72, 0xAA059669);
+    app_draw_shape(canvas, TOOL_ELLIPSE, 430, 94, 734, 378, 3, 0xBBFDD835);
+}
+
+static void draw_fill_tool(Canvas *canvas) {
+    rect(canvas, 300, 156, 656, 432, 0xCC1D4ED8);
+    rect(canvas, 344, 202, 614, 386, 0xCCE11D48);
+    canvas_draw_ellipse_filled(canvas, 490, 290, 98, 98, 0xCCFDD835);
+    stroke(canvas, 300, 156, 656, 432, 0xFFF8FAFC);
+}
+
+static int make_tool_screens(void) {
+    int ok = 1;
+
+    ok = ok && save_tool_screen("visualbench/tool-brush.bmp", 1, draw_brush_tool);
+    ok = ok && save_tool_screen("visualbench/tool-eraser.bmp", 2, draw_eraser_tool);
+    ok = ok && save_tool_screen("visualbench/tool-line.bmp", 4, draw_line_tool);
+    ok = ok && save_tool_screen("visualbench/tool-rectangle.bmp", 3, draw_rectangle_tool);
+    ok = ok && save_tool_screen("visualbench/tool-ellipse.bmp", 5, draw_ellipse_tool);
+    ok = ok && save_tool_screen("visualbench/tool-fill.bmp", 6, draw_fill_tool);
     return ok;
 }
 
@@ -265,9 +344,13 @@ int main(void) {
     if (!make_tools_gallery()) {
         return 1;
     }
+    if (!make_tool_screens()) {
+        return 1;
+    }
 
     puts("visualbench wrote visualbench/editor-overview.bmp");
     puts("visualbench wrote visualbench/layer-states.bmp");
     puts("visualbench wrote visualbench/tools-gallery.bmp");
+    puts("visualbench wrote visualbench/tool-*.bmp");
     return 0;
 }

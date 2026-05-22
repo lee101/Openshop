@@ -5629,7 +5629,9 @@ int main(void) {
             {"tool_brush", 'b', PAINT_SHORTCUT_TOOL_BRUSH},
             {"tool_eraser", 'e', PAINT_SHORTCUT_TOOL_ERASER},
             {"tool_line", 'l', PAINT_SHORTCUT_TOOL_LINE},
+            {"tool_marquee_alias", 'm', PAINT_SHORTCUT_TOOL_RECT},
             {"tool_rect", 'r', PAINT_SHORTCUT_TOOL_RECT},
+            {"tool_shape_alias", 'u', PAINT_SHORTCUT_TOOL_RECT},
             {"tool_filled_rect", 't', PAINT_SHORTCUT_TOOL_FILLED_RECT},
             {"tool_ellipse", 'o', PAINT_SHORTCUT_TOOL_ELLIPSE},
             {"tool_filled_ellipse", 'p', PAINT_SHORTCUT_TOOL_FILLED_ELLIPSE},
@@ -6545,6 +6547,7 @@ int main(void) {
             {"canvas_rotate_180", 'j', CANVAS_SHORTCUT_ROTATE_180},
             {"canvas_invert_rgb", 'x', CANVAS_SHORTCUT_INVERT_RGB},
             {"canvas_fill", 'f', CANVAS_SHORTCUT_FILL},
+            {"canvas_gradient_alias", 'g', CANVAS_SHORTCUT_FILL},
             {"canvas_eyedropper", 'i', CANVAS_SHORTCUT_EYEDROPPER},
             {"canvas_other_key", 'k', CANVAS_SHORTCUT_NONE},
         };

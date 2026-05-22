@@ -8,7 +8,9 @@ PaintShortcutAction paint_shortcut_action(int key) {
         return PAINT_SHORTCUT_TOOL_ERASER;
     case 'l':
         return PAINT_SHORTCUT_TOOL_LINE;
+    case 'm':
     case 'r':
+    case 'u':
         return PAINT_SHORTCUT_TOOL_RECT;
     case 't':
         return PAINT_SHORTCUT_TOOL_FILLED_RECT;
