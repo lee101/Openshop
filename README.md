@@ -13,6 +13,14 @@ make
 make test
 ```
 
+## Script APIs
+OpenShop now exposes the same first-pass document/layer/tool command names in C and JavaScript:
+
+- C: `src/openshop_api.h`
+- JS: `js/openshop-api.mjs`
+
+Both APIs cover document creation, layer operations, brush/eraser strokes, basic shapes, transforms, flattening, and export plumbing. `make test` runs selftests for both surfaces when Node is available.
+
 ## SDL I/O Smoke Test
 ```bash
 make test-sdl

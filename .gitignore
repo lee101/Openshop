@@ -6,6 +6,7 @@ image_selftest
 image_io_smoke
 shortcut_selftest
 history_selftest
+api_selftest
 test-artifacts/
 visualbench/
 visualbench_runner
