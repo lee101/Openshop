@@ -1310,6 +1310,23 @@ static int test_layers_basic(void) {
 
 int main(void) {
     Canvas c;
+    Canvas zero_radius;
+    if (!canvas_init(&zero_radius, 8, 8)) {
+        fprintf(stderr, "zero-radius canvas init failed\n");
+        return 1;
+    }
+    canvas_clear(&zero_radius, 0x00000000);
+    canvas_draw_circle(&zero_radius, 2, 2, 0, 0x80ABCDEF);
+    canvas_draw_line(&zero_radius, 2, 4, 4, 4, 0, 0x80345678);
+    if (!expect_pixel_eq("zero_radius_circle", canvas_get_pixel(&zero_radius, 2, 2), 0x80ABCDEF) ||
+        !expect_pixel_eq("zero_radius_line_left", canvas_get_pixel(&zero_radius, 2, 4), 0x80345678) ||
+        !expect_pixel_eq("zero_radius_line_mid", canvas_get_pixel(&zero_radius, 3, 4), 0x80345678) ||
+        !expect_pixel_eq("zero_radius_line_right", canvas_get_pixel(&zero_radius, 4, 4), 0x80345678)) {
+        canvas_free(&zero_radius);
+        return 1;
+    }
+    canvas_free(&zero_radius);
+
     if (!canvas_init(&c, 64, 64)) {
         fprintf(stderr, "canvas_init failed\n");
         return 1;
@@ -1387,11 +1404,36 @@ int main(void) {
         return 1;
     }
     canvas_set_pixel(&transparent, 0, 0, 0x80FF0000);
-    if (!expect_pixel_eq("blend_into_transparent", canvas_get_pixel(&transparent, 0, 0), 0x80800000)) {
+    if (!expect_pixel_eq("blend_into_transparent", canvas_get_pixel(&transparent, 0, 0), 0x80FF0000)) {
         canvas_free(&transparent);
         return 1;
     }
     canvas_free(&transparent);
+
+    LayerStack alpha_stack;
+    if (!layer_stack_init(&alpha_stack, 1, 1, 0x00000000)) {
+        fprintf(stderr, "alpha composite stack init failed\n");
+        return 1;
+    }
+    if (layer_stack_add(&alpha_stack, "Top", 0x00000000) < 0) {
+        fprintf(stderr, "alpha composite top layer add failed\n");
+        layer_stack_free(&alpha_stack);
+        return 1;
+    }
+    canvas_set_pixel_raw(&alpha_stack.layers[1].canvas, 0, 0, 0x80FF0000);
+    if (!canvas_init(&transparent, 1, 1)) {
+        fprintf(stderr, "alpha composite dest init failed\n");
+        layer_stack_free(&alpha_stack);
+        return 1;
+    }
+    layer_stack_composite(&alpha_stack, &transparent, 0x00000000);
+    if (!expect_pixel_eq("layer_composite_into_transparent", canvas_get_pixel(&transparent, 0, 0), 0x80FF0000)) {
+        canvas_free(&transparent);
+        layer_stack_free(&alpha_stack);
+        return 1;
+    }
+    canvas_free(&transparent);
+    layer_stack_free(&alpha_stack);
 
     Canvas transform;
     if (!canvas_init(&transform, 3, 2)) {

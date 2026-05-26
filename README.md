@@ -13,6 +13,8 @@ make
 make test
 ```
 
+`make check` is an alias for the same selftest suite. Use `make help` to list the available local targets and SDL2 availability guidance.
+
 ## Script APIs
 OpenShop now exposes the same first-pass document/layer/tool command names in C and JavaScript:
 

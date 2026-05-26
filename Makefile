@@ -32,12 +32,36 @@ VISUALBENCH_SRC = tools/visualbench.c src/app_brush.c src/app_brush_mask.c src/a
 
 all: $(BIN)
 
+help:
+	@echo "Targets:"
+	@printf "  %-20s %s\n" "make or make $(BIN)" "Build the SDL app when SDL2 development tools are installed."
+	@printf "  %-20s %s\n" "make test" "Run C selftests and JS API selftests when Node is available."
+	@printf "  %-20s %s\n" "make check" "Alias for make test."
+	@printf "  %-20s %s\n" "make check-sdl" "Verify that SDL2 development tools are available."
+	@printf "  %-20s %s\n" "make test-sdl" "Run the SDL-backed image I/O smoke test when SDL2 is available."
+	@printf "  %-20s %s\n" "make visualbench" "Generate deterministic screenshots in visualbench/."
+	@printf "  %-20s %s\n" "make clean" "Remove built binaries and object files."
+ifeq ($(HAVE_SDL2),0)
+	@echo ""
+	@echo "SDL2 status: unavailable (sdl2-config not found)."
+	@echo "  openshop, check-sdl, and test-sdl will print install guidance in this environment."
+endif
+ifeq ($(HAVE_SDL2),1)
+	@echo ""
+	@echo "SDL2 status: available ($(shell sdl2-config --version))"
+endif
+
 check-sdl2:
 ifeq ($(HAVE_SDL2),0)
 	@echo "Missing SDL2 development tools: sdl2-config not found."
 	@echo "Install libsdl2-dev (or equivalent) to build $(BIN)."
-	@echo "Canvas tests remain available with: make test"
+	@echo "Canvas tests remain available with: make test or make check"
 	@false
+endif
+
+check-sdl: check-sdl2
+ifeq ($(HAVE_SDL2),1)
+	@echo "SDL2 status: available ($(shell sdl2-config --version))"
 endif
 
 $(BIN): check-sdl2 $(OBJ)
@@ -55,6 +79,8 @@ test: $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN) $(A
 	./$(HISTORY_TEST_BIN)
 	./$(API_TEST_BIN)
 	./$(LAYOUT_TEST_BIN)
+
+check: test
 
 test-js:
 	@if command -v node >/dev/null 2>&1; then node tests/js_api_selftest.mjs; else echo "node not found; skipping JS API selftest"; fi
@@ -93,4 +119,4 @@ $(VISUALBENCH_BIN): check-sdl2 $(VISUALBENCH_SRC)
 clean:
 	rm -f $(OBJ) $(BIN) $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN) $(API_TEST_BIN) $(LAYOUT_TEST_BIN) $(SDL_TEST_BIN) $(VISUALBENCH_BIN)
 
-.PHONY: all clean test test-js test-sdl visualbench
+.PHONY: all check check-sdl check-sdl2 clean help test test-js test-sdl visualbench

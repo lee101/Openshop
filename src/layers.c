@@ -4,14 +4,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-static uint8_t blend_channel(uint8_t src, uint8_t dst, uint8_t src_alpha) {
-    int inv = 255 - src_alpha;
-    int value = src * src_alpha + dst * inv + 127;
-    return (uint8_t)(value / 255);
+static uint8_t unpremultiply_channel(uint32_t premul, uint32_t alpha) {
+    if (alpha == 0) {
+        return 0;
+    }
+    return (uint8_t)((premul + alpha / 2U) / alpha);
 }
 
 static uint32_t blend_pixel(uint32_t dst, uint32_t src) {
-    uint8_t sa = (uint8_t)((src >> 24) & 0xFF);
+    uint32_t sa = (src >> 24) & 0xFFU;
     if (sa == 0) {
         return dst;
     }
@@ -19,20 +20,24 @@ static uint32_t blend_pixel(uint32_t dst, uint32_t src) {
         return src;
     }
 
-    uint8_t da = (uint8_t)((dst >> 24) & 0xFF);
-    uint8_t sr = (uint8_t)((src >> 16) & 0xFF);
-    uint8_t sg = (uint8_t)((src >> 8) & 0xFF);
-    uint8_t sb = (uint8_t)(src & 0xFF);
-    uint8_t dr = (uint8_t)((dst >> 16) & 0xFF);
-    uint8_t dg = (uint8_t)((dst >> 8) & 0xFF);
-    uint8_t db = (uint8_t)(dst & 0xFF);
+    uint32_t da = (dst >> 24) & 0xFFU;
+    uint32_t sr = (src >> 16) & 0xFFU;
+    uint32_t sg = (src >> 8) & 0xFFU;
+    uint32_t sb = src & 0xFFU;
+    uint32_t dr = (dst >> 16) & 0xFFU;
+    uint32_t dg = (dst >> 8) & 0xFFU;
+    uint32_t db = dst & 0xFFU;
+    uint32_t inv_sa = 255U - sa;
 
-    uint8_t out_r = blend_channel(sr, dr, sa);
-    uint8_t out_g = blend_channel(sg, dg, sa);
-    uint8_t out_b = blend_channel(sb, db, sa);
-    uint8_t out_a = (uint8_t)(sa + ((da * (255 - sa) + 127) / 255));
+    uint32_t out_a = sa + (da * inv_sa + 127U) / 255U;
+    uint32_t out_r_premul = sr * sa + (dr * da * inv_sa + 127U) / 255U;
+    uint32_t out_g_premul = sg * sa + (dg * da * inv_sa + 127U) / 255U;
+    uint32_t out_b_premul = sb * sa + (db * da * inv_sa + 127U) / 255U;
+    uint32_t out_r = unpremultiply_channel(out_r_premul, out_a);
+    uint32_t out_g = unpremultiply_channel(out_g_premul, out_a);
+    uint32_t out_b = unpremultiply_channel(out_b_premul, out_a);
 
-    return ((uint32_t)out_a << 24) | ((uint32_t)out_r << 16) | ((uint32_t)out_g << 8) | out_b;
+    return (out_a << 24) | (out_r << 16) | (out_g << 8) | out_b;
 }
 
 static uint32_t apply_layer_opacity(uint32_t src, int opacity_percent) {
