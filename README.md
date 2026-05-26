@@ -13,6 +13,12 @@ make
 make test
 ```
 
+When `make` is unavailable, the non-SDL tests can also be built and run directly:
+
+```bash
+bash tools/run_tests.sh
+```
+
 ## Script APIs
 OpenShop now exposes the same first-pass document/layer/tool command names in C and JavaScript:
 
@@ -110,6 +116,9 @@ External UI references are cloned into gitignored `vendor/` directories. Clay is
 ## Notes
 - Canvas size is 800x600; window is 1024x768.
 - Layer stack starts with a white background layer; new layers are transparent.
+- Maximum of 8 layers are supported; direct layer shortcuts target slots 1-8.
+- Failed edits, unchanged edits, failed internal snapshot capture/compare steps, and failed undo/redo step applications preserve existing undo/redo stacks and retained snapshots.
+- Undo/redo retains up to 20 layer-aware history states; new edits clear redo, while unchanged edits skip dead history entries.
 - Locked layers stay visible in the stack but reject paint, fill, clear, transform, load, merge, flatten, stamp, and delete operations.
 - Solo preview still renders the active layer even if that layer's normal visibility is off.
 - Transparent regions render over a checkerboard preview in the editor.

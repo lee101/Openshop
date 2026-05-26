@@ -14,6 +14,14 @@ export const BrushShapes = Object.freeze({
   diamond: "diamond",
 });
 
+export const MAX_LAYERS = 8;
+
+function assertLayerIndex(layers, index) {
+  if (!Number.isInteger(index) || index < 0 || index >= layers.length) {
+    throw new RangeError(`layer index ${index} is out of range`);
+  }
+}
+
 export class OpenshopDocument {
   constructor({ width, height, backgroundColor = 0xffffffff }) {
     if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) {
@@ -35,6 +43,12 @@ export class OpenshopDocument {
     this.dirty = false;
   }
 
+  assertCanInsertLayer() {
+    if (this.layers.length >= MAX_LAYERS) {
+      throw new RangeError(`maximum layer count reached (${MAX_LAYERS})`);
+    }
+  }
+
   record(type, payload = {}) {
     const command = { type, ...payload };
     this.commands.push(command);
@@ -42,6 +56,7 @@ export class OpenshopDocument {
   }
 
   addLayer(name = "Layer") {
+    this.assertCanInsertLayer();
     const index = this.layers.length;
     this.layers.push({ name, visible: true, locked: false, opacityPercent: 100 });
     this.activeLayer = index;
@@ -50,6 +65,10 @@ export class OpenshopDocument {
   }
 
   insertLayer(index, name = "Layer") {
+    this.assertCanInsertLayer();
+    if (!Number.isInteger(index) || index < 0 || index > this.layers.length) {
+      throw new RangeError(`layer insertion index ${index} is out of range`);
+    }
     this.layers.splice(index, 0, { name, visible: true, locked: false, opacityPercent: 100 });
     this.activeLayer = index;
     this.dirty = true;
@@ -57,11 +76,14 @@ export class OpenshopDocument {
   }
 
   selectLayer(index) {
+    assertLayerIndex(this.layers, index);
     this.activeLayer = index;
     return this.record("selectLayer", { index });
   }
 
   duplicateLayer(index = this.activeLayer, name = "Layer Copy") {
+    this.assertCanInsertLayer();
+    assertLayerIndex(this.layers, index);
     const source = this.layers[index];
     this.layers.splice(index + 1, 0, { ...source, name });
     this.activeLayer = index + 1;
@@ -70,6 +92,10 @@ export class OpenshopDocument {
   }
 
   deleteLayer(index = this.activeLayer) {
+    assertLayerIndex(this.layers, index);
+    if (this.layers.length === 1) {
+      throw new RangeError("cannot delete the final layer");
+    }
     this.layers.splice(index, 1);
     this.activeLayer = Math.max(0, Math.min(this.activeLayer, this.layers.length - 1));
     this.dirty = true;
@@ -77,29 +103,34 @@ export class OpenshopDocument {
   }
 
   moveLayer(index, direction) {
+    assertLayerIndex(this.layers, index);
     this.dirty = true;
     return this.record("moveLayer", { index, direction });
   }
 
   setLayerVisible(index, visible) {
+    assertLayerIndex(this.layers, index);
     this.layers[index].visible = Boolean(visible);
     this.dirty = true;
     return this.record("setLayerVisible", { index, visible: Boolean(visible) });
   }
 
   setLayerLocked(index, locked) {
+    assertLayerIndex(this.layers, index);
     this.layers[index].locked = Boolean(locked);
     this.dirty = true;
     return this.record("setLayerLocked", { index, locked: Boolean(locked) });
   }
 
   setLayerOpacity(index, opacityPercent) {
+    assertLayerIndex(this.layers, index);
     this.layers[index].opacityPercent = opacityPercent;
     this.dirty = true;
     return this.record("setLayerOpacity", { index, opacityPercent });
   }
 
   renameLayer(index, name) {
+    assertLayerIndex(this.layers, index);
     this.layers[index].name = name;
     this.dirty = true;
     return this.record("renameLayer", { index, name });
