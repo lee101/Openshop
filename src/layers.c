@@ -906,15 +906,26 @@ int layer_stack_stamp_visible_into(LayerStack *stack, int index, uint32_t backgr
         return 0;
     }
 
+    Layer *target = &stack->layers[index];
+    if (target->locked) {
+        return 0;
+    }
+
     Canvas composite = {0};
     if (!canvas_init(&composite, stack->width, stack->height)) {
         return 0;
     }
     layer_stack_composite(stack, &composite, background_color);
 
-    Layer *target = &stack->layers[index];
     size_t total = (size_t)stack->width * (size_t)stack->height;
-    if (target->locked || !layer_stack_stamp_visible_would_change(stack, index, background_color)) {
+    int would_change = !target->visible || target->opacity_percent != 100;
+    for (size_t i = 0; i < total && !would_change; i++) {
+        uint32_t current = target->canvas.pixels ? target->canvas.pixels[i] : 0;
+        if (current != composite.pixels[i]) {
+            would_change = 1;
+        }
+    }
+    if (!would_change) {
         canvas_free(&composite);
         return 0;
     }
@@ -934,13 +945,24 @@ int layer_stack_stamp_visible_new(LayerStack *stack, const char *name, uint32_t 
     if (!stack || stack->layer_count >= MAX_LAYERS) {
         return -1;
     }
+
+    Canvas composite = {0};
+    if (!canvas_init(&composite, stack->width, stack->height)) {
+        return -1;
+    }
+    layer_stack_composite(stack, &composite, background_color);
+
     int index = layer_stack_add(stack, name, 0x00000000);
     if (index < 0) {
+        canvas_free(&composite);
         return -1;
     }
-    if (!layer_stack_stamp_visible_into(stack, index, background_color)) {
-        return -1;
-    }
+
+    Layer *target = &stack->layers[index];
+    memcpy(target->canvas.pixels, composite.pixels, (size_t)stack->width * (size_t)stack->height * sizeof(uint32_t));
+    target->visible = 1;
+    target->opacity_percent = 100;
+    canvas_free(&composite);
     return index;
 }
 

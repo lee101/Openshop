@@ -615,8 +615,9 @@ int app_handle_active_layer_composite_shortcut(
             fprintf(stderr, "Could not stamp visible image into a new layer\n");
         } else {
             snapshot_push(layers, undo_stack, undo_count, undo_capacity, redo_stack, redo_count);
-            layer_stack_stamp_visible_new(layers, "Visible Stamp", COLOR_BG);
-            if (needs_composite) {
+            if (layer_stack_stamp_visible_new(layers, "Visible Stamp", COLOR_BG) < 0) {
+                fprintf(stderr, "Could not stamp visible image into a new layer\n");
+            } else if (needs_composite) {
                 *needs_composite = 1;
             }
         }

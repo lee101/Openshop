@@ -1303,6 +1303,31 @@ static int test_layers_basic(void) {
         return 0;
     }
 
+    {
+        LayerStack transparent_stack;
+        if (!layer_stack_init(&transparent_stack, 2, 2, 0x00000000)) {
+            fprintf(stderr, "transparent stamp stack init failed\n");
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        if (layer_stack_stamp_visible_new(&transparent_stack, "Transparent Stamp", 0x00000000) != 1 ||
+            transparent_stack.layer_count != 2 ||
+            transparent_stack.active_layer != 1 ||
+            !expect_pixel_eq(
+                "transparent_stamp_visible_new_pixel",
+                canvas_get_pixel(&transparent_stack.layers[1].canvas, 0, 0),
+                0x00000000
+            )) {
+            fprintf(stderr, "transparent stamp visible new should create an empty composite layer\n");
+            layer_stack_free(&transparent_stack);
+            canvas_free(&composite);
+            layer_stack_free(&stack);
+            return 0;
+        }
+        layer_stack_free(&transparent_stack);
+    }
+
     canvas_free(&composite);
     layer_stack_free(&stack);
     return 1;
