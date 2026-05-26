@@ -943,6 +943,18 @@ int main(void) {
             return 1;
         }
 
+        invalid = saved;
+        invalid.solo_index = -7;
+        if (!snapshot_apply(&invalid, &stack) ||
+            !expect_int(stack.solo_index, -1, "negative_solo_index_clamped")) {
+            fprintf(stderr, "snapshot apply should clamp invalid negative solo index\n");
+            snapshot_free(&saved);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+
         snapshot_free(&saved);
     }
 
@@ -1041,6 +1053,56 @@ int main(void) {
             layer_stack_free(&stack);
             return 1;
         }
+    }
+
+    {
+        Snapshot temp_undo[2] = {0};
+        Snapshot temp_redo[1] = {0};
+        int temp_undo_count = 0;
+        int temp_redo_count = 0;
+        uint32_t *undo_pixels = NULL;
+        uint32_t *redo_pixels = NULL;
+
+        snapshot_push(&stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count);
+        if (!snapshot_from_layers(&temp_redo[temp_redo_count++], &stack)) {
+            fprintf(stderr, "duplicate snapshot setup failed\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+        undo_pixels = temp_undo[0].pixels;
+        redo_pixels = temp_redo[0].pixels;
+        snapshot_push(&stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count);
+        if (!expect_int(temp_undo_count, 1, "duplicate_snapshot_undo_count") ||
+            !expect_int(temp_redo_count, 1, "duplicate_snapshot_redo_count") ||
+            temp_undo[0].pixels != undo_pixels ||
+            temp_redo[0].pixels != redo_pixels) {
+            fprintf(stderr, "duplicate snapshot push should preserve history and redo\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+        canvas_set_pixel(&stack.layers[1].canvas, 0, 0, 0xFF0D0E0F);
+        snapshot_push(&stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count);
+        if (!expect_int(temp_undo_count, 2, "changed_snapshot_undo_count") ||
+            !expect_int(temp_redo_count, 0, "changed_snapshot_redo_count")) {
+            fprintf(stderr, "changed snapshot push should record history and clear redo\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+
+        snapshot_stack_clear(temp_undo, &temp_undo_count);
+        snapshot_stack_clear(temp_redo, &temp_redo_count);
     }
 
     {
@@ -1239,6 +1301,96 @@ int main(void) {
             temp_undo[1].pixels[per_layer] != 0xFF880088 ||
             temp_undo[1].pixels[second_pixel] != 0xFF888899) {
             fprintf(stderr, "snapshot_redo should roll undo stack forward\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+
+        snapshot_stack_clear(temp_undo, &temp_undo_count);
+        snapshot_stack_clear(temp_redo, &temp_redo_count);
+    }
+
+    {
+        Snapshot temp_undo[2] = {0};
+        Snapshot temp_redo[2] = {0};
+        int temp_undo_count = 0;
+        int temp_redo_count = 0;
+        uint32_t *undo_pixels = NULL;
+        uint32_t *redo_pixels = NULL;
+
+        if (!layer_stack_rename(&stack, 1, "Invalid Undo Current") ||
+            !snapshot_from_layers(&temp_redo[temp_redo_count++], &stack) ||
+            !layer_stack_rename(&stack, 1, "Invalid Undo Target") ||
+            !snapshot_from_layers(&temp_undo[temp_undo_count++], &stack) ||
+            !layer_stack_rename(&stack, 1, "Invalid Undo Live")) {
+            fprintf(stderr, "invalid undo preservation setup failed\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+        temp_undo[0].width += 1;
+        undo_pixels = temp_undo[0].pixels;
+        redo_pixels = temp_redo[0].pixels;
+
+        if (snapshot_undo(&stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count) ||
+            !expect_name(&stack, 1, "Invalid Undo Live", "invalid_undo_live_name") ||
+            !expect_int(temp_undo_count, 1, "invalid_undo_undo_count") ||
+            !expect_int(temp_redo_count, 1, "invalid_undo_redo_count") ||
+            temp_undo[0].pixels != undo_pixels ||
+            temp_redo[0].pixels != redo_pixels ||
+            strcmp(temp_redo[0].names[1], "Invalid Undo Current") != 0) {
+            fprintf(stderr, "invalid undo should preserve stacks and live state\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+
+        snapshot_stack_clear(temp_undo, &temp_undo_count);
+        snapshot_stack_clear(temp_redo, &temp_redo_count);
+    }
+
+    {
+        Snapshot temp_undo[2] = {0};
+        Snapshot temp_redo[2] = {0};
+        int temp_undo_count = 0;
+        int temp_redo_count = 0;
+        uint32_t *undo_pixels = NULL;
+        uint32_t *redo_pixels = NULL;
+
+        if (!layer_stack_rename(&stack, 1, "Invalid Redo Current") ||
+            !snapshot_from_layers(&temp_undo[temp_undo_count++], &stack) ||
+            !layer_stack_rename(&stack, 1, "Invalid Redo Target") ||
+            !snapshot_from_layers(&temp_redo[temp_redo_count++], &stack) ||
+            !layer_stack_rename(&stack, 1, "Invalid Redo Live")) {
+            fprintf(stderr, "invalid redo preservation setup failed\n");
+            snapshot_stack_clear(temp_undo, &temp_undo_count);
+            snapshot_stack_clear(temp_redo, &temp_redo_count);
+            snapshot_stack_clear(undo_stack, &undo_count);
+            snapshot_stack_clear(redo_stack, &redo_count);
+            layer_stack_free(&stack);
+            return 1;
+        }
+        temp_redo[0].width += 1;
+        undo_pixels = temp_undo[0].pixels;
+        redo_pixels = temp_redo[0].pixels;
+
+        if (snapshot_redo(&stack, temp_undo, &temp_undo_count, 2, temp_redo, &temp_redo_count) ||
+            !expect_name(&stack, 1, "Invalid Redo Live", "invalid_redo_live_name") ||
+            !expect_int(temp_undo_count, 1, "invalid_redo_undo_count") ||
+            !expect_int(temp_redo_count, 1, "invalid_redo_redo_count") ||
+            temp_undo[0].pixels != undo_pixels ||
+            temp_redo[0].pixels != redo_pixels ||
+            strcmp(temp_undo[0].names[1], "Invalid Redo Current") != 0) {
+            fprintf(stderr, "invalid redo should preserve stacks and live state\n");
             snapshot_stack_clear(temp_undo, &temp_undo_count);
             snapshot_stack_clear(temp_redo, &temp_redo_count);
             snapshot_stack_clear(undo_stack, &undo_count);

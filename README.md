@@ -113,6 +113,7 @@ External UI references are cloned into gitignored `vendor/` directories. Clay is
 - Locked layers stay visible in the stack but reject paint, fill, clear, transform, load, merge, flatten, stamp, and delete operations.
 - Solo preview still renders the active layer even if that layer's normal visibility is off.
 - Transparent regions render over a checkerboard preview in the editor.
+- Failed or invalid undo/redo steps leave the live layer stack and retained history entries unchanged.
 - Load/save uses BMP via SDL built-ins for now.
 
 ## Self-test Images
