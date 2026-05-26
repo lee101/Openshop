@@ -1369,8 +1369,26 @@ int main(void) {
         canvas_free(&c);
         return 1;
     }
+    if (!canvas_flood_fill(&c, 0, 1, 0x00000000)) {
+        fprintf(stderr, "transparent canvas_flood_fill failed\n");
+        canvas_free(&c);
+        return 1;
+    }
+    if (!expect_pixel_eq("transparent_fill_raw_replace", canvas_get_pixel(&c, 0, 1), 0x00000000)) {
+        canvas_free(&c);
+        return 1;
+    }
     canvas_set_pixel(&c, 1, 1, 0xFFFF0000);
     if (!expect_pixel_eq("opaque_write", canvas_get_pixel(&c, 1, 1), 0xFFFF0000)) {
+        canvas_free(&c);
+        return 1;
+    }
+    if (!canvas_flood_fill(&c, 1, 1, 0x80FF0000)) {
+        fprintf(stderr, "semi-transparent canvas_flood_fill failed\n");
+        canvas_free(&c);
+        return 1;
+    }
+    if (!expect_pixel_eq("semi_transparent_fill_raw_replace", canvas_get_pixel(&c, 1, 1), 0x80FF0000)) {
         canvas_free(&c);
         return 1;
     }

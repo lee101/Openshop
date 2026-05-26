@@ -4,6 +4,8 @@ import { BrushShapes, OpenshopDocument, Tools } from "../js/openshop-api.mjs";
 const doc = new OpenshopDocument({ width: 64, height: 48 });
 
 doc.addLayer("Paint");
+doc.fill({ x: 0, y: 0, color: 0x804488cc });
+doc.fill({ x: 0, y: 0, color: 0x00000000 });
 doc.drawStroke({
   x0: 8,
   y0: 8,
@@ -32,7 +34,9 @@ assert.equal(doc.activeLayer, 2);
 assert.equal(doc.dirty, true);
 assert.deepEqual(
   doc.commands.map((command) => command.type),
-  ["addLayer", "drawStroke", "drawShape", "setLayerOpacity", "duplicateLayer", "translateActive"]
+  ["addLayer", "fill", "fill", "drawStroke", "drawShape", "setLayerOpacity", "duplicateLayer", "translateActive"]
 );
+assert.equal(doc.commands[1].color, 0x804488cc);
+assert.equal(doc.commands[2].color, 0x00000000);
 
 console.log("openshop js api selftest ok");

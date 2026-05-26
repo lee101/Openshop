@@ -232,7 +232,7 @@ int canvas_flood_fill(Canvas *c, int x, int y, uint32_t new_color) {
         if (canvas_get_pixel(c, p.x, p.y) != target) {
             continue;
         }
-        canvas_set_pixel(c, p.x, p.y, new_color);
+        canvas_set_pixel_raw(c, p.x, p.y, new_color);
 
         if (count + 4 >= capacity) {
             size_t new_capacity = capacity * 2;

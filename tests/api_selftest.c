@@ -36,6 +36,22 @@ int main(void) {
         openshop_document_free(&doc);
         return 1;
     }
+    if (!expect_true("semi-transparent fill", openshop_fill(&doc, 0, 0, 0x804488CC))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_eq_u32("semi-transparent fill raw argb", canvas_get_pixel(&doc.layers.layers[paint].canvas, 0, 0), 0x804488CC)) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("transparent fill", openshop_fill(&doc, 0, 0, 0x00000000))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_eq_u32("transparent fill raw argb", canvas_get_pixel(&doc.layers.layers[paint].canvas, 0, 0), 0x00000000)) {
+        openshop_document_free(&doc);
+        return 1;
+    }
     if (!expect_true("draw stroke", openshop_draw_stroke(&doc, 8, 8, 40, 8, 4, 0xFFFF0000, OPENSHOP_BRUSH_ROUND))) {
         openshop_document_free(&doc);
         return 1;
