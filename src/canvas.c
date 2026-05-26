@@ -322,6 +322,63 @@ void canvas_invert_rgb(Canvas *c) {
     }
 }
 
+static uint8_t clamp_channel(int value) {
+    if (value < 0) {
+        return 0;
+    }
+    if (value > 255) {
+        return 255;
+    }
+    return (uint8_t)value;
+}
+
+void canvas_grayscale(Canvas *c) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint32_t a = p & 0xFF000000;
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        uint8_t luma = (uint8_t)((299 * r + 587 * g + 114 * b + 500) / 1000);
+        c->pixels[i] = a | ((uint32_t)luma << 16) | ((uint32_t)luma << 8) | luma;
+    }
+}
+
+void canvas_adjust_brightness(Canvas *c, int delta) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0 || delta == 0) {
+        return;
+    }
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint32_t a = p & 0xFF000000;
+        uint8_t r = clamp_channel((int)((p >> 16) & 0xFF) + delta);
+        uint8_t g = clamp_channel((int)((p >> 8) & 0xFF) + delta);
+        uint8_t b = clamp_channel((int)(p & 0xFF) + delta);
+        c->pixels[i] = a | ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
+    }
+}
+
+void canvas_posterize(Canvas *c, int levels) {
+    if (!c || !c->pixels || c->width <= 0 || c->height <= 0 || levels < 2 || levels > 256) {
+        return;
+    }
+    int steps = levels - 1;
+    size_t count = (size_t)c->width * (size_t)c->height;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t p = c->pixels[i];
+        uint32_t a = p & 0xFF000000;
+        uint8_t r = (uint8_t)(((((int)((p >> 16) & 0xFF) * steps + 127) / 255) * 255) / steps);
+        uint8_t g = (uint8_t)(((((int)((p >> 8) & 0xFF) * steps + 127) / 255) * 255) / steps);
+        uint8_t b = (uint8_t)(((((int)(p & 0xFF) * steps + 127) / 255) * 255) / steps);
+        c->pixels[i] = a | ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
+    }
+}
+
 void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color) {
     if (!c || !c->pixels || c->width <= 0 || c->height <= 0) {
         return;

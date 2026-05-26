@@ -24,6 +24,9 @@ doc.drawShape({
 doc.setLayerOpacity(1, 80);
 doc.duplicateLayer(1, "Paint Copy");
 doc.translateActive(4, 3);
+doc.grayscaleActive();
+doc.adjustActiveBrightness(12);
+doc.posterizeActive(4);
 
 assert.equal(doc.width, 64);
 assert.equal(doc.height, 48);
@@ -32,7 +35,17 @@ assert.equal(doc.activeLayer, 2);
 assert.equal(doc.dirty, true);
 assert.deepEqual(
   doc.commands.map((command) => command.type),
-  ["addLayer", "drawStroke", "drawShape", "setLayerOpacity", "duplicateLayer", "translateActive"]
+  [
+    "addLayer",
+    "drawStroke",
+    "drawShape",
+    "setLayerOpacity",
+    "duplicateLayer",
+    "translateActive",
+    "grayscaleActive",
+    "adjustActiveBrightness",
+    "posterizeActive",
+  ]
 );
 
 console.log("openshop js api selftest ok");

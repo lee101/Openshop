@@ -56,6 +56,49 @@ int main(void) {
         openshop_document_free(&doc);
         return 1;
     }
+    canvas_set_pixel_raw(&doc.layers.layers[doc.layers.active_layer].canvas, 0, 0, 0x80FF0000);
+    if (!expect_true("grayscale", openshop_grayscale_active(&doc))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_eq_u32(
+            "grayscale active pixel",
+            canvas_get_pixel(&doc.layers.layers[doc.layers.active_layer].canvas, 0, 0),
+            0x804C4C4C
+        )) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    canvas_set_pixel_raw(&doc.layers.layers[doc.layers.active_layer].canvas, 0, 0, 0x7F102030);
+    if (!expect_true("brightness", openshop_adjust_active_brightness(&doc, 12))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_eq_u32(
+            "brightness active pixel",
+            canvas_get_pixel(&doc.layers.layers[doc.layers.active_layer].canvas, 0, 0),
+            0x7F1C2C3C
+        )) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    canvas_set_pixel_raw(&doc.layers.layers[doc.layers.active_layer].canvas, 0, 0, 0x40807050);
+    if (!expect_true("posterize", openshop_posterize_active(&doc, 4))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_eq_u32(
+            "posterize active pixel",
+            canvas_get_pixel(&doc.layers.layers[doc.layers.active_layer].canvas, 0, 0),
+            0x40AA5555
+        )) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("posterize rejects invalid levels", !openshop_posterize_active(&doc, 1))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
 
     composite = openshop_composite(&doc);
     if (!expect_true("composite exists", composite != 0)) {

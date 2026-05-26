@@ -411,6 +411,36 @@ int openshop_translate_active(OpenshopDocument *doc, int dx, int dy) {
     return 1;
 }
 
+int openshop_grayscale_active(OpenshopDocument *doc) {
+    Layer *layer = active_editable_layer(doc);
+    if (!layer) {
+        return 0;
+    }
+    canvas_grayscale(&layer->canvas);
+    mark_dirty(doc);
+    return 1;
+}
+
+int openshop_adjust_active_brightness(OpenshopDocument *doc, int delta) {
+    Layer *layer = active_editable_layer(doc);
+    if (!layer) {
+        return 0;
+    }
+    canvas_adjust_brightness(&layer->canvas, delta);
+    mark_dirty(doc);
+    return 1;
+}
+
+int openshop_posterize_active(OpenshopDocument *doc, int levels) {
+    Layer *layer = active_editable_layer(doc);
+    if (!layer || levels < 2 || levels > 256) {
+        return 0;
+    }
+    canvas_posterize(&layer->canvas, levels);
+    mark_dirty(doc);
+    return 1;
+}
+
 const Canvas *openshop_composite(OpenshopDocument *doc) {
     if (!doc) {
         return 0;

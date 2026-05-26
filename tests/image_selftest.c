@@ -232,6 +232,27 @@ int main(void) {
     ok = ok && assert_pixel(&c, 15, 15, red, "translate_roundtrip_preserve");
     ok = ok && assert_pixel(&c, 159, 119, white, "translate_roundtrip_fill");
 
+    canvas_clear(&c, 0x00000000);
+    canvas_set_pixel_raw(&c, 0, 0, 0x80FF0000);
+    canvas_set_pixel_raw(&c, 1, 0, 0xFF0000FF);
+    canvas_grayscale(&c);
+    ok = ok && assert_pixel(&c, 0, 0, 0x804C4C4C, "grayscale_red_alpha");
+    ok = ok && assert_pixel(&c, 1, 0, 0xFF1D1D1D, "grayscale_blue");
+
+    canvas_set_pixel_raw(&c, 0, 0, 0x7F102030);
+    canvas_set_pixel_raw(&c, 1, 0, 0xFFF0F8FE);
+    canvas_adjust_brightness(&c, 32);
+    ok = ok && assert_pixel(&c, 0, 0, 0x7F304050, "brightness_add_alpha");
+    ok = ok && assert_pixel(&c, 1, 0, 0xFFFFFFFF, "brightness_clamp_high");
+    canvas_adjust_brightness(&c, -96);
+    ok = ok && assert_pixel(&c, 0, 0, 0x7F000000, "brightness_clamp_low");
+
+    canvas_set_pixel_raw(&c, 0, 0, 0x40807050);
+    canvas_set_pixel_raw(&c, 1, 0, 0xFF3F40C0);
+    canvas_posterize(&c, 2);
+    ok = ok && assert_pixel(&c, 0, 0, 0x40FF0000, "posterize_two_levels");
+    ok = ok && assert_pixel(&c, 1, 0, 0xFF0000FF, "posterize_thresholds");
+
     canvas_free(&c);
     if (!ok) {
         return 1;

@@ -19,7 +19,7 @@ OpenShop now exposes the same first-pass document/layer/tool command names in C 
 - C: `src/openshop_api.h`
 - JS: `js/openshop-api.mjs`
 
-Both APIs cover document creation, layer operations, brush/eraser strokes, basic shapes, transforms, flattening, and export plumbing. `make test` runs selftests for both surfaces when Node is available.
+Both APIs cover document creation, layer operations, brush/eraser strokes, basic shapes, active-layer transforms, active-layer filters, flattening, and export plumbing. Current filter commands include grayscale, brightness adjustment, and posterize. `make test` runs selftests for both surfaces when Node is available.
 
 ## SDL I/O Smoke Test
 ```bash

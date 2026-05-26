@@ -87,6 +87,9 @@ int openshop_flip_active_vertical(OpenshopDocument *doc);
 int openshop_rotate_active_180(OpenshopDocument *doc);
 int openshop_invert_active_rgb(OpenshopDocument *doc);
 int openshop_translate_active(OpenshopDocument *doc, int dx, int dy);
+int openshop_grayscale_active(OpenshopDocument *doc);
+int openshop_adjust_active_brightness(OpenshopDocument *doc, int delta);
+int openshop_posterize_active(OpenshopDocument *doc, int levels);
 
 const Canvas *openshop_composite(OpenshopDocument *doc);
 int openshop_save_bmp(OpenshopDocument *doc, const char *path);

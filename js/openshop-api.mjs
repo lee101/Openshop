@@ -165,6 +165,21 @@ export class OpenshopDocument {
     return this.record("translateActive", { dx, dy });
   }
 
+  grayscaleActive() {
+    this.dirty = true;
+    return this.record("grayscaleActive");
+  }
+
+  adjustActiveBrightness(delta) {
+    this.dirty = true;
+    return this.record("adjustActiveBrightness", { delta });
+  }
+
+  posterizeActive(levels) {
+    this.dirty = true;
+    return this.record("posterizeActive", { levels });
+  }
+
   toJSON() {
     return {
       width: this.width,
