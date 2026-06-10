@@ -103,7 +103,35 @@ static void test_merge_down_respects_blend_mode(void) {
     layer_stack_free(&stack);
 }
 
+static void test_layer_stack_resize_and_crop(void) {
+    LayerStack stack;
+
+    assert(layer_stack_init(&stack, 8, 8, 0xFFFFFFFF));
+    assert(layer_stack_add(&stack, "Top", 0x00000000) == 1);
+    canvas_draw_rect_filled(&stack.layers[1].canvas, 2, 2, 5, 5, 0xFFFF0000);
+
+    assert(layer_stack_resize_image(&stack, 16, 16));
+    assert(stack.width == 16 && stack.height == 16);
+    assert(stack.layers[0].canvas.width == 16);
+    assert(canvas_get_pixel(&stack.layers[1].canvas, 7, 7) == 0xFFFF0000);
+
+    assert(layer_stack_resize_canvas(&stack, 20, 20, 2, 2, 0xFFFFFFFF));
+    assert(stack.width == 20);
+    assert(canvas_get_pixel(&stack.layers[0].canvas, 0, 0) == 0xFFFFFFFF);
+    assert(canvas_get_pixel(&stack.layers[1].canvas, 0, 0) == 0x00000000);
+    assert(canvas_get_pixel(&stack.layers[1].canvas, 9, 9) == 0xFFFF0000);
+
+    assert(layer_stack_crop(&stack, 5, 5, 14, 14, 0xFFFFFFFF));
+    assert(stack.width == 10 && stack.height == 10);
+    assert(canvas_get_pixel(&stack.layers[1].canvas, 4, 4) == 0xFFFF0000);
+
+    assert(!layer_stack_crop(&stack, 50, 50, 60, 60, 0xFFFFFFFF));
+
+    layer_stack_free(&stack);
+}
+
 int main(void) {
+    test_layer_stack_resize_and_crop();
     test_blend_channels();
     test_blend_composite();
     test_blend_cycle_and_names();

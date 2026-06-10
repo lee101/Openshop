@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { Application, BlendMode, VfxBrushes } from "../js/photoshop-api.mjs";
+import { AnchorPosition, Application, BlendMode, SelectionType, VfxBrushes } from "../js/photoshop-api.mjs";
 
 const app = new Application();
 assert.equal(app.name, "OpenShop");
@@ -77,6 +77,44 @@ assert.ok(commandTypes.includes("setLayerBlendMode"));
 assert.ok(commandTypes.includes("drawVfxStroke"));
 assert.ok(commandTypes.includes("adjustBrightnessContrast"));
 assert.ok(commandTypes.includes("flatten"));
+
+assert.equal(doc.selection.exists, false);
+doc.selection.selectAll();
+assert.equal(doc.selection.exists, true);
+doc.selection.selectRectangle({ left: 10, top: 10, right: 100, bottom: 100 });
+doc.selection.selectEllipse({ left: 20, top: 20, right: 80, bottom: 80 }, SelectionType.EXTEND);
+doc.selection.magicWand(50, 50, 24, SelectionType.DIMINISH);
+doc.selection.feather(3);
+doc.selection.invert();
+doc.selection.deselect();
+assert.equal(doc.selection.exists, false);
+
+doc.resizeImage(320, 240);
+assert.equal(doc.width, 320);
+doc.resizeCanvas(400, 300, AnchorPosition.MIDDLECENTER);
+assert.equal(doc.width, 400);
+assert.throws(() => doc.resizeCanvas(10, 10, "bogusAnchor"));
+doc.crop({ left: 40, top: 30, right: 359, bottom: 269 });
+assert.equal(doc.width, 320);
+assert.equal(doc.height, 240);
+doc.gradientFill({ x0: 0, y0: 0, x1: 320, y1: 0, startColor: 0xff112233, endColor: 0xffeeddcc });
+doc.saveAs("art.psd");
+assert.throws(() => doc.saveAs("art.tiff"));
+
+app.batchPlay([
+  { _obj: "imageSize", width: 160, height: 120 },
+  { _obj: "canvasSize", width: 200, height: 150, anchor: AnchorPosition.TOPLEFT },
+  { _obj: "crop", to: { left: 0, top: 0, right: 159, bottom: 119 } },
+]);
+assert.equal(doc.width, 160);
+assert.equal(doc.height, 120);
+
+const selectionCommands = doc.commands().map((command) => command.type);
+assert.ok(selectionCommands.includes("selectAll"));
+assert.ok(selectionCommands.includes("magicWand"));
+assert.ok(selectionCommands.includes("resizeImage"));
+assert.ok(selectionCommands.includes("crop"));
+assert.ok(selectionCommands.includes("savePsd"));
 
 const second = app.documents.add(64, 64);
 assert.equal(app.documents.length, 2);

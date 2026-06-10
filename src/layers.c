@@ -4,37 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-static uint8_t blend_channel(uint8_t src, uint8_t dst, uint8_t src_alpha) {
-    int inv = 255 - src_alpha;
-    int value = src * src_alpha + dst * inv + 127;
-    return (uint8_t)(value / 255);
-}
-
-static uint32_t blend_pixel(uint32_t dst, uint32_t src) {
-    uint8_t sa = (uint8_t)((src >> 24) & 0xFF);
-    if (sa == 0) {
-        return dst;
-    }
-    if (sa == 255) {
-        return src;
-    }
-
-    uint8_t da = (uint8_t)((dst >> 24) & 0xFF);
-    uint8_t sr = (uint8_t)((src >> 16) & 0xFF);
-    uint8_t sg = (uint8_t)((src >> 8) & 0xFF);
-    uint8_t sb = (uint8_t)(src & 0xFF);
-    uint8_t dr = (uint8_t)((dst >> 16) & 0xFF);
-    uint8_t dg = (uint8_t)((dst >> 8) & 0xFF);
-    uint8_t db = (uint8_t)(dst & 0xFF);
-
-    uint8_t out_r = blend_channel(sr, dr, sa);
-    uint8_t out_g = blend_channel(sg, dg, sa);
-    uint8_t out_b = blend_channel(sb, db, sa);
-    uint8_t out_a = (uint8_t)(sa + ((da * (255 - sa) + 127) / 255));
-
-    return ((uint32_t)out_a << 24) | ((uint32_t)out_r << 16) | ((uint32_t)out_g << 8) | out_b;
-}
-
 static uint32_t apply_layer_opacity(uint32_t src, int opacity_percent) {
     if (opacity_percent >= 100) {
         return src;
@@ -1002,4 +971,76 @@ void layer_stack_composite(const LayerStack *stack, Canvas *dest, uint32_t backg
         }
         dest->pixels[i] = out;
     }
+}
+
+int layer_stack_resize_image(LayerStack *stack, int new_width, int new_height) {
+    if (!stack || new_width <= 0 || new_height <= 0) {
+        return 0;
+    }
+    for (int i = 0; i < stack->layer_count; i++) {
+        Layer *layer = &stack->layers[i];
+        if (layer->canvas.pixels) {
+            if (!canvas_resize_bilinear(&layer->canvas, new_width, new_height)) {
+                return 0;
+            }
+        } else {
+            layer->canvas.width = new_width;
+            layer->canvas.height = new_height;
+        }
+    }
+    for (int i = stack->layer_count; i < MAX_LAYERS; i++) {
+        stack->layers[i].canvas.width = new_width;
+        stack->layers[i].canvas.height = new_height;
+    }
+    stack->width = new_width;
+    stack->height = new_height;
+    return 1;
+}
+
+int layer_stack_resize_canvas(LayerStack *stack, int new_width, int new_height, int offset_x, int offset_y, uint32_t background_fill) {
+    if (!stack || new_width <= 0 || new_height <= 0) {
+        return 0;
+    }
+    for (int i = 0; i < stack->layer_count; i++) {
+        Layer *layer = &stack->layers[i];
+        uint32_t fill = i == 0 ? background_fill : 0x00000000;
+        if (layer->canvas.pixels) {
+            if (!canvas_resize_extent(&layer->canvas, new_width, new_height, offset_x, offset_y, fill)) {
+                return 0;
+            }
+        } else {
+            layer->canvas.width = new_width;
+            layer->canvas.height = new_height;
+        }
+    }
+    for (int i = stack->layer_count; i < MAX_LAYERS; i++) {
+        stack->layers[i].canvas.width = new_width;
+        stack->layers[i].canvas.height = new_height;
+    }
+    stack->width = new_width;
+    stack->height = new_height;
+    return 1;
+}
+
+int layer_stack_crop(LayerStack *stack, int x0, int y0, int x1, int y1, uint32_t background_fill) {
+    int left;
+    int right;
+    int top;
+    int bottom;
+
+    if (!stack) {
+        return 0;
+    }
+    left = x0 < x1 ? x0 : x1;
+    right = x0 < x1 ? x1 : x0;
+    top = y0 < y1 ? y0 : y1;
+    bottom = y0 < y1 ? y1 : y0;
+    if (left < 0) left = 0;
+    if (top < 0) top = 0;
+    if (right >= stack->width) right = stack->width - 1;
+    if (bottom >= stack->height) bottom = stack->height - 1;
+    if (right < left || bottom < top) {
+        return 0;
+    }
+    return layer_stack_resize_canvas(stack, right - left + 1, bottom - top + 1, -left, -top, background_fill);
 }

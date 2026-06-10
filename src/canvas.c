@@ -358,3 +358,94 @@ void canvas_translate(Canvas *c, int dx, int dy, uint32_t fill_color) {
     memcpy(c->pixels, copy, count * sizeof(uint32_t));
     free(copy);
 }
+
+static uint8_t lerp_channel(uint32_t a, uint32_t b, int shift, double t) {
+    double ca = (a >> shift) & 0xFF;
+    double cb = (b >> shift) & 0xFF;
+    return (uint8_t)(ca + (cb - ca) * t + 0.5);
+}
+
+int canvas_resize_bilinear(Canvas *c, int new_width, int new_height) {
+    uint32_t *out;
+
+    if (!c || !c->pixels || new_width <= 0 || new_height <= 0) {
+        return 0;
+    }
+    if (new_width == c->width && new_height == c->height) {
+        return 1;
+    }
+    out = (uint32_t *)malloc((size_t)new_width * (size_t)new_height * sizeof(uint32_t));
+    if (!out) {
+        return 0;
+    }
+
+    for (int y = 0; y < new_height; y++) {
+        double sy = new_height > 1 ? (double)y * (c->height - 1) / (new_height - 1) : 0.0;
+        int y0 = (int)sy;
+        int y1 = y0 + 1 < c->height ? y0 + 1 : y0;
+        double ty = sy - y0;
+        for (int x = 0; x < new_width; x++) {
+            double sx = new_width > 1 ? (double)x * (c->width - 1) / (new_width - 1) : 0.0;
+            int x0 = (int)sx;
+            int x1 = x0 + 1 < c->width ? x0 + 1 : x0;
+            double tx = sx - x0;
+
+            uint32_t p00 = c->pixels[(size_t)y0 * (size_t)c->width + (size_t)x0];
+            uint32_t p10 = c->pixels[(size_t)y0 * (size_t)c->width + (size_t)x1];
+            uint32_t p01 = c->pixels[(size_t)y1 * (size_t)c->width + (size_t)x0];
+            uint32_t p11 = c->pixels[(size_t)y1 * (size_t)c->width + (size_t)x1];
+
+            uint32_t result = 0;
+            for (int shift = 0; shift <= 24; shift += 8) {
+                uint8_t top = lerp_channel(p00, p10, shift, tx);
+                uint8_t bottom = lerp_channel(p01, p11, shift, tx);
+                uint8_t value = (uint8_t)(top + ((double)bottom - top) * ty + 0.5);
+                result |= (uint32_t)value << shift;
+            }
+            out[(size_t)y * (size_t)new_width + (size_t)x] = result;
+        }
+    }
+
+    free(c->pixels);
+    c->pixels = out;
+    c->width = new_width;
+    c->height = new_height;
+    return 1;
+}
+
+int canvas_resize_extent(Canvas *c, int new_width, int new_height, int offset_x, int offset_y, uint32_t fill_color) {
+    uint32_t *out;
+    size_t count;
+
+    if (!c || !c->pixels || new_width <= 0 || new_height <= 0) {
+        return 0;
+    }
+    count = (size_t)new_width * (size_t)new_height;
+    out = (uint32_t *)malloc(count * sizeof(uint32_t));
+    if (!out) {
+        return 0;
+    }
+    for (size_t i = 0; i < count; i++) {
+        out[i] = fill_color;
+    }
+
+    for (int y = 0; y < c->height; y++) {
+        int dy = y + offset_y;
+        if (dy < 0 || dy >= new_height) {
+            continue;
+        }
+        for (int x = 0; x < c->width; x++) {
+            int dx = x + offset_x;
+            if (dx < 0 || dx >= new_width) {
+                continue;
+            }
+            out[(size_t)dy * (size_t)new_width + (size_t)dx] = c->pixels[(size_t)y * (size_t)c->width + (size_t)x];
+        }
+    }
+
+    free(c->pixels);
+    c->pixels = out;
+    c->width = new_width;
+    c->height = new_height;
+    return 1;
+}

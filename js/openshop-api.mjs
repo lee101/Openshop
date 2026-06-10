@@ -31,6 +31,17 @@ export const BlendModes = Object.freeze({
   exclusion: "exclusion",
 });
 
+export const SelectionOps = Object.freeze({
+  replace: "replace",
+  add: "add",
+  subtract: "subtract",
+});
+
+export const GradientTypes = Object.freeze({
+  linear: "linear",
+  radial: "radial",
+});
+
 export const VfxBrushes = Object.freeze({
   softRound: "softRound",
   airbrush: "airbrush",
@@ -60,10 +71,11 @@ export class OpenshopDocument {
     this.activeLayer = 0;
     this.commands = [];
     this.dirty = false;
+    this.hasSelection = false;
   }
 
   record(type, payload = {}) {
-    const command = { type, ...payload };
+    const command = { ...payload, type };
     this.commands.push(command);
     return command;
   }
@@ -265,6 +277,103 @@ export class OpenshopDocument {
     return this.record("sharpenActive", { amountPercent });
   }
 
+  selectAll() {
+    this.hasSelection = true;
+    return this.record("selectAll");
+  }
+
+  deselect() {
+    this.hasSelection = false;
+    return this.record("deselect");
+  }
+
+  invertSelection() {
+    this.hasSelection = true;
+    return this.record("invertSelection");
+  }
+
+  selectRect(x0, y0, x1, y1, op = SelectionOps.replace) {
+    if (!Object.values(SelectionOps).includes(op)) {
+      throw new TypeError(`unknown selection op: ${op}`);
+    }
+    this.hasSelection = true;
+    return this.record("selectRect", { x0, y0, x1, y1, op });
+  }
+
+  selectEllipse(x0, y0, x1, y1, op = SelectionOps.replace) {
+    if (!Object.values(SelectionOps).includes(op)) {
+      throw new TypeError(`unknown selection op: ${op}`);
+    }
+    this.hasSelection = true;
+    return this.record("selectEllipse", { x0, y0, x1, y1, op });
+  }
+
+  magicWand(x, y, tolerance = 32, op = SelectionOps.replace) {
+    if (!Object.values(SelectionOps).includes(op)) {
+      throw new TypeError(`unknown selection op: ${op}`);
+    }
+    this.hasSelection = true;
+    return this.record("magicWand", { x, y, tolerance, op });
+  }
+
+  featherSelection(radius) {
+    return this.record("featherSelection", { radius });
+  }
+
+  gradientFill({ x0, y0, x1, y1, startColor, endColor, type = GradientTypes.linear }) {
+    if (!Object.values(GradientTypes).includes(type)) {
+      throw new TypeError(`unknown gradient type: ${type}`);
+    }
+    this.dirty = true;
+    return this.record("gradientFill", { x0, y0, x1, y1, startColor: startColor >>> 0, endColor: endColor >>> 0, gradientType: type });
+  }
+
+  resizeImage(width, height) {
+    if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) {
+      throw new TypeError("width and height must be positive integers");
+    }
+    this.width = width;
+    this.height = height;
+    this.hasSelection = false;
+    this.dirty = true;
+    return this.record("resizeImage", { width, height });
+  }
+
+  resizeCanvas(width, height, offsetX = 0, offsetY = 0) {
+    if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) {
+      throw new TypeError("width and height must be positive integers");
+    }
+    this.width = width;
+    this.height = height;
+    this.hasSelection = false;
+    this.dirty = true;
+    return this.record("resizeCanvas", { width, height, offsetX, offsetY });
+  }
+
+  crop(x0, y0, x1, y1) {
+    const left = Math.max(0, Math.min(x0, x1));
+    const top = Math.max(0, Math.min(y0, y1));
+    const right = Math.min(this.width - 1, Math.max(x0, x1));
+    const bottom = Math.min(this.height - 1, Math.max(y0, y1));
+    if (right < left || bottom < top) {
+      throw new RangeError("crop region outside canvas");
+    }
+    this.width = right - left + 1;
+    this.height = bottom - top + 1;
+    this.hasSelection = false;
+    this.dirty = true;
+    return this.record("crop", { x0, y0, x1, y1 });
+  }
+
+  savePsd(path) {
+    return this.record("savePsd", { path });
+  }
+
+  loadPsd(path) {
+    this.dirty = true;
+    return this.record("loadPsd", { path });
+  }
+
   toJSON() {
     return {
       width: this.width,
@@ -274,6 +383,7 @@ export class OpenshopDocument {
       layers: this.layers,
       commands: this.commands,
       dirty: this.dirty,
+      hasSelection: this.hasSelection,
     };
   }
 }

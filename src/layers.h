@@ -78,5 +78,8 @@ int layer_stack_toggle_solo(LayerStack *stack, int index);
 int layer_stack_stamp_visible_would_change(const LayerStack *stack, int index, uint32_t background_color);
 int layer_stack_stamp_visible_into(LayerStack *stack, int index, uint32_t background_color);
 int layer_stack_stamp_visible_new(LayerStack *stack, const char *name, uint32_t background_color);
+int layer_stack_resize_image(LayerStack *stack, int new_width, int new_height);
+int layer_stack_resize_canvas(LayerStack *stack, int new_width, int new_height, int offset_x, int offset_y, uint32_t background_fill);
+int layer_stack_crop(LayerStack *stack, int x0, int y0, int x1, int y1, uint32_t background_fill);
 
 #endif

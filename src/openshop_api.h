@@ -5,13 +5,17 @@
 #include "blend.h"
 #include "brush_engine.h"
 #include "canvas.h"
+#include "gradient.h"
 #include "layers.h"
+#include "psd.h"
+#include "selection.h"
 
 #include <stdint.h>
 
 typedef struct {
     LayerStack layers;
     Canvas composite;
+    Selection selection;
     uint32_t background_color;
     int dirty;
 } OpenshopDocument;
@@ -112,6 +116,25 @@ int openshop_posterize_active(OpenshopDocument *doc, int levels);
 int openshop_threshold_active(OpenshopDocument *doc, int level);
 int openshop_blur_active(OpenshopDocument *doc, int radius);
 int openshop_sharpen_active(OpenshopDocument *doc, int amount_percent);
+
+int openshop_select_all(OpenshopDocument *doc);
+int openshop_deselect(OpenshopDocument *doc);
+int openshop_invert_selection(OpenshopDocument *doc);
+int openshop_select_rect(OpenshopDocument *doc, int x0, int y0, int x1, int y1, int op);
+int openshop_select_ellipse(OpenshopDocument *doc, int x0, int y0, int x1, int y1, int op);
+int openshop_magic_wand(OpenshopDocument *doc, int x, int y, int tolerance, int op);
+int openshop_feather_selection(OpenshopDocument *doc, int radius);
+int openshop_has_selection(const OpenshopDocument *doc);
+int openshop_selection_bounds(const OpenshopDocument *doc, int *x0, int *y0, int *x1, int *y1);
+
+int openshop_gradient_fill(OpenshopDocument *doc, int x0, int y0, int x1, int y1, uint32_t start, uint32_t end, int type);
+
+int openshop_resize_image(OpenshopDocument *doc, int new_width, int new_height);
+int openshop_resize_canvas(OpenshopDocument *doc, int new_width, int new_height, int offset_x, int offset_y);
+int openshop_crop(OpenshopDocument *doc, int x0, int y0, int x1, int y1);
+
+int openshop_save_psd(OpenshopDocument *doc, const char *path);
+int openshop_load_psd_into_active(OpenshopDocument *doc, const char *path);
 
 const Canvas *openshop_composite(OpenshopDocument *doc);
 int openshop_save_bmp(OpenshopDocument *doc, const char *path);

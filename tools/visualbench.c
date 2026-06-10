@@ -1,5 +1,7 @@
 #include "../src/adjust.h"
 #include "../src/app_brush.h"
+#include "../src/gradient.h"
+#include "../src/selection.h"
 #include "../src/brush_engine.h"
 #include "../src/app_shape.h"
 #include "../src/canvas.h"
@@ -7,6 +9,8 @@
 #include "../src/layers.h"
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define SHOT_WIDTH 1024
 #define SHOT_HEIGHT 768
@@ -474,6 +478,117 @@ static int make_adjustments_screen(void) {
     return ok;
 }
 
+static void draw_mask_ants(Canvas *shot, const Selection *sel) {
+    for (int y = 0; y < sel->height; y++) {
+        for (int x = 0; x < sel->width; x++) {
+            int edge;
+            if (selection_coverage(sel, x, y) <= 127) {
+                continue;
+            }
+            edge = x == 0 || y == 0 || x == sel->width - 1 || y == sel->height - 1 ||
+                   selection_coverage(sel, x - 1, y) <= 127 || selection_coverage(sel, x + 1, y) <= 127 ||
+                   selection_coverage(sel, x, y - 1) <= 127 || selection_coverage(sel, x, y + 1) <= 127;
+            if (edge) {
+                canvas_set_pixel_raw(shot, DOC_X + x, DOC_Y + y, ((x + y) >> 2 & 1) ? 0xFFFFFFFF : 0xFF000000);
+            }
+        }
+    }
+}
+
+static int make_selection_screen(void) {
+    LayerStack doc;
+    Selection sel = {0};
+    Canvas shot = {0};
+    Canvas composite = {0};
+    uint32_t *backup = NULL;
+    int ok = 0;
+
+    if (!layer_stack_init(&doc, DOC_WIDTH, DOC_HEIGHT, DOC_BG)) {
+        return 0;
+    }
+    draw_sample_photo(&doc.layers[0].canvas);
+
+    if (!selection_init(&sel, DOC_WIDTH, DOC_HEIGHT)) {
+        goto done;
+    }
+    selection_select_ellipse(&sel, 180, 110, 620, 490, SELECTION_REPLACE);
+    selection_select_rect(&sel, 60, 60, 220, 180, SELECTION_ADD);
+    selection_feather(&sel, 6);
+
+    backup = (uint32_t *)malloc((size_t)DOC_WIDTH * (size_t)DOC_HEIGHT * sizeof(uint32_t));
+    if (!backup) {
+        goto done;
+    }
+    memcpy(backup, doc.layers[0].canvas.pixels, (size_t)DOC_WIDTH * (size_t)DOC_HEIGHT * sizeof(uint32_t));
+    canvas_adjust_hue_saturation(&doc.layers[0].canvas, 140, 50, 0);
+    selection_clamp_edit(&sel, &doc.layers[0].canvas, backup);
+
+    if (!canvas_init(&shot, SHOT_WIDTH, SHOT_HEIGHT) || !canvas_init(&composite, DOC_WIDTH, DOC_HEIGHT)) {
+        goto done;
+    }
+    draw_shell(&shot, 1);
+    layer_stack_composite(&doc, &composite, DOC_BG);
+    blit_canvas(&shot, &composite, DOC_X, DOC_Y);
+    draw_mask_ants(&shot, &sel);
+    stroke(&shot, DOC_X - 1, DOC_Y - 1, DOC_X + DOC_WIDTH, DOC_Y + DOC_HEIGHT, 0xFF0B0B0D);
+    ok = canvas_save_bmp(&shot, "visualbench/selection-masked-edit.bmp");
+    if (!ok) {
+        fprintf(stderr, "visualbench: failed to save visualbench/selection-masked-edit.bmp\n");
+    }
+
+done:
+    free(backup);
+    canvas_free(&shot);
+    canvas_free(&composite);
+    selection_free(&sel);
+    layer_stack_free(&doc);
+    return ok;
+}
+
+static int make_gradient_screen(void) {
+    LayerStack doc;
+    int ok = 0;
+
+    if (!layer_stack_init(&doc, DOC_WIDTH, DOC_HEIGHT, DOC_BG)) {
+        return 0;
+    }
+
+    {
+        Canvas *canvas = &doc.layers[0].canvas;
+        Canvas strip = {0};
+        if (!canvas_init(&strip, DOC_WIDTH, 190)) {
+            goto done;
+        }
+
+        canvas_gradient_fill(&strip, 0, 0, DOC_WIDTH - 1, 0, 0xFF0F172A, 0xFF38BDF8, GRADIENT_LINEAR);
+        for (int y = 0; y < 190; y++) {
+            for (int x = 0; x < DOC_WIDTH; x++) {
+                canvas_set_pixel_raw(canvas, x, 10 + y, canvas_get_pixel(&strip, x, y));
+            }
+        }
+
+        canvas_gradient_fill(&strip, 0, 95, DOC_WIDTH / 2, 95, 0xFFFDD835, 0xFFE11D48, GRADIENT_LINEAR);
+        for (int y = 0; y < 190; y++) {
+            for (int x = 0; x < DOC_WIDTH; x++) {
+                canvas_set_pixel_raw(canvas, x, 205 + y, canvas_get_pixel(&strip, x, y));
+            }
+        }
+
+        canvas_gradient_fill(&strip, DOC_WIDTH / 2, 95, DOC_WIDTH / 2 + 170, 95, 0xFFF8FAFC, 0xFF1D4ED8, GRADIENT_RADIAL);
+        for (int y = 0; y < 190; y++) {
+            for (int x = 0; x < DOC_WIDTH; x++) {
+                canvas_set_pixel_raw(canvas, x, 400 + y, canvas_get_pixel(&strip, x, y));
+            }
+        }
+        canvas_free(&strip);
+    }
+    ok = save_shot_with_doc(&doc, "visualbench/gradients.bmp", 1);
+
+done:
+    layer_stack_free(&doc);
+    return ok;
+}
+
 static int make_tool_screens(void) {
     int ok = 1;
 
@@ -508,6 +623,12 @@ int main(void) {
     if (!make_adjustments_screen()) {
         return 1;
     }
+    if (!make_selection_screen()) {
+        return 1;
+    }
+    if (!make_gradient_screen()) {
+        return 1;
+    }
 
     puts("visualbench wrote visualbench/editor-overview.bmp");
     puts("visualbench wrote visualbench/layer-states.bmp");
@@ -516,5 +637,7 @@ int main(void) {
     puts("visualbench wrote visualbench/vfx-brushes.bmp");
     puts("visualbench wrote visualbench/blend-modes.bmp");
     puts("visualbench wrote visualbench/adjustments.bmp");
+    puts("visualbench wrote visualbench/selection-masked-edit.bmp");
+    puts("visualbench wrote visualbench/gradients.bmp");
     return 0;
 }

@@ -1,4 +1,4 @@
-import { BlendModes, OpenshopDocument, VfxBrushes } from "./openshop-api.mjs";
+import { BlendModes, GradientTypes, OpenshopDocument, SelectionOps, VfxBrushes } from "./openshop-api.mjs";
 
 export const BlendMode = Object.freeze({
   NORMAL: BlendModes.normal,
@@ -21,6 +21,67 @@ export const ElementPlacement = Object.freeze({
   PLACEATBEGINNING: "placeAtBeginning",
   PLACEATEND: "placeAtEnd",
 });
+
+export const AnchorPosition = Object.freeze({
+  TOPLEFT: "topLeft",
+  TOPCENTER: "topCenter",
+  TOPRIGHT: "topRight",
+  MIDDLELEFT: "middleLeft",
+  MIDDLECENTER: "middleCenter",
+  MIDDLERIGHT: "middleRight",
+  BOTTOMLEFT: "bottomLeft",
+  BOTTOMCENTER: "bottomCenter",
+  BOTTOMRIGHT: "bottomRight",
+});
+
+export const SelectionType = Object.freeze({
+  REPLACE: SelectionOps.replace,
+  EXTEND: SelectionOps.add,
+  DIMINISH: SelectionOps.subtract,
+});
+
+export const GradientType = Object.freeze({
+  LINEAR: GradientTypes.linear,
+  RADIAL: GradientTypes.radial,
+});
+
+export class DocumentSelection {
+  constructor(document) {
+    this._document = document;
+  }
+
+  get exists() {
+    return this._document._backing.hasSelection;
+  }
+
+  selectAll() {
+    this._document._backing.selectAll();
+  }
+
+  deselect() {
+    this._document._backing.deselect();
+  }
+
+  invert() {
+    this._document._backing.invertSelection();
+  }
+
+  selectRectangle({ left, top, right, bottom }, type = SelectionType.REPLACE) {
+    this._document._backing.selectRect(left, top, right, bottom, type);
+  }
+
+  selectEllipse({ left, top, right, bottom }, type = SelectionType.REPLACE) {
+    this._document._backing.selectEllipse(left, top, right, bottom, type);
+  }
+
+  magicWand(x, y, tolerance = 32, type = SelectionType.REPLACE) {
+    this._document._backing.magicWand(x, y, tolerance, type);
+  }
+
+  feather(radius) {
+    this._document._backing.featherSelection(Math.max(1, Math.round(radius)));
+  }
+}
 
 export { VfxBrushes };
 
@@ -199,6 +260,7 @@ export class Document {
     this._backing = new OpenshopDocument({ width, height, backgroundColor });
     this.name = name;
     this.artLayers = new ArtLayers(this);
+    this.selection = new DocumentSelection(this);
   }
 
   get width() {
@@ -235,6 +297,49 @@ export class Document {
         this._backing.mergeDown(index);
       }
     }
+  }
+
+  resizeImage(width, height) {
+    this._backing.resizeImage(Math.round(width), Math.round(height));
+  }
+
+  resizeCanvas(width, height, anchor = AnchorPosition.MIDDLECENTER) {
+    const w = Math.round(width);
+    const h = Math.round(height);
+    const dx = w - this._backing.width;
+    const dy = h - this._backing.height;
+    const offsets = {
+      [AnchorPosition.TOPLEFT]: [0, 0],
+      [AnchorPosition.TOPCENTER]: [Math.round(dx / 2), 0],
+      [AnchorPosition.TOPRIGHT]: [dx, 0],
+      [AnchorPosition.MIDDLELEFT]: [0, Math.round(dy / 2)],
+      [AnchorPosition.MIDDLECENTER]: [Math.round(dx / 2), Math.round(dy / 2)],
+      [AnchorPosition.MIDDLERIGHT]: [dx, Math.round(dy / 2)],
+      [AnchorPosition.BOTTOMLEFT]: [0, dy],
+      [AnchorPosition.BOTTOMCENTER]: [Math.round(dx / 2), dy],
+      [AnchorPosition.BOTTOMRIGHT]: [dx, dy],
+    };
+    const offset = offsets[anchor];
+    if (!offset) {
+      throw new TypeError(`unknown anchor: ${anchor}`);
+    }
+    this._backing.resizeCanvas(w, h, offset[0], offset[1]);
+  }
+
+  crop({ left, top, right, bottom }) {
+    this._backing.crop(left, top, right, bottom);
+  }
+
+  gradientFill({ x0, y0, x1, y1, startColor, endColor, type = GradientType.LINEAR }) {
+    this._backing.gradientFill({ x0, y0, x1, y1, startColor, endColor, type });
+  }
+
+  saveAs(path) {
+    if (String(path).toLowerCase().endsWith(".psd")) {
+      this._backing.savePsd(path);
+      return;
+    }
+    throw new Error("only .psd export is wired through the script facade");
   }
 
   commands() {
@@ -323,6 +428,29 @@ const batchPlayHandlers = {
   },
   flattenImage(application) {
     application.activeDocument.flatten();
+    return undefined;
+  },
+  selectAllPlusMinus(application) {
+    application.activeDocument.selection.selectAll();
+    return undefined;
+  },
+  set_selection(application, descriptor) {
+    const to = descriptor.to ?? {};
+    if (to._obj === "rectangle") {
+      application.activeDocument.selection.selectRectangle(to);
+    }
+    return undefined;
+  },
+  crop(application, descriptor) {
+    application.activeDocument.crop(descriptor.to ?? {});
+    return undefined;
+  },
+  imageSize(application, descriptor) {
+    application.activeDocument.resizeImage(descriptor.width, descriptor.height);
+    return undefined;
+  },
+  canvasSize(application, descriptor) {
+    application.activeDocument.resizeCanvas(descriptor.width, descriptor.height, descriptor.anchor ?? AnchorPosition.MIDDLECENTER);
     return undefined;
   },
   invert(application) {

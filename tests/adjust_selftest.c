@@ -1,4 +1,5 @@
 #include "../src/adjust.h"
+#include "../src/gradient.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -131,7 +132,51 @@ static void test_blur_and_sharpen(void) {
     canvas_free(&c);
 }
 
+static void test_gradient(void) {
+    Canvas c = make_canvas(16, 1, 0xFF000000);
+
+    canvas_gradient_fill(&c, 0, 0, 15, 0, 0xFF000000, 0xFFFFFFFF, GRADIENT_LINEAR);
+    assert((canvas_get_pixel(&c, 0, 0) & 0xFF) == 0);
+    assert((canvas_get_pixel(&c, 15, 0) & 0xFF) == 0xFF);
+    {
+        uint32_t mid = canvas_get_pixel(&c, 8, 0) & 0xFF;
+        assert(mid > 0x60 && mid < 0xA0);
+    }
+    canvas_free(&c);
+
+    c = make_canvas(17, 17, 0xFF000000);
+    canvas_gradient_fill(&c, 8, 8, 16, 8, 0xFFFFFFFF, 0xFF000000, GRADIENT_RADIAL);
+    assert((canvas_get_pixel(&c, 8, 8) & 0xFF) == 0xFF);
+    assert((canvas_get_pixel(&c, 16, 8) & 0xFF) == 0);
+    assert((canvas_get_pixel(&c, 8, 16) & 0xFF) == 0);
+    canvas_free(&c);
+
+    assert(gradient_lerp_argb(0xFF000000, 0xFFFFFFFF, 0.5) == 0xFF808080);
+    assert(gradient_type_valid(GRADIENT_LINEAR));
+    assert(!gradient_type_valid(99));
+}
+
+static void test_canvas_resize(void) {
+    Canvas c = make_canvas(4, 4, 0xFF404040);
+
+    canvas_set_pixel_raw(&c, 3, 3, 0xFFC0C0C0);
+    assert(canvas_resize_bilinear(&c, 8, 8));
+    assert(c.width == 8 && c.height == 8);
+    assert(canvas_get_pixel(&c, 0, 0) == 0xFF404040);
+    assert(canvas_get_pixel(&c, 7, 7) == 0xFFC0C0C0);
+    canvas_free(&c);
+
+    c = make_canvas(4, 4, 0xFF112233);
+    assert(canvas_resize_extent(&c, 8, 8, 2, 2, 0x00000000));
+    assert(canvas_get_pixel(&c, 0, 0) == 0x00000000);
+    assert(canvas_get_pixel(&c, 3, 3) == 0xFF112233);
+    assert(canvas_get_pixel(&c, 7, 7) == 0x00000000);
+    canvas_free(&c);
+}
+
 int main(void) {
+    test_gradient();
+    test_canvas_resize();
     test_brightness_contrast();
     test_hue_saturation();
     test_levels();
