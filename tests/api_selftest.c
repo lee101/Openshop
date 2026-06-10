@@ -81,6 +81,64 @@ int main(void) {
         return 1;
     }
 
+    if (!expect_true("set blend mode", openshop_set_layer_blend_mode(&doc, paint, BLEND_MULTIPLY))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("get blend mode", openshop_get_layer_blend_mode(&doc, paint) == BLEND_MULTIPLY)) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("reject invalid blend mode", !openshop_set_layer_blend_mode(&doc, paint, 999))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("dirty after blend mode", openshop_document_is_dirty(&doc))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+
+    if (!expect_true("vfx stroke", openshop_draw_vfx_stroke(&doc, 8, 30, 50, 30, 5, 0xFF00FFFF, VFX_BRUSH_AIRBRUSH, 77))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("reject invalid vfx preset", !openshop_draw_vfx_stroke(&doc, 8, 30, 50, 30, 5, 0xFF00FFFF, 999, 77))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("brightness contrast", openshop_adjust_brightness_contrast(&doc, 20, 10))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("hue saturation", openshop_adjust_hue_saturation(&doc, 45, 20, 0))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("levels", openshop_adjust_levels(&doc, 10, 240, 1.1, 0, 255))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("desaturate", openshop_desaturate_active(&doc))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("posterize", openshop_posterize_active(&doc, 4))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("threshold", openshop_threshold_active(&doc, 128))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("blur", openshop_blur_active(&doc, 2))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("sharpen", openshop_sharpen_active(&doc, 100))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+
     openshop_document_free(&doc);
     puts("openshop api selftest ok");
     return 0;

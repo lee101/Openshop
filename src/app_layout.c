@@ -22,6 +22,15 @@ AppLayout app_layout_default(void) {
     return layout;
 }
 
+AppLayout app_layout_compact(void) {
+    AppLayout layout = app_layout_default();
+
+    layout.left_toolbar = (AppRect){0, 0, 0, 0};
+    layout.right_panel = (AppRect){0, 0, 0, 0};
+    layout.bottom_panel = (AppRect){0, 0, 0, 0};
+    return layout;
+}
+
 int app_rect_contains(AppRect rect, int x, int y) {
     return x >= rect.x &&
            y >= rect.y &&

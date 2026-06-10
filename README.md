@@ -18,8 +18,15 @@ OpenShop now exposes the same first-pass document/layer/tool command names in C 
 
 - C: `src/openshop_api.h`
 - JS: `js/openshop-api.mjs`
+- Photoshop-style JS DOM: `js/photoshop-api.mjs` (`app`, `app.documents.add`, `document.artLayers`, `layer.blendMode`, `app.batchPlay`)
 
-Both APIs cover document creation, layer operations, brush/eraser strokes, basic shapes, transforms, flattening, and export plumbing. `make test` runs selftests for both surfaces when Node is available.
+Both APIs cover document creation, layer operations, brush/eraser strokes, VFX brush strokes, basic shapes, transforms, layer blend modes, image adjustments (brightness/contrast, hue/saturation, levels, desaturate, posterize, threshold, gaussian blur, sharpen), flattening, and export plumbing. `make test` runs selftests for all surfaces when Node is available.
+
+## Layer Blend Modes
+Normal, Multiply, Screen, Overlay, Soft Light, Hard Light, Darken, Lighten, Color Dodge, Color Burn, Linear Dodge, Linear Burn, Difference, Exclusion. Compositing and merge-down honor the active mode; `Shift+=` / `Shift+-` cycle the active layer's mode.
+
+## VFX Brushes
+Deterministic seeded brush engine (`src/brush_engine.h`) with soft falloff, flow, spacing, scatter, size jitter, and additive glow: Soft Round, Airbrush, Splatter, Glow, Sparkle, Smoke.
 
 ## SDL I/O Smoke Test
 ```bash
@@ -105,6 +112,8 @@ External UI references are cloned into gitignored `vendor/` directories. Clay is
 - `Ctrl+S`: save the composited image to `output.bmp`
 - `Ctrl+O`: load `input.bmp` into the active layer
 - `Ctrl+Z` / `Ctrl+Y`: undo / redo (layer-aware)
+- `Shift+=` / `Shift+-`: cycle active layer blend mode forward/back
+- `Tab`: toggle compact mode (hide panels, Photoshop-style)
 - `Esc`: quit
 
 ## Notes

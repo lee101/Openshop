@@ -66,6 +66,7 @@ typedef struct {
     int shape_start_y;
     int preview_active;
     int needs_composite;
+    int compact_mode;
     uint32_t *shape_base_pixels;
     uint32_t *preview_pixels;
     Canvas preview_canvas;
@@ -277,6 +278,10 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
         visible_layers,
         color
     );
+    if (active && active->blend_mode != BLEND_NORMAL) {
+        size_t len = strlen(title);
+        snprintf(title + len, sizeof(title) - len, " | blend %s", blend_mode_name((BlendMode)active->blend_mode));
+    }
     SDL_SetWindowTitle(window, title);
 }
 
@@ -1701,12 +1706,17 @@ static void draw_toolbar_button(SDL_Renderer *renderer, int index, int active) {
     }
 }
 
-static void draw_photoshop_shell(SDL_Renderer *renderer) {
+static void draw_photoshop_shell(SDL_Renderer *renderer, int compact) {
     if (!renderer) {
         return;
     }
 
     fill_rect(renderer, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0xFF1F1F23);
+
+    if (compact) {
+        stroke_rect(renderer, CANVAS_ORIGIN_X - 1, CANVAS_ORIGIN_Y - 1, CANVAS_WIDTH + 2, CANVAS_HEIGHT + 2, 0xFF0B0B0D);
+        return;
+    }
 
     fill_rect(renderer, 0, 0, WINDOW_WIDTH, 24, 0xFF2B2B2F);
     for (int i = 0; i < 7; i++) {
@@ -1758,12 +1768,12 @@ static void draw_photoshop_shell(SDL_Renderer *renderer) {
     stroke_rect(renderer, CANVAS_ORIGIN_X - 12, CANVAS_ORIGIN_Y - 12, CANVAS_WIDTH + 24, CANVAS_HEIGHT + 24, 0xFF333338);
 }
 
-static void render_frame_background(SDL_Renderer *renderer) {
+static void render_frame_background(SDL_Renderer *renderer, int compact) {
     if (!renderer) {
         return;
     }
 
-    draw_photoshop_shell(renderer);
+    draw_photoshop_shell(renderer, compact);
     draw_checkerboard_background(renderer);
 }
 
@@ -1807,7 +1817,8 @@ static void render_app_frame(
     Canvas *composite,
     Canvas *preview_canvas,
     int preview_active,
-    int *needs_composite
+    int *needs_composite,
+    int compact_mode
 ) {
     if (!renderer || !texture || !layers || !composite || !preview_canvas || !needs_composite) {
         return;
@@ -1819,7 +1830,7 @@ static void render_app_frame(
     }
 
     update_canvas_texture(texture, composite, preview_canvas, preview_active);
-    render_frame_background(renderer);
+    render_frame_background(renderer, compact_mode);
     present_canvas_texture(renderer, texture);
 }
 
@@ -1981,6 +1992,7 @@ static void initialize_app_runtime(AppRuntime *runtime) {
     runtime->shape_start_y = 0;
     runtime->preview_active = 0;
     runtime->needs_composite = 0;
+    runtime->compact_mode = 0;
     memset(runtime->undo_stack, 0, sizeof(runtime->undo_stack));
     memset(runtime->redo_stack, 0, sizeof(runtime->redo_stack));
     runtime->preview_canvas.width = CANVAS_WIDTH;
@@ -2085,7 +2097,30 @@ static void handle_app_event(App *app, const SDL_Event *event) {
             &app->runtime.needs_composite
         );
         break;
-    case SDL_KEYDOWN:
+    case SDL_KEYDOWN: {
+        SDL_Keymod mod = SDL_GetModState();
+        if (event->key.keysym.sym == SDLK_TAB && !(mod & (KMOD_CTRL | KMOD_ALT))) {
+            app->runtime.compact_mode = !app->runtime.compact_mode;
+            break;
+        }
+        if ((mod & KMOD_SHIFT) && !(mod & (KMOD_CTRL | KMOD_ALT)) &&
+            (event->key.keysym.sym == SDLK_EQUALS || event->key.keysym.sym == SDLK_MINUS ||
+             event->key.keysym.sym == SDLK_KP_PLUS || event->key.keysym.sym == SDLK_KP_MINUS)) {
+            int direction = (event->key.keysym.sym == SDLK_EQUALS || event->key.keysym.sym == SDLK_KP_PLUS) ? 1 : -1;
+            if (layer_stack_cycle_blend_mode(&app->layers, app->layers.active_layer, direction)) {
+                app->runtime.needs_composite = 1;
+                update_window_title(
+                    app->window,
+                    &app->layers,
+                    app->runtime.tool,
+                    app->runtime.brush_shape,
+                    app->runtime.brush_radius,
+                    app->runtime.brush_color,
+                    app->runtime.brush_opacity
+                );
+            }
+            break;
+        }
         handle_key_down(
             event->key.keysym.sym,
             &app->layers,
@@ -2109,6 +2144,7 @@ static void handle_app_event(App *app, const SDL_Event *event) {
             app->window
         );
         break;
+    }
     default:
         break;
     }
@@ -2132,7 +2168,8 @@ static void run_app_loop(App *app) {
             &app->composite,
             &app->runtime.preview_canvas,
             app->runtime.preview_active,
-            &app->runtime.needs_composite
+            &app->runtime.needs_composite,
+            app->runtime.compact_mode
         );
         SDL_Delay(16);
     }

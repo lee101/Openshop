@@ -31,6 +31,7 @@ enum {
 };
 
 AppLayout app_layout_default(void);
+AppLayout app_layout_compact(void);
 int app_rect_contains(AppRect rect, int x, int y);
 int app_layout_screen_to_canvas(const AppLayout *layout, int screen_x, int screen_y, int *canvas_x, int *canvas_y);
 void app_layout_screen_to_canvas_clamped(const AppLayout *layout, int screen_x, int screen_y, int *canvas_x, int *canvas_y);

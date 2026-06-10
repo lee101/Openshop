@@ -1,4 +1,6 @@
+#include "../src/adjust.h"
 #include "../src/app_brush.h"
+#include "../src/brush_engine.h"
 #include "../src/app_shape.h"
 #include "../src/canvas.h"
 #include "../src/image_io.h"
@@ -322,6 +324,156 @@ static void draw_fill_tool(Canvas *canvas) {
     stroke(canvas, 300, 156, 656, 432, 0xFFF8FAFC);
 }
 
+static void draw_vfx_brushes(Canvas *canvas) {
+    static const VfxBrushPreset presets[] = {
+        VFX_BRUSH_SOFT_ROUND,
+        VFX_BRUSH_AIRBRUSH,
+        VFX_BRUSH_SPLATTER,
+        VFX_BRUSH_GLOW,
+        VFX_BRUSH_SPARKLE,
+        VFX_BRUSH_SMOKE,
+    };
+    static const uint32_t colors[] = {
+        0xFFE11D48,
+        0xFF38BDF8,
+        0xFFFDD835,
+        0xFF8B5CF6,
+        0xFFF8FAFC,
+        0xFF94A3B8,
+    };
+
+    for (int i = 0; i < 6; i++) {
+        BrushDynamics dyn = brush_dynamics_for_preset(presets[i], 14);
+        int y = 110 + i * 78;
+        brush_engine_stroke(canvas, 120, y, 700, y, &dyn, colors[i], 1000u + (uint32_t)i);
+    }
+}
+
+static int make_vfx_brush_screen(void) {
+    LayerStack doc;
+    int ok = 0;
+
+    if (!layer_stack_init(&doc, DOC_WIDTH, DOC_HEIGHT, 0xFF10141C)) {
+        return 0;
+    }
+
+    int layer = layer_stack_add(&doc, "VFX", 0x00000000);
+    if (layer < 0) {
+        goto done;
+    }
+    draw_vfx_brushes(&doc.layers[layer].canvas);
+    ok = save_shot_with_doc(&doc, "visualbench/vfx-brushes.bmp", 1);
+
+done:
+    layer_stack_free(&doc);
+    return ok;
+}
+
+static int make_blend_modes_screen(void) {
+    LayerStack doc;
+    int ok = 0;
+
+    if (!layer_stack_init(&doc, DOC_WIDTH, DOC_HEIGHT, DOC_BG)) {
+        return 0;
+    }
+    draw_sample_photo(&doc.layers[0].canvas);
+
+    int layer = layer_stack_add(&doc, "Blend", 0x00000000);
+    if (layer < 0) {
+        goto done;
+    }
+
+    for (int mode = 0; mode < BLEND_MODE_COUNT; mode++) {
+        int col = mode % 7;
+        int row = mode / 7;
+        int x0 = 24 + col * 110;
+        int y0 = 60 + row * 250;
+        canvas_draw_rect_filled(&doc.layers[layer].canvas, x0, y0, x0 + 96, y0 + 220, 0xFF6D9EEB);
+    }
+
+    {
+        Canvas shot = {0};
+        Canvas composite = {0};
+        if (!canvas_init(&shot, SHOT_WIDTH, SHOT_HEIGHT) || !canvas_init(&composite, DOC_WIDTH, DOC_HEIGHT)) {
+            canvas_free(&shot);
+            canvas_free(&composite);
+            goto done;
+        }
+        draw_shell(&shot, 1);
+
+        doc.layers[layer].visible = 0;
+        layer_stack_composite(&doc, &composite, DOC_BG);
+        blit_canvas(&shot, &composite, DOC_X, DOC_Y);
+        doc.layers[layer].visible = 1;
+
+        for (int mode = 0; mode < BLEND_MODE_COUNT; mode++) {
+            doc.layers[layer].blend_mode = mode;
+            layer_stack_composite(&doc, &composite, DOC_BG);
+            int col = mode % 7;
+            int row = mode / 7;
+            int x0 = 24 + col * 110;
+            int y0 = 60 + row * 250;
+            for (int y = y0; y <= y0 + 220 && y < DOC_HEIGHT; y++) {
+                for (int x = x0; x <= x0 + 96 && x < DOC_WIDTH; x++) {
+                    canvas_set_pixel_raw(&shot, DOC_X + x, DOC_Y + y, canvas_get_pixel(&composite, x, y));
+                }
+            }
+        }
+
+        stroke(&shot, DOC_X - 1, DOC_Y - 1, DOC_X + DOC_WIDTH, DOC_Y + DOC_HEIGHT, 0xFF0B0B0D);
+        ok = canvas_save_bmp(&shot, "visualbench/blend-modes.bmp");
+        canvas_free(&shot);
+        canvas_free(&composite);
+        if (!ok) {
+            fprintf(stderr, "visualbench: failed to save visualbench/blend-modes.bmp\n");
+        }
+    }
+
+done:
+    layer_stack_free(&doc);
+    return ok;
+}
+
+static int make_adjustments_screen(void) {
+    LayerStack doc;
+    int ok = 0;
+
+    if (!layer_stack_init(&doc, DOC_WIDTH, DOC_HEIGHT, DOC_BG)) {
+        return 0;
+    }
+    draw_sample_photo(&doc.layers[0].canvas);
+    {
+        Canvas *canvas = &doc.layers[0].canvas;
+        Canvas strip = {0};
+        if (canvas_init(&strip, DOC_WIDTH, 100)) {
+            for (int pass = 0; pass < 6; pass++) {
+                for (int y = 0; y < 100; y++) {
+                    for (int x = 0; x < DOC_WIDTH; x++) {
+                        canvas_set_pixel_raw(&strip, x, y, canvas_get_pixel(canvas, x, pass * 100 + y));
+                    }
+                }
+                switch (pass) {
+                case 1: canvas_adjust_brightness_contrast(&strip, 35, 30); break;
+                case 2: canvas_adjust_hue_saturation(&strip, 120, 40, 0); break;
+                case 3: canvas_desaturate(&strip); break;
+                case 4: canvas_posterize(&strip, 4); break;
+                case 5: canvas_gaussian_blur(&strip, 4); break;
+                default: break;
+                }
+                for (int y = 0; y < 100; y++) {
+                    for (int x = 0; x < DOC_WIDTH; x++) {
+                        canvas_set_pixel_raw(canvas, x, pass * 100 + y, canvas_get_pixel(&strip, x, y));
+                    }
+                }
+            }
+            canvas_free(&strip);
+        }
+    }
+    ok = save_shot_with_doc(&doc, "visualbench/adjustments.bmp", 1);
+    layer_stack_free(&doc);
+    return ok;
+}
+
 static int make_tool_screens(void) {
     int ok = 1;
 
@@ -347,10 +499,22 @@ int main(void) {
     if (!make_tool_screens()) {
         return 1;
     }
+    if (!make_vfx_brush_screen()) {
+        return 1;
+    }
+    if (!make_blend_modes_screen()) {
+        return 1;
+    }
+    if (!make_adjustments_screen()) {
+        return 1;
+    }
 
     puts("visualbench wrote visualbench/editor-overview.bmp");
     puts("visualbench wrote visualbench/layer-states.bmp");
     puts("visualbench wrote visualbench/tools-gallery.bmp");
     puts("visualbench wrote visualbench/tool-*.bmp");
+    puts("visualbench wrote visualbench/vfx-brushes.bmp");
+    puts("visualbench wrote visualbench/blend-modes.bmp");
+    puts("visualbench wrote visualbench/adjustments.bmp");
     return 0;
 }

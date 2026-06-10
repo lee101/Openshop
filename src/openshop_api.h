@@ -1,6 +1,9 @@
 #ifndef OPENSHOP_API_H
 #define OPENSHOP_API_H
 
+#include "adjust.h"
+#include "blend.h"
+#include "brush_engine.h"
 #include "canvas.h"
 #include "layers.h"
 
@@ -47,6 +50,8 @@ int openshop_move_layer(OpenshopDocument *doc, int index, int direction);
 int openshop_set_layer_visible(OpenshopDocument *doc, int index, int visible);
 int openshop_set_layer_locked(OpenshopDocument *doc, int index, int locked);
 int openshop_set_layer_opacity(OpenshopDocument *doc, int index, int opacity_percent);
+int openshop_set_layer_blend_mode(OpenshopDocument *doc, int index, int blend_mode);
+int openshop_get_layer_blend_mode(const OpenshopDocument *doc, int index);
 int openshop_rename_layer(OpenshopDocument *doc, int index, const char *name);
 int openshop_clear_layer(OpenshopDocument *doc, int index);
 int openshop_merge_down(OpenshopDocument *doc, int index);
@@ -87,6 +92,26 @@ int openshop_flip_active_vertical(OpenshopDocument *doc);
 int openshop_rotate_active_180(OpenshopDocument *doc);
 int openshop_invert_active_rgb(OpenshopDocument *doc);
 int openshop_translate_active(OpenshopDocument *doc, int dx, int dy);
+
+int openshop_draw_vfx_stroke(
+    OpenshopDocument *doc,
+    int x0,
+    int y0,
+    int x1,
+    int y1,
+    int radius,
+    uint32_t argb,
+    int preset,
+    uint32_t seed
+);
+int openshop_adjust_brightness_contrast(OpenshopDocument *doc, int brightness, int contrast);
+int openshop_adjust_hue_saturation(OpenshopDocument *doc, int hue_degrees, int saturation, int lightness);
+int openshop_adjust_levels(OpenshopDocument *doc, int in_black, int in_white, double gamma, int out_black, int out_white);
+int openshop_desaturate_active(OpenshopDocument *doc);
+int openshop_posterize_active(OpenshopDocument *doc, int levels);
+int openshop_threshold_active(OpenshopDocument *doc, int level);
+int openshop_blur_active(OpenshopDocument *doc, int radius);
+int openshop_sharpen_active(OpenshopDocument *doc, int amount_percent);
 
 const Canvas *openshop_composite(OpenshopDocument *doc);
 int openshop_save_bmp(OpenshopDocument *doc, const char *path);

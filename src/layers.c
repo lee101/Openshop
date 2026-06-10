@@ -247,6 +247,7 @@ int layer_stack_init(LayerStack *stack, int width, int height, uint32_t backgrou
         stack->layers[i].visible = 0;
         stack->layers[i].locked = 0;
         stack->layers[i].opacity_percent = 100;
+        stack->layers[i].blend_mode = BLEND_NORMAL;
         stack->layers[i].name[0] = '\0';
     }
 
@@ -267,6 +268,7 @@ void layer_stack_free(LayerStack *stack) {
         stack->layers[i].visible = 0;
         stack->layers[i].locked = 0;
         stack->layers[i].opacity_percent = 100;
+        stack->layers[i].blend_mode = BLEND_NORMAL;
         stack->layers[i].name[0] = '\0';
     }
     stack->width = 0;
@@ -333,6 +335,7 @@ int layer_stack_insert(LayerStack *stack, int index, const char *name, uint32_t 
     layer->visible = 1;
     layer->locked = 0;
     layer->opacity_percent = 100;
+    layer->blend_mode = BLEND_NORMAL;
     if (name && name[0]) {
         layer_name_copy_unique(layer->name, sizeof(layer->name), stack, index, name, "Layer");
     } else {
@@ -567,6 +570,25 @@ int layer_stack_set_opacity(LayerStack *stack, int index, int opacity_percent) {
     return 1;
 }
 
+int layer_stack_set_blend_mode(LayerStack *stack, int index, int blend_mode) {
+    if (!stack || index < 0 || index >= stack->layer_count || !blend_mode_valid(blend_mode)) {
+        return 0;
+    }
+    if (stack->layers[index].blend_mode == blend_mode) {
+        return 0;
+    }
+    stack->layers[index].blend_mode = blend_mode;
+    return 1;
+}
+
+int layer_stack_cycle_blend_mode(LayerStack *stack, int index, int direction) {
+    if (!stack || index < 0 || index >= stack->layer_count || direction == 0) {
+        return 0;
+    }
+    stack->layers[index].blend_mode = (int)blend_mode_cycle((BlendMode)stack->layers[index].blend_mode, direction);
+    return 1;
+}
+
 int layer_stack_can_delete(const LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count || stack->layer_count == 1) {
         return 0;
@@ -590,6 +612,7 @@ int layer_stack_delete(LayerStack *stack, int index) {
     stack->layers[stack->layer_count].canvas.pixels = NULL;
     stack->layers[stack->layer_count].visible = 0;
     stack->layers[stack->layer_count].locked = 0;
+    stack->layers[stack->layer_count].blend_mode = BLEND_NORMAL;
     stack->layers[stack->layer_count].name[0] = '\0';
 
     if (stack->active_layer >= stack->layer_count) {
@@ -631,6 +654,7 @@ int layer_stack_duplicate(LayerStack *stack, int index, const char *name) {
     dup->visible = source->visible;
     dup->locked = source->locked;
     dup->opacity_percent = source->opacity_percent;
+    dup->blend_mode = source->blend_mode;
     dup->name[0] = '\0';
 
     if (!canvas_init(&dup->canvas, stack->width, stack->height)) {
@@ -730,13 +754,15 @@ int layer_stack_merge_down(LayerStack *stack, int index) {
 
     size_t total = (size_t)stack->width * (size_t)stack->height;
     for (size_t i = 0; i < total; i++) {
-        lower->canvas.pixels[i] = blend_pixel(
+        lower->canvas.pixels[i] = blend_mode_composite(
             lower->canvas.pixels[i],
-            apply_layer_opacity(upper->canvas.pixels[i], upper->opacity_percent)
+            apply_layer_opacity(upper->canvas.pixels[i], upper->opacity_percent),
+            (BlendMode)upper->blend_mode
         );
     }
     lower->visible = lower->visible || upper->visible;
     lower->opacity_percent = 100;
+    lower->blend_mode = BLEND_NORMAL;
 
     canvas_free(&upper->canvas);
     for (int i = index; i < stack->layer_count - 1; i++) {
@@ -750,6 +776,7 @@ int layer_stack_merge_down(LayerStack *stack, int index) {
     stack->layers[stack->layer_count].visible = 0;
     stack->layers[stack->layer_count].locked = 0;
     stack->layers[stack->layer_count].opacity_percent = 100;
+    stack->layers[stack->layer_count].blend_mode = BLEND_NORMAL;
     stack->layers[stack->layer_count].name[0] = '\0';
 
     if (stack->active_layer >= stack->layer_count) {
@@ -785,13 +812,15 @@ int layer_stack_merge_up(LayerStack *stack, int index) {
 
     size_t total = (size_t)stack->width * (size_t)stack->height;
     for (size_t i = 0; i < total; i++) {
-        upper->canvas.pixels[i] = blend_pixel(
+        upper->canvas.pixels[i] = blend_mode_composite(
             lower->canvas.pixels[i],
-            apply_layer_opacity(upper->canvas.pixels[i], upper->opacity_percent)
+            apply_layer_opacity(upper->canvas.pixels[i], upper->opacity_percent),
+            (BlendMode)upper->blend_mode
         );
     }
     upper->visible = lower->visible || upper->visible;
     upper->opacity_percent = 100;
+    upper->blend_mode = BLEND_NORMAL;
 
     canvas_free(&lower->canvas);
     for (int i = index; i < stack->layer_count - 1; i++) {
@@ -805,6 +834,7 @@ int layer_stack_merge_up(LayerStack *stack, int index) {
     stack->layers[stack->layer_count].visible = 0;
     stack->layers[stack->layer_count].locked = 0;
     stack->layers[stack->layer_count].opacity_percent = 100;
+    stack->layers[stack->layer_count].blend_mode = BLEND_NORMAL;
     stack->layers[stack->layer_count].name[0] = '\0';
 
     if (stack->active_layer >= stack->layer_count) {
@@ -853,6 +883,7 @@ int layer_stack_flatten(LayerStack *stack, uint32_t background_color) {
     base->visible = 1;
     base->locked = 0;
     base->opacity_percent = 100;
+    base->blend_mode = BLEND_NORMAL;
 
     for (int i = 1; i < stack->layer_count; i++) {
         canvas_free(&stack->layers[i].canvas);
@@ -862,6 +893,7 @@ int layer_stack_flatten(LayerStack *stack, uint32_t background_color) {
         stack->layers[i].visible = 0;
         stack->layers[i].locked = 0;
         stack->layers[i].opacity_percent = 100;
+        stack->layers[i].blend_mode = BLEND_NORMAL;
         stack->layers[i].name[0] = '\0';
     }
 
@@ -926,6 +958,7 @@ int layer_stack_stamp_visible_into(LayerStack *stack, int index, uint32_t backgr
     memcpy(target->canvas.pixels, composite.pixels, total * sizeof(uint32_t));
     target->visible = 1;
     target->opacity_percent = 100;
+    target->blend_mode = BLEND_NORMAL;
     canvas_free(&composite);
     return 1;
 }
@@ -965,7 +998,7 @@ void layer_stack_composite(const LayerStack *stack, Canvas *dest, uint32_t backg
             if ((!layer->visible && !solo_match) || !layer->canvas.pixels) {
                 continue;
             }
-            out = blend_pixel(out, apply_layer_opacity(layer->canvas.pixels[i], layer->opacity_percent));
+            out = blend_mode_composite(out, apply_layer_opacity(layer->canvas.pixels[i], layer->opacity_percent), (BlendMode)layer->blend_mode);
         }
         dest->pixels[i] = out;
     }

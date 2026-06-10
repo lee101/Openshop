@@ -1,6 +1,7 @@
 #ifndef LAYERS_H
 #define LAYERS_H
 
+#include "blend.h"
 #include "canvas.h"
 #include <stdint.h>
 
@@ -12,6 +13,7 @@ typedef struct {
     int visible;
     int locked;
     int opacity_percent;
+    int blend_mode;
     char name[LAYER_NAME_MAX];
 } Layer;
 
@@ -58,6 +60,8 @@ int layer_stack_can_reset_non_background_locked_names(const LayerStack *stack);
 int layer_stack_reset_non_background_locked_names(LayerStack *stack);
 int layer_stack_clear_layer(LayerStack *stack, int index, uint32_t color);
 int layer_stack_set_opacity(LayerStack *stack, int index, int opacity_percent);
+int layer_stack_set_blend_mode(LayerStack *stack, int index, int blend_mode);
+int layer_stack_cycle_blend_mode(LayerStack *stack, int index, int direction);
 int layer_stack_can_delete(const LayerStack *stack, int index);
 int layer_stack_delete(LayerStack *stack, int index);
 int layer_stack_can_duplicate(const LayerStack *stack, int index);

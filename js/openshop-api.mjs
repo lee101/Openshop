@@ -14,6 +14,32 @@ export const BrushShapes = Object.freeze({
   diamond: "diamond",
 });
 
+export const BlendModes = Object.freeze({
+  normal: "normal",
+  multiply: "multiply",
+  screen: "screen",
+  overlay: "overlay",
+  softLight: "softLight",
+  hardLight: "hardLight",
+  darken: "darken",
+  lighten: "lighten",
+  colorDodge: "colorDodge",
+  colorBurn: "colorBurn",
+  linearDodge: "linearDodge",
+  linearBurn: "linearBurn",
+  difference: "difference",
+  exclusion: "exclusion",
+});
+
+export const VfxBrushes = Object.freeze({
+  softRound: "softRound",
+  airbrush: "airbrush",
+  splatter: "splatter",
+  glow: "glow",
+  sparkle: "sparkle",
+  smoke: "smoke",
+});
+
 export class OpenshopDocument {
   constructor({ width, height, backgroundColor = 0xffffffff }) {
     if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) {
@@ -28,6 +54,7 @@ export class OpenshopDocument {
         visible: true,
         locked: false,
         opacityPercent: 100,
+        blendMode: BlendModes.normal,
       },
     ];
     this.activeLayer = 0;
@@ -43,14 +70,14 @@ export class OpenshopDocument {
 
   addLayer(name = "Layer") {
     const index = this.layers.length;
-    this.layers.push({ name, visible: true, locked: false, opacityPercent: 100 });
+    this.layers.push({ name, visible: true, locked: false, opacityPercent: 100, blendMode: BlendModes.normal });
     this.activeLayer = index;
     this.dirty = true;
     return this.record("addLayer", { name, index });
   }
 
   insertLayer(index, name = "Layer") {
-    this.layers.splice(index, 0, { name, visible: true, locked: false, opacityPercent: 100 });
+    this.layers.splice(index, 0, { name, visible: true, locked: false, opacityPercent: 100, blendMode: BlendModes.normal });
     this.activeLayer = index;
     this.dirty = true;
     return this.record("insertLayer", { index, name });
@@ -99,6 +126,15 @@ export class OpenshopDocument {
     return this.record("setLayerOpacity", { index, opacityPercent });
   }
 
+  setLayerBlendMode(index, blendMode) {
+    if (!Object.values(BlendModes).includes(blendMode)) {
+      throw new TypeError(`unknown blend mode: ${blendMode}`);
+    }
+    this.layers[index].blendMode = blendMode;
+    this.dirty = true;
+    return this.record("setLayerBlendMode", { index, blendMode });
+  }
+
   renameLayer(index, name) {
     this.layers[index].name = name;
     this.dirty = true;
@@ -111,11 +147,27 @@ export class OpenshopDocument {
   }
 
   mergeDown(index = this.activeLayer) {
+    if (index > 0 && index < this.layers.length) {
+      this.layers.splice(index, 1);
+      this.layers[index - 1].opacityPercent = 100;
+      this.layers[index - 1].blendMode = BlendModes.normal;
+      this.activeLayer = Math.min(Math.max(0, index - 1), this.layers.length - 1);
+    }
     this.dirty = true;
     return this.record("mergeDown", { index });
   }
 
   flatten() {
+    this.layers = [
+      {
+        ...this.layers[0],
+        visible: true,
+        locked: false,
+        opacityPercent: 100,
+        blendMode: BlendModes.normal,
+      },
+    ];
+    this.activeLayer = 0;
     this.dirty = true;
     return this.record("flatten");
   }
@@ -163,6 +215,54 @@ export class OpenshopDocument {
   translateActive(dx, dy) {
     this.dirty = true;
     return this.record("translateActive", { dx, dy });
+  }
+
+  drawVfxStroke({ x0, y0, x1, y1, radius, color, preset = VfxBrushes.softRound, seed = 0 }) {
+    if (!Object.values(VfxBrushes).includes(preset)) {
+      throw new TypeError(`unknown vfx brush: ${preset}`);
+    }
+    this.dirty = true;
+    return this.record("drawVfxStroke", { x0, y0, x1, y1, radius, color: color >>> 0, preset, seed: seed >>> 0 });
+  }
+
+  adjustBrightnessContrast(brightness, contrast) {
+    this.dirty = true;
+    return this.record("adjustBrightnessContrast", { brightness, contrast });
+  }
+
+  adjustHueSaturation(hue, saturation, lightness = 0) {
+    this.dirty = true;
+    return this.record("adjustHueSaturation", { hue, saturation, lightness });
+  }
+
+  adjustLevels({ inBlack = 0, inWhite = 255, gamma = 1.0, outBlack = 0, outWhite = 255 } = {}) {
+    this.dirty = true;
+    return this.record("adjustLevels", { inBlack, inWhite, gamma, outBlack, outWhite });
+  }
+
+  desaturateActive() {
+    this.dirty = true;
+    return this.record("desaturateActive");
+  }
+
+  posterizeActive(levels) {
+    this.dirty = true;
+    return this.record("posterizeActive", { levels });
+  }
+
+  thresholdActive(level) {
+    this.dirty = true;
+    return this.record("thresholdActive", { level });
+  }
+
+  blurActive(radius) {
+    this.dirty = true;
+    return this.record("blurActive", { radius });
+  }
+
+  sharpenActive(amountPercent) {
+    this.dirty = true;
+    return this.record("sharpenActive", { amountPercent });
   }
 
   toJSON() {

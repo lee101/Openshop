@@ -264,6 +264,24 @@ int openshop_set_layer_opacity(OpenshopDocument *doc, int index, int opacity_per
     return 1;
 }
 
+int openshop_set_layer_blend_mode(OpenshopDocument *doc, int index, int blend_mode) {
+    if (!valid_layer(doc, index) || !blend_mode_valid(blend_mode)) {
+        return 0;
+    }
+    if (!layer_stack_set_blend_mode(&doc->layers, index, blend_mode)) {
+        return 1;
+    }
+    mark_dirty(doc);
+    return 1;
+}
+
+int openshop_get_layer_blend_mode(const OpenshopDocument *doc, int index) {
+    if (!valid_layer(doc, index)) {
+        return -1;
+    }
+    return doc->layers.layers[index].blend_mode;
+}
+
 int openshop_rename_layer(OpenshopDocument *doc, int index, const char *name) {
     if (!valid_layer(doc, index) || !layer_stack_rename(&doc->layers, index, name)) {
         return 0;
@@ -407,6 +425,109 @@ int openshop_translate_active(OpenshopDocument *doc, int dx, int dy) {
         return 0;
     }
     canvas_translate(&layer->canvas, dx, dy, 0x00000000);
+    mark_dirty(doc);
+    return 1;
+}
+
+int openshop_draw_vfx_stroke(
+    OpenshopDocument *doc,
+    int x0,
+    int y0,
+    int x1,
+    int y1,
+    int radius,
+    uint32_t argb,
+    int preset,
+    uint32_t seed
+) {
+    Layer *layer = active_editable_layer(doc);
+    BrushDynamics dyn;
+
+    if (!layer || radius <= 0 || !vfx_brush_valid(preset)) {
+        return 0;
+    }
+    dyn = brush_dynamics_for_preset((VfxBrushPreset)preset, radius);
+    brush_engine_stroke(&layer->canvas, x0, y0, x1, y1, &dyn, argb, seed);
+    mark_dirty(doc);
+    return 1;
+}
+
+int openshop_adjust_brightness_contrast(OpenshopDocument *doc, int brightness, int contrast) {
+    Layer *layer = active_editable_layer(doc);
+    if (!layer) {
+        return 0;
+    }
+    canvas_adjust_brightness_contrast(&layer->canvas, brightness, contrast);
+    mark_dirty(doc);
+    return 1;
+}
+
+int openshop_adjust_hue_saturation(OpenshopDocument *doc, int hue_degrees, int saturation, int lightness) {
+    Layer *layer = active_editable_layer(doc);
+    if (!layer) {
+        return 0;
+    }
+    canvas_adjust_hue_saturation(&layer->canvas, hue_degrees, saturation, lightness);
+    mark_dirty(doc);
+    return 1;
+}
+
+int openshop_adjust_levels(OpenshopDocument *doc, int in_black, int in_white, double gamma, int out_black, int out_white) {
+    Layer *layer = active_editable_layer(doc);
+    if (!layer) {
+        return 0;
+    }
+    canvas_adjust_levels(&layer->canvas, in_black, in_white, gamma, out_black, out_white);
+    mark_dirty(doc);
+    return 1;
+}
+
+int openshop_desaturate_active(OpenshopDocument *doc) {
+    Layer *layer = active_editable_layer(doc);
+    if (!layer) {
+        return 0;
+    }
+    canvas_desaturate(&layer->canvas);
+    mark_dirty(doc);
+    return 1;
+}
+
+int openshop_posterize_active(OpenshopDocument *doc, int levels) {
+    Layer *layer = active_editable_layer(doc);
+    if (!layer || levels < 2) {
+        return 0;
+    }
+    canvas_posterize(&layer->canvas, levels);
+    mark_dirty(doc);
+    return 1;
+}
+
+int openshop_threshold_active(OpenshopDocument *doc, int level) {
+    Layer *layer = active_editable_layer(doc);
+    if (!layer) {
+        return 0;
+    }
+    canvas_threshold(&layer->canvas, level);
+    mark_dirty(doc);
+    return 1;
+}
+
+int openshop_blur_active(OpenshopDocument *doc, int radius) {
+    Layer *layer = active_editable_layer(doc);
+    if (!layer || radius <= 0) {
+        return 0;
+    }
+    canvas_gaussian_blur(&layer->canvas, radius);
+    mark_dirty(doc);
+    return 1;
+}
+
+int openshop_sharpen_active(OpenshopDocument *doc, int amount_percent) {
+    Layer *layer = active_editable_layer(doc);
+    if (!layer || amount_percent <= 0) {
+        return 0;
+    }
+    canvas_sharpen(&layer->canvas, amount_percent);
     mark_dirty(doc);
     return 1;
 }
