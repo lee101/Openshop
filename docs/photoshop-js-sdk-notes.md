@@ -29,9 +29,11 @@ Shipped in `js/photoshop-api.mjs`:
 
 Also shipped: `document.selection` (selectAll/deselect/invert/selectRectangle/selectEllipse/magicWand/feather with `SelectionType`), `document.resizeImage`, `document.resizeCanvas` with `AnchorPosition`, `document.crop`, `document.gradientFill` with `GradientType`, `document.saveAs("*.psd")`, and batchPlay `imageSize`/`canvasSize`/`crop` descriptors.
 
+Round 3 additions: `selection.select(points)` polygon lasso, `layer.grouped` (clipping masks), `layer.addLayerMask`/`removeLayerMask`/`setLayerMaskEnabled`/`hasLayerMask`, retouch strokes (`cloneStroke`, `dodge`, `burn`, `sponge`, `smudge`), and `layer.drawText`.
+
 Next:
 
-- Text layers and lasso/path selections in the DOM facade.
+- Editable text layer objects and path selections in the DOM facade.
 - Script execution entry point for `.mjs` files that can call the same command facade as tests.
 - Wire the JS command log to the C ABI through an embedded runtime or IPC bridge so recorded commands replay against real documents.
 

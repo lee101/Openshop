@@ -4,6 +4,25 @@
 #include <stdlib.h>
 #include <string.h>
 
+uint32_t layer_effective_pixel(const Layer *layer, size_t i) {
+    uint32_t p = layer->canvas.pixels ? layer->canvas.pixels[i] : 0;
+    if (layer->mask_enabled && layer->mask.pixels) {
+        uint32_t mv = layer->mask.pixels[i] & 0xFF;
+        uint32_t a = (((p >> 24) & 0xFF) * mv + 127) / 255;
+        p = (p & 0x00FFFFFF) | (a << 24);
+    }
+    return p;
+}
+
+static void layer_reset_mask(Layer *layer) {
+    canvas_free(&layer->mask);
+    layer->mask.width = 0;
+    layer->mask.height = 0;
+    layer->mask.pixels = NULL;
+    layer->mask_enabled = 0;
+    layer->clipping = 0;
+}
+
 static uint32_t apply_layer_opacity(uint32_t src, int opacity_percent) {
     if (opacity_percent >= 100) {
         return src;
@@ -213,6 +232,11 @@ int layer_stack_init(LayerStack *stack, int width, int height, uint32_t backgrou
         stack->layers[i].canvas.width = width;
         stack->layers[i].canvas.height = height;
         stack->layers[i].canvas.pixels = NULL;
+        stack->layers[i].mask.width = 0;
+        stack->layers[i].mask.height = 0;
+        stack->layers[i].mask.pixels = NULL;
+        stack->layers[i].mask_enabled = 0;
+        stack->layers[i].clipping = 0;
         stack->layers[i].visible = 0;
         stack->layers[i].locked = 0;
         stack->layers[i].opacity_percent = 100;
@@ -234,6 +258,7 @@ void layer_stack_free(LayerStack *stack) {
     }
     for (int i = 0; i < MAX_LAYERS; i++) {
         canvas_free(&stack->layers[i].canvas);
+        layer_reset_mask(&stack->layers[i]);
         stack->layers[i].visible = 0;
         stack->layers[i].locked = 0;
         stack->layers[i].opacity_percent = 100;
@@ -293,6 +318,11 @@ int layer_stack_insert(LayerStack *stack, int index, const char *name, uint32_t 
     layer->canvas.width = stack->width;
     layer->canvas.height = stack->height;
     layer->canvas.pixels = NULL;
+    layer->mask.width = 0;
+    layer->mask.height = 0;
+    layer->mask.pixels = NULL;
+    layer->mask_enabled = 0;
+    layer->clipping = 0;
     if (!ensure_layer_canvas(layer, stack->width, stack->height)) {
         for (int i = index; i < stack->layer_count; i++) {
             stack->layers[i] = stack->layers[i + 1];
@@ -558,6 +588,69 @@ int layer_stack_cycle_blend_mode(LayerStack *stack, int index, int direction) {
     return 1;
 }
 
+int layer_stack_add_mask(LayerStack *stack, int index, const uint8_t *coverage) {
+    Layer *layer;
+    size_t total;
+
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    layer = &stack->layers[index];
+    if (layer->mask.pixels) {
+        return 0;
+    }
+    if (!canvas_init(&layer->mask, stack->width, stack->height)) {
+        return 0;
+    }
+    total = (size_t)stack->width * (size_t)stack->height;
+    for (size_t i = 0; i < total; i++) {
+        uint32_t v = coverage ? coverage[i] : 255;
+        layer->mask.pixels[i] = 0xFF000000u | (v << 16) | (v << 8) | v;
+    }
+    layer->mask_enabled = 1;
+    return 1;
+}
+
+int layer_stack_remove_mask(LayerStack *stack, int index, int apply) {
+    Layer *layer;
+
+    if (!stack || index < 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    layer = &stack->layers[index];
+    if (!layer->mask.pixels) {
+        return 0;
+    }
+    if (apply && layer->canvas.pixels && layer->mask_enabled) {
+        size_t total = (size_t)stack->width * (size_t)stack->height;
+        for (size_t i = 0; i < total; i++) {
+            layer->canvas.pixels[i] = layer_effective_pixel(layer, i);
+        }
+    }
+    {
+        int clipping = layer->clipping;
+        layer_reset_mask(layer);
+        layer->clipping = clipping;
+    }
+    return 1;
+}
+
+int layer_stack_set_mask_enabled(LayerStack *stack, int index, int enabled) {
+    if (!stack || index < 0 || index >= stack->layer_count || !stack->layers[index].mask.pixels) {
+        return 0;
+    }
+    stack->layers[index].mask_enabled = !!enabled;
+    return 1;
+}
+
+int layer_stack_set_clipping(LayerStack *stack, int index, int clipping) {
+    if (!stack || index <= 0 || index >= stack->layer_count) {
+        return 0;
+    }
+    stack->layers[index].clipping = !!clipping;
+    return 1;
+}
+
 int layer_stack_can_delete(const LayerStack *stack, int index) {
     if (!stack || index < 0 || index >= stack->layer_count || stack->layer_count == 1) {
         return 0;
@@ -571,6 +664,7 @@ int layer_stack_delete(LayerStack *stack, int index) {
     }
 
     canvas_free(&stack->layers[index].canvas);
+    layer_reset_mask(&stack->layers[index]);
     for (int i = index; i < stack->layer_count - 1; i++) {
         stack->layers[i] = stack->layers[i + 1];
     }
@@ -579,6 +673,11 @@ int layer_stack_delete(LayerStack *stack, int index) {
     stack->layers[stack->layer_count].canvas.width = stack->width;
     stack->layers[stack->layer_count].canvas.height = stack->height;
     stack->layers[stack->layer_count].canvas.pixels = NULL;
+    stack->layers[stack->layer_count].mask.width = 0;
+    stack->layers[stack->layer_count].mask.height = 0;
+    stack->layers[stack->layer_count].mask.pixels = NULL;
+    stack->layers[stack->layer_count].mask_enabled = 0;
+    stack->layers[stack->layer_count].clipping = 0;
     stack->layers[stack->layer_count].visible = 0;
     stack->layers[stack->layer_count].locked = 0;
     stack->layers[stack->layer_count].blend_mode = BLEND_NORMAL;
@@ -620,6 +719,11 @@ int layer_stack_duplicate(LayerStack *stack, int index, const char *name) {
     dup->canvas.width = stack->width;
     dup->canvas.height = stack->height;
     dup->canvas.pixels = NULL;
+    dup->mask.width = 0;
+    dup->mask.height = 0;
+    dup->mask.pixels = NULL;
+    dup->mask_enabled = source->mask_enabled;
+    dup->clipping = source->clipping;
     dup->visible = source->visible;
     dup->locked = source->locked;
     dup->opacity_percent = source->opacity_percent;
@@ -635,6 +739,13 @@ int layer_stack_duplicate(LayerStack *stack, int index, const char *name) {
 
     size_t total = (size_t)stack->width * (size_t)stack->height;
     memcpy(dup->canvas.pixels, source->canvas.pixels, total * sizeof(uint32_t));
+    if (source->mask.pixels) {
+        if (canvas_init(&dup->mask, stack->width, stack->height)) {
+            memcpy(dup->mask.pixels, source->mask.pixels, total * sizeof(uint32_t));
+        } else {
+            dup->mask_enabled = 0;
+        }
+    }
 
     if (name && name[0]) {
         layer_name_copy_unique(dup->name, sizeof(dup->name), stack, insert_at, name, "Layer");
@@ -724,16 +835,18 @@ int layer_stack_merge_down(LayerStack *stack, int index) {
     size_t total = (size_t)stack->width * (size_t)stack->height;
     for (size_t i = 0; i < total; i++) {
         lower->canvas.pixels[i] = blend_mode_composite(
-            lower->canvas.pixels[i],
-            apply_layer_opacity(upper->canvas.pixels[i], upper->opacity_percent),
+            layer_effective_pixel(lower, i),
+            apply_layer_opacity(layer_effective_pixel(upper, i), upper->opacity_percent),
             (BlendMode)upper->blend_mode
         );
     }
     lower->visible = lower->visible || upper->visible;
     lower->opacity_percent = 100;
     lower->blend_mode = BLEND_NORMAL;
+    layer_reset_mask(lower);
 
     canvas_free(&upper->canvas);
+    layer_reset_mask(upper);
     for (int i = index; i < stack->layer_count - 1; i++) {
         stack->layers[i] = stack->layers[i + 1];
     }
@@ -782,16 +895,18 @@ int layer_stack_merge_up(LayerStack *stack, int index) {
     size_t total = (size_t)stack->width * (size_t)stack->height;
     for (size_t i = 0; i < total; i++) {
         upper->canvas.pixels[i] = blend_mode_composite(
-            lower->canvas.pixels[i],
-            apply_layer_opacity(upper->canvas.pixels[i], upper->opacity_percent),
+            layer_effective_pixel(lower, i),
+            apply_layer_opacity(layer_effective_pixel(upper, i), upper->opacity_percent),
             (BlendMode)upper->blend_mode
         );
     }
     upper->visible = lower->visible || upper->visible;
     upper->opacity_percent = 100;
     upper->blend_mode = BLEND_NORMAL;
+    layer_reset_mask(upper);
 
     canvas_free(&lower->canvas);
+    layer_reset_mask(lower);
     for (int i = index; i < stack->layer_count - 1; i++) {
         stack->layers[i] = stack->layers[i + 1];
     }
@@ -853,9 +968,11 @@ int layer_stack_flatten(LayerStack *stack, uint32_t background_color) {
     base->locked = 0;
     base->opacity_percent = 100;
     base->blend_mode = BLEND_NORMAL;
+    layer_reset_mask(base);
 
     for (int i = 1; i < stack->layer_count; i++) {
         canvas_free(&stack->layers[i].canvas);
+        layer_reset_mask(&stack->layers[i]);
         stack->layers[i].canvas.width = stack->width;
         stack->layers[i].canvas.height = stack->height;
         stack->layers[i].canvas.pixels = NULL;
@@ -928,6 +1045,7 @@ int layer_stack_stamp_visible_into(LayerStack *stack, int index, uint32_t backgr
     target->visible = 1;
     target->opacity_percent = 100;
     target->blend_mode = BLEND_NORMAL;
+    layer_reset_mask(target);
     canvas_free(&composite);
     return 1;
 }
@@ -957,17 +1075,26 @@ void layer_stack_composite(const LayerStack *stack, Canvas *dest, uint32_t backg
     size_t total = (size_t)stack->width * (size_t)stack->height;
     for (size_t i = 0; i < total; i++) {
         uint32_t out = background_color;
+        uint32_t base_alpha = 255;
         for (int layer_index = 0; layer_index < stack->layer_count; layer_index++) {
             const Layer *layer = &stack->layers[layer_index];
             int soloing = stack->solo_index >= 0;
             int solo_match = stack->solo_index == layer_index;
+            uint32_t src;
             if (soloing && !solo_match) {
                 continue;
             }
             if ((!layer->visible && !solo_match) || !layer->canvas.pixels) {
                 continue;
             }
-            out = blend_mode_composite(out, apply_layer_opacity(layer->canvas.pixels[i], layer->opacity_percent), (BlendMode)layer->blend_mode);
+            src = apply_layer_opacity(layer_effective_pixel(layer, i), layer->opacity_percent);
+            if (layer->clipping && layer_index > 0) {
+                uint32_t a = (((src >> 24) & 0xFF) * base_alpha + 127) / 255;
+                src = (src & 0x00FFFFFF) | (a << 24);
+            } else {
+                base_alpha = (src >> 24) & 0xFF;
+            }
+            out = blend_mode_composite(out, src, (BlendMode)layer->blend_mode);
         }
         dest->pixels[i] = out;
     }
@@ -986,6 +1113,9 @@ int layer_stack_resize_image(LayerStack *stack, int new_width, int new_height) {
         } else {
             layer->canvas.width = new_width;
             layer->canvas.height = new_height;
+        }
+        if (layer->mask.pixels && !canvas_resize_bilinear(&layer->mask, new_width, new_height)) {
+            return 0;
         }
     }
     for (int i = stack->layer_count; i < MAX_LAYERS; i++) {
@@ -1011,6 +1141,9 @@ int layer_stack_resize_canvas(LayerStack *stack, int new_width, int new_height, 
         } else {
             layer->canvas.width = new_width;
             layer->canvas.height = new_height;
+        }
+        if (layer->mask.pixels && !canvas_resize_extent(&layer->mask, new_width, new_height, offset_x, offset_y, 0x000000FF)) {
+            return 0;
         }
     }
     for (int i = stack->layer_count; i < MAX_LAYERS; i++) {

@@ -48,6 +48,27 @@ doc.crop(8, 6, 39, 29);
 assert.equal(doc.width, 32);
 assert.equal(doc.height, 24);
 doc.savePsd("out.psd");
+doc.selectPolygon([[2, 2], [20, 2], [2, 20]]);
+assert.equal(doc.hasSelection, true);
+doc.deselect();
+doc.addLayerMask(1);
+assert.equal(doc.layers[1].hasMask, true);
+doc.setLayerMaskEnabled(1, false);
+assert.equal(doc.layers[1].maskEnabled, false);
+doc.removeLayerMask(1);
+assert.equal(doc.layers[1].hasMask, false);
+doc.setLayerClipping(1, true);
+assert.equal(doc.layers[1].clipping, true);
+doc.setLayerClipping(1, false);
+doc.cloneStroke({ offsetX: -8, offsetY: 0, x0: 10, y0: 10, x1: 20, y1: 10, radius: 4 });
+doc.dodgeBurnStroke({ x0: 4, y0: 4, x1: 12, y1: 4, radius: 3, burn: true });
+doc.spongeStroke({ x0: 4, y0: 8, x1: 12, y1: 8, radius: 3 });
+doc.smudgeStroke({ x0: 4, y0: 12, x1: 12, y1: 12, radius: 3 });
+doc.drawText({ x: 2, y: 2, text: "Hi", scale: 2, color: 0xff000000 });
+assert.throws(() => doc.selectPolygon([[0, 0], [1, 1]]));
+assert.throws(() => doc.setLayerMaskEnabled(1, true));
+assert.throws(() => doc.setLayerClipping(0, true));
+assert.throws(() => doc.drawText({ x: 0, y: 0, text: "", scale: 1, color: 0 }));
 assert.throws(() => doc.selectRect(0, 0, 5, 5, "bogus"));
 assert.throws(() => doc.gradientFill({ x0: 0, y0: 0, x1: 1, y1: 1, startColor: 0, endColor: 0, type: "bogus" }));
 assert.throws(() => doc.crop(100, 100, 200, 200));
@@ -88,6 +109,18 @@ assert.deepEqual(
     "resizeCanvas",
     "crop",
     "savePsd",
+    "selectPolygon",
+    "deselect",
+    "addLayerMask",
+    "setLayerMaskEnabled",
+    "removeLayerMask",
+    "setLayerClipping",
+    "setLayerClipping",
+    "cloneStroke",
+    "dodgeBurnStroke",
+    "spongeStroke",
+    "smudgeStroke",
+    "drawText",
   ]
 );
 

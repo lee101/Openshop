@@ -116,6 +116,32 @@ assert.ok(selectionCommands.includes("resizeImage"));
 assert.ok(selectionCommands.includes("crop"));
 assert.ok(selectionCommands.includes("savePsd"));
 
+const fx = doc.artLayers.add();
+fx.addLayerMask();
+assert.equal(fx.hasLayerMask, true);
+fx.setLayerMaskEnabled(false);
+fx.removeLayerMask(true);
+assert.equal(fx.hasLayerMask, false);
+fx.grouped = true;
+assert.equal(fx.grouped, true);
+fx.grouped = false;
+doc.selection.select([[10, 10], [60, 10], [10, 60]], SelectionType.REPLACE);
+assert.equal(doc.selection.exists, true);
+doc.selection.deselect();
+fx.cloneStroke({ offsetX: -10, offsetY: 0, x0: 30, y0: 30, x1: 60, y1: 30, radius: 5 });
+fx.dodge({ x0: 10, y0: 10, x1: 40, y1: 10, radius: 4 });
+fx.burn({ x0: 10, y0: 20, x1: 40, y1: 20, radius: 4 });
+fx.sponge({ x0: 10, y0: 30, x1: 40, y1: 30, radius: 4 });
+fx.smudge({ x0: 10, y0: 40, x1: 40, y1: 40, radius: 4 });
+fx.drawText({ x: 8, y: 8, text: "OpenShop", scale: 2, color: 0xffffffff });
+{
+  const types = doc.commands().map((command) => command.type);
+  assert.ok(types.includes("addLayerMask"));
+  assert.ok(types.includes("selectPolygon"));
+  assert.ok(types.includes("cloneStroke"));
+  assert.ok(types.includes("drawText"));
+}
+
 const second = app.documents.add(64, 64);
 assert.equal(app.documents.length, 2);
 assert.equal(app.activeDocument, second);

@@ -117,7 +117,22 @@ static void test_clamp_edit(void) {
     selection_free(&sel);
 }
 
+static void test_polygon(void) {
+    Selection sel;
+    int xs[] = {2, 13, 2};
+    int ys[] = {2, 2, 13};
+
+    assert(selection_init(&sel, 16, 16));
+    assert(selection_select_polygon(&sel, xs, ys, 3, SELECTION_REPLACE));
+    assert(selection_coverage(&sel, 3, 3) == 255);
+    assert(selection_coverage(&sel, 12, 12) == 0);
+    assert(selection_coverage(&sel, 14, 14) == 0);
+    assert(!selection_select_polygon(&sel, xs, ys, 2, SELECTION_REPLACE));
+    selection_free(&sel);
+}
+
 int main(void) {
+    test_polygon();
     test_basic_ops();
     test_ellipse();
     test_magic_wand();

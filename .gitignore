@@ -13,6 +13,7 @@ adjust_selftest
 brush_engine_selftest
 selection_selftest
 psd_selftest
+retouch_selftest
 test-artifacts/
 visualbench/
 visualbench_runner

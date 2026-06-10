@@ -130,7 +130,76 @@ static void test_layer_stack_resize_and_crop(void) {
     layer_stack_free(&stack);
 }
 
+static void test_layer_masks_and_clipping(void) {
+    LayerStack stack;
+    Canvas composite = {0};
+    uint8_t coverage[16];
+
+    assert(layer_stack_init(&stack, 4, 4, 0xFF000000));
+    assert(layer_stack_add(&stack, "Top", 0x00000000) == 1);
+    canvas_clear(&stack.layers[1].canvas, 0xFFFF0000);
+
+    for (int i = 0; i < 16; i++) {
+        coverage[i] = i < 8 ? 255 : 0;
+    }
+    assert(layer_stack_add_mask(&stack, 1, coverage));
+    assert(!layer_stack_add_mask(&stack, 1, coverage));
+    assert(stack.layers[1].mask_enabled);
+
+    assert(canvas_init(&composite, 4, 4));
+    layer_stack_composite(&stack, &composite, 0xFF000000);
+    assert(canvas_get_pixel(&composite, 0, 0) == 0xFFFF0000);
+    assert(canvas_get_pixel(&composite, 0, 3) == 0xFF000000);
+
+    assert(layer_stack_set_mask_enabled(&stack, 1, 0));
+    layer_stack_composite(&stack, &composite, 0xFF000000);
+    assert(canvas_get_pixel(&composite, 0, 3) == 0xFFFF0000);
+    assert(layer_stack_set_mask_enabled(&stack, 1, 1));
+
+    assert(layer_stack_duplicate(&stack, 1, NULL) == 2);
+    assert(stack.layers[2].mask.pixels != NULL);
+    assert(stack.layers[2].mask_enabled);
+    assert(layer_stack_delete(&stack, 2));
+
+    assert(layer_stack_remove_mask(&stack, 1, 1));
+    assert(stack.layers[1].mask.pixels == NULL);
+    assert((canvas_get_pixel(&stack.layers[1].canvas, 0, 3) >> 24) == 0);
+    assert((canvas_get_pixel(&stack.layers[1].canvas, 0, 0) >> 24) == 255);
+
+    canvas_free(&composite);
+    layer_stack_free(&stack);
+}
+
+static void test_clipping_mask(void) {
+    LayerStack stack;
+    Canvas composite = {0};
+
+    assert(layer_stack_init(&stack, 4, 4, 0xFFFFFFFF));
+    assert(layer_stack_add(&stack, "Base", 0x00000000) == 1);
+    canvas_draw_rect_filled(&stack.layers[1].canvas, 0, 0, 1, 3, 0xFF00FF00);
+    assert(layer_stack_add(&stack, "Clip", 0x00000000) == 2);
+    canvas_clear(&stack.layers[2].canvas, 0xFFFF0000);
+
+    assert(!layer_stack_set_clipping(&stack, 0, 1));
+    assert(layer_stack_set_clipping(&stack, 2, 1));
+    assert(stack.layers[2].clipping);
+
+    assert(canvas_init(&composite, 4, 4));
+    layer_stack_composite(&stack, &composite, 0xFFFFFFFF);
+    assert(canvas_get_pixel(&composite, 0, 0) == 0xFFFF0000);
+    assert(canvas_get_pixel(&composite, 3, 0) == 0xFFFFFFFF);
+
+    assert(layer_stack_set_clipping(&stack, 2, 0));
+    layer_stack_composite(&stack, &composite, 0xFFFFFFFF);
+    assert(canvas_get_pixel(&composite, 3, 0) == 0xFFFF0000);
+
+    canvas_free(&composite);
+    layer_stack_free(&stack);
+}
+
 int main(void) {
+    test_layer_masks_and_clipping();
+    test_clipping_mask();
     test_layer_stack_resize_and_crop();
     test_blend_channels();
     test_blend_composite();

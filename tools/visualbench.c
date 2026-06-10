@@ -1,6 +1,8 @@
 #include "../src/adjust.h"
 #include "../src/app_brush.h"
+#include "../src/font.h"
 #include "../src/gradient.h"
+#include "../src/retouch.h"
 #include "../src/selection.h"
 #include "../src/brush_engine.h"
 #include "../src/app_shape.h"
@@ -589,6 +591,83 @@ done:
     return ok;
 }
 
+static int make_layer_mask_screen(void) {
+    LayerStack doc;
+    Selection sel = {0};
+    int ok = 0;
+
+    if (!layer_stack_init(&doc, DOC_WIDTH, DOC_HEIGHT, DOC_BG)) {
+        return 0;
+    }
+    draw_sample_photo(&doc.layers[0].canvas);
+
+    {
+        int color_layer = layer_stack_add(&doc, "Wash", 0x00000000);
+        int clip_layer;
+        if (color_layer < 0) {
+            goto done;
+        }
+        canvas_gradient_fill(&doc.layers[color_layer].canvas, 0, 0, DOC_WIDTH - 1, DOC_HEIGHT - 1, 0xFFE11D48, 0xFF1D4ED8, GRADIENT_LINEAR);
+
+        if (!selection_init(&sel, DOC_WIDTH, DOC_HEIGHT)) {
+            goto done;
+        }
+        selection_select_ellipse(&sel, 140, 90, 660, 510, SELECTION_REPLACE);
+        selection_feather(&sel, 18);
+        if (!layer_stack_add_mask(&doc, color_layer, sel.mask)) {
+            goto done;
+        }
+
+        clip_layer = layer_stack_add(&doc, "Clip", 0x00000000);
+        if (clip_layer < 0) {
+            goto done;
+        }
+        canvas_draw_rect_filled(&doc.layers[clip_layer].canvas, 0, 0, DOC_WIDTH - 1, DOC_HEIGHT - 1, 0x80FDD835);
+        layer_stack_set_clipping(&doc, clip_layer, 1);
+    }
+
+    ok = save_shot_with_doc(&doc, "visualbench/layer-masks.bmp", 1);
+
+done:
+    selection_free(&sel);
+    layer_stack_free(&doc);
+    return ok;
+}
+
+static int make_text_retouch_screen(void) {
+    LayerStack doc;
+    int ok = 0;
+
+    if (!layer_stack_init(&doc, DOC_WIDTH, DOC_HEIGHT, 0xFF1B2430)) {
+        return 0;
+    }
+    {
+        Canvas *canvas = &doc.layers[0].canvas;
+        canvas_draw_text(canvas, 40, 30, "OpenShop", 6, 0xFFF8FAFC);
+        canvas_draw_text(canvas, 40, 120, "Photoshop parity build", 3, 0xFF38BDF8);
+        canvas_draw_text(canvas, 40, 170, "blend modes / selections / masks / psd", 2, 0xFF94A3B8);
+
+        canvas_draw_rect_filled(canvas, 40, 230, 740, 330, 0xFF808080);
+        canvas_dodge_burn_stroke(canvas, 80, 280, 340, 280, 28, 70, 0);
+        canvas_dodge_burn_stroke(canvas, 440, 280, 700, 280, 28, 70, 1);
+        canvas_draw_text(canvas, 80, 340, "dodge", 2, 0xFFF8FAFC);
+        canvas_draw_text(canvas, 440, 340, "burn", 2, 0xFFF8FAFC);
+
+        canvas_draw_rect_filled(canvas, 40, 390, 740, 470, 0xFFE11D48);
+        canvas_sponge_stroke(canvas, 80, 430, 340, 430, 24, 85, 1);
+        canvas_sponge_stroke(canvas, 440, 430, 700, 430, 24, 85, 0);
+        canvas_draw_text(canvas, 80, 478, "sponge -sat", 2, 0xFFF8FAFC);
+        canvas_draw_text(canvas, 440, 478, "sponge +sat", 2, 0xFFF8FAFC);
+
+        canvas_draw_rect_filled(canvas, 40, 520, 240, 580, 0xFF38BDF8);
+        canvas_smudge_stroke(canvas, 230, 550, 420, 550, 18, 85);
+        canvas_draw_text(canvas, 460, 540, "smudge drag", 2, 0xFFF8FAFC);
+    }
+    ok = save_shot_with_doc(&doc, "visualbench/text-retouch.bmp", 1);
+    layer_stack_free(&doc);
+    return ok;
+}
+
 static int make_tool_screens(void) {
     int ok = 1;
 
@@ -629,6 +708,12 @@ int main(void) {
     if (!make_gradient_screen()) {
         return 1;
     }
+    if (!make_layer_mask_screen()) {
+        return 1;
+    }
+    if (!make_text_retouch_screen()) {
+        return 1;
+    }
 
     puts("visualbench wrote visualbench/editor-overview.bmp");
     puts("visualbench wrote visualbench/layer-states.bmp");
@@ -639,5 +724,7 @@ int main(void) {
     puts("visualbench wrote visualbench/adjustments.bmp");
     puts("visualbench wrote visualbench/selection-masked-edit.bmp");
     puts("visualbench wrote visualbench/gradients.bmp");
+    puts("visualbench wrote visualbench/layer-masks.bmp");
+    puts("visualbench wrote visualbench/text-retouch.bmp");
     return 0;
 }

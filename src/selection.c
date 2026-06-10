@@ -156,6 +156,34 @@ void selection_select_ellipse(Selection *sel, int x0, int y0, int x1, int y1, Se
     }
 }
 
+int selection_select_polygon(Selection *sel, const int *xs, const int *ys, int count, SelectionOp op) {
+    if (!sel || !sel->mask || !xs || !ys || count < 3) {
+        return 0;
+    }
+
+    begin_op(sel, op);
+    for (int y = 0; y < sel->height; y++) {
+        double yc = y + 0.5;
+        for (int x = 0; x < sel->width; x++) {
+            double xc = x + 0.5;
+            int inside = 0;
+            for (int i = 0, j = count - 1; i < count; j = i++) {
+                double xi = xs[i];
+                double yi = ys[i];
+                double xj = xs[j];
+                double yj = ys[j];
+                if ((yi > yc) != (yj > yc) && xc < (xj - xi) * (yc - yi) / (yj - yi) + xi) {
+                    inside = !inside;
+                }
+            }
+            if (inside) {
+                apply_op(sel, x, y, 255, op);
+            }
+        }
+    }
+    return 1;
+}
+
 static int wand_matches(uint32_t a, uint32_t b, int tolerance) {
     int dr = (int)((a >> 16) & 0xFF) - (int)((b >> 16) & 0xFF);
     int dg = (int)((a >> 8) & 0xFF) - (int)((b >> 8) & 0xFF);

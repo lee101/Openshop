@@ -23,7 +23,13 @@ OpenShop now exposes the same first-pass document/layer/tool command names in C 
 Both APIs cover document creation, layer operations, brush/eraser strokes, VFX brush strokes, basic shapes, transforms, layer blend modes, image adjustments (brightness/contrast, hue/saturation, levels, desaturate, posterize, threshold, gaussian blur, sharpen), flattening, and export plumbing. `make test` runs selftests for all surfaces when Node is available.
 
 ## Selections
-Rectangular marquee (`M`, drag), magic wand (`W`, click, tolerance 32), `Shift` adds, `Alt` subtracts, tiny drag or `Esc` deselects. Selections clip painting, fills, shapes, VFX strokes, gradients, and adjustments (feather supported through the script APIs). Marching ants render over the canvas.
+Rectangular marquee (`M`, drag), magic wand (`W`, click, tolerance 32), polygon lasso (script APIs), `Shift` adds, `Alt` subtracts, tiny drag or `Esc` deselects. Selections clip painting, fills, shapes, VFX strokes, retouch strokes, text, gradients, and adjustments (feather supported through the script APIs). Marching ants render over the canvas.
+
+## Layer Masks & Clipping Masks
+Per-layer grayscale masks (add from the active selection or reveal-all, enable/disable, discard or apply on removal) and Photoshop-style clipping masks that clip a layer to the alpha of the layer below. Both honored by compositing and merges; scriptable via C and the JS DOM (`layer.addLayerMask()`, `layer.grouped`).
+
+## Retouch Tools & Text
+Clone stamp, dodge, burn, sponge (saturate/desaturate), and smudge strokes (`src/retouch.h`), plus bitmap-font text rendering with scaling and newlines (`src/font.h`, `canvas_draw_text`).
 
 ## Layer Blend Modes
 Normal, Multiply, Screen, Overlay, Soft Light, Hard Light, Darken, Lighten, Color Dodge, Color Burn, Linear Dodge, Linear Burn, Difference, Exclusion. Compositing and merge-down honor the active mode; `Shift+=` / `Shift+-` cycle the active layer's mode.

@@ -81,6 +81,10 @@ export class DocumentSelection {
   feather(radius) {
     this._document._backing.featherSelection(Math.max(1, Math.round(radius)));
   }
+
+  select(points, type = SelectionType.REPLACE) {
+    this._document._backing.selectPolygon(points, type);
+  }
 }
 
 export { VfxBrushes };
@@ -195,6 +199,60 @@ export class ArtLayer {
   translate(deltaX, deltaY) {
     this._activate();
     this._document._backing.translateActive(Math.round(deltaX), Math.round(deltaY));
+  }
+
+  get grouped() {
+    return Boolean(this._backing.clipping);
+  }
+
+  set grouped(value) {
+    this._document._backing.setLayerClipping(this._index, Boolean(value));
+  }
+
+  get hasLayerMask() {
+    return Boolean(this._backing.hasMask);
+  }
+
+  addLayerMask() {
+    this._document._backing.addLayerMask(this._index);
+  }
+
+  removeLayerMask(apply = false) {
+    this._document._backing.removeLayerMask(this._index, apply);
+  }
+
+  setLayerMaskEnabled(enabled) {
+    this._document._backing.setLayerMaskEnabled(this._index, enabled);
+  }
+
+  cloneStroke(options) {
+    this._activate();
+    this._document._backing.cloneStroke(options);
+  }
+
+  dodge(options) {
+    this._activate();
+    this._document._backing.dodgeBurnStroke({ ...options, burn: false });
+  }
+
+  burn(options) {
+    this._activate();
+    this._document._backing.dodgeBurnStroke({ ...options, burn: true });
+  }
+
+  sponge(options) {
+    this._activate();
+    this._document._backing.spongeStroke(options);
+  }
+
+  smudge(options) {
+    this._activate();
+    this._document._backing.smudgeStroke(options);
+  }
+
+  drawText(options) {
+    this._activate();
+    this._document._backing.drawText(options);
   }
 
   duplicate() {

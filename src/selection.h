@@ -25,6 +25,7 @@ void selection_deselect(Selection *sel);
 void selection_invert(Selection *sel);
 void selection_select_rect(Selection *sel, int x0, int y0, int x1, int y1, SelectionOp op);
 void selection_select_ellipse(Selection *sel, int x0, int y0, int x1, int y1, SelectionOp op);
+int selection_select_polygon(Selection *sel, const int *xs, const int *ys, int count, SelectionOp op);
 int selection_magic_wand(Selection *sel, const Canvas *source, int x, int y, int tolerance, SelectionOp op);
 void selection_feather(Selection *sel, int radius);
 uint8_t selection_coverage(const Selection *sel, int x, int y);

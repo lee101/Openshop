@@ -66,6 +66,9 @@ export class OpenshopDocument {
         locked: false,
         opacityPercent: 100,
         blendMode: BlendModes.normal,
+        hasMask: false,
+        maskEnabled: false,
+        clipping: false,
       },
     ];
     this.activeLayer = 0;
@@ -82,14 +85,14 @@ export class OpenshopDocument {
 
   addLayer(name = "Layer") {
     const index = this.layers.length;
-    this.layers.push({ name, visible: true, locked: false, opacityPercent: 100, blendMode: BlendModes.normal });
+    this.layers.push({ name, visible: true, locked: false, opacityPercent: 100, blendMode: BlendModes.normal, hasMask: false, maskEnabled: false, clipping: false });
     this.activeLayer = index;
     this.dirty = true;
     return this.record("addLayer", { name, index });
   }
 
   insertLayer(index, name = "Layer") {
-    this.layers.splice(index, 0, { name, visible: true, locked: false, opacityPercent: 100, blendMode: BlendModes.normal });
+    this.layers.splice(index, 0, { name, visible: true, locked: false, opacityPercent: 100, blendMode: BlendModes.normal, hasMask: false, maskEnabled: false, clipping: false });
     this.activeLayer = index;
     this.dirty = true;
     return this.record("insertLayer", { index, name });
@@ -367,6 +370,77 @@ export class OpenshopDocument {
 
   savePsd(path) {
     return this.record("savePsd", { path });
+  }
+
+  selectPolygon(points, op = SelectionOps.replace) {
+    if (!Object.values(SelectionOps).includes(op)) {
+      throw new TypeError(`unknown selection op: ${op}`);
+    }
+    if (!Array.isArray(points) || points.length < 3) {
+      throw new TypeError("polygon needs at least 3 points");
+    }
+    this.hasSelection = true;
+    return this.record("selectPolygon", { points: points.map(([x, y]) => [x, y]), op });
+  }
+
+  addLayerMask(index = this.activeLayer) {
+    this.layers[index].hasMask = true;
+    this.layers[index].maskEnabled = true;
+    this.dirty = true;
+    return this.record("addLayerMask", { index });
+  }
+
+  removeLayerMask(index = this.activeLayer, apply = false) {
+    this.layers[index].hasMask = false;
+    this.layers[index].maskEnabled = false;
+    this.dirty = true;
+    return this.record("removeLayerMask", { index, apply: Boolean(apply) });
+  }
+
+  setLayerMaskEnabled(index, enabled) {
+    if (!this.layers[index].hasMask) {
+      throw new Error("layer has no mask");
+    }
+    this.layers[index].maskEnabled = Boolean(enabled);
+    this.dirty = true;
+    return this.record("setLayerMaskEnabled", { index, enabled: Boolean(enabled) });
+  }
+
+  setLayerClipping(index, clipping) {
+    if (index === 0) {
+      throw new RangeError("background layer cannot clip");
+    }
+    this.layers[index].clipping = Boolean(clipping);
+    this.dirty = true;
+    return this.record("setLayerClipping", { index, clipping: Boolean(clipping) });
+  }
+
+  cloneStroke({ offsetX, offsetY, x0, y0, x1, y1, radius, hardnessPercent = 80 }) {
+    this.dirty = true;
+    return this.record("cloneStroke", { offsetX, offsetY, x0, y0, x1, y1, radius, hardnessPercent });
+  }
+
+  dodgeBurnStroke({ x0, y0, x1, y1, radius, amountPercent = 50, burn = false }) {
+    this.dirty = true;
+    return this.record("dodgeBurnStroke", { x0, y0, x1, y1, radius, amountPercent, burn: Boolean(burn) });
+  }
+
+  spongeStroke({ x0, y0, x1, y1, radius, amountPercent = 50, desaturate = true }) {
+    this.dirty = true;
+    return this.record("spongeStroke", { x0, y0, x1, y1, radius, amountPercent, desaturate: Boolean(desaturate) });
+  }
+
+  smudgeStroke({ x0, y0, x1, y1, radius, strengthPercent = 60 }) {
+    this.dirty = true;
+    return this.record("smudgeStroke", { x0, y0, x1, y1, radius, strengthPercent });
+  }
+
+  drawText({ x, y, text, scale = 1, color }) {
+    if (typeof text !== "string" || text.length === 0) {
+      throw new TypeError("text must be a non-empty string");
+    }
+    this.dirty = true;
+    return this.record("drawText", { x, y, text, scale, color: color >>> 0 });
   }
 
   loadPsd(path) {

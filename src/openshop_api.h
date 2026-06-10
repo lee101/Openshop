@@ -5,9 +5,11 @@
 #include "blend.h"
 #include "brush_engine.h"
 #include "canvas.h"
+#include "font.h"
 #include "gradient.h"
 #include "layers.h"
 #include "psd.h"
+#include "retouch.h"
 #include "selection.h"
 
 #include <stdint.h>
@@ -135,6 +137,22 @@ int openshop_crop(OpenshopDocument *doc, int x0, int y0, int x1, int y1);
 
 int openshop_save_psd(OpenshopDocument *doc, const char *path);
 int openshop_load_psd_into_active(OpenshopDocument *doc, const char *path);
+
+int openshop_add_layer_mask(OpenshopDocument *doc, int index);
+int openshop_remove_layer_mask(OpenshopDocument *doc, int index, int apply);
+int openshop_set_layer_mask_enabled(OpenshopDocument *doc, int index, int enabled);
+int openshop_set_layer_clipping(OpenshopDocument *doc, int index, int clipping);
+int openshop_layer_has_mask(const OpenshopDocument *doc, int index);
+int openshop_layer_is_clipping(const OpenshopDocument *doc, int index);
+
+int openshop_select_polygon(OpenshopDocument *doc, const int *xs, const int *ys, int count, int op);
+
+int openshop_clone_stroke(OpenshopDocument *doc, int offset_x, int offset_y, int x0, int y0, int x1, int y1, int radius, int hardness_percent);
+int openshop_dodge_burn_stroke(OpenshopDocument *doc, int x0, int y0, int x1, int y1, int radius, int amount_percent, int burn);
+int openshop_sponge_stroke(OpenshopDocument *doc, int x0, int y0, int x1, int y1, int radius, int amount_percent, int desaturate);
+int openshop_smudge_stroke(OpenshopDocument *doc, int x0, int y0, int x1, int y1, int radius, int strength_percent);
+
+int openshop_draw_text(OpenshopDocument *doc, int x, int y, const char *text, int scale, uint32_t argb);
 
 const Canvas *openshop_composite(OpenshopDocument *doc);
 int openshop_save_bmp(OpenshopDocument *doc, const char *path);

@@ -766,6 +766,131 @@ int openshop_load_psd_into_active(OpenshopDocument *doc, const char *path) {
     return 1;
 }
 
+int openshop_add_layer_mask(OpenshopDocument *doc, int index) {
+    const uint8_t *coverage = NULL;
+    if (!valid_layer(doc, index)) {
+        return 0;
+    }
+    if (doc->selection.active) {
+        coverage = doc->selection.mask;
+    }
+    if (!layer_stack_add_mask(&doc->layers, index, coverage)) {
+        return 0;
+    }
+    mark_dirty(doc);
+    return 1;
+}
+
+int openshop_remove_layer_mask(OpenshopDocument *doc, int index, int apply) {
+    if (!valid_layer(doc, index) || !layer_stack_remove_mask(&doc->layers, index, apply)) {
+        return 0;
+    }
+    mark_dirty(doc);
+    return 1;
+}
+
+int openshop_set_layer_mask_enabled(OpenshopDocument *doc, int index, int enabled) {
+    if (!valid_layer(doc, index) || !layer_stack_set_mask_enabled(&doc->layers, index, enabled)) {
+        return 0;
+    }
+    mark_dirty(doc);
+    return 1;
+}
+
+int openshop_set_layer_clipping(OpenshopDocument *doc, int index, int clipping) {
+    if (!valid_layer(doc, index) || !layer_stack_set_clipping(&doc->layers, index, clipping)) {
+        return 0;
+    }
+    mark_dirty(doc);
+    return 1;
+}
+
+int openshop_layer_has_mask(const OpenshopDocument *doc, int index) {
+    if (!valid_layer(doc, index)) {
+        return 0;
+    }
+    return doc->layers.layers[index].mask.pixels != NULL;
+}
+
+int openshop_layer_is_clipping(const OpenshopDocument *doc, int index) {
+    if (!valid_layer(doc, index)) {
+        return 0;
+    }
+    return doc->layers.layers[index].clipping;
+}
+
+int openshop_select_polygon(OpenshopDocument *doc, const int *xs, const int *ys, int count, int op) {
+    if (!doc || !valid_selection_op(op)) {
+        return 0;
+    }
+    return selection_select_polygon(&doc->selection, xs, ys, count, (SelectionOp)op);
+}
+
+int openshop_clone_stroke(OpenshopDocument *doc, int offset_x, int offset_y, int x0, int y0, int x1, int y1, int radius, int hardness_percent) {
+    Layer *layer = active_editable_layer(doc);
+    uint32_t *masked = NULL;
+    if (!layer || radius < 1 || (offset_x == 0 && offset_y == 0)) {
+        return 0;
+    }
+    masked = masked_edit_begin(doc, layer);
+    canvas_clone_stroke(&layer->canvas, offset_x, offset_y, x0, y0, x1, y1, radius, hardness_percent);
+    masked_edit_end(doc, layer, masked);
+    mark_dirty(doc);
+    return 1;
+}
+
+int openshop_dodge_burn_stroke(OpenshopDocument *doc, int x0, int y0, int x1, int y1, int radius, int amount_percent, int burn) {
+    Layer *layer = active_editable_layer(doc);
+    uint32_t *masked = NULL;
+    if (!layer || radius < 1 || amount_percent <= 0) {
+        return 0;
+    }
+    masked = masked_edit_begin(doc, layer);
+    canvas_dodge_burn_stroke(&layer->canvas, x0, y0, x1, y1, radius, amount_percent, burn);
+    masked_edit_end(doc, layer, masked);
+    mark_dirty(doc);
+    return 1;
+}
+
+int openshop_sponge_stroke(OpenshopDocument *doc, int x0, int y0, int x1, int y1, int radius, int amount_percent, int desaturate) {
+    Layer *layer = active_editable_layer(doc);
+    uint32_t *masked = NULL;
+    if (!layer || radius < 1 || amount_percent <= 0) {
+        return 0;
+    }
+    masked = masked_edit_begin(doc, layer);
+    canvas_sponge_stroke(&layer->canvas, x0, y0, x1, y1, radius, amount_percent, desaturate);
+    masked_edit_end(doc, layer, masked);
+    mark_dirty(doc);
+    return 1;
+}
+
+int openshop_smudge_stroke(OpenshopDocument *doc, int x0, int y0, int x1, int y1, int radius, int strength_percent) {
+    Layer *layer = active_editable_layer(doc);
+    uint32_t *masked = NULL;
+    if (!layer || radius < 1 || strength_percent <= 0) {
+        return 0;
+    }
+    masked = masked_edit_begin(doc, layer);
+    canvas_smudge_stroke(&layer->canvas, x0, y0, x1, y1, radius, strength_percent);
+    masked_edit_end(doc, layer, masked);
+    mark_dirty(doc);
+    return 1;
+}
+
+int openshop_draw_text(OpenshopDocument *doc, int x, int y, const char *text, int scale, uint32_t argb) {
+    Layer *layer = active_editable_layer(doc);
+    uint32_t *masked = NULL;
+    if (!layer || !text || !text[0] || scale < 1) {
+        return 0;
+    }
+    masked = masked_edit_begin(doc, layer);
+    canvas_draw_text(&layer->canvas, x, y, text, scale, argb);
+    masked_edit_end(doc, layer, masked);
+    mark_dirty(doc);
+    return 1;
+}
+
 const Canvas *openshop_composite(OpenshopDocument *doc) {
     if (!doc) {
         return 0;

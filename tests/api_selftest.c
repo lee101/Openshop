@@ -252,6 +252,88 @@ int main(void) {
         return 1;
     }
 
+    {
+        int xs[] = {2, 30, 2};
+        int ys[] = {2, 2, 22};
+        if (!expect_true("select polygon", openshop_select_polygon(&doc, xs, ys, 3, 0))) {
+            openshop_document_free(&doc);
+            return 1;
+        }
+        if (!expect_true("reject degenerate polygon", !openshop_select_polygon(&doc, xs, ys, 2, 0))) {
+            openshop_document_free(&doc);
+            return 1;
+        }
+    }
+
+    if (!expect_true("add mask from selection", openshop_add_layer_mask(&doc, openshop_document_active_layer(&doc)))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("layer has mask", openshop_layer_has_mask(&doc, openshop_document_active_layer(&doc)))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("disable mask", openshop_set_layer_mask_enabled(&doc, openshop_document_active_layer(&doc), 0))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("remove mask", openshop_remove_layer_mask(&doc, openshop_document_active_layer(&doc), 0))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    openshop_deselect(&doc);
+
+    if (!expect_true("set clipping", openshop_set_layer_clipping(&doc, openshop_document_active_layer(&doc), 1))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("layer is clipping", openshop_layer_is_clipping(&doc, openshop_document_active_layer(&doc)))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("clear clipping", openshop_set_layer_clipping(&doc, openshop_document_active_layer(&doc), 0))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("reject clipping background", !openshop_set_layer_clipping(&doc, 0, 1))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+
+    if (!expect_true("clone stroke", openshop_clone_stroke(&doc, -8, 0, 16, 8, 24, 8, 3, 80))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("reject zero clone offset", !openshop_clone_stroke(&doc, 0, 0, 16, 8, 24, 8, 3, 80))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("dodge stroke", openshop_dodge_burn_stroke(&doc, 4, 4, 20, 4, 4, 50, 0))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("burn stroke", openshop_dodge_burn_stroke(&doc, 4, 12, 20, 12, 4, 50, 1))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("sponge stroke", openshop_sponge_stroke(&doc, 4, 18, 20, 18, 4, 50, 1))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("smudge stroke", openshop_smudge_stroke(&doc, 4, 20, 20, 20, 4, 70))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+
+    if (!expect_true("draw text", openshop_draw_text(&doc, 2, 2, "Hi", 1, 0xFF000000))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("reject empty text", !openshop_draw_text(&doc, 2, 2, "", 1, 0xFF000000))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+
     openshop_document_free(&doc);
     puts("openshop api selftest ok");
     return 0;

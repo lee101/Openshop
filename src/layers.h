@@ -3,6 +3,7 @@
 
 #include "blend.h"
 #include "canvas.h"
+#include <stddef.h>
 #include <stdint.h>
 
 #define MAX_LAYERS 8
@@ -10,6 +11,9 @@
 
 typedef struct {
     Canvas canvas;
+    Canvas mask;
+    int mask_enabled;
+    int clipping;
     int visible;
     int locked;
     int opacity_percent;
@@ -62,6 +66,11 @@ int layer_stack_clear_layer(LayerStack *stack, int index, uint32_t color);
 int layer_stack_set_opacity(LayerStack *stack, int index, int opacity_percent);
 int layer_stack_set_blend_mode(LayerStack *stack, int index, int blend_mode);
 int layer_stack_cycle_blend_mode(LayerStack *stack, int index, int direction);
+int layer_stack_add_mask(LayerStack *stack, int index, const uint8_t *coverage);
+int layer_stack_remove_mask(LayerStack *stack, int index, int apply);
+int layer_stack_set_mask_enabled(LayerStack *stack, int index, int enabled);
+int layer_stack_set_clipping(LayerStack *stack, int index, int clipping);
+uint32_t layer_effective_pixel(const Layer *layer, size_t i);
 int layer_stack_can_delete(const LayerStack *stack, int index);
 int layer_stack_delete(LayerStack *stack, int index);
 int layer_stack_can_duplicate(const LayerStack *stack, int index);
