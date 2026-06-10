@@ -81,6 +81,177 @@ int main(void) {
         return 1;
     }
 
+    if (!expect_true("set blend mode", openshop_set_layer_blend_mode(&doc, paint, BLEND_MULTIPLY))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("get blend mode", openshop_get_layer_blend_mode(&doc, paint) == BLEND_MULTIPLY)) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("reject invalid blend mode", !openshop_set_layer_blend_mode(&doc, paint, 999))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("dirty after blend mode", openshop_document_is_dirty(&doc))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+
+    if (!expect_true("vfx stroke", openshop_draw_vfx_stroke(&doc, 8, 30, 50, 30, 5, 0xFF00FFFF, VFX_BRUSH_AIRBRUSH, 77))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("reject invalid vfx preset", !openshop_draw_vfx_stroke(&doc, 8, 30, 50, 30, 5, 0xFF00FFFF, 999, 77))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("brightness contrast", openshop_adjust_brightness_contrast(&doc, 20, 10))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("hue saturation", openshop_adjust_hue_saturation(&doc, 45, 20, 0))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("levels", openshop_adjust_levels(&doc, 10, 240, 1.1, 0, 255))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("desaturate", openshop_desaturate_active(&doc))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("posterize", openshop_posterize_active(&doc, 4))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("threshold", openshop_threshold_active(&doc, 128))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("blur", openshop_blur_active(&doc, 2))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("sharpen", openshop_sharpen_active(&doc, 100))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+
+    if (!expect_true("select rect", openshop_select_rect(&doc, 0, 0, 31, 47, 0))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("has selection", openshop_has_selection(&doc))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    {
+        int bx0 = -1, by0 = -1, bx1 = -1, by1 = -1;
+        if (!expect_true("selection bounds", openshop_selection_bounds(&doc, &bx0, &by0, &bx1, &by1))) {
+            openshop_document_free(&doc);
+            return 1;
+        }
+        if (!expect_true("bounds values", bx0 == 0 && by0 == 0 && bx1 == 31 && by1 == 47)) {
+            openshop_document_free(&doc);
+            return 1;
+        }
+    }
+
+    if (!expect_true("reset active opacity", openshop_set_layer_opacity(&doc, openshop_document_active_layer(&doc), 100))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("masked shape", openshop_draw_shape(&doc, OPENSHOP_TOOL_FILLED_RECT, 0, 0, 63, 47, 1, 0xFF00FF00))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    composite = openshop_composite(&doc);
+    if (!expect_true("paint inside selection", canvas_get_pixel(composite, 10, 10) == 0xFF00FF00)) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("paint clipped outside selection", canvas_get_pixel(composite, 50, 10) != 0xFF00FF00)) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+
+    if (!expect_true("invert selection", openshop_invert_selection(&doc))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("deselect", openshop_deselect(&doc))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("no selection after deselect", !openshop_has_selection(&doc))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+
+    if (!expect_true("select all", openshop_select_all(&doc))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("magic wand", openshop_magic_wand(&doc, 10, 10, 32, 0))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("feather", openshop_feather_selection(&doc, 2))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("reject bad selection op", !openshop_select_rect(&doc, 0, 0, 5, 5, 99))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    openshop_deselect(&doc);
+
+    if (!expect_true("gradient", openshop_gradient_fill(&doc, 0, 0, 63, 0, 0xFF000000, 0xFFFFFFFF, 0))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("reject bad gradient type", !openshop_gradient_fill(&doc, 0, 0, 63, 0, 0, 0, 99))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+
+    if (!expect_true("save psd", openshop_save_psd(&doc, "test-artifacts/api.psd"))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("load psd", openshop_load_psd_into_active(&doc, "test-artifacts/api.psd"))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+
+    if (!expect_true("resize image", openshop_resize_image(&doc, 32, 24))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("resized width", openshop_document_width(&doc) == 32)) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("resize canvas", openshop_resize_canvas(&doc, 48, 36, 8, 6))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("crop", openshop_crop(&doc, 8, 6, 39, 29))) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    if (!expect_true("cropped width", openshop_document_width(&doc) == 32)) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+    composite = openshop_composite(&doc);
+    if (!expect_true("composite resized", composite->width == 32 && composite->height == 24)) {
+        openshop_document_free(&doc);
+        return 1;
+    }
+
     openshop_document_free(&doc);
     puts("openshop api selftest ok");
     return 0;

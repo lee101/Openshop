@@ -49,6 +49,18 @@ int main(void) {
     ok = ok && expect_rect("toolbar button 0", app_layout_toolbar_button(&layout, 0), (AppRect){14, 64, 36, 34});
     ok = ok && expect_rect("toolbar button 7", app_layout_toolbar_button(&layout, 7), (AppRect){14, 372, 36, 34});
 
+    {
+        AppLayout compact = app_layout_compact();
+        ok = ok && expect_rect("compact canvas", compact.canvas, (AppRect){64, 52, 800, 600});
+        ok = ok && expect_rect("compact left toolbar", compact.left_toolbar, (AppRect){0, 0, 0, 0});
+        ok = ok && expect_rect("compact right panel", compact.right_panel, (AppRect){0, 0, 0, 0});
+        ok = ok && expect_rect("compact bottom panel", compact.bottom_panel, (AppRect){0, 0, 0, 0});
+        ok = ok && expect_int("compact hides panel hits", app_rect_contains(compact.right_panel, 900, 100), 0);
+        ok = ok && expect_int("compact canvas mapping", app_layout_screen_to_canvas(&compact, 74, 72, &x, &y), 1);
+        ok = ok && expect_int("compact canvas x", x, 10);
+        ok = ok && expect_int("compact canvas y", y, 20);
+    }
+
     if (!ok) {
         return 1;
     }

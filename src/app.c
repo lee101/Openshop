@@ -6,6 +6,7 @@
 #include "app_color.h"
 #include "app_layer_state.h"
 #include "app_layout.h"
+#include "selection.h"
 #include "app_preview.h"
 #include "app_runtime_shortcuts.h"
 #include "app_sampled_color.h"
@@ -66,6 +67,15 @@ typedef struct {
     int shape_start_y;
     int preview_active;
     int needs_composite;
+    int compact_mode;
+    int select_mode;
+    int selecting;
+    int select_start_x;
+    int select_start_y;
+    int select_cur_x;
+    int select_cur_y;
+    int masked_stroke;
+    uint32_t *selection_backup;
     uint32_t *shape_base_pixels;
     uint32_t *preview_pixels;
     Canvas preview_canvas;
@@ -77,6 +87,7 @@ typedef struct {
     SDL_Texture *texture;
     LayerStack layers;
     Canvas composite;
+    Selection selection;
     AppRuntime runtime;
 } App;
 
@@ -195,6 +206,34 @@ static void screen_to_canvas_point_clamped(int screen_x, int screen_y, int *canv
     app_layout_screen_to_canvas_clamped(&layout, screen_x, screen_y, canvas_x, canvas_y);
 }
 
+static void selection_edit_capture(App *app) {
+    Layer *active = NULL;
+
+    if (!app || !app->selection.active || !app->runtime.selection_backup) {
+        return;
+    }
+    active = layer_stack_active(&app->layers);
+    if (!active || !active->canvas.pixels) {
+        return;
+    }
+    memcpy(app->runtime.selection_backup, active->canvas.pixels, (size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
+    app->runtime.masked_stroke = 1;
+}
+
+static void selection_edit_clamp(App *app) {
+    Layer *active = NULL;
+
+    if (!app || !app->runtime.masked_stroke || !app->runtime.selection_backup) {
+        return;
+    }
+    active = layer_stack_active(&app->layers);
+    if (!active || !active->canvas.pixels) {
+        return;
+    }
+    selection_clamp_edit(&app->selection, &active->canvas, app->runtime.selection_backup);
+    app->runtime.needs_composite = 1;
+}
+
 static int handle_canvas_sample_shortcut(
     CanvasShortcutAction canvas_action,
     LayerStack *layers,
@@ -277,6 +316,10 @@ static void update_window_title(SDL_Window *window, const LayerStack *layers, To
         visible_layers,
         color
     );
+    if (active && active->blend_mode != BLEND_NORMAL) {
+        size_t len = strlen(title);
+        snprintf(title + len, sizeof(title) - len, " | blend %s", blend_mode_name((BlendMode)active->blend_mode));
+    }
     SDL_SetWindowTitle(window, title);
 }
 
@@ -1701,12 +1744,17 @@ static void draw_toolbar_button(SDL_Renderer *renderer, int index, int active) {
     }
 }
 
-static void draw_photoshop_shell(SDL_Renderer *renderer) {
+static void draw_photoshop_shell(SDL_Renderer *renderer, int compact) {
     if (!renderer) {
         return;
     }
 
     fill_rect(renderer, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0xFF1F1F23);
+
+    if (compact) {
+        stroke_rect(renderer, CANVAS_ORIGIN_X - 1, CANVAS_ORIGIN_Y - 1, CANVAS_WIDTH + 2, CANVAS_HEIGHT + 2, 0xFF0B0B0D);
+        return;
+    }
 
     fill_rect(renderer, 0, 0, WINDOW_WIDTH, 24, 0xFF2B2B2F);
     for (int i = 0; i < 7; i++) {
@@ -1758,16 +1806,65 @@ static void draw_photoshop_shell(SDL_Renderer *renderer) {
     stroke_rect(renderer, CANVAS_ORIGIN_X - 12, CANVAS_ORIGIN_Y - 12, CANVAS_WIDTH + 24, CANVAS_HEIGHT + 24, 0xFF333338);
 }
 
-static void render_frame_background(SDL_Renderer *renderer) {
+static void render_frame_background(SDL_Renderer *renderer, int compact) {
     if (!renderer) {
         return;
     }
 
-    draw_photoshop_shell(renderer);
+    draw_photoshop_shell(renderer, compact);
     draw_checkerboard_background(renderer);
 }
 
-static void present_canvas_texture(SDL_Renderer *renderer, SDL_Texture *texture) {
+static void draw_ant_point(SDL_Renderer *renderer, int x, int y, int phase) {
+    if ((((x + y) >> 2) + phase) & 1) {
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    } else {
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    }
+    SDL_RenderDrawPoint(renderer, CANVAS_ORIGIN_X + x, CANVAS_ORIGIN_Y + y);
+}
+
+static void draw_selection_ants(SDL_Renderer *renderer, const Selection *sel, int phase) {
+    if (!renderer || !sel || !sel->active || !sel->mask) {
+        return;
+    }
+    for (int y = 0; y < sel->height; y++) {
+        const uint8_t *row = sel->mask + (size_t)y * (size_t)sel->width;
+        for (int x = 0; x < sel->width; x++) {
+            int edge;
+            if (row[x] <= 127) {
+                continue;
+            }
+            edge = x == 0 || y == 0 || x == sel->width - 1 || y == sel->height - 1;
+            if (!edge) {
+                edge = row[x - 1] <= 127 || row[x + 1] <= 127 ||
+                       sel->mask[(size_t)(y - 1) * (size_t)sel->width + (size_t)x] <= 127 ||
+                       sel->mask[(size_t)(y + 1) * (size_t)sel->width + (size_t)x] <= 127;
+            }
+            if (edge) {
+                draw_ant_point(renderer, x, y, phase);
+            }
+        }
+    }
+}
+
+static void draw_drag_ants(SDL_Renderer *renderer, int x0, int y0, int x1, int y1, int phase) {
+    int left = x0 < x1 ? x0 : x1;
+    int right = x0 < x1 ? x1 : x0;
+    int top = y0 < y1 ? y0 : y1;
+    int bottom = y0 < y1 ? y1 : y0;
+
+    for (int x = left; x <= right; x++) {
+        draw_ant_point(renderer, x, top, phase);
+        draw_ant_point(renderer, x, bottom, phase);
+    }
+    for (int y = top; y <= bottom; y++) {
+        draw_ant_point(renderer, left, y, phase);
+        draw_ant_point(renderer, right, y, phase);
+    }
+}
+
+static void present_canvas_texture(SDL_Renderer *renderer, SDL_Texture *texture, const Selection *selection, const AppRuntime *runtime) {
     if (!renderer || !texture) {
         return;
     }
@@ -1775,6 +1872,13 @@ static void present_canvas_texture(SDL_Renderer *renderer, SDL_Texture *texture)
     {
         SDL_Rect dest = {CANVAS_ORIGIN_X, CANVAS_ORIGIN_Y, CANVAS_WIDTH, CANVAS_HEIGHT};
         SDL_RenderCopy(renderer, texture, NULL, &dest);
+    }
+    {
+        int phase = (int)((SDL_GetTicks() / 160) & 1);
+        draw_selection_ants(renderer, selection, phase);
+        if (runtime && runtime->selecting) {
+            draw_drag_ants(renderer, runtime->select_start_x, runtime->select_start_y, runtime->select_cur_x, runtime->select_cur_y, phase);
+        }
     }
     SDL_RenderPresent(renderer);
 }
@@ -1807,7 +1911,10 @@ static void render_app_frame(
     Canvas *composite,
     Canvas *preview_canvas,
     int preview_active,
-    int *needs_composite
+    int *needs_composite,
+    int compact_mode,
+    const Selection *selection,
+    const AppRuntime *runtime
 ) {
     if (!renderer || !texture || !layers || !composite || !preview_canvas || !needs_composite) {
         return;
@@ -1819,8 +1926,8 @@ static void render_app_frame(
     }
 
     update_canvas_texture(texture, composite, preview_canvas, preview_active);
-    render_frame_background(renderer);
-    present_canvas_texture(renderer, texture);
+    render_frame_background(renderer, compact_mode);
+    present_canvas_texture(renderer, texture, selection, runtime);
 }
 
 static void destroy_app_graphics(
@@ -1847,6 +1954,8 @@ static void shutdown_app(App *app) {
 
     free(app->runtime.shape_base_pixels);
     free(app->runtime.preview_pixels);
+    free(app->runtime.selection_backup);
+    selection_free(&app->selection);
     snapshot_stack_clear(app->runtime.undo_stack, &app->runtime.undo_count);
     snapshot_stack_clear(app->runtime.redo_stack, &app->runtime.redo_count);
     if (app->composite.pixels) {
@@ -1964,6 +2073,7 @@ static void initialize_app_runtime(AppRuntime *runtime) {
 
     runtime->shape_base_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
     runtime->preview_pixels = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
+    runtime->selection_backup = (uint32_t *)malloc((size_t)CANVAS_WIDTH * (size_t)CANVAS_HEIGHT * sizeof(uint32_t));
     runtime->running = 1;
     runtime->drawing = 0;
     runtime->last_x = 0;
@@ -1981,6 +2091,14 @@ static void initialize_app_runtime(AppRuntime *runtime) {
     runtime->shape_start_y = 0;
     runtime->preview_active = 0;
     runtime->needs_composite = 0;
+    runtime->compact_mode = 0;
+    runtime->select_mode = 0;
+    runtime->selecting = 0;
+    runtime->select_start_x = 0;
+    runtime->select_start_y = 0;
+    runtime->select_cur_x = 0;
+    runtime->select_cur_y = 0;
+    runtime->masked_stroke = 0;
     memset(runtime->undo_stack, 0, sizeof(runtime->undo_stack));
     memset(runtime->redo_stack, 0, sizeof(runtime->redo_stack));
     runtime->preview_canvas.width = CANVAS_WIDTH;
@@ -2004,6 +2122,11 @@ static int initialize_app(App *app, const char *input_path) {
         return 0;
     }
 
+    if (!selection_init(&app->selection, CANVAS_WIDTH, CANVAS_HEIGHT)) {
+        shutdown_app(app);
+        return 0;
+    }
+
     return 1;
 }
 
@@ -2017,6 +2140,28 @@ static void handle_app_event(App *app, const SDL_Event *event) {
         app->runtime.running = 0;
         break;
     case SDL_MOUSEBUTTONDOWN:
+        if (event->button.button == SDL_BUTTON_LEFT && app->runtime.select_mode) {
+            int cx = 0;
+            int cy = 0;
+            if (screen_to_canvas_point(event->button.x, event->button.y, &cx, &cy)) {
+                SDL_Keymod mod = SDL_GetModState();
+                SelectionOp op = (mod & KMOD_SHIFT) ? SELECTION_ADD : (mod & KMOD_ALT) ? SELECTION_SUBTRACT : SELECTION_REPLACE;
+                if (app->runtime.select_mode == 2) {
+                    layer_stack_composite(&app->layers, &app->composite, COLOR_BG);
+                    selection_magic_wand(&app->selection, &app->composite, cx, cy, 32, op);
+                } else {
+                    app->runtime.selecting = 1;
+                    app->runtime.select_start_x = cx;
+                    app->runtime.select_start_y = cy;
+                    app->runtime.select_cur_x = cx;
+                    app->runtime.select_cur_y = cy;
+                }
+            }
+            break;
+        }
+        if (event->button.button == SDL_BUTTON_LEFT && app->selection.active) {
+            selection_edit_capture(app);
+        }
         handle_mouse_button_down(
             event->button,
             &app->layers,
@@ -2043,8 +2188,25 @@ static void handle_app_event(App *app, const SDL_Event *event) {
             &app->runtime.needs_composite,
             app->window
         );
+        if (app->runtime.masked_stroke && app->runtime.drawing) {
+            selection_edit_clamp(app);
+        }
         break;
     case SDL_MOUSEBUTTONUP:
+        if (app->runtime.selecting && event->button.button == SDL_BUTTON_LEFT) {
+            int cx = 0;
+            int cy = 0;
+            SDL_Keymod mod = SDL_GetModState();
+            SelectionOp op = (mod & KMOD_SHIFT) ? SELECTION_ADD : (mod & KMOD_ALT) ? SELECTION_SUBTRACT : SELECTION_REPLACE;
+            screen_to_canvas_point_clamped(event->button.x, event->button.y, &cx, &cy);
+            app->runtime.selecting = 0;
+            if (abs(cx - app->runtime.select_start_x) < 2 && abs(cy - app->runtime.select_start_y) < 2) {
+                selection_deselect(&app->selection);
+            } else {
+                selection_select_rect(&app->selection, app->runtime.select_start_x, app->runtime.select_start_y, cx, cy, op);
+            }
+            break;
+        }
         handle_mouse_button_up(
             event->button,
             &app->layers,
@@ -2062,8 +2224,16 @@ static void handle_app_event(App *app, const SDL_Event *event) {
             &app->runtime.redo_count,
             &app->runtime.needs_composite
         );
+        if (app->runtime.masked_stroke) {
+            selection_edit_clamp(app);
+            app->runtime.masked_stroke = 0;
+        }
         break;
     case SDL_MOUSEMOTION:
+        if (app->runtime.selecting) {
+            screen_to_canvas_point_clamped(event->motion.x, event->motion.y, &app->runtime.select_cur_x, &app->runtime.select_cur_y);
+            break;
+        }
         handle_canvas_motion(
             event->motion.x,
             event->motion.y,
@@ -2084,10 +2254,57 @@ static void handle_app_event(App *app, const SDL_Event *event) {
             &app->runtime.preview_active,
             &app->runtime.needs_composite
         );
+        if (app->runtime.masked_stroke && app->runtime.drawing) {
+            selection_edit_clamp(app);
+        }
         break;
-    case SDL_KEYDOWN:
-        handle_key_down(
-            event->key.keysym.sym,
+    case SDL_KEYDOWN: {
+        SDL_Keymod mod = SDL_GetModState();
+        if (event->key.keysym.sym == SDLK_m && !(mod & (KMOD_CTRL | KMOD_ALT | KMOD_SHIFT))) {
+            app->runtime.select_mode = app->runtime.select_mode == 1 ? 0 : 1;
+            app->runtime.selecting = 0;
+            break;
+        }
+        if (event->key.keysym.sym == SDLK_w && !(mod & (KMOD_CTRL | KMOD_ALT | KMOD_SHIFT))) {
+            app->runtime.select_mode = app->runtime.select_mode == 2 ? 0 : 2;
+            app->runtime.selecting = 0;
+            break;
+        }
+        if (event->key.keysym.sym == SDLK_ESCAPE && app->selection.active && !app->runtime.shaping) {
+            selection_deselect(&app->selection);
+            app->runtime.selecting = 0;
+            break;
+        }
+        if (event->key.keysym.sym == SDLK_TAB && !(mod & (KMOD_CTRL | KMOD_ALT))) {
+            app->runtime.compact_mode = !app->runtime.compact_mode;
+            break;
+        }
+        if ((mod & KMOD_SHIFT) && !(mod & (KMOD_CTRL | KMOD_ALT)) &&
+            (event->key.keysym.sym == SDLK_EQUALS || event->key.keysym.sym == SDLK_MINUS ||
+             event->key.keysym.sym == SDLK_KP_PLUS || event->key.keysym.sym == SDLK_KP_MINUS)) {
+            int direction = (event->key.keysym.sym == SDLK_EQUALS || event->key.keysym.sym == SDLK_KP_PLUS) ? 1 : -1;
+            if (layer_stack_cycle_blend_mode(&app->layers, app->layers.active_layer, direction)) {
+                app->runtime.needs_composite = 1;
+                update_window_title(
+                    app->window,
+                    &app->layers,
+                    app->runtime.tool,
+                    app->runtime.brush_shape,
+                    app->runtime.brush_radius,
+                    app->runtime.brush_color,
+                    app->runtime.brush_opacity
+                );
+            }
+            break;
+        }
+        {
+            int masked_key = app->selection.active && !(mod & KMOD_CTRL) &&
+                             (event->key.keysym.sym == SDLK_f || event->key.keysym.sym == SDLK_c);
+            if (masked_key) {
+                selection_edit_capture(app);
+            }
+            handle_key_down(
+                event->key.keysym.sym,
             &app->layers,
             &app->composite,
             &app->runtime.preview_canvas,
@@ -2106,9 +2323,15 @@ static void handle_app_event(App *app, const SDL_Event *event) {
             &app->runtime.preview_active,
             &app->runtime.running,
             &app->runtime.needs_composite,
-            app->window
-        );
+                app->window
+            );
+            if (masked_key && app->runtime.masked_stroke) {
+                selection_edit_clamp(app);
+                app->runtime.masked_stroke = 0;
+            }
+        }
         break;
+    }
     default:
         break;
     }
@@ -2132,7 +2355,10 @@ static void run_app_loop(App *app) {
             &app->composite,
             &app->runtime.preview_canvas,
             app->runtime.preview_active,
-            &app->runtime.needs_composite
+            &app->runtime.needs_composite,
+            app->runtime.compact_mode,
+            &app->selection,
+            &app->runtime
         );
         SDL_Delay(16);
     }

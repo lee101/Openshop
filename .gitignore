@@ -8,6 +8,11 @@ shortcut_selftest
 history_selftest
 api_selftest
 app_layout_selftest
+blend_selftest
+adjust_selftest
+brush_engine_selftest
+selection_selftest
+psd_selftest
 test-artifacts/
 visualbench/
 visualbench_runner
