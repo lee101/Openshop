@@ -4,10 +4,16 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef _WIN32
+#include <direct.h>
+#define portable_mkdir(path) _mkdir(path)
+#else
 #include <sys/stat.h>
+#define portable_mkdir(path) mkdir(path, 0777)
+#endif
 
 static void ensure_artifacts_dir(void) {
-    if (mkdir("test-artifacts", 0777) != 0) {
+    if (portable_mkdir("test-artifacts") != 0) {
         assert(errno == EEXIST);
     }
 }

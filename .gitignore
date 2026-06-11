@@ -14,6 +14,7 @@ brush_engine_selftest
 selection_selftest
 psd_selftest
 retouch_selftest
+ui_selftest
 test-artifacts/
 visualbench/
 visualbench_runner
@@ -22,4 +23,5 @@ node_modules/
 test-results/
 tmp/
 vendor/
+!third_party/
 next-env.d.ts

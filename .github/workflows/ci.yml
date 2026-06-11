@@ -5,12 +5,12 @@ on:
     branches:
       - main
       - codex/**
+      - claude/**
   pull_request:
 
 jobs:
-  build-and-test:
+  linux:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,6 +28,23 @@ jobs:
           make test
           make test-sdl
 
+      - name: Headless app smoke (software renderer, arbitrary doc size)
+        run: |
+          SDL_VIDEODRIVER=dummy OPENSHOP_FRAMES=20 ./openshop 1024x640
+          SDL_VIDEODRIVER=dummy OPENSHOP_FRAMES=20 ./openshop 320x200
+          SDL_VIDEODRIVER=dummy OPENSHOP_FRAMES=20 ./openshop
+
+      - name: Visual bench
+        run: make visualbench
+
+      - name: Upload visual bench captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visualbench-linux
+          path: visualbench/*.bmp
+          if-no-files-found: ignore
+
       - name: Upload generated self-test images
         if: always()
         uses: actions/upload-artifact@v4
@@ -35,3 +52,49 @@ jobs:
           name: selftest-images
           path: test-artifacts/*.bmp
           if-no-files-found: ignore
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: brew install sdl2
+
+      - name: Build
+        run: make
+
+      - name: Run tests
+        run: make test
+
+      - name: Headless app smoke (software renderer)
+        run: SDL_VIDEODRIVER=dummy OPENSHOP_FRAMES=20 ./openshop 1024x640
+
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+          install: >-
+            make
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-SDL2
+
+      - name: Build
+        run: make
+
+      - name: Run tests
+        run: make test
+
+      - name: Headless app smoke (software renderer)
+        run: SDL_VIDEODRIVER=dummy OPENSHOP_FRAMES=20 ./openshop.exe 1024x640

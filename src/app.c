@@ -7,6 +7,7 @@
 #include "app_layer_state.h"
 #include "app_layout.h"
 #include "selection.h"
+#include "ui_shell.h"
 #include "app_preview.h"
 #include "app_runtime_shortcuts.h"
 #include "app_sampled_color.h"
@@ -32,20 +33,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define WINDOW_WIDTH APP_LAYOUT_WINDOW_WIDTH
-#define WINDOW_HEIGHT APP_LAYOUT_WINDOW_HEIGHT
-#define CANVAS_WIDTH APP_LAYOUT_CANVAS_WIDTH
-#define CANVAS_HEIGHT APP_LAYOUT_CANVAS_HEIGHT
-#define CANVAS_ORIGIN_X APP_LAYOUT_CANVAS_X
-#define CANVAS_ORIGIN_Y APP_LAYOUT_CANVAS_Y
-#define RIGHT_PANEL_X APP_LAYOUT_RIGHT_PANEL_X
-#define RIGHT_PANEL_WIDTH APP_LAYOUT_RIGHT_PANEL_WIDTH
-#define BOTTOM_PANEL_Y APP_LAYOUT_BOTTOM_PANEL_Y
+#define DEFAULT_WINDOW_WIDTH 1280
+#define DEFAULT_WINDOW_HEIGHT 800
 #define MAX_HISTORY 20
+
+static int g_doc_width = APP_LAYOUT_CANVAS_WIDTH;
+static int g_doc_height = APP_LAYOUT_CANVAS_HEIGHT;
+static UiShellFrame g_frame;
+
+#define CANVAS_WIDTH g_doc_width
+#define CANVAS_HEIGHT g_doc_height
 
 static const uint32_t COLOR_BG = 0xFFFFFFFF;     // white
 static const uint32_t COLOR_BRUSH = 0xFF1B1F24;  // near-black
-static const int CHECKER_SIZE = 16;
 
 typedef struct {
     int running;
@@ -85,10 +85,21 @@ typedef struct {
     SDL_Window *window;
     SDL_Renderer *renderer;
     SDL_Texture *texture;
+    SDL_Texture *ui_texture;
+    Canvas ui_canvas;
     LayerStack layers;
     Canvas composite;
     Selection selection;
     AppRuntime runtime;
+    int window_width;
+    int window_height;
+    double zoom;
+    int pan_x;
+    int pan_y;
+    int panning;
+    int pan_last_x;
+    int pan_last_y;
+    uint64_t ui_hash;
 } App;
 
 static void push_snapshot(const LayerStack *layers, Snapshot *undo_stack, int *undo_count, Snapshot *redo_stack, int *redo_count);
@@ -197,13 +208,13 @@ static void push_snapshot(const LayerStack *layers, Snapshot *undo_stack, int *u
 }
 
 static int screen_to_canvas_point(int screen_x, int screen_y, int *canvas_x, int *canvas_y) {
-    AppLayout layout = app_layout_default();
-    return app_layout_screen_to_canvas(&layout, screen_x, screen_y, canvas_x, canvas_y);
+    int inside = 0;
+    ui_shell_screen_to_doc(&g_frame, screen_x, screen_y, canvas_x, canvas_y, &inside);
+    return inside;
 }
 
 static void screen_to_canvas_point_clamped(int screen_x, int screen_y, int *canvas_x, int *canvas_y) {
-    AppLayout layout = app_layout_default();
-    app_layout_screen_to_canvas_clamped(&layout, screen_x, screen_y, canvas_x, canvas_y);
+    ui_shell_screen_to_doc_clamped(&g_frame, screen_x, screen_y, g_doc_width, g_doc_height, canvas_x, canvas_y);
 }
 
 static void selection_edit_capture(App *app) {
@@ -1666,162 +1677,22 @@ static void handle_key_down(
     );
 }
 
-static void set_render_color(SDL_Renderer *renderer, uint32_t argb) {
-    SDL_SetRenderDrawColor(
-        renderer,
-        (Uint8)((argb >> 16) & 0xFF),
-        (Uint8)((argb >> 8) & 0xFF),
-        (Uint8)(argb & 0xFF),
-        (Uint8)((argb >> 24) & 0xFF)
-    );
-}
-
-static void fill_rect(SDL_Renderer *renderer, int x, int y, int w, int h, uint32_t argb) {
-    SDL_Rect rect = {x, y, w, h};
-    set_render_color(renderer, argb);
-    SDL_RenderFillRect(renderer, &rect);
-}
-
-static void stroke_rect(SDL_Renderer *renderer, int x, int y, int w, int h, uint32_t argb) {
-    SDL_Rect rect = {x, y, w, h};
-    set_render_color(renderer, argb);
-    SDL_RenderDrawRect(renderer, &rect);
-}
-
-static void draw_checkerboard_background(SDL_Renderer *renderer) {
-    if (!renderer) {
-        return;
-    }
-
-    fill_rect(renderer, CANVAS_ORIGIN_X - 12, CANVAS_ORIGIN_Y - 12, CANVAS_WIDTH + 24, CANVAS_HEIGHT + 24, 0xFF111113);
-    for (int y = 0; y < CANVAS_HEIGHT; y += CHECKER_SIZE) {
-        for (int x = 0; x < CANVAS_WIDTH; x += CHECKER_SIZE) {
-            int even = ((x / CHECKER_SIZE) + (y / CHECKER_SIZE)) % 2 == 0;
-            if (even) {
-                set_render_color(renderer, 0xFFE8E8EC);
-            } else {
-                set_render_color(renderer, 0xFFCECED4);
-            }
-            SDL_Rect cell = {CANVAS_ORIGIN_X + x, CANVAS_ORIGIN_Y + y, CHECKER_SIZE, CHECKER_SIZE};
-            SDL_RenderFillRect(renderer, &cell);
-        }
-    }
-}
-
-static void draw_toolbar_button(SDL_Renderer *renderer, int index, int active) {
-    AppLayout layout = app_layout_default();
-    AppRect button = app_layout_toolbar_button(&layout, index);
-    int x = button.x;
-    int y = button.y;
-    uint32_t border = active ? 0xFF5DADE2 : 0xFF4A4A50;
-    uint32_t glyph = active ? 0xFFE7F3FF : 0xFFC9CDD3;
-
-    fill_rect(renderer, x, y, 36, 34, active ? 0xFF2D4D68 : 0xFF242428);
-    stroke_rect(renderer, x, y, 36, 34, border);
-
-    if (index == 0) {
-        SDL_Point points[3] = {{x + 12, y + 9}, {x + 25, y + 17}, {x + 13, y + 25}};
-        set_render_color(renderer, glyph);
-        SDL_RenderDrawLines(renderer, points, 3);
-    } else if (index == 1) {
-        fill_rect(renderer, x + 11, y + 9, 14, 14, glyph);
-        fill_rect(renderer, x + 21, y + 21, 5, 5, glyph);
-    } else if (index == 2) {
-        fill_rect(renderer, x + 10, y + 22, 18, 4, glyph);
-        fill_rect(renderer, x + 18, y + 8, 6, 16, glyph);
-    } else if (index == 3) {
-        stroke_rect(renderer, x + 9, y + 9, 19, 16, glyph);
-    } else if (index == 4) {
-        SDL_RenderDrawLine(renderer, x + 9, y + 25, x + 28, y + 9);
-    } else if (index == 5) {
-        stroke_rect(renderer, x + 9, y + 10, 19, 14, glyph);
-        SDL_RenderDrawLine(renderer, x + 9, y + 10, x + 28, y + 24);
-    } else {
-        fill_rect(renderer, x + 9, y + 9, 9, 9, 0xFFE53935);
-        fill_rect(renderer, x + 18, y + 9, 9, 9, 0xFF1E88E5);
-        fill_rect(renderer, x + 9, y + 18, 9, 9, 0xFFFDD835);
-        fill_rect(renderer, x + 18, y + 18, 9, 9, 0xFF43A047);
-    }
-}
-
-static void draw_photoshop_shell(SDL_Renderer *renderer, int compact) {
-    if (!renderer) {
-        return;
-    }
-
-    fill_rect(renderer, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0xFF1F1F23);
-
-    if (compact) {
-        stroke_rect(renderer, CANVAS_ORIGIN_X - 1, CANVAS_ORIGIN_Y - 1, CANVAS_WIDTH + 2, CANVAS_HEIGHT + 2, 0xFF0B0B0D);
-        return;
-    }
-
-    fill_rect(renderer, 0, 0, WINDOW_WIDTH, 24, 0xFF2B2B2F);
-    for (int i = 0; i < 7; i++) {
-        fill_rect(renderer, 18 + i * 58, 8, 34 + (i % 3) * 8, 5, 0xFFBFC3C9);
-    }
-
-    fill_rect(renderer, 0, 24, WINDOW_WIDTH, 28, 0xFF333338);
-    fill_rect(renderer, 78, 34, 108, 8, 0xFF56565D);
-    fill_rect(renderer, 206, 34, 64, 8, 0xFF56565D);
-    fill_rect(renderer, 292, 34, 88, 8, 0xFF56565D);
-    fill_rect(renderer, 404, 34, 52, 8, 0xFF56565D);
-
-    fill_rect(renderer, 0, 52, 64, WINDOW_HEIGHT - 52, 0xFF2A2A2F);
-    for (int i = 0; i < 8; i++) {
-        draw_toolbar_button(renderer, i, i == 1);
-    }
-    fill_rect(renderer, 15, 432, 16, 16, 0xFF1B1F24);
-    fill_rect(renderer, 31, 448, 16, 16, 0xFFFDD835);
-    stroke_rect(renderer, 14, 431, 18, 18, 0xFF0C0C0D);
-    stroke_rect(renderer, 30, 447, 18, 18, 0xFF0C0C0D);
-
-    fill_rect(renderer, RIGHT_PANEL_X, 52, RIGHT_PANEL_WIDTH, WINDOW_HEIGHT - 64, 0xFF2B2B30);
-    fill_rect(renderer, RIGHT_PANEL_X + 10, 68, RIGHT_PANEL_WIDTH - 20, 18, 0xFF3A3A40);
-    fill_rect(renderer, RIGHT_PANEL_X + 10, 96, 28, 28, 0xFFE53935);
-    fill_rect(renderer, RIGHT_PANEL_X + 41, 96, 28, 28, 0xFF43A047);
-    fill_rect(renderer, RIGHT_PANEL_X + 72, 96, 28, 28, 0xFF1E88E5);
-
-    fill_rect(renderer, RIGHT_PANEL_X + 10, 150, RIGHT_PANEL_WIDTH - 20, 18, 0xFF3A3A40);
-    for (int i = 0; i < 4; i++) {
-        int y = 182 + i * 42;
-        fill_rect(renderer, RIGHT_PANEL_X + 14, y, 32, 24, i == 1 ? 0xFF5DADE2 : 0xFF5B6573);
-        fill_rect(renderer, RIGHT_PANEL_X + 54, y + 5, 48, 6, i == 1 ? 0xFFE8EDF5 : 0xFF8B929C);
-        fill_rect(renderer, RIGHT_PANEL_X + 54, y + 17, 36, 5, 0xFF626A73);
-        stroke_rect(renderer, RIGHT_PANEL_X + 10, y - 5, RIGHT_PANEL_WIDTH - 20, 34, i == 1 ? 0xFF5DADE2 : 0xFF484850);
-    }
-
-    fill_rect(renderer, RIGHT_PANEL_X + 10, 392, RIGHT_PANEL_WIDTH - 20, 18, 0xFF3A3A40);
-    fill_rect(renderer, RIGHT_PANEL_X + 16, 428, 92, 6, 0xFF5DADE2);
-    fill_rect(renderer, RIGHT_PANEL_X + 16, 460, 68, 6, 0xFFFDD835);
-    fill_rect(renderer, RIGHT_PANEL_X + 16, 492, 82, 6, 0xFF8E24AA);
-
-    fill_rect(renderer, 64, BOTTOM_PANEL_Y, 800, 72, 0xFF252529);
-    fill_rect(renderer, 82, BOTTOM_PANEL_Y + 18, 170, 10, 0xFF7B7F87);
-    fill_rect(renderer, 292, BOTTOM_PANEL_Y + 18, 96, 10, 0xFF7B7F87);
-    fill_rect(renderer, 430, BOTTOM_PANEL_Y + 18, 148, 10, 0xFF7B7F87);
-    fill_rect(renderer, 82, BOTTOM_PANEL_Y + 45, 310, 8, 0xFF3F4147);
-
-    stroke_rect(renderer, CANVAS_ORIGIN_X - 1, CANVAS_ORIGIN_Y - 1, CANVAS_WIDTH + 2, CANVAS_HEIGHT + 2, 0xFF0B0B0D);
-    stroke_rect(renderer, CANVAS_ORIGIN_X - 12, CANVAS_ORIGIN_Y - 12, CANVAS_WIDTH + 24, CANVAS_HEIGHT + 24, 0xFF333338);
-}
-
-static void render_frame_background(SDL_Renderer *renderer, int compact) {
-    if (!renderer) {
-        return;
-    }
-
-    draw_photoshop_shell(renderer, compact);
-    draw_checkerboard_background(renderer);
-}
-
 static void draw_ant_point(SDL_Renderer *renderer, int x, int y, int phase) {
+    int sx = (int)(g_frame.viewport.x + x * g_frame.scale);
+    int sy = (int)(g_frame.viewport.y + y * g_frame.scale);
+    int size = g_frame.scale > 1.5 ? (int)(g_frame.scale + 0.5) : 1;
+
     if ((((x + y) >> 2) + phase) & 1) {
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     } else {
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     }
-    SDL_RenderDrawPoint(renderer, CANVAS_ORIGIN_X + x, CANVAS_ORIGIN_Y + y);
+    if (size <= 1) {
+        SDL_RenderDrawPoint(renderer, sx, sy);
+    } else {
+        SDL_Rect dot = {sx, sy, size, size};
+        SDL_RenderFillRect(renderer, &dot);
+    }
 }
 
 static void draw_selection_ants(SDL_Renderer *renderer, const Selection *sel, int phase) {
@@ -1870,7 +1741,12 @@ static void present_canvas_texture(SDL_Renderer *renderer, SDL_Texture *texture,
     }
 
     {
-        SDL_Rect dest = {CANVAS_ORIGIN_X, CANVAS_ORIGIN_Y, CANVAS_WIDTH, CANVAS_HEIGHT};
+        SDL_Rect dest = {
+            (int)(g_frame.viewport.x + 0.5f),
+            (int)(g_frame.viewport.y + 0.5f),
+            (int)(g_frame.viewport.width + 0.5f),
+            (int)(g_frame.viewport.height + 0.5f),
+        };
         SDL_RenderCopy(renderer, texture, NULL, &dest);
     }
     {
@@ -1904,30 +1780,134 @@ static void update_canvas_texture(
     SDL_UpdateTexture(texture, NULL, pixels, CANVAS_WIDTH * 4);
 }
 
-static void render_app_frame(
-    SDL_Renderer *renderer,
-    SDL_Texture *texture,
-    LayerStack *layers,
-    Canvas *composite,
-    Canvas *preview_canvas,
-    int preview_active,
-    int *needs_composite,
-    int compact_mode,
-    const Selection *selection,
-    const AppRuntime *runtime
-) {
-    if (!renderer || !texture || !layers || !composite || !preview_canvas || !needs_composite) {
+static const char *shell_tool_labels[8] = {"M", "W", "B", "E", "L", "R", "O", "F"};
+
+static int shell_active_tool(const AppRuntime *runtime) {
+    if (runtime->select_mode == 1) return 0;
+    if (runtime->select_mode == 2) return 1;
+    switch (runtime->tool) {
+    case TOOL_BRUSH: return 2;
+    case TOOL_ERASER: return 3;
+    case TOOL_LINE: return 4;
+    case TOOL_RECT:
+    case TOOL_FILLED_RECT: return 5;
+    case TOOL_ELLIPSE:
+    case TOOL_FILLED_ELLIPSE: return 6;
+    default: return 7;
+    }
+}
+
+static void fill_shell_state(const App *app, UiShellState *state, char *blend_buffer, size_t blend_size, char *status_buffer, size_t status_size) {
+    const Layer *active = layer_stack_get(&app->layers, app->layers.active_layer);
+
+    memset(state, 0, sizeof(*state));
+    state->doc_width = app->layers.width;
+    state->doc_height = app->layers.height;
+    state->compact = app->runtime.compact_mode;
+    state->zoom = app->zoom;
+    state->pan_x = app->pan_x;
+    state->pan_y = app->pan_y;
+    state->tool_count = 8;
+    state->active_tool = shell_active_tool(&app->runtime);
+    for (int i = 0; i < 8; i++) {
+        state->tool_labels[i] = shell_tool_labels[i];
+    }
+    state->layer_count = app->layers.layer_count;
+    state->active_layer = app->layers.active_layer;
+    for (int i = 0; i < app->layers.layer_count && i < UI_SHELL_MAX_LAYERS; i++) {
+        snprintf(state->layer_names[i], UI_SHELL_NAME_MAX, "%s", app->layers.layers[i].name);
+        state->layer_visible[i] = app->layers.layers[i].visible;
+        state->layer_opacity[i] = app->layers.layers[i].opacity_percent;
+    }
+    snprintf(blend_buffer, blend_size, "%s  %s  size %d  %d%%",
+             app_tool_label(app->runtime.tool),
+             blend_mode_name(active ? (BlendMode)active->blend_mode : BLEND_NORMAL),
+             app->runtime.brush_radius,
+             app->runtime.brush_opacity);
+    state->blend_label = blend_buffer;
+    snprintf(status_buffer, status_size, "zoom %d%%", (int)(g_frame.scale * 100.0 + 0.5));
+    state->status_text = status_buffer;
+    state->foreground_color = 0xFF000000u | app->runtime.brush_color_rgb;
+    state->background_color = COLOR_BG;
+}
+
+static uint64_t shell_state_fingerprint(const App *app, const UiShellState *state) {
+    uint64_t hash = 1469598103934665603ull;
+    const uint8_t *bytes = (const uint8_t *)state;
+
+    for (size_t i = 0; i < sizeof(*state); i++) {
+        hash = (hash ^ bytes[i]) * 1099511628211ull;
+    }
+    for (const char *p = state->blend_label; p && *p; p++) {
+        hash = (hash ^ (uint8_t)*p) * 1099511628211ull;
+    }
+    hash = (hash ^ (uint64_t)app->window_width) * 1099511628211ull;
+    hash = (hash ^ (uint64_t)app->window_height) * 1099511628211ull;
+    return hash;
+}
+
+static void refresh_shell_ui(App *app, int force) {
+    UiShellState state;
+    char blend_buffer[96];
+    char status_buffer[48];
+    uint64_t hash;
+
+    fill_shell_state(app, &state, blend_buffer, sizeof(blend_buffer), status_buffer, sizeof(status_buffer));
+    hash = shell_state_fingerprint(app, &state);
+    if (!force && hash == app->ui_hash) {
+        return;
+    }
+    app->ui_hash = hash;
+
+    ui_shell_build(app->window_width, app->window_height, &state, &g_frame);
+    canvas_clear(&app->ui_canvas, 0xFF1F1F23);
+    ui_draw_list_rasterize(&g_frame.draw_list, &app->ui_canvas);
+    if (app->ui_texture) {
+        SDL_UpdateTexture(app->ui_texture, NULL, app->ui_canvas.pixels, app->window_width * 4);
+    }
+}
+
+static int recreate_window_surfaces(App *app, int width, int height) {
+    if (width < 320) width = 320;
+    if (height < 240) height = 240;
+    app->window_width = width;
+    app->window_height = height;
+
+    if (app->ui_texture) {
+        SDL_DestroyTexture(app->ui_texture);
+        app->ui_texture = NULL;
+    }
+    canvas_free(&app->ui_canvas);
+    if (!canvas_init(&app->ui_canvas, width, height)) {
+        return 0;
+    }
+    app->ui_texture = SDL_CreateTexture(app->renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, width, height);
+    if (!app->ui_texture) {
+        return 0;
+    }
+    refresh_shell_ui(app, 1);
+    return 1;
+}
+
+static void render_app_frame(App *app) {
+    if (!app || !app->renderer || !app->texture) {
         return;
     }
 
-    if (!preview_active && *needs_composite) {
-        layer_stack_composite(layers, composite, COLOR_BG);
-        *needs_composite = 0;
+    if (!app->runtime.preview_active && app->runtime.needs_composite) {
+        layer_stack_composite(&app->layers, &app->composite, COLOR_BG);
+        app->runtime.needs_composite = 0;
     }
 
-    update_canvas_texture(texture, composite, preview_canvas, preview_active);
-    render_frame_background(renderer, compact_mode);
-    present_canvas_texture(renderer, texture, selection, runtime);
+    refresh_shell_ui(app, 0);
+    update_canvas_texture(app->texture, &app->composite, &app->runtime.preview_canvas, app->runtime.preview_active);
+
+    SDL_SetRenderDrawColor(app->renderer, 0x1F, 0x1F, 0x23, 0xFF);
+    SDL_RenderClear(app->renderer);
+    if (app->ui_texture) {
+        SDL_RenderCopy(app->renderer, app->ui_texture, NULL, NULL);
+    }
+    present_canvas_texture(app->renderer, app->texture, &app->selection, &app->runtime);
 }
 
 static void destroy_app_graphics(
@@ -1964,6 +1944,11 @@ static void shutdown_app(App *app) {
     if (app->layers.layers) {
         layer_stack_free(&app->layers);
     }
+    if (app->ui_texture) {
+        SDL_DestroyTexture(app->ui_texture);
+    }
+    canvas_free(&app->ui_canvas);
+    ui_shell_shutdown();
     destroy_app_graphics(app->texture, app->renderer, app->window);
     SDL_Quit();
 }
@@ -1994,9 +1979,9 @@ static int initialize_app_graphics(
         "Openshop - Minimal Paint",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
-        WINDOW_WIDTH,
-        WINDOW_HEIGHT,
-        SDL_WINDOW_SHOWN
+        DEFAULT_WINDOW_WIDTH,
+        DEFAULT_WINDOW_HEIGHT,
+        SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
     );
     if (!window) {
         fprintf(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
@@ -2005,6 +1990,9 @@ static int initialize_app_graphics(
     }
 
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (!renderer) {
+        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+    }
     if (!renderer) {
         fprintf(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
         destroy_app_graphics(NULL, NULL, window);
@@ -2127,6 +2115,16 @@ static int initialize_app(App *app, const char *input_path) {
         return 0;
     }
 
+    app->zoom = 0.0;
+    app->pan_x = 0;
+    app->pan_y = 0;
+    app->panning = 0;
+    app->ui_hash = 0;
+    if (!ui_shell_init() || !recreate_window_surfaces(app, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)) {
+        shutdown_app(app);
+        return 0;
+    }
+
     return 1;
 }
 
@@ -2139,7 +2137,45 @@ static void handle_app_event(App *app, const SDL_Event *event) {
     case SDL_QUIT:
         app->runtime.running = 0;
         break;
+    case SDL_WINDOWEVENT:
+        if (event->window.event == SDL_WINDOWEVENT_SIZE_CHANGED || event->window.event == SDL_WINDOWEVENT_RESIZED) {
+            recreate_window_surfaces(app, event->window.data1, event->window.data2);
+        }
+        break;
+    case SDL_MOUSEWHEEL: {
+        int mx = 0;
+        int my = 0;
+        double before;
+        double next;
+        double doc_x;
+        double doc_y;
+
+        SDL_GetMouseState(&mx, &my);
+        before = g_frame.scale;
+        next = event->wheel.y > 0 ? before * 1.1 : before / 1.1;
+        if (next < 0.05) next = 0.05;
+        if (next > 16.0) next = 16.0;
+        doc_x = ((double)mx - g_frame.viewport.x) / before;
+        doc_y = ((double)my - g_frame.viewport.y) / before;
+        app->zoom = next;
+        {
+            double view_w = app->layers.width * next;
+            double view_h = app->layers.height * next;
+            double base_x = g_frame.well.x + (g_frame.well.width - view_w) / 2.0;
+            double base_y = g_frame.well.y + (g_frame.well.height - view_h) / 2.0;
+            app->pan_x = (int)((double)mx - doc_x * next - base_x);
+            app->pan_y = (int)((double)my - doc_y * next - base_y);
+        }
+        refresh_shell_ui(app, 1);
+        break;
+    }
     case SDL_MOUSEBUTTONDOWN:
+        if (event->button.button == SDL_BUTTON_MIDDLE) {
+            app->panning = 1;
+            app->pan_last_x = event->button.x;
+            app->pan_last_y = event->button.y;
+            break;
+        }
         if (event->button.button == SDL_BUTTON_LEFT && app->runtime.select_mode) {
             int cx = 0;
             int cy = 0;
@@ -2193,6 +2229,10 @@ static void handle_app_event(App *app, const SDL_Event *event) {
         }
         break;
     case SDL_MOUSEBUTTONUP:
+        if (event->button.button == SDL_BUTTON_MIDDLE) {
+            app->panning = 0;
+            break;
+        }
         if (app->runtime.selecting && event->button.button == SDL_BUTTON_LEFT) {
             int cx = 0;
             int cy = 0;
@@ -2230,6 +2270,17 @@ static void handle_app_event(App *app, const SDL_Event *event) {
         }
         break;
     case SDL_MOUSEMOTION:
+        if (app->panning) {
+            app->pan_x += event->motion.x - app->pan_last_x;
+            app->pan_y += event->motion.y - app->pan_last_y;
+            app->pan_last_x = event->motion.x;
+            app->pan_last_y = event->motion.y;
+            if (app->zoom <= 0.0) {
+                app->zoom = g_frame.scale;
+            }
+            refresh_shell_ui(app, 1);
+            break;
+        }
         if (app->runtime.selecting) {
             screen_to_canvas_point_clamped(event->motion.x, event->motion.y, &app->runtime.select_cur_x, &app->runtime.select_cur_y);
             break;
@@ -2273,6 +2324,13 @@ static void handle_app_event(App *app, const SDL_Event *event) {
         if (event->key.keysym.sym == SDLK_ESCAPE && app->selection.active && !app->runtime.shaping) {
             selection_deselect(&app->selection);
             app->runtime.selecting = 0;
+            break;
+        }
+        if (event->key.keysym.sym == SDLK_0 && !(mod & (KMOD_CTRL | KMOD_ALT | KMOD_SHIFT))) {
+            app->zoom = 0.0;
+            app->pan_x = 0;
+            app->pan_y = 0;
+            refresh_shell_ui(app, 1);
             break;
         }
         if (event->key.keysym.sym == SDLK_TAB && !(mod & (KMOD_CTRL | KMOD_ALT))) {
@@ -2338,8 +2396,15 @@ static void handle_app_event(App *app, const SDL_Event *event) {
 }
 
 static void run_app_loop(App *app) {
+    long frame_limit = 0;
+    long frames = 0;
+    const char *limit_env = getenv("OPENSHOP_FRAMES");
+
     if (!app) {
         return;
+    }
+    if (limit_env && limit_env[0]) {
+        frame_limit = strtol(limit_env, NULL, 10);
     }
 
     while (app->runtime.running) {
@@ -2348,25 +2413,22 @@ static void run_app_loop(App *app) {
             handle_app_event(app, &e);
         }
 
-        render_app_frame(
-            app->renderer,
-            app->texture,
-            &app->layers,
-            &app->composite,
-            &app->runtime.preview_canvas,
-            app->runtime.preview_active,
-            &app->runtime.needs_composite,
-            app->runtime.compact_mode,
-            &app->selection,
-            &app->runtime
-        );
+        render_app_frame(app);
         SDL_Delay(16);
+        frames++;
+        if (frame_limit > 0 && frames >= frame_limit) {
+            app->runtime.running = 0;
+        }
     }
 }
 
-int app_run(const char *input_path) {
+int app_run(const char *input_path, int doc_width, int doc_height) {
     App app = {0};
 
+    if (doc_width > 0 && doc_height > 0) {
+        g_doc_width = doc_width;
+        g_doc_height = doc_height;
+    }
     if (!initialize_app(&app, input_path)) {
         return 1;
     }

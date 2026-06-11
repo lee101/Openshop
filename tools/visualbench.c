@@ -4,6 +4,8 @@
 #include "../src/gradient.h"
 #include "../src/retouch.h"
 #include "../src/selection.h"
+#include "../src/ui_sdf.h"
+#include "../src/ui_shell.h"
 #include "../src/brush_engine.h"
 #include "../src/app_shape.h"
 #include "../src/canvas.h"
@@ -668,6 +670,92 @@ static int make_text_retouch_screen(void) {
     return ok;
 }
 
+static UiShellState shell_state_for_bench(int doc_w, int doc_h) {
+    UiShellState state;
+    static const char *labels[8] = {"M", "W", "B", "E", "L", "R", "O", "F"};
+
+    memset(&state, 0, sizeof(state));
+    state.doc_width = doc_w;
+    state.doc_height = doc_h;
+    state.tool_count = 8;
+    state.active_tool = 2;
+    for (int i = 0; i < 8; i++) {
+        state.tool_labels[i] = labels[i];
+    }
+    state.layer_count = 3;
+    state.active_layer = 1;
+    snprintf(state.layer_names[0], UI_SHELL_NAME_MAX, "Background");
+    snprintf(state.layer_names[1], UI_SHELL_NAME_MAX, "Paint");
+    snprintf(state.layer_names[2], UI_SHELL_NAME_MAX, "FX Glow");
+    state.layer_visible[0] = 1;
+    state.layer_visible[1] = 1;
+    state.layer_visible[2] = 0;
+    state.layer_opacity[0] = 100;
+    state.layer_opacity[1] = 80;
+    state.layer_opacity[2] = 100;
+    state.blend_label = "Brush  Multiply  size 6  100%";
+    state.status_text = "fit";
+    state.foreground_color = 0xFF1B1F24;
+    state.background_color = 0xFFFDD835;
+    return state;
+}
+
+static int make_sdf_shell_screen(const char *path, int window_w, int window_h, int doc_w, int doc_h) {
+    UiShellState state = shell_state_for_bench(doc_w, doc_h);
+    static UiShellFrame frame;
+    Canvas shot = {0};
+    LayerStack doc;
+    int ok = 0;
+
+    if (!ui_shell_init()) {
+        return 0;
+    }
+    ui_shell_build(window_w, window_h, &state, &frame);
+
+    if (!canvas_init(&shot, window_w, window_h)) {
+        return 0;
+    }
+    canvas_clear(&shot, 0xFF1F1F23);
+    ui_draw_list_rasterize(&frame.draw_list, &shot);
+
+    if (!layer_stack_init(&doc, doc_w, doc_h, DOC_BG)) {
+        canvas_free(&shot);
+        return 0;
+    }
+    if (doc_w >= 320 && doc_h >= 240) {
+        draw_sample_photo(&doc.layers[0].canvas);
+    } else {
+        canvas_gradient_fill(&doc.layers[0].canvas, 0, 0, doc_w - 1, doc_h - 1, 0xFF38BDF8, 0xFFE11D48, GRADIENT_LINEAR);
+    }
+
+    {
+        Canvas composite = {0};
+        if (canvas_init(&composite, doc_w, doc_h)) {
+            layer_stack_composite(&doc, &composite, DOC_BG);
+            for (int y = 0; y < (int)frame.viewport.height; y++) {
+                for (int x = 0; x < (int)frame.viewport.width; x++) {
+                    int sx = (int)frame.viewport.x + x;
+                    int sy = (int)frame.viewport.y + y;
+                    int dx = (int)(x / frame.scale);
+                    int dy = (int)(y / frame.scale);
+                    if (dx >= doc_w) dx = doc_w - 1;
+                    if (dy >= doc_h) dy = doc_h - 1;
+                    canvas_set_pixel_raw(&shot, sx, sy, canvas_get_pixel(&composite, dx, dy));
+                }
+            }
+            canvas_free(&composite);
+        }
+    }
+
+    ok = canvas_save_bmp(&shot, path);
+    if (!ok) {
+        fprintf(stderr, "visualbench: failed to save %s\n", path);
+    }
+    canvas_free(&shot);
+    layer_stack_free(&doc);
+    return ok;
+}
+
 static int make_tool_screens(void) {
     int ok = 1;
 
@@ -714,6 +802,12 @@ int main(void) {
     if (!make_text_retouch_screen()) {
         return 1;
     }
+    if (!make_sdf_shell_screen("visualbench/sdf-shell-1280.bmp", 1280, 800, 800, 600)) {
+        return 1;
+    }
+    if (!make_sdf_shell_screen("visualbench/sdf-shell-960.bmp", 960, 600, 1600, 900)) {
+        return 1;
+    }
 
     puts("visualbench wrote visualbench/editor-overview.bmp");
     puts("visualbench wrote visualbench/layer-states.bmp");
@@ -726,5 +820,7 @@ int main(void) {
     puts("visualbench wrote visualbench/gradients.bmp");
     puts("visualbench wrote visualbench/layer-masks.bmp");
     puts("visualbench wrote visualbench/text-retouch.bmp");
+    puts("visualbench wrote visualbench/sdf-shell-1280.bmp");
+    puts("visualbench wrote visualbench/sdf-shell-960.bmp");
     return 0;
 }

@@ -5,7 +5,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
+#include <direct.h>
+#define portable_mkdir(path) _mkdir(path)
+#else
 #include <sys/stat.h>
+#define portable_mkdir(path) mkdir(path, 0777)
+#endif
 #include <sys/types.h>
 
 static uint64_t fnv1a64(const uint32_t *pixels, size_t count) {
@@ -25,7 +31,7 @@ static uint64_t fnv1a64(const uint32_t *pixels, size_t count) {
 }
 
 static int mkdir_if_missing(const char *path) {
-    if (mkdir(path, 0777) == 0) {
+    if (portable_mkdir(path) == 0) {
         return 1;
     }
     if (errno == EEXIST) {

@@ -9,7 +9,9 @@ CFLAGS += $(shell sdl2-config --cflags)
 LDFLAGS += $(shell sdl2-config --libs)
 endif
 
-SRC = src/main.c src/app.c src/app_brush.c src/app_brush_mask.c src/app_canvas_click.c src/app_canvas_ops.c src/app_color.c src/app_layer_state.c src/app_layout.c src/app_preview.c src/app_runtime_shortcuts.c src/app_sampled_color.c src/app_shape.c src/app_shape_cancel.c src/app_title.c src/canvas.c src/image_io.c src/layers.c src/layer_name_shortcuts.c src/direct_layer_shortcuts.c src/history_shortcuts.c src/history_state.c src/file_shortcuts.c src/merge_shortcuts.c src/paint_shortcuts.c src/brush_shortcuts.c src/view_shortcuts.c src/canvas_shortcuts.c src/openshop_api.c src/openshop_io_api.c src/blend.c src/adjust.c src/brush_engine.c src/selection.c src/gradient.c src/psd.c src/retouch.c src/font.c
+CLAY_WARN_FLAGS = -Wno-missing-braces -Wno-unused-parameter -Wno-unused-variable
+
+SRC = src/main.c src/app.c src/app_brush.c src/app_brush_mask.c src/app_canvas_click.c src/app_canvas_ops.c src/app_color.c src/app_layer_state.c src/app_layout.c src/app_preview.c src/app_runtime_shortcuts.c src/app_sampled_color.c src/app_shape.c src/app_shape_cancel.c src/app_title.c src/canvas.c src/image_io.c src/layers.c src/layer_name_shortcuts.c src/direct_layer_shortcuts.c src/history_shortcuts.c src/history_state.c src/file_shortcuts.c src/merge_shortcuts.c src/paint_shortcuts.c src/brush_shortcuts.c src/view_shortcuts.c src/canvas_shortcuts.c src/openshop_api.c src/openshop_io_api.c src/blend.c src/adjust.c src/brush_engine.c src/selection.c src/gradient.c src/psd.c src/retouch.c src/font.c src/ui_sdf.c src/ui_shell.c src/clay_impl.c
 OBJ = $(SRC:.c=.o)
 BIN = openshop
 
@@ -37,10 +39,12 @@ PSD_TEST_BIN = psd_selftest
 PSD_TEST_SRC = tests/psd_selftest.c src/psd.c src/canvas.c
 RETOUCH_TEST_BIN = retouch_selftest
 RETOUCH_TEST_SRC = tests/retouch_selftest.c src/retouch.c src/font.c src/canvas.c
+UI_TEST_BIN = ui_selftest
+UI_TEST_SRC = tests/ui_selftest.c src/ui_sdf.c src/ui_shell.c src/clay_impl.c src/font.c src/canvas.c
 SDL_TEST_BIN = image_io_smoke
 SDL_TEST_SRC = tests/image_io_smoke.c src/canvas.c src/image_io.c
 VISUALBENCH_BIN = visualbench_runner
-VISUALBENCH_SRC = tools/visualbench.c src/app_brush.c src/app_brush_mask.c src/app_layer_state.c src/app_shape.c src/canvas.c src/history_state.c src/image_io.c src/layers.c src/blend.c src/adjust.c src/brush_engine.c src/selection.c src/gradient.c src/retouch.c src/font.c
+VISUALBENCH_SRC = tools/visualbench.c src/app_brush.c src/app_brush_mask.c src/app_layer_state.c src/app_shape.c src/canvas.c src/history_state.c src/image_io.c src/layers.c src/blend.c src/adjust.c src/brush_engine.c src/selection.c src/gradient.c src/retouch.c src/font.c src/ui_sdf.c src/ui_shell.c src/clay_impl.c
 
 all: $(BIN)
 
@@ -58,9 +62,12 @@ $(BIN): check-sdl2 $(OBJ)
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+src/clay_impl.o: CFLAGS += $(CLAY_WARN_FLAGS)
+src/ui_shell.o: CFLAGS += $(CLAY_WARN_FLAGS)
+
 src/app.o: check-sdl2
 
-test: $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN) $(API_TEST_BIN) $(LAYOUT_TEST_BIN) $(BLEND_TEST_BIN) $(ADJUST_TEST_BIN) $(BRUSH_ENGINE_TEST_BIN) $(SELECTION_TEST_BIN) $(PSD_TEST_BIN) $(RETOUCH_TEST_BIN) test-js
+test: $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN) $(API_TEST_BIN) $(LAYOUT_TEST_BIN) $(BLEND_TEST_BIN) $(ADJUST_TEST_BIN) $(BRUSH_ENGINE_TEST_BIN) $(SELECTION_TEST_BIN) $(PSD_TEST_BIN) $(RETOUCH_TEST_BIN) $(UI_TEST_BIN) test-js
 	./$(TEST_BIN)
 	./$(IMAGE_TEST_BIN)
 	./$(SHORTCUT_TEST_BIN)
@@ -73,6 +80,7 @@ test: $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN) $(A
 	./$(SELECTION_TEST_BIN)
 	./$(PSD_TEST_BIN)
 	./$(RETOUCH_TEST_BIN)
+	./$(UI_TEST_BIN)
 
 test-js:
 	@if command -v node >/dev/null 2>&1; then node tests/js_api_selftest.mjs && node tests/photoshop_js_selftest.mjs; else echo "node not found; skipping JS API selftest"; fi
@@ -120,13 +128,16 @@ $(PSD_TEST_BIN): $(PSD_TEST_SRC)
 $(RETOUCH_TEST_BIN): $(RETOUCH_TEST_SRC)
 	$(CC) -std=c11 -O2 -Wall -Wextra $(RETOUCH_TEST_SRC) -o $(RETOUCH_TEST_BIN) -lm
 
+$(UI_TEST_BIN): $(UI_TEST_SRC)
+	$(CC) -std=c11 -O2 -Wall -Wextra $(CLAY_WARN_FLAGS) $(UI_TEST_SRC) -o $(UI_TEST_BIN) -lm
+
 $(SDL_TEST_BIN): check-sdl2 $(SDL_TEST_SRC)
 	$(CC) $(CFLAGS) $(SDL_TEST_SRC) -o $(SDL_TEST_BIN) $(LDFLAGS) -lm
 
 $(VISUALBENCH_BIN): check-sdl2 $(VISUALBENCH_SRC)
-	$(CC) $(CFLAGS) $(VISUALBENCH_SRC) -o $(VISUALBENCH_BIN) $(LDFLAGS) -lm
+	$(CC) $(CFLAGS) $(CLAY_WARN_FLAGS) $(VISUALBENCH_SRC) -o $(VISUALBENCH_BIN) $(LDFLAGS) -lm
 
 clean:
-	rm -f $(OBJ) $(BIN) $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN) $(API_TEST_BIN) $(LAYOUT_TEST_BIN) $(BLEND_TEST_BIN) $(ADJUST_TEST_BIN) $(BRUSH_ENGINE_TEST_BIN) $(SELECTION_TEST_BIN) $(PSD_TEST_BIN) $(RETOUCH_TEST_BIN) $(SDL_TEST_BIN) $(VISUALBENCH_BIN)
+	rm -f $(OBJ) $(BIN) $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN) $(API_TEST_BIN) $(LAYOUT_TEST_BIN) $(BLEND_TEST_BIN) $(ADJUST_TEST_BIN) $(BRUSH_ENGINE_TEST_BIN) $(SELECTION_TEST_BIN) $(PSD_TEST_BIN) $(RETOUCH_TEST_BIN) $(UI_TEST_BIN) $(SDL_TEST_BIN) $(VISUALBENCH_BIN)
 
 .PHONY: all clean test test-js test-sdl visualbench

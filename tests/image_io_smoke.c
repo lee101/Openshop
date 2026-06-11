@@ -5,7 +5,13 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef _WIN32
+#include <direct.h>
+#define portable_mkdir(path) _mkdir(path)
+#else
 #include <sys/stat.h>
+#define portable_mkdir(path) mkdir(path, 0777)
+#endif
 #include <sys/types.h>
 
 static int expect_pixel_eq(const char *label, uint32_t got, uint32_t want) {
@@ -17,7 +23,7 @@ static int expect_pixel_eq(const char *label, uint32_t got, uint32_t want) {
 }
 
 static int mkdir_if_missing(const char *path) {
-    if (mkdir(path, 0777) == 0) {
+    if (portable_mkdir(path) == 0) {
         return 1;
     }
     return errno == EEXIST;

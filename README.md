@@ -13,6 +13,8 @@ make
 make test
 ```
 
+CI builds and tests on Linux, macOS, and Windows (MSYS2/MinGW), including a headless app smoke run under SDL's dummy video driver with the software renderer.
+
 ## Script APIs
 OpenShop now exposes the same first-pass document/layer/tool command names in C and JavaScript:
 
@@ -57,12 +59,17 @@ This writes representative BMP captures for the editor overview, layer states, a
 Current visualbench also writes per-tool captures for brush, eraser, line, rectangle, ellipse, and fill.
 
 ## Local Reference Libraries
-External UI references are cloned into gitignored `vendor/` directories. Clay is kept at `vendor/clay` for studying its single-header, renderer-agnostic C layout style; see `docs/clay-layout-notes.md`.
+Clay is vendored at `third_party/clay` (single-header, zlib license) and drives the workspace layout; see `docs/clay-layout-notes.md`. Other UI references are cloned into gitignored `vendor/` directories.
 
 ## Run
 ```bash
-./openshop [optional_input.bmp]
+./openshop [WxH] [optional_input.bmp]
 ```
+
+Documents can be any size (e.g. `./openshop 1920x1080`); the window is resizable and the workspace relayouts responsively. The document view auto-fits, with wheel zoom and middle-drag pan.
+
+## SDF UI + Clay Layout
+The workspace chrome is laid out with Clay (`third_party/clay`, zlib license) and painted by an in-house SDF renderer (`src/ui_sdf.h`): rounded rects, borders, capsule lines, and text are evaluated as signed distance fields with analytic anti-aliasing into a draw list, then presented through SDL's GPU renderer (Direct3D on Windows, Metal on macOS, OpenGL/Vulkan on Linux — NVIDIA, AMD, Intel, and Apple GPUs all use the same path, with automatic software fallback when no GPU driver is available). The draw-list model keeps the door open for a native shader backend. The shell (menus, options bar, tool rail, layers panel, swatches, status bar) is rebuilt only when state changes, hashed per frame.
 
 ## Controls
 - `Left Mouse`: draw on the active layer
@@ -125,13 +132,16 @@ External UI references are cloned into gitignored `vendor/` directories. Clay is
 - `Ctrl+O`: load `input.bmp` into the active layer
 - `Ctrl+Z` / `Ctrl+Y`: undo / redo (layer-aware)
 - `Shift+=` / `Shift+-`: cycle active layer blend mode forward/back
+- `Mouse Wheel`: zoom in/out around the cursor
+- `Middle Mouse` drag: pan the document
+- `0`: zoom to fit
 - `Tab`: toggle compact mode (hide panels, Photoshop-style)
 - `M`: rectangular marquee mode (drag to select; `Shift` adds, `Alt` subtracts)
 - `W`: magic wand mode (click to select; `Shift` adds, `Alt` subtracts)
 - `Esc`: deselect if a selection is active, otherwise quit
 
 ## Notes
-- Canvas size is 800x600; window is 1024x768.
+- Document size is arbitrary (default 800x600); the window is resizable (default 1280x800).
 - Layer stack starts with a white background layer; new layers are transparent.
 - Locked layers stay visible in the stack but reject paint, fill, clear, transform, load, merge, flatten, stamp, and delete operations.
 - Solo preview still renders the active layer even if that layer's normal visibility is off.
