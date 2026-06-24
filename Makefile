@@ -9,7 +9,7 @@ CFLAGS += $(shell sdl2-config --cflags)
 LDFLAGS += $(shell sdl2-config --libs)
 endif
 
-SRC = src/main.c src/app.c src/app_brush.c src/app_brush_mask.c src/app_canvas_click.c src/app_canvas_ops.c src/app_color.c src/app_layer_state.c src/app_layout.c src/app_preview.c src/app_runtime_shortcuts.c src/app_sampled_color.c src/app_shape.c src/app_shape_cancel.c src/app_title.c src/canvas.c src/image_io.c src/layers.c src/layer_name_shortcuts.c src/direct_layer_shortcuts.c src/history_shortcuts.c src/history_state.c src/file_shortcuts.c src/merge_shortcuts.c src/paint_shortcuts.c src/brush_shortcuts.c src/view_shortcuts.c src/canvas_shortcuts.c src/openshop_api.c src/openshop_io_api.c src/blend.c src/adjust.c src/brush_engine.c src/selection.c src/gradient.c src/psd.c
+SRC = src/main.c src/app.c src/app_brush.c src/app_brush_mask.c src/app_canvas_click.c src/app_canvas_ops.c src/app_color.c src/app_layer_state.c src/app_layout.c src/app_preview.c src/app_runtime_shortcuts.c src/app_sampled_color.c src/app_shape.c src/app_shape_cancel.c src/app_title.c src/canvas.c src/image_io.c src/layers.c src/layer_name_shortcuts.c src/direct_layer_shortcuts.c src/history_shortcuts.c src/history_state.c src/file_shortcuts.c src/merge_shortcuts.c src/paint_shortcuts.c src/brush_shortcuts.c src/view_shortcuts.c src/canvas_shortcuts.c src/openshop_api.c src/openshop_io_api.c src/blend.c src/adjust.c src/filters.c src/brush_engine.c src/selection.c src/gradient.c src/psd.c
 OBJ = $(SRC:.c=.o)
 BIN = openshop
 
@@ -22,13 +22,15 @@ SHORTCUT_TEST_SRC = tests/shortcut_selftest.c src/app_brush.c src/app_brush_mask
 HISTORY_TEST_BIN = history_selftest
 HISTORY_TEST_SRC = tests/history_selftest.c src/app_canvas_ops.c src/app_layer_state.c src/canvas.c src/layers.c src/history_state.c src/blend.c
 API_TEST_BIN = api_selftest
-API_TEST_SRC = tests/api_selftest.c src/openshop_api.c src/app_shape.c src/canvas.c src/layers.c src/blend.c src/adjust.c src/brush_engine.c src/selection.c src/gradient.c src/psd.c
+API_TEST_SRC = tests/api_selftest.c src/openshop_api.c src/app_shape.c src/canvas.c src/layers.c src/blend.c src/adjust.c src/filters.c src/brush_engine.c src/selection.c src/gradient.c src/psd.c
 LAYOUT_TEST_BIN = app_layout_selftest
 LAYOUT_TEST_SRC = tests/app_layout_selftest.c src/app_layout.c
 BLEND_TEST_BIN = blend_selftest
 BLEND_TEST_SRC = tests/blend_selftest.c src/blend.c src/canvas.c src/layers.c
 ADJUST_TEST_BIN = adjust_selftest
-ADJUST_TEST_SRC = tests/adjust_selftest.c src/adjust.c src/gradient.c src/canvas.c
+ADJUST_TEST_SRC = tests/adjust_selftest.c src/adjust.c src/filters.c src/gradient.c src/canvas.c
+FILTERS_TEST_BIN = filters_selftest
+FILTERS_TEST_SRC = tests/filters_selftest.c src/filters.c
 BRUSH_ENGINE_TEST_BIN = brush_engine_selftest
 BRUSH_ENGINE_TEST_SRC = tests/brush_engine_selftest.c src/brush_engine.c src/canvas.c
 SELECTION_TEST_BIN = selection_selftest
@@ -38,7 +40,7 @@ PSD_TEST_SRC = tests/psd_selftest.c src/psd.c src/canvas.c
 SDL_TEST_BIN = image_io_smoke
 SDL_TEST_SRC = tests/image_io_smoke.c src/canvas.c src/image_io.c
 VISUALBENCH_BIN = visualbench_runner
-VISUALBENCH_SRC = tools/visualbench.c src/app_brush.c src/app_brush_mask.c src/app_layer_state.c src/app_shape.c src/canvas.c src/history_state.c src/image_io.c src/layers.c src/blend.c src/adjust.c src/brush_engine.c src/selection.c src/gradient.c
+VISUALBENCH_SRC = tools/visualbench.c src/app_brush.c src/app_brush_mask.c src/app_layer_state.c src/app_shape.c src/canvas.c src/history_state.c src/image_io.c src/layers.c src/blend.c src/adjust.c src/filters.c src/brush_engine.c src/selection.c src/gradient.c
 
 all: $(BIN)
 
@@ -58,7 +60,7 @@ $(BIN): check-sdl2 $(OBJ)
 
 src/app.o: check-sdl2
 
-test: $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN) $(API_TEST_BIN) $(LAYOUT_TEST_BIN) $(BLEND_TEST_BIN) $(ADJUST_TEST_BIN) $(BRUSH_ENGINE_TEST_BIN) $(SELECTION_TEST_BIN) $(PSD_TEST_BIN) test-js
+test: $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN) $(API_TEST_BIN) $(LAYOUT_TEST_BIN) $(BLEND_TEST_BIN) $(ADJUST_TEST_BIN) $(FILTERS_TEST_BIN) $(BRUSH_ENGINE_TEST_BIN) $(SELECTION_TEST_BIN) $(PSD_TEST_BIN) test-js
 	./$(TEST_BIN)
 	./$(IMAGE_TEST_BIN)
 	./$(SHORTCUT_TEST_BIN)
@@ -67,6 +69,7 @@ test: $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN) $(A
 	./$(LAYOUT_TEST_BIN)
 	./$(BLEND_TEST_BIN)
 	./$(ADJUST_TEST_BIN)
+	./$(FILTERS_TEST_BIN)
 	./$(BRUSH_ENGINE_TEST_BIN)
 	./$(SELECTION_TEST_BIN)
 	./$(PSD_TEST_BIN)
@@ -105,6 +108,9 @@ $(BLEND_TEST_BIN): $(BLEND_TEST_SRC)
 $(ADJUST_TEST_BIN): $(ADJUST_TEST_SRC)
 	$(CC) -std=c11 -O2 -Wall -Wextra $(ADJUST_TEST_SRC) -o $(ADJUST_TEST_BIN) -lm
 
+$(FILTERS_TEST_BIN): $(FILTERS_TEST_SRC)
+	$(CC) -std=c11 -O2 -Wall -Wextra $(FILTERS_TEST_SRC) -o $(FILTERS_TEST_BIN) -lm
+
 $(BRUSH_ENGINE_TEST_BIN): $(BRUSH_ENGINE_TEST_SRC)
 	$(CC) -std=c11 -O2 -Wall -Wextra $(BRUSH_ENGINE_TEST_SRC) -o $(BRUSH_ENGINE_TEST_BIN) -lm
 
@@ -121,6 +127,6 @@ $(VISUALBENCH_BIN): check-sdl2 $(VISUALBENCH_SRC)
 	$(CC) $(CFLAGS) $(VISUALBENCH_SRC) -o $(VISUALBENCH_BIN) $(LDFLAGS) -lm
 
 clean:
-	rm -f $(OBJ) $(BIN) $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN) $(API_TEST_BIN) $(LAYOUT_TEST_BIN) $(BLEND_TEST_BIN) $(ADJUST_TEST_BIN) $(BRUSH_ENGINE_TEST_BIN) $(SELECTION_TEST_BIN) $(PSD_TEST_BIN) $(SDL_TEST_BIN) $(VISUALBENCH_BIN)
+	rm -f $(OBJ) $(BIN) $(TEST_BIN) $(IMAGE_TEST_BIN) $(SHORTCUT_TEST_BIN) $(HISTORY_TEST_BIN) $(API_TEST_BIN) $(LAYOUT_TEST_BIN) $(BLEND_TEST_BIN) $(ADJUST_TEST_BIN) $(FILTERS_TEST_BIN) $(BRUSH_ENGINE_TEST_BIN) $(SELECTION_TEST_BIN) $(PSD_TEST_BIN) $(SDL_TEST_BIN) $(VISUALBENCH_BIN)
 
 .PHONY: all clean test test-js test-sdl visualbench
