@@ -1,5 +1,7 @@
 #include "adjust.h"
 
+#include "filters.h"
+
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -173,10 +175,10 @@ void canvas_desaturate(Canvas *c) {
     count = (size_t)c->width * (size_t)c->height;
     for (size_t i = 0; i < count; i++) {
         uint32_t p = c->pixels[i];
-        int r = (p >> 16) & 0xFF;
-        int g = (p >> 8) & 0xFF;
-        int b = p & 0xFF;
-        uint8_t gray = clamp_u8((r * 77 + g * 151 + b * 28) >> 8);
+        uint8_t r = (uint8_t)((p >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((p >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(p & 0xFF);
+        uint8_t gray = os_luminance_rgb(r, g, b);
         c->pixels[i] = (p & 0xFF000000u) | ((uint32_t)gray << 16) | ((uint32_t)gray << 8) | gray;
     }
 }
