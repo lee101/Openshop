@@ -1,0 +1,23 @@
+{
+  "$schema": "https://app.nz/schemas/ci-autofix.schema.json",
+  "enabled": true,
+  "autoFix": true,
+  "autoMerge": false,
+  "autoAddCi": true,
+  "watchGithubActions": true,
+  "agent": {
+    "provider": "codex",
+    "binary": "codex",
+    "model": "gpt-5.5",
+    "reasoning": "high"
+  },
+  "projects": [
+    {
+      "repo": "lee101/Openshop",
+      "branch": "main",
+      "path": ".",
+      "autoAddCi": true,
+      "watchGithubActions": true
+    }
+  ]
+}

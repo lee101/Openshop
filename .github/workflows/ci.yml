@@ -6,6 +6,7 @@ on:
       - main
       - codex/**
   pull_request:
+  workflow_dispatch:
 
 jobs:
   build-and-test:
@@ -20,13 +21,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential libsdl2-dev
 
-      - name: Build
-        run: make
-
-      - name: Run tests
-        run: |
-          make test
-          make test-sdl
+      - name: Run project CI
+        run: bash scripts/ci.sh
 
       - name: Upload generated self-test images
         if: always()

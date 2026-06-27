@@ -13,6 +13,16 @@ make
 make test
 ```
 
+## CI
+GitHub Actions runs the same local parity command used by app.nz CI autofix:
+
+```bash
+bash scripts/ci.sh
+```
+
+See `docs/appnz-ci-autofix.md` for the project-level auto-fix, auto-merge, and
+auto-add-CI flags.
+
 ## Script APIs
 OpenShop now exposes the same first-pass document/layer/tool command names in C and JavaScript:
 
